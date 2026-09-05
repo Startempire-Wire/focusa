@@ -303,6 +303,8 @@ pub struct ReleaseManifest {
     pub commit: String,
     pub channel: ReleaseChannel,
     #[serde(default)]
+    pub publication_status: Option<String>,
+    #[serde(default)]
     pub published_at: Option<String>,
     #[serde(default)]
     pub yanked: bool,
@@ -312,6 +314,8 @@ pub struct ReleaseManifest {
     pub superseded_by: Option<String>,
     #[serde(default)]
     pub gates: ReleaseGates,
+    #[serde(default)]
+    pub compatibility_canary: Option<CompatibilityCanaryAuthorization>,
     pub trust: ReleaseTrust,
     #[serde(default)]
     pub provenance: Option<ReleaseProvenance>,
@@ -324,6 +328,25 @@ pub struct ReleaseManifest {
     pub dev_mode_features: Vec<String>,
     #[serde(default)]
     pub rollback_supported: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompatibilityCanaryAuthorization {
+    pub schema: String,
+    pub status: String,
+    pub environment: String,
+    pub allowed_install_scope: String,
+    pub required_previous_tag: String,
+    #[serde(default)]
+    pub required_sequence: Vec<String>,
+    #[serde(default)]
+    pub production_apply_authorized: bool,
+    #[serde(default)]
+    pub system_install_authorized: bool,
+    #[serde(default)]
+    pub service_mutation_authorized: bool,
+    #[serde(default)]
+    pub automatic_apply_authorized: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -959,6 +982,7 @@ mod tests {
             tag: "v0.9.80-dev".into(),
             commit: "8fa6452d".into(),
             channel: ReleaseChannel::Dev,
+            publication_status: Some("published".into()),
             published_at: Some("2026-07-10T00:00:00Z".into()),
             yanked: false,
             revoked: false,
@@ -979,6 +1003,7 @@ mod tests {
                     "https://github.com/Startempire-Wire/focusa/actions/runs/3".into(),
                 ),
             },
+            compatibility_canary: None,
             trust: ReleaseTrust {
                 signing_algorithm: "ed25519".into(),
                 key_id: "focusa-dev-2026".into(),

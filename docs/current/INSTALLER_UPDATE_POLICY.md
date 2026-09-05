@@ -45,8 +45,28 @@ the prior manifest with the prior runtime. For `v0.9.188+`, `focusa update apply
 reuses this exact install lifecycle rather than maintaining a second binary/package
 promotion engine; its signed plan must include CLI, daemon, TUI, session runner,
 distribution manifest, Pi extension, and agent-context receipts. Older releases
-remain installable for rollback but report manifest parity as unavailable, never
-inferred.
+remain installable for rollback through their historically published three-binary
+matrix and report manifest parity as unavailable, never inferred.
+
+Before production deployment, the signed candidate manifest may authorize one
+explicit compatibility canary only when it names the exact prior stable tag and
+sets production, system-install, service-mutation, and automatic-apply authority
+to false. The candidate updater additionally requires `--compatibility-canary-root`
+plus a non-root ephemeral `HOME`, isolated XDG/data/Pi roots, a matching scope
+marker, a signed lease fixture, a nonempty Focusa legacy database, and a user
+sentinel. The official prior CLI bootstrap must pass SHA-256 and detached Ed25519
+verification under current pinned authority before execution. Revoked keys remain
+blocked: an old signed timestamp or rotation note cannot authorize historical assets;
+a separately authorized current-root digest binding is required. The canary must prove deterministic recovery
+from an interrupted candidate install, then perform full-release apply, full rollback,
+and reapply through the canonical installer transaction. Every phase verifies binary
+and Pi versions, daemon health, lease/sentinel preservation, SQLite integrity, additive
+schema/row-count evidence, and—on candidate phases—the complete installed
+Pi/skills/docs/generated-client distribution parity contract. Production deployment
+independently verifies the signed exact-tag/exact-commit canary receipt before any
+production cleanup, bootstrap sync, install, service, or data mutation. It then
+supersedes this canary authority; normal update mode continues to require signed
+`deploy-success.json`.
 
 After install, repair, or update, verify daemon health/version, all-Pi-tool discovery, Mission Canvas, and canonical Workpoint resume. Uninstall must remain idempotent when binaries are already absent.
 

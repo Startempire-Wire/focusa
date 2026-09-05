@@ -133,6 +133,33 @@ jobs:
             }
             core.info(`Using ${proofKind} run ${successRun.id}: ${successRun.html_url}`);
 
+      - name: Require signed predeployment compatibility canary
+        if: ${{ !inputs.dry_run }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -c 'import cryptography; print(cryptography.__version__)'
+          gate_dir="$RUNNER_TEMP/predeployment-canary-gate"
+          rm -rf "$gate_dir"
+          mkdir -p "$gate_dir"
+          gh release download '${{ steps.cfg.outputs.tag }}' \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir "$gate_dir" --clobber \
+            --pattern compatibility-canary-success.json \
+            --pattern compatibility-canary-success.json.sig
+          python3 scripts/compatibility-canary-receipt.py verify \
+            --receipt "$gate_dir/compatibility-canary-success.json" \
+            --signature "$gate_dir/compatibility-canary-success.json.sig" \
+            --trusted-keys config/focusa-trusted-release-keys.json \
+            --tag '${{ steps.cfg.outputs.tag }}' \
+            --commit '${{ steps.cfg.outputs.tag_sha }}' \
+            --previous-tag v0.9.177
+          release_state="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/${{ steps.cfg.outputs.tag }}")"
+          jq -e '.draft == false and .prerelease == true' <<<"$release_state" >/dev/null
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" != '${{ steps.cfg.outputs.tag }}'
+
       - name: Spec104 static audit preflight
         shell: bash
         run: |

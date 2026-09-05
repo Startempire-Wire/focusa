@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.187",
-  "source_commit": "d38832fba",
-  "generated_at": "2026-09-04T17:35:56.713480Z",
+  "source_commit": "1bdd8c578",
+  "generated_at": "2026-09-05T01:12:08.668552Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:99225d837b6c8cda80703585c3acbe455277bc6adf6b431e1f72339ef1fb05c9",
@@ -16,7 +16,7 @@
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:8e3f6a4a85300e863962064760b20c6958acbe44a8631266efed00dae5c4a962",
+      "sha256": "sha256:74271a58c06a48d5dd418dba25bae7b3e995ff716ff3be82374a72b65a90441a",
       "file_count": 825,
       "source_paths": [
         "Cargo.toml",
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:c7af4b3abf9aaf3322ee0078759f2949569780c768e209769d3c0e770d475b85",
+      "sha256": "sha256:f9c51ca3919f3d2508a5f781660b4734e3934543946da245a9c8f024133a4e0f",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -77,8 +77,8 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:cbbd213f26ac6393ab9115817132e1f61fc7777401be70d4bc17fd938542a179",
-      "file_count": 25,
+      "sha256": "sha256:0e039ad86242e0fc1f59b95c32b2662ebc618c73e7da3b71aa4452d3e7324c65",
+      "file_count": 33,
       "source_paths": [
         ".appveyor.yml",
         "codemagic.yaml",
@@ -95,6 +95,10 @@
         "scripts/wait-for-external-release-assets.py",
         "scripts/release-trust-metadata.py",
         "scripts/release-deploy-proof.py",
+        "scripts/verify-release-bootstrap-asset.py",
+        "scripts/run-predeployment-compatibility-canary.sh",
+        "scripts/compatibility-canary-receipt.py",
+        "scripts/compatibility-canary-database-inventory.py",
         "scripts/generate-release-intelligence-packet.py",
         "tests/154-focusa-canonical-all-platform-release-test.sh",
         "tests/154_focusa_canonical_release_assets_test.py",
@@ -102,6 +106,10 @@
         "tests/release_deploy_automation_static_test.sh",
         "tests/release_authority_root_embedding_test.py",
         "tests/release_deploy_proof_test.py",
+        "tests/verify_release_bootstrap_asset_test.py",
+        "tests/sign_compatibility_canary_receipt_test.py",
+        "tests/predeployment_compatibility_canary_static_test.py",
+        "tests/compatibility_canary_database_inventory_test.py",
         "tests/release_trust_metadata_static_test.sh",
         "tests/spec177-nightly-contract-static-test.sh",
         "tests/spec146_release_intelligence_workflow_gate.py"

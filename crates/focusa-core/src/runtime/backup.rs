@@ -318,6 +318,8 @@ struct VerificationFingerprint {
     files: Vec<(PathBuf, u64, u128)>,
 }
 
+const VERIFICATION_CACHE_MAX_ENTRIES: usize = 64;
+
 static VERIFICATION_CACHE: OnceLock<Mutex<HashMap<PathBuf, VerificationFingerprint>>> =
     OnceLock::new();
 
@@ -369,6 +371,14 @@ fn record_verification(dir: &Path, fingerprint: VerificationFingerprint) {
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
     {
+        if cache.len() >= VERIFICATION_CACHE_MAX_ENTRIES && !cache.contains_key(dir) {
+            // Verification results are an optimization only. Keep this process-wide
+            // projection bounded and evict deterministically without touching any
+            // durable backup, manifest, receipt, or cryptographic authority.
+            if let Some(evicted) = cache.keys().min().cloned() {
+                cache.remove(&evicted);
+            }
+        }
         cache.insert(dir.to_path_buf(), fingerprint);
     }
 }

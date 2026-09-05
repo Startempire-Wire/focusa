@@ -64,6 +64,7 @@ const CANONICAL_RELEASE_BINARIES: [&str; 4] = [
     "focusa-tui",
     "focusa-session-runner",
 ];
+const LEGACY_RELEASE_BINARIES: [&str; 3] = ["focusa", "focusa-daemon", "focusa-tui"];
 
 struct UiChannel {
     sender: mpsc::Sender<InstallEvent>,
@@ -242,6 +243,15 @@ pub struct InstallArgs {
     /// Internal delegated-install path: bind every downloaded surface to one exact tag.
     #[arg(skip)]
     pub release_tag_override: Option<String>,
+
+    /// Internal manifest-bound rollback path. Not exposed as an install CLI flag.
+    #[arg(skip)]
+    pub allow_verified_rollback: bool,
+
+    /// Internal signed compatibility-canary transaction marker. This gates
+    /// deterministic recovery injection and is never exposed as a CLI flag.
+    #[arg(skip)]
+    pub compatibility_canary: bool,
 
     /// Promote verified assets to the authoritative `/usr/local/bin` system surface.
     /// Used explicitly by the verified bootstrap when bridging an older system install.
@@ -2911,8 +2921,7 @@ async fn resolve_release(
 async fn phase_asset_download(
     target: InstallTarget,
     channel: Channel,
-    github_repo: Option<&str>,
-    release_tag_override: Option<&str>,
+    args: &InstallArgs,
     install_root: &std::path::Path,
     sink: &dyn InstallEventSink,
     cancellation: &CancellationToken,
@@ -2921,12 +2930,15 @@ async fn phase_asset_download(
         phase: InstallPhase::DownloadAssets,
         message: "streaming assets to staged files".into(),
     });
-    let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
-    let release = resolve_release(channel, repo, release_tag_override).await?;
+    let repo = args
+        .github_repo
+        .as_deref()
+        .unwrap_or("Startempire-Wire/focusa");
+    let release = resolve_release(channel, repo, args.release_tag_override.as_deref()).await?;
     let tag_name = release.tag;
     let client = release.client;
     let triple = triple_for(target);
-    let assets = CANONICAL_RELEASE_BINARIES;
+    let assets = release_binaries_for_tag(&tag_name);
     let mut out = Vec::new();
     let executable_suffix = release_executable_suffix(target);
     for asset_name in assets {
@@ -2935,7 +2947,7 @@ async fn phase_asset_download(
             .join("bin")
             .join(installed_binary_name(target, asset_name));
         std::fs::create_dir_all(install_path.parent().expect("bin parent"))?;
-        reject_release_rollback(install_root, &tag_name)?;
+        reject_release_rollback(install_root, &tag_name, args.allow_verified_rollback)?;
         let staged = install_path.with_extension("download");
         let asset_url = release_asset_url(repo, &tag_name, &expected);
         let existing_mode = std::fs::metadata(&install_path)
@@ -3026,7 +3038,14 @@ fn release_number(tag: &str) -> Option<Vec<u64>> {
         .collect()
 }
 
-fn reject_release_rollback(install_root: &std::path::Path, target: &str) -> Result<()> {
+fn reject_release_rollback(
+    install_root: &std::path::Path,
+    target: &str,
+    allow_verified_rollback: bool,
+) -> Result<()> {
+    if allow_verified_rollback {
+        return Ok(());
+    }
     let marker = install_root.join(".focusa-version");
     let Some(current) = std::fs::read_to_string(&marker).ok() else {
         return Ok(());
@@ -3576,6 +3595,14 @@ fn install_agent_context_archive(
     Ok(destination)
 }
 
+fn release_binaries_for_tag(tag: &str) -> &'static [&'static str] {
+    if release_requires_distribution_manifest(tag) {
+        &CANONICAL_RELEASE_BINARIES
+    } else {
+        &LEGACY_RELEASE_BINARIES
+    }
+}
+
 pub(crate) fn release_requires_distribution_manifest(tag: &str) -> bool {
     let core = tag
         .trim_start_matches('v')
@@ -3851,6 +3878,7 @@ fn place_symlinks(
     target: InstallTarget,
     bin_dir: &std::path::Path,
     _install_root: &std::path::Path,
+    expected_tag: &str,
 ) -> Result<()> {
     if matches!(
         target,
@@ -3863,7 +3891,27 @@ fn place_symlinks(
         .map(std::path::PathBuf::from)
         .ok_or_else(|| anyhow!("HOME not set"))?;
     let local_bin = home.join(".local/bin");
-    for bin in CANONICAL_RELEASE_BINARIES {
+    let release_binaries = release_binaries_for_tag(expected_tag);
+    for obsolete in CANONICAL_RELEASE_BINARIES
+        .iter()
+        .filter(|name| !release_binaries.contains(name))
+    {
+        let link = local_bin.join(obsolete);
+        if std::fs::read_link(&link).is_ok_and(|target| target.starts_with(bin_dir)) {
+            std::fs::remove_file(&link)
+                .with_context(|| format!("remove obsolete release link {}", link.display()))?;
+        }
+        let binary = bin_dir.join(obsolete);
+        if binary.is_file() {
+            std::fs::remove_file(&binary).with_context(|| {
+                format!(
+                    "remove binary absent from historical release {}",
+                    binary.display()
+                )
+            })?;
+        }
+    }
+    for bin in release_binaries {
         let target = bin_dir.join(bin);
         let link = local_bin.join(bin);
         if let Some(parent) = link.parent() {
@@ -3951,6 +3999,55 @@ fn error_after_system_rollback(error: anyhow::Error, entries: &[SystemLinkEntry]
 }
 
 #[cfg(target_os = "linux")]
+fn restore_obsolete_system_binaries(
+    entries: &[(std::path::PathBuf, std::path::PathBuf)],
+) -> Result<()> {
+    let mut failures = Vec::new();
+    for (path, backup) in entries.iter().rev() {
+        if path.exists()
+            && let Err(error) = std::fs::remove_file(path)
+        {
+            failures.push(format!("remove unexpected {}: {error}", path.display()));
+            continue;
+        }
+        if let Err(error) = std::fs::rename(backup, path) {
+            failures.push(format!(
+                "restore obsolete binary {} from {}: {error}",
+                path.display(),
+                backup.display()
+            ));
+        }
+    }
+    if !failures.is_empty() {
+        bail!(
+            "obsolete system binary rollback failed: {}",
+            failures.join("; ")
+        );
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn error_after_full_system_rollback(
+    error: anyhow::Error,
+    entries: &[SystemLinkEntry],
+    obsolete: &[(std::path::PathBuf, std::path::PathBuf)],
+) -> anyhow::Error {
+    let mut failures = Vec::new();
+    if let Err(rollback_error) = restore_obsolete_system_binaries(obsolete) {
+        failures.push(rollback_error.to_string());
+    }
+    if let Err(rollback_error) = rollback_system_links(entries) {
+        failures.push(rollback_error.to_string());
+    }
+    if failures.is_empty() {
+        error
+    } else {
+        error.context(failures.join("; "))
+    }
+}
+
+#[cfg(target_os = "linux")]
 fn promote_system_links(
     bin_dir: &std::path::Path,
     system_bin: &std::path::Path,
@@ -3967,7 +4064,8 @@ fn promote_system_links(
         .with_context(|| format!("create authoritative system path {}", system_bin.display()))?;
     let transaction = format!("{}", std::process::id());
     let mut entries: Vec<SystemLinkEntry> = Vec::new();
-    for name in CANONICAL_RELEASE_BINARIES {
+    let release_binaries = release_binaries_for_tag(expected_tag);
+    for name in release_binaries.iter().copied() {
         let local_path = bin_dir.join(name);
         if !local_path.is_file() {
             return Err(error_after_system_rollback(
@@ -4033,7 +4131,7 @@ fn promote_system_links(
         }
     }
     let expected_version = expected_tag.strip_prefix('v').unwrap_or(expected_tag);
-    for name in CANONICAL_RELEASE_BINARIES {
+    for name in release_binaries.iter().copied() {
         let smoke = std::process::Command::new(system_bin.join(name))
             .arg("--version")
             .output();
@@ -4050,6 +4148,33 @@ fn promote_system_links(
             ));
         }
     }
+    let mut obsolete_entries = Vec::new();
+    for name in CANONICAL_RELEASE_BINARIES
+        .iter()
+        .filter(|name| !release_binaries.contains(name))
+        .copied()
+    {
+        let path = system_bin.join(name);
+        if std::fs::symlink_metadata(&path).is_err() {
+            continue;
+        }
+        let backup = system_bin.join(format!(".focusa-{name}.obsolete-{transaction}"));
+        if backup.exists() {
+            return Err(error_after_full_system_rollback(
+                anyhow!("stale obsolete-binary transaction exists for {name}"),
+                &entries,
+                &obsolete_entries,
+            ));
+        }
+        if let Err(error) = std::fs::rename(&path, &backup) {
+            return Err(error_after_full_system_rollback(
+                anyhow!(error).context(format!("stash obsolete system binary {}", path.display())),
+                &entries,
+                &obsolete_entries,
+            ));
+        }
+        obsolete_entries.push((path, backup));
+    }
     let manifest_state_dir = if system_bin == std::path::Path::new("/usr/local/bin") {
         std::path::PathBuf::from(crate::commands::system_service::SYSTEM_STATE_DIR)
     } else {
@@ -4064,21 +4189,43 @@ fn promote_system_links(
         expected_tag,
     ) {
         Ok(transaction) => transaction,
-        Err(error) => return Err(error_after_system_rollback(error, &entries)),
+        Err(error) => {
+            return Err(error_after_full_system_rollback(
+                error,
+                &entries,
+                &obsolete_entries,
+            ));
+        }
     };
     let service_restarted = if let Some(transaction) = service_transaction.as_mut() {
         if let Err(error) = transaction.activate_and_verify(expected_version) {
-            return Err(error_after_system_rollback(error, &entries));
+            return Err(error_after_full_system_rollback(
+                error,
+                &entries,
+                &obsolete_entries,
+            ));
         }
         true
     } else {
         false
     };
     if let Err(error) = manifest_transaction.commit() {
-        return Err(error_after_system_rollback(error, &entries));
+        return Err(error_after_full_system_rollback(
+            error,
+            &entries,
+            &obsolete_entries,
+        ));
     }
     if let Some(transaction) = service_transaction.take() {
         transaction.commit();
+    }
+    for (_, backup) in &obsolete_entries {
+        if let Err(error) = std::fs::remove_file(backup) {
+            eprintln!(
+                "warning: committed system promotion retained obsolete binary rollback {}: {error}",
+                backup.display()
+            );
+        }
     }
     for entry in &entries {
         if entry.had_system_original
@@ -4521,7 +4668,7 @@ async fn phase_smoke_test(
     expected_tag: &str,
 ) -> Result<()> {
     let expected_version = expected_tag.strip_prefix('v').unwrap_or(expected_tag);
-    for name in CANONICAL_RELEASE_BINARIES {
+    for name in release_binaries_for_tag(expected_tag) {
         let binary = bin_dir.join(installed_binary_name(target, name));
         if !binary.exists() {
             return Err(anyhow!(
@@ -4648,16 +4795,14 @@ async fn execute_real_install(
         detail: Some("Release manifest resolved by staged asset downloader".into()),
     });
     ensure_not_cancelled(cancellation)?;
-    let mut assets = phase_asset_download(
-        target,
-        channel,
-        args.github_repo.as_deref(),
-        args.release_tag_override.as_deref(),
-        install_root,
-        sink,
-        cancellation,
-    )
-    .await?;
+    let mut assets =
+        phase_asset_download(target, channel, args, install_root, sink, cancellation).await?;
+    if args.compatibility_canary
+        && std::env::var("FOCUSA_COMPATIBILITY_CANARY_FAULT")
+            .is_ok_and(|value| value == "after_asset_download")
+    {
+        bail!("injected compatibility canary interruption after asset download");
+    }
     sink.emit(InstallEvent::PhaseStarted {
         phase: InstallPhase::IntegratePi,
         message: "Checking optional Pi integration".into(),
@@ -4761,7 +4906,7 @@ async fn execute_real_install(
     phase_smoke_test(target, &bin_dir, expected_tag)
         .await
         .context("pre-commit binary smoke test failed")?;
-    place_symlinks(target, &bin_dir, install_root)?;
+    place_symlinks(target, &bin_dir, install_root, expected_tag)?;
     sink.emit(InstallEvent::PhaseSucceeded {
         phase: InstallPhase::InstallBinaries,
         detail: Some("Staged binaries promoted".into()),
@@ -5124,10 +5269,10 @@ mod tests {
         std::fs::create_dir_all(&bin).unwrap();
         std::fs::create_dir_all(&system).unwrap();
         for name in CANONICAL_RELEASE_BINARIES {
-            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
+            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.188\\n'\n");
             std::fs::write(system.join(name), format!("old-{name}")).unwrap();
         }
-        assert!(!promote_system_links(&bin, &system, None, "v0.9.187", false).unwrap());
+        assert!(!promote_system_links(&bin, &system, None, "v0.9.188", false).unwrap());
         for name in CANONICAL_RELEASE_BINARIES {
             assert!(system.join(name).is_file());
             assert!(
@@ -5144,15 +5289,15 @@ mod tests {
 
         for name in CANONICAL_RELEASE_BINARIES {
             std::fs::remove_file(bin.join(name)).unwrap();
-            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
+            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.188\\n'\n");
             std::fs::remove_file(system.join(name)).unwrap();
             std::fs::write(system.join(name), format!("restored-{name}")).unwrap();
         }
         write_executable(
             &bin.join("focusa-daemon"),
-            "#!/bin/sh\nprintf 'focusa-daemon 0.9.186\\n'\n",
+            "#!/bin/sh\nprintf 'focusa-daemon 0.9.187\\n'\n",
         );
-        assert!(promote_system_links(&bin, &system, None, "v0.9.187", false).is_err());
+        assert!(promote_system_links(&bin, &system, None, "v0.9.188", false).is_err());
         for name in CANONICAL_RELEASE_BINARIES {
             assert_eq!(
                 std::fs::read_to_string(system.join(name)).unwrap(),
@@ -5166,6 +5311,37 @@ mod tests {
                     .is_symlink()
             );
         }
+        std::fs::remove_dir_all(fixture).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn historical_system_rollback_removes_unpublished_session_runner() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-historical-system-promotion-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let bin = fixture.join("verified/bin");
+        let system = fixture.join("usr-local-bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        std::fs::create_dir_all(&system).unwrap();
+        for name in LEGACY_RELEASE_BINARIES {
+            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.177\\n'\n");
+        }
+        for name in CANONICAL_RELEASE_BINARIES {
+            std::fs::write(system.join(name), format!("candidate-{name}")).unwrap();
+        }
+
+        assert!(!promote_system_links(&bin, &system, None, "v0.9.177", false).unwrap());
+        for name in LEGACY_RELEASE_BINARIES {
+            assert!(system.join(name).is_file());
+            assert_eq!(
+                std::fs::read_link(bin.join(name)).unwrap(),
+                system.join(name)
+            );
+        }
+        assert!(!system.join("focusa-session-runner").exists());
+        assert!(!bin.join("focusa-session-runner").exists());
         std::fs::remove_dir_all(fixture).unwrap();
     }
 
@@ -5201,6 +5377,26 @@ mod tests {
                 | InstallTarget::WindowsX64
                 | InstallTarget::WindowsArm64
         ));
+    }
+
+    #[test]
+    fn legacy_rollback_uses_only_historically_published_binaries() {
+        assert_eq!(
+            release_binaries_for_tag("v0.9.177"),
+            &LEGACY_RELEASE_BINARIES
+        );
+        assert_eq!(
+            release_binaries_for_tag("v0.9.188"),
+            &CANONICAL_RELEASE_BINARIES
+        );
+
+        let root =
+            std::env::temp_dir().join(format!("focusa-verified-rollback-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join(".focusa-version"), "v0.9.188\n").unwrap();
+        assert!(reject_release_rollback(&root, "v0.9.177", false).is_err());
+        assert!(reject_release_rollback(&root, "v0.9.177", true).is_ok());
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -5259,6 +5455,8 @@ mod tests {
             reuse_existing_license: false,
             suppress_completion_output: false,
             release_tag_override: None,
+            allow_verified_rollback: false,
+            compatibility_canary: false,
             system_install: false,
             persist_path: false,
             no_persist_path: false,
@@ -5319,6 +5517,8 @@ mod tests {
             reuse_existing_license: false,
             suppress_completion_output: false,
             release_tag_override: None,
+            allow_verified_rollback: false,
+            compatibility_canary: false,
             system_install: false,
             persist_path: false,
             no_persist_path: false,
@@ -5749,6 +5949,8 @@ mod tests {
             reuse_existing_license: false,
             suppress_completion_output: false,
             release_tag_override: None,
+            allow_verified_rollback: false,
+            compatibility_canary: false,
             system_install: false,
             persist_path: false,
             no_persist_path: false,

@@ -1083,6 +1083,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             --candidate \
+            --compatibility-from-tag v0.9.177 \
             --private-key "$KEY_FILE" \
             --trusted-keys config/focusa-trusted-release-keys.json
           cosign sign-blob --yes \
@@ -1124,10 +1125,112 @@ jobs:
             --prerelease \
             --latest=false
 
+  predeployment-compatibility-canary:
+    name: Predeployment v0.9.177 compatibility canary
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    needs: checksums
+    runs-on: [self-hosted, linux, x64, focusa-deploy]
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    outputs:
+      receipt_sha256: ${{ steps.receipt.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 0
+
+      - name: Prepare isolated verifier dependencies
+        env:
+          FOCUSA_COMPATIBILITY_CANARY_LICENSE_SOURCE: ${{ vars.FOCUSA_COMPATIBILITY_CANARY_LICENSE_SOURCE }}
+          FOCUSA_COMPATIBILITY_CANARY_DATABASE_SOURCE: ${{ vars.FOCUSA_COMPATIBILITY_CANARY_DATABASE_SOURCE }}
+        run: |
+          set -euo pipefail
+          test -n "${FOCUSA_COMPATIBILITY_CANARY_LICENSE_SOURCE:-}"
+          test -n "${FOCUSA_COMPATIBILITY_CANARY_DATABASE_SOURCE:-}"
+          python3 - <<'PY'
+          import cryptography
+          if cryptography.__version__ != "46.0.4":
+              raise SystemExit(f"cryptography 46.0.4 required, got {cryptography.__version__}")
+          PY
+          node --version
+          npm --version
+          gh --version
+          jq --version
+
+      - name: Run isolated prior-candidate-rollback-reapply proof
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FOCUSA_COMPATIBILITY_CANARY_LICENSE_SOURCE: ${{ vars.FOCUSA_COMPATIBILITY_CANARY_LICENSE_SOURCE }}
+          FOCUSA_COMPATIBILITY_CANARY_DATABASE_SOURCE: ${{ vars.FOCUSA_COMPATIBILITY_CANARY_DATABASE_SOURCE }}
+          FOCUSA_COMPATIBILITY_CANARY_PREVIOUS_TAG: v0.9.177
+          FOCUSA_COMPATIBILITY_CANARY_RECEIPT_PATH: ${{ runner.temp }}/compatibility-canary-success.json
+        run: |
+          set -euo pipefail
+          bash scripts/run-predeployment-compatibility-canary.sh
+
+      - name: Sign and transport immutable canary receipt
+        id: receipt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FOCUSA_RELEASE_ED25519_PRIVATE_KEY: ${{ secrets.FOCUSA_RELEASE_ED25519_PRIVATE_KEY }}
+          RECEIPT: ${{ runner.temp }}/compatibility-canary-success.json
+        run: |
+          set -euo pipefail
+          test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
+          umask 077
+          key="$RUNNER_TEMP/focusa-compatibility-canary-key.pem"
+          trap 'shred -u "$key" 2>/dev/null || rm -f "$key"' EXIT
+          printf '%s\n' "$FOCUSA_RELEASE_ED25519_PRIVATE_KEY" > "$key"
+          python3 scripts/compatibility-canary-receipt.py sign \
+            --receipt "$RECEIPT" \
+            --private-key "$key" \
+            --trusted-keys config/focusa-trusted-release-keys.json \
+            --tag "$RELEASE_TAG" \
+            --commit "$RELEASE_SHA" \
+            --previous-tag v0.9.177
+          python3 scripts/compatibility-canary-receipt.py verify \
+            --receipt "$RECEIPT" \
+            --signature "$RECEIPT.sig" \
+            --trusted-keys config/focusa-trusted-release-keys.json \
+            --tag "$RELEASE_TAG" \
+            --commit "$RELEASE_SHA" \
+            --previous-tag v0.9.177
+          release_state="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG")"
+          jq -e '.draft == false and .prerelease == true' <<<"$release_state" >/dev/null
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" != "$RELEASE_TAG"
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber \
+            "$RECEIPT" "$RECEIPT.sig"
+          rm -rf "$RUNNER_TEMP/compatibility-canary-transport"
+          mkdir -p "$RUNNER_TEMP/compatibility-canary-transport"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --dir "$RUNNER_TEMP/compatibility-canary-transport" --clobber \
+            --pattern compatibility-canary-success.json \
+            --pattern compatibility-canary-success.json.sig
+          python3 scripts/compatibility-canary-receipt.py verify \
+            --receipt "$RUNNER_TEMP/compatibility-canary-transport/compatibility-canary-success.json" \
+            --signature "$RUNNER_TEMP/compatibility-canary-transport/compatibility-canary-success.json.sig" \
+            --trusted-keys config/focusa-trusted-release-keys.json \
+            --tag "$RELEASE_TAG" \
+            --commit "$RELEASE_SHA" \
+            --previous-tag v0.9.177
+          echo "sha256=$(sha256sum "$RECEIPT" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload canary receipt as workflow evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatibility-canary-${{ env.RELEASE_TAG }}
+          path: |
+            ${{ runner.temp }}/compatibility-canary-success.json
+            ${{ runner.temp }}/compatibility-canary-success.json.sig
+          if-no-files-found: error
+          retention-days: 90
+
   dispatch-deploy-live-daemon:
     name: Dispatch Deploy Live Daemon
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: checksums
+    needs: predeployment-compatibility-canary
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
@@ -1136,9 +1239,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           TAG: ${{ env.RELEASE_TAG }}
+          CANARY_RECEIPT_SHA256: ${{ needs.predeployment-compatibility-canary.outputs.receipt_sha256 }}
         run: |
           set -euo pipefail
-          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-musl repo=${REPO}"
+          [[ "$CANARY_RECEIPT_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          mkdir -p "$RUNNER_TEMP/predeployment-canary-dispatch"
+          gh release download "$TAG" --repo "$REPO" \
+            --dir "$RUNNER_TEMP/predeployment-canary-dispatch" --clobber \
+            --pattern compatibility-canary-success.json
+          echo "$CANARY_RECEIPT_SHA256  $RUNNER_TEMP/predeployment-canary-dispatch/compatibility-canary-success.json" \
+            | sha256sum -c -
+          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-musl repo=${REPO} compatibility_canary=verified"
           gh workflow run 'Deploy Live Daemon' \
             --repo "$REPO" \
             --ref main \

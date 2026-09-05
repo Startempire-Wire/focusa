@@ -158,6 +158,13 @@ def main() -> int:
     manifest["publication_status"] = (
         "published" if args.settle else "deployed_candidate"
     )
+    canary_authority = manifest.get("compatibility_canary")
+    if isinstance(canary_authority, dict):
+        canary_authority["status"] = "superseded_by_production_deploy"
+        canary_authority["production_apply_authorized"] = False
+        canary_authority["system_install_authorized"] = False
+        canary_authority["service_mutation_authorized"] = False
+        canary_authority["automatic_apply_authorized"] = False
     manifest.setdefault("gates", {})["release_success"] = True
     manifest["gates"]["deploy_success"] = True
     manifest["gates"]["release_run_url"] = release_run_url

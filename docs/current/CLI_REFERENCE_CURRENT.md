@@ -191,6 +191,7 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 
 - `focusa silent --help` exposes daemon-native Silent Session list/start/reopen/tail/send/interrupt/pause/resume/restart/kill/config/receipt/capabilities operations. Mutations use exact session/run/generation plus daemon-issued approval and idempotency fields; shell/tmux aliases are not authority.
 - `focusa update --help` exposes trusted OTA inventory, policy, guarded apply, activation status, and rollback surfaces across CLI/daemon/TUI/session-runner/Pi/agent-context/menubar/installer release artifacts.
+- `focusa update apply --latest-version <exact> --compatibility-canary-root <absolute-path> --yes --allow-apply --dry-run false` is a release-workflow-only preproduction mode. It accepts only a signed candidate-manifest canary authorization and a non-root isolated environment; it cannot run automatically, mutate services, target system paths, or substitute for production `deploy-success.json`.
 - `focusa uninstall --dry-run --keep-data` previews software removal with data preservation. The public bootstrapper preserves data by default; destructive removal requires explicit `--uninstall --purge-data`.
 - `focusa tui --headless-self-test` provides structured non-TTY Mission Deck diagnostics.
 - Mission Canvas, Work Rail, connectors, generated UI, and all Focusa Pi tools are discovered through the generated Agent Card/Spec141 registries rather than an invented parallel CLI hierarchy.

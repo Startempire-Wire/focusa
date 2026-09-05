@@ -123,6 +123,8 @@ def main() -> int:
         candidate = run(
             *common_args,
             "--candidate",
+            "--compatibility-from-tag",
+            "v0.9.177",
             "--workflow",
             ".github/workflows/locked-release-candidate-artifacts.yml",
         )
@@ -134,6 +136,24 @@ def main() -> int:
         assert candidate_manifest["publication_status"] == "candidate_only"
         assert candidate_manifest["gates"]["release_success"] is False
         assert candidate_manifest["gates"]["release_run_url"] is None
+        canary = candidate_manifest["compatibility_canary"]
+        assert canary == {
+            "schema": "focusa.compatibility_canary_authorization.v1",
+            "status": "authorized",
+            "environment": "isolated_preproduction",
+            "allowed_install_scope": "non_root_ephemeral_home",
+            "required_previous_tag": "v0.9.177",
+            "required_sequence": [
+                "prior_release",
+                "candidate_manifest_bound_apply",
+                "prior_release_full_rollback",
+                "candidate_manifest_bound_reapply",
+            ],
+            "production_apply_authorized": False,
+            "system_install_authorized": False,
+            "service_mutation_authorized": False,
+            "automatic_apply_authorized": False,
+        }
         assert all(
             value["url"].startswith(
                 "https://github.com/Startempire-Wire/focusa/actions/runs/1#artifact-"
@@ -143,6 +163,15 @@ def main() -> int:
         assert candidate_provenance["workflow"].endswith(
             "locked-release-candidate-artifacts.yml"
         )
+
+        unauthorized = run(
+            *common_args,
+            "--compatibility-from-tag",
+            "v0.9.177",
+            check=False,
+        )
+        assert unauthorized.returncode != 0
+        assert "requires --candidate" in unauthorized.stderr
 
         assets[0].write_bytes(b"tampered")
         try:

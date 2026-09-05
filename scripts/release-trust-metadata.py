@@ -9,6 +9,7 @@ import datetime as dt
 import hashlib
 import json
 import pathlib
+import re
 import shutil
 import stat
 import sys
@@ -120,6 +121,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-url", required=True)
     parser.add_argument("--workflow", default=".github/workflows/release.yml")
     parser.add_argument("--candidate", action="store_true")
+    parser.add_argument(
+        "--compatibility-from-tag",
+        help="authorize only an isolated preproduction canary from this exact prior stable tag",
+    )
     parser.add_argument("--private-key", required=True, type=pathlib.Path)
     parser.add_argument("--trusted-keys", required=True, type=pathlib.Path)
     return parser.parse_args()
@@ -129,6 +134,13 @@ def main() -> int:
     args = parse_args()
     if not args.dist.is_dir():
         raise ValueError(f"asset directory not found: {args.dist}")
+    if args.compatibility_from_tag:
+        if not args.candidate:
+            raise ValueError("compatibility canary authority requires --candidate")
+        if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", args.compatibility_from_tag):
+            raise ValueError("compatibility canary prior tag must be exact stable SemVer")
+        if args.compatibility_from_tag == args.tag:
+            raise ValueError("compatibility canary prior and candidate tags must differ")
     key_mode = stat.S_IMODE(args.private_key.stat().st_mode)
     if key_mode & 0o077:
         raise ValueError("private signing key permissions must be 0600 or stricter")
@@ -222,6 +234,26 @@ def main() -> int:
         provenance_path = args.dist / "release-provenance.json"
         write_json(provenance_path, provenance)
 
+        compatibility_canary = None
+        if args.compatibility_from_tag:
+            compatibility_canary = {
+                "schema": "focusa.compatibility_canary_authorization.v1",
+                "status": "authorized",
+                "environment": "isolated_preproduction",
+                "allowed_install_scope": "non_root_ephemeral_home",
+                "required_previous_tag": args.compatibility_from_tag,
+                "required_sequence": [
+                    "prior_release",
+                    "candidate_manifest_bound_apply",
+                    "prior_release_full_rollback",
+                    "candidate_manifest_bound_reapply",
+                ],
+                "production_apply_authorized": False,
+                "system_install_authorized": False,
+                "service_mutation_authorized": False,
+                "automatic_apply_authorized": False,
+            }
+
         manifest = {
             "schema": "focusa.release_manifest.v1",
             "tag": args.tag,
@@ -242,6 +274,7 @@ def main() -> int:
                 "release_run_url": None if args.candidate else args.run_url,
                 "deploy_run_url": None,
             },
+            "compatibility_canary": compatibility_canary,
             "trust": {
                 "signing_algorithm": key["signing_algorithm"],
                 "key_id": key["key_id"],

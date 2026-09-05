@@ -110,6 +110,8 @@ pub async fn run(json_output: bool, args: UpgradeArgs) -> anyhow::Result<()> {
         reuse_existing_license: args.license_key.is_none() && !args.eval,
         suppress_completion_output: true,
         release_tag_override: Some(resolved.tag.clone()),
+        allow_verified_rollback: false,
+        compatibility_canary: false,
         system_install,
         persist_path: args.persist_path,
         no_persist_path: args.no_persist_path,
