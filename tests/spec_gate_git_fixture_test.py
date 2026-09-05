@@ -7,13 +7,14 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / 'scripts/ci/run-spec-gates.sh').read_text()
-START = SOURCE.index('TEST_GIT_DIR=""')
+START = SOURCE.index('TEST_BEADS_FIXTURE=""\nTEST_GIT_DIR=""')
 FIXTURE = SOURCE[START:SOURCE.index('if [[ "$FOCUSA_TEST_MODE" == "1" &&', START)]
 CLEANUP = SOURCE[SOURCE.index('cleanup() {'):SOURCE.index('\ntrap cleanup EXIT')]
+GIT_CLEANUP = SOURCE[SOURCE.index('cleanup_test_git() {'):SOURCE.index('\ncleanup_ephemeral_builds() {')]
 
 
 class GitFixtureTest(unittest.TestCase):
-    def exercise(self, existing):
+    def exercise(self, existing, early=False):
         with tempfile.TemporaryDirectory(prefix='focusa-git-fixture-test-') as tmp:
             root = Path(tmp) / 'source'
             root.mkdir()
@@ -27,21 +28,24 @@ class GitFixtureTest(unittest.TestCase):
                                 '-qm', 'real fixture'], env=env, check=True)
                 env['GIT_DIR'] = str(root / '.git')
                 env['GIT_WORK_TREE'] = str(root)
-            code = 'set -euo pipefail\n' + FIXTURE + '\ngit rev-list --count HEAD\n'
+            code = 'set -euo pipefail\n' + FIXTURE + '\ngit rev-list --count HEAD\ngit rev-parse --git-common-dir\n'
+            code += GIT_CLEANUP
             code += '''
 DAEMON_PID=unused
 TEST_BEADS_FIXTURE=""
 FOCUSA_DATA_DIR="$ROOT_DIR/data"
 mkdir -p "$FOCUSA_DATA_DIR"
 kill() { :; }
-cleanup_ephemeral_builds() { printf 'remaining_git_dir=%s\\n' "${GIT_DIR-unset}"; }
+cleanup_ephemeral_builds() { cleanup_test_git; printf 'remaining_git_dir=%s\\n' "${GIT_DIR-unset}"; }
 '''
-            code += CLEANUP + '\ncleanup\n'
+            code += CLEANUP
+            code += '\ncleanup_ephemeral_builds\n' if early else '\ncleanup\n'
             result = subprocess.run(['bash', '-c', code], env=env, cwd=root,
                                     text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertNotIn('fatal:', result.stderr)
             self.assertEqual(result.stdout.splitlines()[0], '1' if existing else '2')
+            self.assertEqual(Path(result.stdout.splitlines()[1]).resolve().parent, root.resolve())
             expected = str(root / '.git') if existing else 'unset'
             self.assertIn('remaining_git_dir=' + expected, result.stdout)
             self.assertEqual((root / '.git').exists(), existing)
@@ -52,6 +56,9 @@ cleanup_ephemeral_builds() { printf 'remaining_git_dir=%s\\n' "${GIT_DIR-unset}"
 
     def test_existing_repository_is_preserved(self):
         self.exercise(True)
+
+    def test_pre_daemon_cleanup_releases_only_owned_metadata(self):
+        self.exercise(False, early=True)
 
 
 if __name__ == '__main__':

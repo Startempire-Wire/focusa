@@ -6,7 +6,16 @@ if [[ -z "${CARGO_TARGET_DIR:-}" ]]; then
   export CARGO_TARGET_DIR="/tmp/focusa-ci-local-$$-1"
 fi
 export FOCUSA_CARGO_TARGET_DIR="${FOCUSA_CARGO_TARGET_DIR:-$CARGO_TARGET_DIR}"
+unset TEST_GIT_DIR
+cleanup_test_git() {
+  if [[ -n "${TEST_GIT_DIR:-}" ]]; then
+    unset GIT_DIR GIT_WORK_TREE
+    rm -rf -- "$TEST_GIT_DIR"
+    TEST_GIT_DIR=""
+  fi
+}
 cleanup_ephemeral_builds() {
+  cleanup_test_git
   "$ROOT_DIR/scripts/ci/cleanup-ephemeral-build-target.sh" "$CARGO_TARGET_DIR"
 }
 trap cleanup_ephemeral_builds EXIT
@@ -53,12 +62,15 @@ if [[ "$FOCUSA_TEST_MODE" == "1" ]] && ! git -C "$ROOT_DIR" rev-parse --git-dir 
   # OVH source sync intentionally excludes the worktree's .git metadata.
   # Provide a disposable two-commit graph for read-only evidence gates;
   # never copy or mutate repository history on the build host.
-  TEST_GIT_DIR="$(mktemp -d "$ROOT_DIR/../gate-git-meta.XXXXXX")"
-  git init -q "$TEST_GIT_DIR"
-  git -C "$TEST_GIT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate base'
-  git -C "$TEST_GIT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate head'
-  export GIT_DIR="$TEST_GIT_DIR/.git"
+  # Claim only absent metadata in this isolated workspace; never replace an
+  # existing repository or give the fixture a different canonical root.
+  mkdir "$ROOT_DIR/.git"
+  TEST_GIT_DIR="$ROOT_DIR/.git"
+  export GIT_DIR="$TEST_GIT_DIR"
   export GIT_WORK_TREE="$ROOT_DIR"
+  git init -q "$ROOT_DIR"
+  git -C "$ROOT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate base'
+  git -C "$ROOT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate head'
   [[ "$(git rev-list --count HEAD)" == "2" ]] || {
     echo "synthetic gate history must contain exactly two commits" >&2
     exit 1
@@ -97,10 +109,6 @@ cleanup() {
   rm -rf "$FOCUSA_DATA_DIR" >/dev/null 2>&1 || true
   if [[ -n "$TEST_BEADS_FIXTURE" ]]; then
     rm -f "$TEST_BEADS_FIXTURE" >/dev/null 2>&1 || true
-  fi
-  if [[ -n "$TEST_GIT_DIR" ]]; then
-    unset GIT_DIR GIT_WORK_TREE
-    rm -rf "$TEST_GIT_DIR" >/dev/null 2>&1 || true
   fi
   cleanup_ephemeral_builds
 }
