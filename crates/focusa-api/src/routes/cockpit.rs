@@ -202,6 +202,39 @@ mod tests {
     }
 
     #[test]
+    fn corrupt_direction_receipt_is_not_filtered_into_empty_success() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        focusa_core::direction_ledger::ensure_schema(&conn).unwrap();
+        assert!(direction_steers(&conn).unwrap().is_empty());
+        let steer = focusa_core::direction_operations::DirectionOperation::Steer {
+            target_ref: "test-workpoint".to_string(),
+            direction: "test-direction".to_string(),
+            rationale: "test-rationale".to_string(),
+            scope: "workpoint".to_string(),
+            evidence_ref: Some("test-evidence".to_string()),
+        };
+        let receipt = focusa_core::direction_ledger::record_operation(&conn, &steer).unwrap();
+        assert_eq!(direction_steers(&conn).unwrap().len(), 1);
+        conn.execute(
+            "UPDATE direction_operations SET receipt_json = '{bad-json' WHERE operation_id = ?1",
+            [&receipt.operation_id],
+        )
+        .unwrap();
+        assert_eq!(
+            direction_steers(&conn).unwrap_err().to_string(),
+            "invalid stored Direction receipt"
+        );
+        let preserved: String = conn
+            .query_row(
+                "SELECT receipt_json FROM direction_operations WHERE operation_id = ?1",
+                [&receipt.operation_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(preserved, "{bad-json");
+    }
+
+    #[test]
     fn absent_database_is_not_created() {
         let dir = fixture_dir();
         let path = dir.join("focusa.sqlite");

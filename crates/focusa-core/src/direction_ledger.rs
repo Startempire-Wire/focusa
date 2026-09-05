@@ -2,7 +2,7 @@
 //! operations with receipts. The Workbench projects this ledger; every
 //! operation is verified before it is recorded (verify_operation).
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 
@@ -62,22 +62,9 @@ pub fn record_operation(
 pub fn list_operations(conn: &Connection) -> Result<Vec<DirectionReceipt>> {
     let mut stmt =
         conn.prepare("SELECT receipt_json FROM direction_operations ORDER BY recorded_at")?;
-    let rows = stmt.query_map([], |row| {
-        let receipt: DirectionReceipt = serde_json::from_str(&row.get::<_, String>(0)?)
-            .unwrap_or_else(|_| DirectionReceipt {
-                schema: "focusa.direction_receipt.v1".to_string(),
-                operation_id: "unparsable".to_string(),
-                operation: DirectionOperation::ReviewDecision {
-                    decision_ref: "unparsable".to_string(),
-                    outcome: "unparsable".to_string(),
-                    feedback: "unparsable".to_string(),
-                },
-                recorded_at: String::new(),
-            });
-        Ok(receipt)
-    })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(Into::into)
+    let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+    rows.map(|raw| serde_json::from_str(&raw?).context("invalid stored Direction receipt"))
+        .collect()
 }
 
 #[cfg(test)]
@@ -102,6 +89,43 @@ mod tests {
         assert_eq!(receipt.schema, "focusa.direction_receipt.v1");
         assert!(!receipt.operation_id.is_empty());
         assert_eq!(list_operations(&conn).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn corrupt_receipts_fail_without_inventing_decisions_or_changing_rows() {
+        let conn = Connection::open_in_memory().unwrap();
+        ensure_schema(&conn).unwrap();
+        record_operation(&conn, &steer(Some("test-evidence:before"))).unwrap();
+        conn.execute(
+            "INSERT INTO direction_operations VALUES ('corrupt', 'preserve-operation', '{}', 'test-fixture')",
+            [],
+        ).unwrap();
+        record_operation(&conn, &steer(Some("test-evidence:after"))).unwrap();
+        for corrupt in ["{bad-json", "{}"] {
+            conn.execute(
+                "UPDATE direction_operations SET receipt_json = ?1 WHERE operation_id = 'corrupt'",
+                params![corrupt],
+            )
+            .unwrap();
+            assert_eq!(
+                list_operations(&conn).unwrap_err().to_string(),
+                "invalid stored Direction receipt"
+            );
+            let preserved: (String, String, String, i64) = conn.query_row(
+                "SELECT operation_json, receipt_json, recorded_at, (SELECT count(*) FROM direction_operations)
+                 FROM direction_operations WHERE operation_id = 'corrupt'", [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            ).unwrap();
+            assert_eq!(
+                preserved,
+                (
+                    "preserve-operation".to_string(),
+                    corrupt.to_string(),
+                    "test-fixture".to_string(),
+                    3
+                )
+            );
+        }
     }
 
     #[test]
