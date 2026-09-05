@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.187",
-  "source_commit": "e508d81f4",
-  "generated_at": "2026-09-05T03:56:56.834966Z",
+  "source_commit": "4b88aab55",
+  "generated_at": "2026-09-05T05:22:02.977703Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:99225d837b6c8cda80703585c3acbe455277bc6adf6b431e1f72339ef1fb05c9",
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:4e437114372efc547f2e0af85d0ff76f450a003f28b2ddb2b9e937090de80608",
+      "sha256": "sha256:7e17f7ad2c6ac356eee98d30147a15188ad45f5cb40f6108dc1c25c6d242a3f8",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -77,8 +77,8 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:2cba852481d5ed5791f5fd54732faa77320dac6ce53815801e411d8a210f5efb",
-      "file_count": 34,
+      "sha256": "sha256:d8b492827e8d4b11fc9cd3fe9983948ee775e39152b29e3a6670b1b5814f183d",
+      "file_count": 35,
       "source_paths": [
         ".appveyor.yml",
         "codemagic.yaml",
@@ -110,6 +110,7 @@
         "tests/verify_release_bootstrap_asset_test.py",
         "tests/sign_compatibility_canary_receipt_test.py",
         "tests/predeployment_compatibility_canary_static_test.py",
+        "tests/compatibility_canary_authority_fixture_test.py",
         "tests/compatibility_canary_database_inventory_test.py",
         "tests/release_trust_metadata_static_test.sh",
         "tests/spec177-nightly-contract-static-test.sh",

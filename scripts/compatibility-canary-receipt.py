@@ -25,6 +25,10 @@ SEQUENCE = [
 ]
 
 
+def is_sha256(value: object) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+
+
 def validate_receipt(path: pathlib.Path, tag: str, commit: str, previous_tag: str) -> bytes:
     encoded = path.read_bytes()
     receipt = json.loads(encoded)
@@ -46,6 +50,12 @@ def validate_receipt(path: pathlib.Path, tag: str, commit: str, previous_tag: st
         or receipt.get("interrupted_install_recovered") is not True
     ):
         raise ValueError("compatibility canary receipt is incomplete or unsafe")
+    profile = receipt.get("authority_profile")
+    if (not isinstance(profile, dict)
+        or profile.get("status") != "active_verified_each_phase"
+        or profile.get("files_preserved") is not True
+        or not is_sha256(profile.get("inventory_sha256"))):
+        raise ValueError("compatibility canary signed authority profile evidence is invalid")
     previous = receipt.get("previous_release_tag")
     if (
         not isinstance(previous, str)
@@ -66,17 +76,13 @@ def validate_receipt(path: pathlib.Path, tag: str, commit: str, previous_tag: st
         raise ValueError("compatibility canary database evidence is incomplete")
     for phase in evidence.values():
         if not isinstance(phase, dict) or any(
-            not isinstance(phase.get(field), str)
-            or len(phase[field]) != 64
-            or any(char not in "0123456789abcdef" for char in phase[field])
+            not is_sha256(phase.get(field))
             for field in ("schema_sha256", "row_counts_sha256")
         ):
             raise ValueError("compatibility canary database evidence digest is invalid")
     parity = receipt.get("distribution_parity")
     if not isinstance(parity, dict) or parity.get("status") != "passed" or any(
-        not isinstance(parity.get(field), str)
-        or len(parity[field]) != 64
-        or any(char not in "0123456789abcdef" for char in parity[field])
+        not is_sha256(parity.get(field))
         for field in ("candidate_first_sha256", "candidate_reapply_sha256")
     ):
         raise ValueError("compatibility canary distribution parity evidence is invalid")

@@ -83,6 +83,7 @@ COMPONENT_PATHS: dict[str, tuple[str, ...]] = {
         "tests/verify_release_bootstrap_asset_test.py",
         "tests/sign_compatibility_canary_receipt_test.py",
         "tests/predeployment_compatibility_canary_static_test.py",
+        "tests/compatibility_canary_authority_fixture_test.py",
         "tests/compatibility_canary_database_inventory_test.py",
         "tests/release_trust_metadata_static_test.sh",
         "tests/spec177-nightly-contract-static-test.sh",

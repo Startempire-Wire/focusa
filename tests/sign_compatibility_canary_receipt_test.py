@@ -84,6 +84,11 @@ def main() -> int:
                 "status": "passed",
             },
             "signed_lease_preserved": True,
+            "authority_profile": {
+                "status": "active_verified_each_phase",
+                "files_preserved": True,
+                "inventory_sha256": "a" * 64,
+            },
             "user_sentinel_preserved": True,
             "production_runtime_preserved": True,
             "system_install_performed": False,
@@ -138,6 +143,17 @@ def main() -> int:
         )
         assert verified.returncode == 0, verified.stderr
         assert json.loads(verified.stdout)["status"] == "verified"
+
+        good_profile = payload["authority_profile"]
+        for bad_profile in (None, {}, {**good_profile, "status": "recoveryonly"},
+                            {**good_profile, "files_preserved": False},
+                            {**good_profile, "inventory_sha256": "not-a-digest"}):
+            payload["authority_profile"] = bad_profile
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+            rejected = subprocess.run(command, text=True, capture_output=True)
+            assert rejected.returncode != 0
+            assert "authority profile evidence" in rejected.stderr
+        payload["authority_profile"] = good_profile
 
         payload["production_runtime_preserved"] = False
         receipt.write_text(json.dumps(payload), encoding="utf-8")

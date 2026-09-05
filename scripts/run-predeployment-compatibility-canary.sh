@@ -7,7 +7,8 @@ set -euo pipefail
 : "${GITHUB_WORKSPACE:?GITHUB_WORKSPACE is required}"
 : "${GITHUB_TOKEN:?GITHUB_TOKEN is required}"
 : "${RUNNER_TEMP:?RUNNER_TEMP is required}"
-: "${FOCUSA_COMPATIBILITY_CANARY_LICENSE_SOURCE:?signed lease source is required}"
+: "${FOCUSA_COMPATIBILITY_CANARY_LICENSE_SOURCE:?legacy license source is required}"
+: "${FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE:?provider-enrolled canary authority profile is required}"
 : "${FOCUSA_COMPATIBILITY_CANARY_DATABASE_SOURCE:?legacy database source is required}"
 
 PREVIOUS_TAG="${FOCUSA_COMPATIBILITY_CANARY_PREVIOUS_TAG:-v0.9.177}"
@@ -46,6 +47,12 @@ NODE_BIN_DIR="$(dirname "$(readlink -f "$(command -v node)")")"
   echo "signed lease source is missing" >&2
   exit 1
 }
+for file in authority-lease.json node-id; do
+  [[ -f "$FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE/$file" && ! -L "$FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE/$file" ]] || {
+    echo "provider-enrolled canary profile requires a regular $file" >&2
+    exit 1
+  }
+done
 [[ -f "$FOCUSA_COMPATIBILITY_CANARY_DATABASE_SOURCE" ]] || {
   echo "legacy database source is missing" >&2
   exit 1
@@ -115,6 +122,14 @@ chmod 0700 "$CANARY_ROOT" "$CANARY_ROOT/.config/focusa"
 cp -- "$FOCUSA_COMPATIBILITY_CANARY_LICENSE_SOURCE" \
   "$CANARY_ROOT/.config/focusa/license.json"
 chmod 0600 "$CANARY_ROOT/.config/focusa/license.json"
+# Transport only the explicitly supplied canary enrollment, never a derived ID
+# or ambient production identity, credential store, or replacement trust roots.
+for file in authority-lease.json node-id; do
+  cp -- "$FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE/$file" "$CANARY_ROOT/.config/focusa/$file"
+  chmod 0600 "$CANARY_ROOT/.config/focusa/$file"
+done
+(cd "$CANARY_ROOT/.config/focusa" && sha256sum authority-lease.json node-id) \
+  > "$CANARY_ROOT/evidence/authority-fixture.sha256"
 printf 'focusa compatibility canary user sentinel\n' > "$CANARY_ROOT/user-sentinel.txt"
 
 python3 "$GITHUB_WORKSPACE/scripts/compatibility-canary-database-inventory.py" copy \
@@ -260,7 +275,24 @@ verify_database_phase() {
   esac
 }
 
+verify_authority_fixture() {
+  local node_id
+  node_id="$(tr -d '\r\n' < "$CANARY_ROOT/.config/focusa/node-id")"
+  [[ -n "$node_id" ]] || { echo "canary node identity is empty" >&2; return 1; }
+  (cd "$CANARY_ROOT/.config/focusa" && sha256sum --check --status "$CANARY_ROOT/evidence/authority-fixture.sha256") || return 1
+  # Cryptography, revocation, clock and node binding stay in the canonical guard.
+  "$CANARY_ROOT/bootstrap/candidate/focusa-updater" license status --json \
+    | jq -e --arg node "$node_id" '
+      .authority.state == "active" and
+      .authority.node_id == $node and
+      (.authority.lease_id | type == "string" and length > 0) and
+      (.authority.lease_digest | type == "string" and length > 0)
+    ' >/dev/null || return 1
+  (cd "$CANARY_ROOT/.config/focusa" && sha256sum --check --status "$CANARY_ROOT/evidence/authority-fixture.sha256")
+}
+
 verify_phase() {
+  verify_authority_fixture
   local expected_tag="$1"
   local require_runner="$2"
   local phase="$3"
@@ -333,6 +365,8 @@ cp "$CANARY_ROOT/bootstrap/candidate/$CANDIDATE_CLI" \
   "$CANARY_ROOT/bootstrap/candidate/focusa-updater"
 chmod 0755 "$CANARY_ROOT/bootstrap/candidate/focusa-updater"
 
+verify_authority_fixture
+
 # Only the current, verified CLI installs the baseline. Its signed candidate
 # manifest authorizes every historical digest before any installed probe runs.
 "$CANARY_ROOT/bootstrap/candidate/focusa-updater" update compatibility-bootstrap \
@@ -351,6 +385,7 @@ cp "$CANARY_ROOT/bootstrap/candidate/$CANDIDATE_INSTALLER" "$FOCUSA_INSTALLER_PA
 chmod 0755 "$FOCUSA_INSTALLER_PATH"
 
 run_candidate_apply() {
+  verify_authority_fixture || return 1
   local output="$1"
   "$CANARY_ROOT/bootstrap/candidate/focusa-updater" update apply \
     --channel stable \
@@ -388,6 +423,7 @@ verify_phase "$PREVIOUS_TAG" 0 prior-interrupted-recovery
 apply_candidate
 verify_phase "$RELEASE_TAG" 1 candidate-first
 
+verify_authority_fixture
 "$CANARY_ROOT/.focusa/bin/focusa" update rollback \
   --part all --yes --dry-run false --json > "$CANARY_ROOT/update-rollback.json"
 jq -e '.status == "completed" and .mutations_performed == true' \
@@ -397,6 +433,7 @@ verify_phase "$PREVIOUS_TAG" 0 prior-rollback
 apply_candidate
 verify_phase "$RELEASE_TAG" 1 candidate-reapply
 
+verify_authority_fixture
 LICENSE_AFTER="$(sha256sum "$CANARY_ROOT/.config/focusa/license.json" | awk '{print $1}')"
 SENTINEL_AFTER="$(sha256sum "$CANARY_ROOT/user-sentinel.txt" | awk '{print $1}')"
 PRODUCTION_AFTER="$(production_fingerprint)"
@@ -423,6 +460,7 @@ jq -n \
   --slurpfile candidate_database "$CANARY_ROOT/evidence/database-candidate-first.json" \
   --slurpfile rollback_database "$CANARY_ROOT/evidence/database-prior-rollback.json" \
   --slurpfile reapply_database "$CANARY_ROOT/evidence/database-candidate-reapply.json" \
+  --arg authority_profile_sha256 "$(sha256sum "$CANARY_ROOT/evidence/authority-fixture.sha256" | awk '{print $1}')" \
   --arg parity_first_sha256 "$(sha256sum "$CANARY_ROOT/evidence/distribution-parity-candidate-first.json" | awk '{print $1}')" \
   --arg parity_reapply_sha256 "$(sha256sum "$CANARY_ROOT/evidence/distribution-parity-candidate-reapply.json" | awk '{print $1}')" \
   '{
@@ -451,6 +489,7 @@ jq -n \
       status:"passed"
     },
     signed_lease_preserved:true,
+    authority_profile:{status:"active_verified_each_phase",files_preserved:true,inventory_sha256:$authority_profile_sha256},
     user_sentinel_preserved:true,
     production_runtime_preserved:true,
     system_install_performed:false,

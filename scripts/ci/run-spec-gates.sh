@@ -127,6 +127,7 @@ run_gate ./tests/command_write_contract_test.sh
 run_gate ./tests/trace_dimensions_test.sh
 run_gate ./tests/pi_extension_contract_test.sh
 run_gate bash ./tests/spec142_workflow_dependency_onboarding_static_test.sh
+run_gate python3 ./tests/compatibility_canary_authority_fixture_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_task_materialization_e2e_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_work_rail_e2e_test.py
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh

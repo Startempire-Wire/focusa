@@ -54,7 +54,15 @@ sets production, system-install, service-mutation, and automatic-apply authority
 to false. The candidate updater additionally requires `--compatibility-canary-root`
 plus a non-root ephemeral `HOME`, isolated XDG/data/Pi roots, a matching scope
 marker, a signed lease fixture, a nonempty Focusa legacy database, and a user
-sentinel. The official prior CLI bootstrap must pass SHA-256 and detached Ed25519
+sentinel. `FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE` must name an explicitly
+approved, independently provider-enrolled canary profile containing
+`authority-lease.json` and its existing `node-id`; the legacy `LICENSE_SOURCE`
+file is not signed authority. Production identities, IDs derived from a lease,
+test roots, and fabricated enrollments are not valid substitutes. The current
+verified CLI must report active, node-matching signed authority before bootstrap,
+each apply/rollback, and each verification phase. Both authority files remain
+hash-identical throughout; failed CLI verification is fatal even during the
+interruption test's non-errexit section. The official prior CLI bootstrap must pass SHA-256 and detached Ed25519
 verification under current pinned authority before execution. Revoked keys remain
 blocked: an old signed timestamp or rotation note cannot authorize historical assets;
 a separately authorized current-root digest binding is required. The candidate's
