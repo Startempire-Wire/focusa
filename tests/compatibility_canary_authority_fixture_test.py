@@ -20,9 +20,9 @@ def exercise(state="active", node="enrolled-test-node", missing=None, tamper=Fal
         config.mkdir(parents=True)
         (root / "evidence").mkdir()
         (root / "bootstrap/candidate").mkdir(parents=True)
-        (config / "node-id").write_text("enrolled-test-node\n")
+        (config / "node-identity.json").write_text(json.dumps({"schema": "focusa.node_identity.v1", "product": "focusa", "node_id": "enrolled-test-node"}))
         (config / "authority-lease.json").write_text("test fixture only; not a signed lease\n")
-        sums = "".join(f"{hashlib.sha256((config / name).read_bytes()).hexdigest()}  {name}\n" for name in ("authority-lease.json", "node-id"))
+        sums = "".join(f"{hashlib.sha256((config / name).read_bytes()).hexdigest()}  {name}\n" for name in ("authority-lease.json", "node-identity.json"))
         (root / "evidence/authority-fixture.sha256").write_text(sums)
         authority = {"state": state, "node_id": node, "lease_id": "test-lease", "lease_digest": "test-digest"}
         if missing:
@@ -37,7 +37,7 @@ def exercise(state="active", node="enrolled-test-node", missing=None, tamper=Fal
         if missing_file:
             (config / missing_file).unlink()
         if corrupt:
-            (config / "node-id").write_text("altered-node\n")
+            (config / "node-identity.json").write_text("altered-node\n")
         # The interrupted-install path deliberately disables errexit: rejection
         # must survive that calling context, not depend on shell defaults.
         result = subprocess.run(["bash", "-c", "set +e\nset -o pipefail\n" + FUNCTION + "verify_authority_fixture\nexit $?\n"],
@@ -55,7 +55,7 @@ assert not exercise(corrupt=True)
 assert not exercise(tamper=True)
 assert not exercise(cli_error=True)
 assert not exercise(missing_file="authority-lease.json")
-assert not exercise(missing_file="node-id")
+assert not exercise(missing_file="node-identity.json")
 assert "run_candidate_apply() {\n  verify_authority_fixture || return 1" in SOURCE
 assert SOURCE.index("verify_authority_fixture\n\n# Only the current") < SOURCE.index("update compatibility-bootstrap")
 print("PASS: authority delegation rejects inactive, missing, foreign, altered and failed verifications even with errexit disabled")

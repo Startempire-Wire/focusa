@@ -56,7 +56,8 @@ plus a non-root ephemeral `HOME`, isolated XDG/data/Pi roots, a matching scope
 marker, a signed lease fixture, a nonempty Focusa legacy database, and a user
 sentinel. `FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE` must name an explicitly
 approved, independently provider-enrolled canary profile containing
-`authority-lease.json` and its existing `node-id`; the legacy `LICENSE_SOURCE`
+`authority-lease.json` and its existing canonical `node-identity.json` (the
+`focusa.node_identity.v1` enrollment record); the legacy `LICENSE_SOURCE`
 file is not signed authority. Production identities, IDs derived from a lease,
 test roots, and fabricated enrollments are not valid substitutes. The current
 verified CLI must report active, node-matching signed authority before bootstrap,

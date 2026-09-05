@@ -47,7 +47,7 @@ NODE_BIN_DIR="$(dirname "$(readlink -f "$(command -v node)")")"
   echo "signed lease source is missing" >&2
   exit 1
 }
-for file in authority-lease.json node-id; do
+for file in authority-lease.json node-identity.json; do
   [[ -f "$FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE/$file" && ! -L "$FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE/$file" ]] || {
     echo "provider-enrolled canary profile requires a regular $file" >&2
     exit 1
@@ -124,11 +124,11 @@ cp -- "$FOCUSA_COMPATIBILITY_CANARY_LICENSE_SOURCE" \
 chmod 0600 "$CANARY_ROOT/.config/focusa/license.json"
 # Transport only the explicitly supplied canary enrollment, never a derived ID
 # or ambient production identity, credential store, or replacement trust roots.
-for file in authority-lease.json node-id; do
+for file in authority-lease.json node-identity.json; do
   cp -- "$FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE/$file" "$CANARY_ROOT/.config/focusa/$file"
   chmod 0600 "$CANARY_ROOT/.config/focusa/$file"
 done
-(cd "$CANARY_ROOT/.config/focusa" && sha256sum authority-lease.json node-id) \
+(cd "$CANARY_ROOT/.config/focusa" && sha256sum authority-lease.json node-identity.json) \
   > "$CANARY_ROOT/evidence/authority-fixture.sha256"
 printf 'focusa compatibility canary user sentinel\n' > "$CANARY_ROOT/user-sentinel.txt"
 
@@ -277,7 +277,7 @@ verify_database_phase() {
 
 verify_authority_fixture() {
   local node_id
-  node_id="$(tr -d '\r\n' < "$CANARY_ROOT/.config/focusa/node-id")"
+  node_id="$(jq -er 'select(.schema == "focusa.node_identity.v1" and .product == "focusa") | .node_id | strings | select(length > 0)' "$CANARY_ROOT/.config/focusa/node-identity.json")" || return 1
   [[ -n "$node_id" ]] || { echo "canary node identity is empty" >&2; return 1; }
   (cd "$CANARY_ROOT/.config/focusa" && sha256sum --check --status "$CANARY_ROOT/evidence/authority-fixture.sha256") || return 1
   # Cryptography, revocation, clock and node binding stay in the canonical guard.
