@@ -6,6 +6,10 @@ This is the bounded, public-safe starting point for AI agents working in the Foc
 
 Focusa is the local-first proof and continuity layer for AI coding agents. It keeps long-running work attached to a typed Workpoint, linked Evidence, and a next safe action so agents do not rely on chat tail memory.
 
+**Pi + the Focusa Pi extension is the default/reference Focusa-aware harness integration.** Pi is fundamental to the reference agent experience, but Focusa daemon/core remains cognitive authority and canonical state must not become Pi-private. Compatible non-Pi harnesses remain first-class through thin adapters and generated Focusa capability contracts.
+
+**Focusa Desktop is a presenter over Focusa authority.** In supported full Veragensia Agent Computer profiles it is the default governed human work/cognition presentation surface; it does not evaluate or invent authority independently.
+
 ## 2. Architecture map
 
 | Layer | Purpose | Key locations |
@@ -18,10 +22,10 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 | Connectors + domains | provider-neutral context, auth lifecycle, software/domain projections | `crates/focusa-core/src/connectors.rs`, `docs/contracts/spec135/` |
 | Credential Authority + authentication | project-scoped requirements, grants, leases, provider custody, controlled injection, MFA/TOTP, revocation | `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md` |
 | TUI / Mission Deck | terminal cockpit | `crates/focusa-tui/` |
-| Pi extension | all Focusa Pi tools, authority hooks, compaction/OTA/runtime bridge | `apps/pi-extension/` |
+| Pi reference harness | all Focusa Pi tools, authority hooks, compaction/OTA/runtime bridge | `apps/pi-extension/`, `docs/52-pi-extension-contract.md` |
 | Agent machine contracts | Pi/MCP/OpenAI/CLI/REST schemas and Agent Card | `docs/contracts/spec141/generated-capability-v2/` |
 | Skills + runbooks | progressive agent onboarding and recovery playbooks | `.pi/skills/`, `apps/pi-extension/skills/` |
-| Menubar preview | macOS/Tauri Mission Canvas and lifecycle cockpit | `apps/menubar/` |
+| Focusa Desktop / menubar presenter | native/Tauri governed presentation; no direct authority bypass | `apps/menubar/`, `docs/contracts/spec152f-desktop-action-map.v1.json` |
 | Public docs | current reference, onboarding, lifecycle, and specs | `README.md`, `docs/`, `docs/current/` |
 
 ### 2.1 Current authority and recovery model
@@ -34,6 +38,8 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 - Cache-safe context keeps stable prefixes and current user-tail authority while classifying degraded fallbacks explicitly.
 - Mission Canvas binds Work Surfaces to canonical operations and project scope; browser/UIAI capabilities remain session-and-origin bound.
 - Customer lifecycle requires verified install/repair, trusted update or OTA rollback, and uninstall that preserves user data unless purge is explicit.
+- Pi/reference-harness convenience never changes these authority rules; non-Pi adapters must consume the same canonical state rather than duplicate it.
+- Focusa Desktop and other presenters render/forward shared operation decisions; they do not create local entitlement or reducer bypasses.
 
 ### 2.2 All-Pi-tool and skill discovery
 
@@ -42,19 +48,10 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 3. `focusa_tool_describe` cold-loads one strict contract; `focusa_tool_graph` or `focusa_tool_bundle` expands only the selected workflow.
 4. `docs/contracts/spec141/generated-capability-v2/pi-tools.json` is the machine projection for every Focusa Pi tool.
 5. `docs/focusa-tools/tools/focusa_<name>.md` is the human reference for each tool.
-6. Background execution primitives: `focusa_bg_run` / `focusa_bg_run_many` /
-   `focusa_bg_status` — the canonical non-TBQ dispatch. Completions
-   arrive on the agent front terminal via the `background_job_completion`
-   SSE envelope (bounded output_tail). Multi-agent work = N
-   workloop-bound silent sessions (docs/168), never raw shells.
-7. Production consistency (DEFAULT, every surface): five proofs —
-   versioned contract, producer tests, consumer-side tests,
-   cross-version interop, live e2e — per
-   docs/current/PRODUCTION_CONSISTENCY_POLICY.md.
-8. Fast-forward multiplier (2x/4x/6x/8x…): operator-conceived #312 —
-   FanoutPlan round-robin task division across parallel sessions with
-   per-lane policy budgets (docs/169).
-6. Load the matched `.pi/skills/<skill>/SKILL.md`, then its numbered runbook under `references/`.
+6. Background execution primitives: `focusa_bg_run` / `focusa_bg_run_many` / `focusa_bg_status` — the canonical non-TBQ dispatch. Completions arrive on the agent front terminal via the `background_job_completion` SSE envelope (bounded `output_tail`). Multi-agent work = N workloop-bound Silent Sessions, never raw shells.
+7. Production consistency (DEFAULT, every surface): five proofs — versioned contract, producer tests, consumer-side tests, cross-version interop, live e2e — per `docs/current/PRODUCTION_CONSISTENCY_POLICY.md`.
+8. Fast-forward multiplier (2x/4x/6x/8x…): operator-conceived #312 — FanoutPlan round-robin task division across parallel sessions with per-lane policy budgets (docs/169).
+9. Load the matched `.pi/skills/<skill>/SKILL.md`, then its numbered runbook under `references/`.
 
 A release gate must prove runtime tool count = contracts = Pi descriptors = per-tool docs, and installed skills/runbooks = packaged skill/runbook copies.
 
@@ -162,12 +159,13 @@ Before code changes:
 ## 9. Helpful references
 
 - README product overview: `README.md`
+- Pi reference contract: `docs/52-pi-extension-contract.md`
+- Non-Pi parity/adapters: `docs/current/NON_PI_AGENT_FOCUSA_USAGE.md`
 - Current CLI reference: `docs/current/CLI_REFERENCE_CURRENT.md`
 - Public-surface guard: `scripts/guard-public-surface.sh`
 - Cross-phase smoke: `tests/spec_cli_cross_phase_smoke_test.sh`
 - Workpoint CLI implementation: `crates/focusa-cli/src/commands/workpoint.rs`
 - Project command implementation: `crates/focusa-cli/src/commands/project.rs`
 - API route implementations: `crates/focusa-api/src/routes/`
-
 
 Installation and evaluation authority: authority-issued under Spec 152 (spec152) — the verified bootstrapper resolves a signed, node-bound authority lease; local self-issued evaluation is forbidden. Recovery posture: authority reissue.
