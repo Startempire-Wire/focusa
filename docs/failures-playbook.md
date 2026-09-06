@@ -94,3 +94,17 @@ Deprecated hook list (was planned, now superseded):
 
 > Every failure must produce one new audit row, one new category fix,
 > and one regression guard. No silent fixes.
+
+## Release controller test missing its imported helper
+
+If the controller-staged OTA contract check raises
+`ModuleNotFoundError: install_target_contract`, stage the canonical helper beside
+the test from the same `CONTROLLER_SHA`. Do not use the candidate checkout's
+helper or duplicate its implementation: controller and candidate revisions can
+differ. `tests/spec143_ota_installability_release_gate_test.py` guards the staging
+contract. Verify execution from a temporary directory with `FOCUSA_SPEC143_ROOT`
+and `FOCUSA_RELEASE_WORKFLOW_PATH` bound explicitly.
+
+Observed in Release run 34055757279 for v0.9.188. The immutable candidate tag is
+not a published/installed release. Open release-gating issues and missing canary
+inputs remain separate acceptance requirements; this import repair waives neither.

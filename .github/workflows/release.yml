@@ -225,6 +225,7 @@ jobs:
           controller_test="${RUNNER_TEMP}/spec143-controller-test.py"
           controller_workflow="${RUNNER_TEMP}/release-controller.yml"
           git show "${CONTROLLER_SHA}:tests/spec143_ota_installability_release_gate_test.py" > "$controller_test"
+          git show "${CONTROLLER_SHA}:tests/install_target_contract.py" > "${RUNNER_TEMP}/install_target_contract.py"
           git show "${CONTROLLER_SHA}:.github/workflows/release.yml" > "$controller_workflow"
           FOCUSA_SPEC143_ROOT="$PWD" \
           FOCUSA_RELEASE_WORKFLOW_PATH="$controller_workflow" \

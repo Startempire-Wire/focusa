@@ -20,6 +20,7 @@ trust = (ROOT / "crates/focusa-cli/src/commands/update_trust.rs").read_text()
 stamper = (ROOT / "scripts/stamp-menubar-version.py").read_text()
 version_verifier = (ROOT / "scripts/verify-version-surfaces.py").read_text()
 
+assert 'git show "${CONTROLLER_SHA}:tests/install_target_contract.py" > "${RUNNER_TEMP}/install_target_contract.py"' in release
 assert "target: x86_64-unknown-linux-musl" in release
 assert "musl: true" in release
 assert '-f asset_suffix="x86_64-unknown-linux-musl"' in release
