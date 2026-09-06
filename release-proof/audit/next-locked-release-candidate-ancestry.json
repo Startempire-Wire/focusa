@@ -23,12 +23,12 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:c8d66b3782ab79e6cfec9b33681d26a493d86e7a2695efb416764ced2b172b59",
+  "ancestry_digest": "sha256:3d1ab9706466b6019f57c9ad9a717d67c7e5070e8260b1a823e4fa3ae043321b",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "fcb1a68e26ed93fe8ebef080dc1f36133c8d8ea6",
+    "audit_head": "39e3d0fde7a4bba0e5487e9c10c3b43bfd7f7944",
     "changed_after_source_commit": [],
-    "source_commit": "fcb1a68e26ed93fe8ebef080dc1f36133c8d8ea6",
+    "source_commit": "39e3d0fde7a4bba0e5487e9c10c3b43bfd7f7944",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -73,18 +73,33 @@
       }
     },
     "missing_required_assets": [
+      "focusa-session-runner-v0.9.143-aarch64-apple-darwin",
+      "focusa-session-runner-v0.9.143-x86_64-apple-darwin",
+      "focusa-session-runner-v0.9.143-x86_64-unknown-linux-gnu",
+      "focusa-v0.9.143-aarch64-unknown-linux-gnu",
+      "focusa-daemon-v0.9.143-aarch64-unknown-linux-gnu",
+      "focusa-tui-v0.9.143-aarch64-unknown-linux-gnu",
+      "focusa-session-runner-v0.9.143-aarch64-unknown-linux-gnu",
+      "focusa-session-runner-v0.9.143-x86_64-unknown-linux-musl",
       "focusa-v0.9.143-x86_64-pc-windows-msvc.exe",
       "focusa-daemon-v0.9.143-x86_64-pc-windows-msvc.exe",
       "focusa-tui-v0.9.143-x86_64-pc-windows-msvc.exe",
+      "focusa-session-runner-v0.9.143-x86_64-pc-windows-msvc.exe",
       "focusa-v0.9.143-aarch64-pc-windows-msvc.exe",
       "focusa-daemon-v0.9.143-aarch64-pc-windows-msvc.exe",
       "focusa-tui-v0.9.143-aarch64-pc-windows-msvc.exe",
+      "focusa-session-runner-v0.9.143-aarch64-pc-windows-msvc.exe",
       "focusa-generated-clients-v0.9.143.tar.gz",
       "focusa-installer-v0.9.143.ps1",
+      "distribution-manifest.json",
       "pattern:Focusa_*x64*setup.exe",
+      "pattern:Focusa_*x64*setup.exe.sig",
       "pattern:Focusa_*arm64*setup.exe",
+      "pattern:Focusa_*arm64*setup.exe.sig",
       "pattern:Focusa_*x64*.msi",
-      "pattern:Focusa_*arm64*.msi"
+      "pattern:Focusa_*x64*.msi.sig",
+      "pattern:Focusa_*arm64*.msi",
+      "pattern:Focusa_*arm64*.msi.sig"
     ],
     "published_asset_count": 66,
     "published_asset_snapshot": "release-proof/audit/next-locked-release-v09143-published-assets.json",
@@ -107,17 +122,17 @@
     "publish_release": false,
     "rewrite_v0.9.143": false
   },
-  "next_stable_tag": "v0.9.164",
+  "next_stable_tag": "v0.9.188",
   "next_version_selection": {
     "base": "0.9",
     "channel_maxima": {
-      "dev": 163,
-      "preview": null,
+      "dev": 183,
+      "preview": 187,
       "rc": null,
-      "stable": 152
+      "stable": 187
     },
-    "considered_tags": 165,
-    "highest_patch": 163,
+    "considered_tags": 191,
+    "highest_patch": 187,
     "ignored_malformed_tags": [
       "spec-integration-v1",
       "spec-integraton-v1-start"
@@ -126,12 +141,262 @@
     "monotonic": true,
     "schema": "focusa.release_version_selection.v1",
     "selected_channel": "dev",
-    "selected_patch": 164,
-    "selected_tag": "v0.9.164-dev",
-    "selected_version": "0.9.164-dev",
+    "selected_patch": 188,
+    "selected_tag": "v0.9.188-dev",
+    "selected_version": "0.9.188-dev",
     "status": "completed"
   },
   "pull_request_ancestry": [
+    {
+      "commit": "a1066dcd439eae8233ec2b28d09e4ae796d88705",
+      "pr": 536,
+      "subject": "Merge pull request #536 from Startempire-Wire/fix/389-release-authority-root-proof"
+    },
+    {
+      "commit": "5f84268410fdcd6825cfd87ae360b024926e768b",
+      "pr": 538,
+      "subject": "Merge pull request #538 from Startempire-Wire/fix/535-nightly-installability"
+    },
+    {
+      "commit": "acc2d6a7cb77caf27f56fbfa2c0f0f4619dea090",
+      "pr": 541,
+      "subject": "Merge pull request #541 from Startempire-Wire/fix/380-temporal-signal-bounds"
+    },
+    {
+      "commit": "5bd5d671016cc32ebebe8022dcdaada0a8de793d",
+      "pr": 539,
+      "subject": "fix(ci): retain Deslop reports only on failure (#539)"
+    },
+    {
+      "commit": "14eea0336a552c072400afb9b3b92b4cbd54be42",
+      "pr": 505,
+      "subject": "Merge pull request #505 from Startempire-Wire/release/v0.9.188-integration"
+    },
+    {
+      "commit": "4aa8f903acf59f8e9399d46fa0087e3f5ed3e745",
+      "pr": 507,
+      "subject": "fix(api): mount credential authority routes (#507)"
+    },
+    {
+      "commit": "7762ce500062b7e60e357bd3ee7e7d3680e428d2",
+      "pr": 479,
+      "subject": "Merge pull request #479 from Startempire-Wire/fix/codemagic-codesign-pipefail"
+    },
+    {
+      "commit": "89de018658c8b422cfae397f78e027e2a3e0698e",
+      "pr": 478,
+      "subject": "Merge pull request #478 from Startempire-Wire/fix/codemagic-adhoc-bundle-seal"
+    },
+    {
+      "commit": "ca2a3946ec899eee4908111fc12280484db9d277",
+      "pr": 476,
+      "subject": "Merge pull request #476 from Startempire-Wire/fix/codemagic-menubar-identifier"
+    },
+    {
+      "commit": "42509dc1a5ef4309b18a9409929ec766b2b5d9f9",
+      "pr": 474,
+      "subject": "Merge pull request #474 from Startempire-Wire/fix/v187-recovery-lock-normalization"
+    },
+    {
+      "commit": "da10912ec696ed7a77f965ec9a65a36fb1cd71e8",
+      "pr": 471,
+      "subject": "Merge pull request #471 from Startempire-Wire/fix/codemagic-libsodium"
+    },
+    {
+      "commit": "ef01ba523add901c819b7cad89b94cde006a561c",
+      "pr": 472,
+      "subject": "Merge pull request #472 from Startempire-Wire/fix/stamp-all-root-lock-packages"
+    },
+    {
+      "commit": "28799ffc224336114657b7238efbeb9087706f6d",
+      "pr": 469,
+      "subject": "Merge pull request #469 from Startempire-Wire/fix/codemagic-canonical-daemon-name"
+    },
+    {
+      "commit": "cbff51a967909c075ed9249e1cb6c0e79439b312",
+      "pr": 468,
+      "subject": "Merge pull request #468 from Startempire-Wire/fix/codemagic-current-tauri-key"
+    },
+    {
+      "commit": "251deeb4c33e3a3390b45570547e3f92fdb0c648",
+      "pr": 465,
+      "subject": "Merge pull request #465 from Startempire-Wire/fix/issue-464-codemagic-recovery"
+    },
+    {
+      "commit": "17aace04038cbf63e5f815460045d0a6226917fb",
+      "pr": 462,
+      "subject": "Merge pull request #462 from Startempire-Wire/fix/issue-461-pre-ci-tag-order"
+    },
+    {
+      "commit": "7b44f4c43069c83e0f1ffca96736d1902d645d0a",
+      "pr": 460,
+      "subject": "fix: bind silent proof reads to run generation (#460)"
+    },
+    {
+      "commit": "960a8215ca43c45111d37c2f42745768ef009142",
+      "pr": 458,
+      "subject": "fix: remove unclassified OS owner cache (#458)"
+    },
+    {
+      "commit": "bfa30e05561c226d6a1172b578213db5caf55380",
+      "pr": 456,
+      "subject": "fix: resolve Silent Session OS owner (#456)"
+    },
+    {
+      "commit": "42b64ededa73a0a9d9eee968bc0fea10f3dbe0ac",
+      "pr": 454,
+      "subject": "fix: preserve release proof failure diagnostics (#454)"
+    },
+    {
+      "commit": "2f2a803469b96ef3eb97ed47fad0b2e0e01f4333",
+      "pr": 453,
+      "subject": "fix: align Silent Session preflight and approval flow (#453)"
+    },
+    {
+      "commit": "ec9f3a08eac3edfc633819766a9b68df92478cf2",
+      "pr": 444,
+      "subject": "Merge pull request #444 from Startempire-Wire/fix/issue-413-background-output-tail"
+    },
+    {
+      "commit": "d64423b5c55ba3d75936fe6ce01a91e681f2e7af",
+      "pr": 435,
+      "subject": "Merge pull request #435 from Startempire-Wire/fix/issue-424-callgraph-validator"
+    },
+    {
+      "commit": "22da49e3b336b749c7f81e1302f88d4afb4b5380",
+      "pr": 392,
+      "subject": "fix: require durable background dispatch receipts (#392)"
+    },
+    {
+      "commit": "6a3412387410a90b22d877179e2ff94993ad702f",
+      "pr": 374,
+      "subject": "Merge pull request #374 from curtisslwitt-dotcom/fix/node-prefix-lease-verification"
+    },
+    {
+      "commit": "81e3b99058a06f679b740292a8a64dd327e7b3b3",
+      "pr": 346,
+      "subject": "fix(license): remove unexecutable advertised actions until shipped (#346)"
+    },
+    {
+      "commit": "582941ad8e0506b88d3f9ece2013a1b76bac94ef",
+      "pr": 343,
+      "subject": "fix(security): gate dev/test/home bypass to debug builds only (#343)"
+    },
+    {
+      "commit": "4e3be16371ccb6be66aef206c5a37aae629359cb",
+      "pr": 347,
+      "subject": "fix(security): atomic/private activation writes + retire unused terminal poll credentials (#347)"
+    },
+    {
+      "commit": "d4b45de6056a972481514010832725a1cb094973",
+      "pr": 345,
+      "subject": "fix(security): disable redirects and reject 3xx on activation transport (#345)"
+    },
+    {
+      "commit": "3644a98bb6efae9ea5795777025ec2bb7fe52b6b",
+      "pr": 365,
+      "subject": "fix(activation): surface honest verification delivery status; add resend recovery command (#365)"
+    },
+    {
+      "commit": "e88d122c6571dcaa97f139f0c15184fad310b92a",
+      "pr": 366,
+      "subject": "fix(license): portal key binds via redeem fast-path, not command-retired (#366)"
+    },
+    {
+      "commit": "4969d7d292f0512ba13c03c559971361d2d86b99",
+      "pr": 367,
+      "subject": "fix(cli): JSON errors report invoked command, not recovery suggestion (#367)"
+    },
+    {
+      "commit": "b65218038c70b2fa18edec686beba0c9a1185b21",
+      "pr": 371,
+      "subject": "fix(activation): graceful cancel from entitlement_issued state (#371)"
+    },
+    {
+      "commit": "d8be140ba27ec3beef98598114c4c447975ab3c5",
+      "pr": 370,
+      "subject": "fix(activation): agent mode persists snapshot + poll credential on every state change (#370)"
+    },
+    {
+      "commit": "b6c0b8535d61d7a56f362bf2a2b79abacd5e414c",
+      "pr": 342,
+      "subject": "fix(license): typed authority errors + status reconciliation (#344, #342)"
+    },
+    {
+      "commit": "b6c0b8535d61d7a56f362bf2a2b79abacd5e414c",
+      "pr": 344,
+      "subject": "fix(license): typed authority errors + status reconciliation (#344, #342)"
+    },
+    {
+      "commit": "450c96a164b4807098c3df83a7b5b8f0e154cf13",
+      "pr": 328,
+      "subject": "fix(ci): strip CI debuginfo \u2014 rustc memory spike hit container ceiling (#328)"
+    },
+    {
+      "commit": "b166ba0170e68284ada68d7a39e8c8db30a96eed",
+      "pr": 328,
+      "subject": "fix(ci): serialize cargo-heavy jobs on single self-hosted runner (#328)"
+    },
+    {
+      "commit": "30305e56f0113829acb24760d1f61ed55abb5254",
+      "pr": 328,
+      "subject": "fix(ci): disable thin-LTO on validation builds \u2014 container memory wall kills rustc (#328)"
+    },
+    {
+      "commit": "22d43035b910a30b1c36af640e14888e2c38ad60",
+      "pr": 328,
+      "subject": "fix(ci): harden self-hosted lanes against resource collisions (#328)"
+    },
+    {
+      "commit": "f7dd2d7183213b58ff09faf5072807fa7f799d3c",
+      "pr": 171,
+      "subject": "docs(spec): pi-extension drift reconciliation plan (#171)"
+    },
+    {
+      "commit": "4b4bff6f50e84fbcbec7125b5430cc85356b05e0",
+      "pr": 322,
+      "subject": "fix(cli): wire focusa bg subcommand into Commands enum #322"
+    },
+    {
+      "commit": "3bbfa1f12492efff5a2a6e7629586d1c9a60bd8e",
+      "pr": 316,
+      "subject": "fix(license): carry origin and registered facade_id through activation wire #316"
+    },
+    {
+      "commit": "ba73cc5ea5b3a648276bfd6137ae669613dadcef",
+      "pr": 321,
+      "subject": "fix(pi): contain Windows TUI write UNKNOWN on host boundary #321"
+    },
+    {
+      "commit": "f052a1eb56f17c586db7eb710cd919bc26c267a5",
+      "pr": 320,
+      "subject": "fix(update): surface OTA channel mismatch and version inversion in notifications #320"
+    },
+    {
+      "commit": "5d3acc5147b8f89db8bb68ba0ba69f65b0334737",
+      "pr": 317,
+      "subject": "fix(closure-authority): enforce bead close evidence gate per Spec 131 #317 #318"
+    },
+    {
+      "commit": "5d3acc5147b8f89db8bb68ba0ba69f65b0334737",
+      "pr": 318,
+      "subject": "fix(closure-authority): enforce bead close evidence gate per Spec 131 #317 #318"
+    },
+    {
+      "commit": "8a72209b5569594f3a2aa9220bf379e2093faf68",
+      "pr": 318,
+      "subject": "chore(core): update GH#318 detail + defer to next release \u2014 back to license tail (Sir V3)"
+    },
+    {
+      "commit": "66dbd19ce7685f9beeef88ce71f9ad0108fe33de",
+      "pr": 318,
+      "subject": "chore(core): file core promise failure GH#318 \u2014 Closure Authority not enforced (Sir V3)"
+    },
+    {
+      "commit": "5dc01c80c5ebcff38a404c889ed5b6f541607872",
+      "pr": 317,
+      "subject": "chore(guard): link focusa-bwhtl \u2192 GH#317 (Sir V3)"
+    },
     {
       "commit": "4e5d3a7e42ec24574eeafa0236f1ff76de3e058f",
       "pr": 314,
@@ -165,9 +430,9 @@
   "schema": "focusa.locked_release_candidate_ancestry.v1",
   "source_version_agreement": true,
   "source_versions": {
-    "menubar": "0.9.164",
-    "pi_extension": "0.9.164",
-    "workspace": "0.9.164"
+    "menubar": "0.9.188",
+    "pi_extension": "0.9.188",
+    "workspace": "0.9.188"
   },
   "status": "verified",
   "tag_chain": {
