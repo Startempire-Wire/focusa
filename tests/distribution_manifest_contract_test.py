@@ -16,6 +16,9 @@ assert spec and spec.loader
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
+publisher = (ROOT / "scripts/create-dev-release-tag.sh").read_text(encoding="utf-8")
+assert publisher.index('  scripts/stamp-release-version "${VERSION}"') < publisher.index('  scripts/stamp-menubar-version.py "${TAG}"'), "release marker must precede final component digests"
+
 manifest_path = ROOT / module.MANIFEST_REL
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 failures = module.verify_manifest(ROOT, manifest)
