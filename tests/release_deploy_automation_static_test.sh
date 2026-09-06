@@ -4,6 +4,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
 echo "=== release deploy automation static test ==="
+python3 tests/release_learning_guard_command_test.py
 
 WORKFLOW_VALIDATION_OUT="$(mktemp /tmp/focusa-workflow-graph-validation.XXXXXX)"
 trap 'rm -f "$WORKFLOW_VALIDATION_OUT"' EXIT
