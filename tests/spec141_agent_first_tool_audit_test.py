@@ -21,12 +21,21 @@ subprocess.run(
 )
 
 workflow = RELEASE_WORKFLOW.read_text()
-assert "open-issue-release-gate:" in workflow
-assert 'startswith("release-gate:")' in workflow
-assert (
-    "needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate, version-policy]"
-    in workflow
-)
+# Tracking state is not installed evidence: collecting proof must not depend
+# on prematurely closing the issue that requires that proof.
+assert "open-issue-release-gate:" not in workflow
+assert "needs: [rust-check, final-release-gap-gate, pull-request-release-gate, version-policy]" in workflow
+assert "predeployment-compatibility-canary:" in workflow
+assert "needs: predeployment-compatibility-canary" in workflow
+deploy_workflow = (ROOT / ".github/workflows/deploy-live-daemon.yml").read_text()
+proof_steps = [
+    "Verify installed distribution parity",
+    "Gate OTA installability against signed deployed release",
+    "Settle signed release manifest after OTA acceptance",
+    "Promote accepted stable release to Latest",
+]
+positions = [deploy_workflow.index(step) for step in proof_steps]
+assert positions == sorted(positions)
 
 with tempfile.TemporaryDirectory(prefix="focusa-spec141-") as tmp:
     report_path = Path(tmp) / "audit.json"
