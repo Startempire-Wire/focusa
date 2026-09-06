@@ -1,10 +1,5 @@
 {
-  "enabled": false,
-  "tag": "v0.9.187",
-  "sha": "01aae7ea9ab886627d49b68e7aed2349d9ceafc0",
-  "verified_test_receipts": {
-    "build": 242,
-    "x86_64_job": "6o84mlsuilovxtua",
-    "aarch64_job": "uskaruf7e5hjkhqv"
-  }
+  "enabled": true,
+  "tag": "v0.9.188",
+  "sha": "a02b7968472119e66646bcc6249b6e70ee8efff8"
 }

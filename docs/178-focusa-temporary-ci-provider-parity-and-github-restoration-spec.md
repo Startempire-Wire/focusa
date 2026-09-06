@@ -61,9 +61,10 @@ depend on billing-locked GitHub Actions artifact storage.
 repository variable `FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX` is explicitly set to
 `enabled` as part of the all-at-once restoration procedure.
 11. AppVeyor recovery may load `config/appveyor-release-recovery.json` from a
-controller commit, verify the immutable tag/SHA pair, and validate and transport
-its frozen test-receipt identity through provider build variables before
-checking out that SHA in detached mode. Later phases must not reread controller metadata
+controller commit, verify the immutable tag/SHA pair, and transport that identity
+through provider build variables before checking out that SHA in detached mode.
+Recovery executes the same actual candidate test commands as normal tag builds;
+historical provider receipts cannot substitute for those tests. Later phases must not reread controller metadata
 from the now-candidate worktree. Only then may the provider
 build/test/package/upload. Recovery assets use the immutable tag, not the
 controller commit. The recovery record is disabled at rest, enabled only for one

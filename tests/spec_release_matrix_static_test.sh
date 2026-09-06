@@ -247,29 +247,16 @@ grep -Fq 'if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true"
   || fail "AppVeyor binary build and copy work must be surface-isolated"
 [ "$(grep -Fc 'if ($env:SURFACE -ne "tests")' "$APPVEYOR")" -eq 1 ] \
   || fail "AppVeyor Rust tests must be surface-isolated"
-grep -Fq 'appveyor_recovery_test_receipt=passed' "$APPVEYOR" \
-  || fail "AppVeyor immutable recovery does not prove reused exact-candidate tests"
-grep -Fq '$recoveryReceiptControllerSha = "9b18fb6edb49aecf0656774b6e36a65e9fd8542d"' "$APPVEYOR" \
-  || fail "AppVeyor reused tests are not bound to the frozen provider controller"
+if grep -Eq 'FOCUSA_RECOVERY_RECEIPT|verified_test_receipts|appveyor_recovery_test_receipt' "$APPVEYOR"; then
+  fail "AppVeyor recovery must run current-candidate tests instead of frozen receipts"
+fi
+grep -Fq '$testCommands = @("cargo test --release $mode --target $env:RUST_TARGET -p focusa-license") + $coreCommands' "$APPVEYOR" \
+  || fail "AppVeyor recovery lost actual license/core test execution"
 [ "$(grep -Fc 'ConvertFrom-Json' "$APPVEYOR")" -eq 1 ] \
   || fail "AppVeyor must parse controller recovery metadata exactly once before candidate checkout"
 if grep -Fq 'Get-Content "config/appveyor-release-recovery.json"' "$APPVEYOR"; then
   fail "AppVeyor must not reread controller recovery metadata after checking out the immutable candidate"
 fi
-for receipt_variable in \
-  FOCUSA_RECOVERY_RECEIPT_BUILD \
-  FOCUSA_RECOVERY_RECEIPT_X64_JOB \
-  FOCUSA_RECOVERY_RECEIPT_ARM64_JOB \
-  FOCUSA_RECOVERY_RECEIPT_CONTROLLER_SHA; do
-  grep -Fq "Set-AppveyorBuildVariable -Name $receipt_variable" "$APPVEYOR" \
-    || fail "AppVeyor does not transport controller-owned receipt identity: $receipt_variable"
-  grep -Fq "env:$receipt_variable" "$APPVEYOR" \
-    || fail "AppVeyor does not consume transported receipt identity: $receipt_variable"
-done
-grep -Fq 'https://ci.appveyor.com/api/projects/verioussmith/focusa/build/$receiptBuild' "$APPVEYOR" \
-  || fail "AppVeyor reused tests do not verify the frozen provider build"
-grep -Fq 'missing GitHub release upload credential' "$APPVEYOR" \
-  || fail "AppVeyor reused tests do not prove execution reached the post-test hook"
 grep -Fq 'libsodium-1.0.21-stable-msvc.zip' "$APPVEYOR" \
   || fail "AppVeyor signer conversion lacks a pinned official libsodium runtime"
 grep -Fq 'b19069c44c3875a2d9b46123bee3200cdc26eb9514c296b13cf91e96f1175269' "$APPVEYOR" \
@@ -356,16 +343,7 @@ for recovery_path in sys.argv[1:3]:
     assert re.fullmatch(r"v\d+\.\d+\.\d+", payload["tag"])
     assert re.fullmatch(r"[0-9a-f]{40}", payload["sha"])
 appveyor_recovery = json.load(open(sys.argv[1], encoding="utf-8"))
-assert appveyor_recovery == {
-    "enabled": False,
-    "tag": "v0.9.187",
-    "sha": "01aae7ea9ab886627d49b68e7aed2349d9ceafc0",
-    "verified_test_receipts": {
-        "build": 242,
-        "x86_64_job": "6o84mlsuilovxtua",
-        "aarch64_job": "uskaruf7e5hjkhqv",
-    },
-}, "AppVeyor recovery must rest disabled while retaining the immutable v0.9.187 audit identity"
+assert set(appveyor_recovery) == {"enabled", "tag", "sha"}, "recovery metadata must not carry historical test shortcuts"
 lines = open(sys.argv[3], encoding="utf-8").read().splitlines()
 uploads = [i for i, line in enumerate(lines) if "uses: softprops/action-gh-release@v2" in line]
 assert uploads, "release workflow has no GitHub Release upload actions"

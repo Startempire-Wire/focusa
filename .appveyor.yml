@@ -78,7 +78,6 @@ install:
         $recoveryControllerBranch = "fix/issue-480-appveyor-recovery"
         $recoveryControllerPullRequest = "482"
         $recoveryRepository = "Startempire-Wire/focusa"
-        $recoveryReceiptControllerSha = "9b18fb6edb49aecf0656774b6e36a65e9fd8542d"
         $isControllerBranch = $env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch
         $isControllerPullRequest = (
           $env:APPVEYOR_PULL_REQUEST_NUMBER -eq $recoveryControllerPullRequest -and
@@ -90,14 +89,6 @@ install:
         if ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true" -and $isControllerRequest) {
           if (-not ($recovery.tag -match '^v[0-9]+\.[0-9]+\.[0-9]+$')) { throw "invalid recovery tag" }
           if (-not ($recovery.sha -match '^[0-9a-f]{40}$')) { throw "invalid recovery SHA" }
-          $receiptBuild = [string]$recovery.verified_test_receipts.build
-          $receiptX64Job = [string]$recovery.verified_test_receipts.x86_64_job
-          $receiptArm64Job = [string]$recovery.verified_test_receipts.aarch64_job
-          if (-not ($receiptBuild -match '^[1-9][0-9]*$') -or
-              -not ($receiptX64Job -match '^[a-z0-9]{16}$') -or
-              -not ($receiptArm64Job -match '^[a-z0-9]{16}$')) {
-            throw "invalid frozen AppVeyor test receipt identity"
-          }
           git fetch --force origin "refs/tags/$($recovery.tag):refs/tags/$($recovery.tag)"
           if ($LASTEXITCODE -ne 0) { throw "failed to fetch immutable recovery tag" }
           $tagSha = (git rev-parse "$($recovery.tag)^{commit}").Trim()
@@ -110,12 +101,6 @@ install:
           if ($headSha -ne $recovery.sha) { throw "recovery checkout mismatch" }
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TAG -Value $recovery.tag
           Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_SHA -Value $recovery.sha
-          # The checkout now points at the immutable release candidate, so carry
-          # controller-owned receipt identity through provider build variables.
-          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_RECEIPT_BUILD -Value $receiptBuild
-          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_RECEIPT_X64_JOB -Value $receiptX64Job
-          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_RECEIPT_ARM64_JOB -Value $receiptArm64Job
-          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_RECEIPT_CONTROLLER_SHA -Value $recoveryReceiptControllerSha
           $controllerRoute = if ($isControllerPullRequest) { "same_repo_pr" } else { "branch" }
           Write-Host "appveyor_recovery_identity=passed tag=$($recovery.tag) sha=$headSha route=$controllerRoute"
         } elseif ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -eq "true") {
@@ -294,43 +279,7 @@ test_script:
         Write-Host "appveyor_surface_skipped=tests selected=$env:SURFACE"
         return
       }
-      if ($env:FOCUSA_RECOVERY_TAG) {
-        $receiptBuildText = [string]$env:FOCUSA_RECOVERY_RECEIPT_BUILD
-        $receiptControllerSha = [string]$env:FOCUSA_RECOVERY_RECEIPT_CONTROLLER_SHA
-        $receiptJob = if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") {
-          [string]$env:FOCUSA_RECOVERY_RECEIPT_ARM64_JOB
-        } else {
-          [string]$env:FOCUSA_RECOVERY_RECEIPT_X64_JOB
-        }
-        if (-not ($receiptBuildText -match '^[1-9][0-9]*$') -or
-            -not ($receiptJob -match '^[a-z0-9]{16}$') -or
-            -not ($receiptControllerSha -match '^[0-9a-f]{40}$')) {
-          throw "invalid frozen AppVeyor test receipt identity"
-        }
-        $receiptBuild = [int]$receiptBuildText
-        $receiptState = Invoke-RestMethod -Uri "https://ci.appveyor.com/api/projects/verioussmith/focusa/build/$receiptBuild"
-        if ($receiptState.build.commitId -ne $receiptControllerSha -or $receiptState.build.branch -ne "fix/issue-480-appveyor-recovery") {
-          throw "frozen AppVeyor test receipt controller mismatch"
-        }
-        $receiptLog = (Invoke-WebRequest -UseBasicParsing -Uri "https://ci.appveyor.com/api/buildjobs/$receiptJob/log").Content
-        if (-not $receiptLog.Contains("appveyor_recovery_identity=passed tag=$env:FOCUSA_RECOVERY_TAG sha=$env:FOCUSA_RECOVERY_SHA")) {
-          throw "frozen AppVeyor test receipt candidate mismatch"
-        }
-        if (-not $receiptLog.Contains("missing GitHub release upload credential")) {
-          throw "frozen AppVeyor test receipt did not reach the post-test upload hook"
-        }
-        if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") {
-          if (-not $receiptLog.Contains("Executable unittests") -or -not $receiptLog.Contains("focusa_core")) {
-            throw "frozen ARM64 no-run test receipt is incomplete"
-          }
-        } else {
-          if ($receiptLog.Contains("test result: FAILED") -or ([regex]::Matches($receiptLog, "test result: ok").Count -lt 7)) {
-            throw "frozen x64 test receipt is incomplete or failed"
-          }
-        }
-        Write-Host "appveyor_recovery_test_receipt=passed build=$receiptBuild job=$receiptJob target=$env:RUST_TARGET candidate=$env:FOCUSA_RECOVERY_SHA"
-        return
-      }
+      # Recovery runs the same actual candidate tests as a normal tag build.
       $vcvarsCandidates = @(
         "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
         "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
