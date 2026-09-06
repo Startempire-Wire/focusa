@@ -66,8 +66,7 @@ if [[ "$FOCUSA_TEST_MODE" == "1" ]] && ! git -C "$ROOT_DIR" rev-parse --git-dir 
   # existing repository or give the fixture a different canonical root.
   mkdir "$ROOT_DIR/.git"
   TEST_GIT_DIR="$ROOT_DIR/.git"
-  export GIT_DIR="$TEST_GIT_DIR"
-  export GIT_WORK_TREE="$ROOT_DIR"
+  # Do not export Git overrides: the daemon resolves independent workspaces.
   git init -q "$ROOT_DIR"
   git -C "$ROOT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate base'
   git -C "$ROOT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate head'

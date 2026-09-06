@@ -20,7 +20,7 @@ class GitFixtureTest(unittest.TestCase):
             root.mkdir()
             env = {'PATH': '/usr/bin:/bin', 'HOME': tmp, 'ROOT_DIR': str(root),
                    'FOCUSA_TEST_MODE': '1', 'GIT_CONFIG_NOSYSTEM': '1',
-                   'GIT_CONFIG_GLOBAL': '/dev/null'}
+                   'GIT_CONFIG_GLOBAL': '/dev/null', 'OTHER_ROOT': str(Path(tmp) / 'other')}
             if existing:
                 subprocess.run(['git', 'init', '-q', str(root)], env=env, check=True)
                 subprocess.run(['git', '-C', str(root), '-c', 'user.name=test',
@@ -29,6 +29,9 @@ class GitFixtureTest(unittest.TestCase):
                 env['GIT_DIR'] = str(root / '.git')
                 env['GIT_WORK_TREE'] = str(root)
             code = 'set -euo pipefail\n' + FIXTURE + '\ngit rev-list --count HEAD\ngit rev-parse --git-common-dir\n'
+            if not existing:
+                code += 'git init -q "$OTHER_ROOT"\n'
+                code += '[[ "$(git -C "$OTHER_ROOT" rev-parse --show-toplevel)" == "$OTHER_ROOT" ]]\n'
             code += GIT_CLEANUP
             code += '''
 DAEMON_PID=unused
@@ -45,7 +48,7 @@ cleanup_ephemeral_builds() { cleanup_test_git; printf 'remaining_git_dir=%s\\n' 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertNotIn('fatal:', result.stderr)
             self.assertEqual(result.stdout.splitlines()[0], '1' if existing else '2')
-            self.assertEqual(Path(result.stdout.splitlines()[1]).resolve().parent, root.resolve())
+            self.assertEqual((root / result.stdout.splitlines()[1]).resolve().parent, root.resolve())
             expected = str(root / '.git') if existing else 'unset'
             self.assertIn('remaining_git_dir=' + expected, result.stdout)
             self.assertEqual((root / '.git').exists(), existing)
