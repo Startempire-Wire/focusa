@@ -77,6 +77,27 @@ impl Drop for TestDir {
     }
 }
 
+#[test]
+fn filesystem_space_reports_capacity_for_unicode_directory() {
+    let root = TestDir::new();
+    let path = root.path().join("backup-測試");
+    std::fs::create_dir(&path).unwrap();
+    let (available, capacity) = super::backup_io::filesystem_space(&path).unwrap();
+    assert!(capacity > 0);
+    assert!(available <= capacity);
+}
+
+#[test]
+fn filesystem_space_rejects_missing_directory() {
+    let root = TestDir::new();
+    assert!(super::backup_io::filesystem_space(&root.path().join("missing")).is_err());
+}
+
+#[test]
+fn filesystem_space_rejects_null_path() {
+    assert!(super::backup_io::filesystem_space(Path::new("invalid\0path")).is_err());
+}
+
 fn fixture() -> (TestDir, PathBuf, BackupPolicy) {
     let root = TestDir::new();
     let data = root.path().join("data");

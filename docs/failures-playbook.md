@@ -108,3 +108,15 @@ and `FOCUSA_RELEASE_WORKFLOW_PATH` bound explicitly.
 Observed in Release run 34055757279 for v0.9.188. The immutable candidate tag is
 not a published/installed release. Open release-gating issues and missing canary
 inputs remain separate acceptance requirements; this import repair waives neither.
+
+## Windows backup capacity probe must use the Windows API
+
+AppVeyor build 413 exposed an unconditional `libc::statvfs` call in
+`runtime/backup_io.rs`, which fails to compile on Windows. Keep the shared
+`filesystem_space` owner, with Unix `statvfs` and Windows
+`GetDiskFreeSpaceExW` implementations; OS errors must remain fatal, never
+become fabricated free capacity. The existing provider test matrix runs the
+Unicode-directory, missing-directory, and null-path regressions. Linux tests
+do not prove Windows compilation or execution. A corrected candidate requires
+a distinct release identity: never move the v0.9.188 tag or upload patched
+source under its identity. Tracked in issue #583.

@@ -287,7 +287,7 @@ test_script:
       $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
       if (-not $vcvars) { throw "vcvarsall.bat not found" }
       $mode = if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") { "--no-run" } else { "" }
-      $coreFilters = @("background_job", "callgraph", "release_adapters", "install_lifecycle", "installation_convergence", "license::tests")
+      $coreFilters = @("background_job", "callgraph", "release_adapters", "install_lifecycle", "installation_convergence", "license::tests", "runtime::backup_tests::filesystem_space")
       $coreCommands = $coreFilters | ForEach-Object { "cargo test --release $mode --target $env:RUST_TARGET -p focusa-core --lib $_" }
       $testCommands = @("cargo test --release $mode --target $env:RUST_TARGET -p focusa-license") + $coreCommands
       $command = "call `"$vcvars`" $env:MSVC_ARCH && ($($testCommands -join ' && ')) 2>&1"

@@ -6,6 +6,7 @@ use chrono::Utc;
 use rusqlite::{Connection, OptionalExtension, backup::Backup};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
+#[cfg(unix)]
 use std::ffi::CString;
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, Read, Write};
@@ -308,6 +309,7 @@ pub(super) fn create_private_dir(path: &Path) -> Result<()> {
     }
     Ok(())
 }
+#[cfg(unix)]
 pub(super) fn filesystem_space(path: &Path) -> Result<(u64, u64)> {
     let c_path = CString::new(path.as_os_str().as_encoded_bytes())?;
     let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
@@ -319,6 +321,47 @@ pub(super) fn filesystem_space(path: &Path) -> Result<(u64, u64)> {
         stat.f_blocks.saturating_mul(stat.f_frsize),
     ))
 }
+#[cfg(windows)]
+pub(super) fn filesystem_space(path: &Path) -> Result<(u64, u64)> {
+    use std::os::windows::ffi::OsStrExt;
+
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn GetDiskFreeSpaceExW(
+            directory: *const u16,
+            available: *mut u64,
+            capacity: *mut u64,
+            free: *mut u64,
+        ) -> i32;
+    }
+
+    let mut directory: Vec<u16> = path.as_os_str().encode_wide().collect();
+    if directory.contains(&0) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "filesystem path contains a null character",
+        )
+        .into());
+    }
+    directory.push(0);
+    let mut available = 0_u64;
+    let mut capacity = 0_u64;
+    // SAFETY: directory is null-terminated UTF-16; both output pointers are
+    // valid for the call. The optional total-free output is deliberately null.
+    if unsafe {
+        GetDiskFreeSpaceExW(
+            directory.as_ptr(),
+            &mut available,
+            &mut capacity,
+            std::ptr::null_mut(),
+        )
+    } == 0
+    {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    Ok((available, capacity))
+}
+
 pub(super) fn available_bytes(path: &Path) -> Result<u64> {
     Ok(filesystem_space(path)?.0)
 }
