@@ -44,3 +44,13 @@ node scripts/validate-compaction-fallbacks.mjs
 ```
 
 This static guard fails if legacy bare `none` summary fallbacks return or if Workpoint/current-ask/session fallback hooks disappear.
+
+## Extension replacement and tool registration
+
+Pi tears down extension instances on reload, new/resume, and fork. The retiring
+compaction coordinator must release registration ownership and its request
+callback so the replacement registers all tools and commands. Duplicate loads
+without shutdown remain suppressed. An actual in-flight attempt retains its
+exclusion until its own terminal callback settles; retired callbacks must not
+use stale session contexts. `npm run test:reload-tools` exercises native SDK
+reload and checks the complete active tool set, not daemon liveness alone.

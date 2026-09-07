@@ -35,12 +35,11 @@ test("module reload clears stale global owner and re-registers", () => {
   assert.match(source, /moduleLoadId: MODULE_LOAD_ID/);
 });
 
-test("session reload preserves, rebinds, and proves the compaction coordinator", () => {
+test("session reload releases stale ownership and rebinds the coordinator", () => {
   const shutdown = handlerBody("session_shutdown");
   const start = handlerBody("session_start");
-  assert.doesNotMatch(shutdown, /processLease\.request = undefined/);
-  assert.doesNotMatch(shutdown, /processLease\.owner = undefined/);
-  assert.match(shutdown, /processLease\.owner\.nativeSession = undefined/);
+  assert.match(shutdown, /processLease\.request = undefined/);
+  assert.match(shutdown, /processLease\.owner = undefined/);
   assert.match(start, /processLease\.request = maybeCompact/);
   assert.match(start, /reduceCompactionAuthorityEvents\(persistedEvents\)/);
   assert.match(start, /runtime_registration_verified/);
