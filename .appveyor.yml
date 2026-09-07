@@ -111,6 +111,7 @@ install:
           Exit-AppveyorBuild
         }
       }
+  - powershell -NoProfile -File tests/appveyor_release_lookup_test.ps1
   - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
   - rustup-init.exe -y --default-toolchain nightly-2026-08-28 --target %RUST_TARGET%
   - set PATH=%USERPROFILE%\.cargo\bin;%PATH%
@@ -317,7 +318,7 @@ on_success:
             # GitHub's tag endpoint returns 404 for draft releases. Enumerate the
             # authenticated release collection so Windows assets can reach the
             # exact gated draft that must remain unpublished until settlement.
-            $releases = @(Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases?per_page=100" -Headers $headers)
+            $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases?per_page=100" -Headers $headers
           } catch {
             $statusCode = $null
             if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {

@@ -127,7 +127,10 @@ in memory before Tauri packaging. No decoded signing-key file is written on
 either provider. The AppVeyor project must hold both the key payload and
 password as secure variables; absent authority fails before package work.
 19. AppVeyor must discover the receiving draft through the authenticated GitHub
-release collection and select exactly one matching `tag_name`. GitHub's
+release collection and select exactly one matching `tag_name`. Assign the REST
+array directly: Windows PowerShell can nest it when wrapped in `@(...)`, causing
+selection to retain the entire collection. Native lookup regressions run before
+provider dependencies. GitHub's
 `/releases/tags/{tag}` endpoint does not expose a draft and created a circular
 wait in build 265: Windows assets were required before publication while the
 Windows producer waited for publication before upload. Ambiguity, a non-draft

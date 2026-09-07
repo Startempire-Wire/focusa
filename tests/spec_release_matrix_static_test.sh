@@ -299,6 +299,11 @@ if grep -Fq 'releases/tags/$tag' "$APPVEYOR"; then
 fi
 grep -Fq '$matches[0].draft -ne $true' "$APPVEYOR" \
   || fail "AppVeyor must reject a release that is no longer the gated draft"
+if grep -Fq '$releases = @(Invoke-RestMethod' "$APPVEYOR"; then
+  fail "AppVeyor nests the REST release array before exact draft selection"
+fi
+grep -Fq 'powershell -NoProfile -File tests/appveyor_release_lookup_test.ps1' "$APPVEYOR" \
+  || fail "AppVeyor lacks native draft lookup regression execution"
 grep -Fq 'ambiguous GitHub draft Release' "$APPVEYOR" \
   || fail "AppVeyor must reject ambiguous tag matches"
 grep -Fq 'GitHub draft Release lookup authorization failed' "$APPVEYOR" \
