@@ -46,7 +46,7 @@ environment:
   # semantics while disabling only cross-crate LTO on this provider.
   CARGO_PROFILE_RELEASE_LTO: "false"
   # Public authority root (embedded at build time via build.rs/env!).
-  FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
+  FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
   matrix:
     - RUST_TARGET: x86_64-pc-windows-msvc
       MSVC_ARCH: amd64

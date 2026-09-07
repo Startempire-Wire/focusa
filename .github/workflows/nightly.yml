@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 20
     env:
       CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-nightly-target/x86_64-unknown-linux-musl
-      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
+      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
     steps:
       - uses: actions/checkout@v6
         with:
