@@ -12,7 +12,7 @@ use focusa_core::{
     entitlement_execution_guard::{
         EntitlementExecutionContext, EntitlementExecutionPolicy, evaluate_entitlement_execution,
     },
-    runtime::persistence_sqlite::EntitlementLimitReservationOutcome,
+    runtime::persistence_sqlite::{EntitlementLimitReservationOutcome, SqlitePersistence},
 };
 use focusa_license::{LicenseGuard, RecoveryAllowance, authority::EntitlementState};
 use serde::Deserialize;
@@ -311,7 +311,7 @@ pub async fn entitlement_gate_layer(
     let reservation = if requires_entitlement {
         if let Some(policy) = policy {
             if policy.recovery_allowance == RecoveryAllowance::None {
-                match reserve_route_limit(&state, &request) {
+                match reserve_route_limit(&state.license_guard, &state.persistence, &request) {
                     Ok(reservation) => reservation,
                     Err(denial) => return denial_response(&state, denial),
                 }
@@ -392,7 +392,8 @@ async fn state_has_canonical_workpoint(state: &Arc<AppState>) -> bool {
 }
 
 fn reserve_route_limit(
-    state: &AppState,
+    license_guard: &LicenseGuard,
+    persistence: &SqlitePersistence,
     request: &Request,
 ) -> Result<Option<String>, RouteEntitlementDenial> {
     let method = request.method();
@@ -403,6 +404,19 @@ fn reserve_route_limit(
     let Some(bucket) = policy.limit_bucket.as_deref() else {
         return Ok(None);
     };
+    let snapshot = license_guard
+        .entitlement
+        .as_ref()
+        .ok_or(RouteEntitlementDenial {
+            code: "ENTITLEMENT_REQUIRED".to_string(),
+            message: "A valid signed Focusa authority lease is required for this operation."
+                .to_string(),
+            required_feature: policy.required_feature.clone(),
+            limit_bucket: Some(bucket.to_string()),
+        })?;
+    if focusa_license::operator_includes_software_usage(snapshot, bucket, chrono::Utc::now()) {
+        return Ok(None);
+    }
     let idempotency_key = request
         .headers()
         .get("Idempotency-Key")
@@ -427,17 +441,6 @@ fn reserve_route_limit(
             required_feature: policy.required_feature.clone(),
             limit_bucket: Some(bucket.to_string()),
         })?;
-    let snapshot = state
-        .license_guard
-        .entitlement
-        .as_ref()
-        .ok_or(RouteEntitlementDenial {
-            code: "ENTITLEMENT_REQUIRED".to_string(),
-            message: "A valid signed Focusa authority lease is required for this operation."
-                .to_string(),
-            required_feature: policy.required_feature.clone(),
-            limit_bucket: Some(bucket.to_string()),
-        })?;
     let lease_id = snapshot.lease_id.as_deref().unwrap_or_default();
     let lease_sequence = snapshot.sequence.unwrap_or_default();
     let mut available = snapshot.limits.get(bucket).copied().unwrap_or(0);
@@ -455,7 +458,7 @@ fn reserve_route_limit(
             "{lease_id}\0{lease_sequence}\0{bucket}\0{idempotency_key}"
         ))
     );
-    match state.persistence.reserve_entitlement_limit(
+    match persistence.reserve_entitlement_limit(
         &reservation_id,
         lease_id,
         lease_sequence,
@@ -974,6 +977,89 @@ mod tests {
         assert!(!entitlement_allows_mutation(
             &LicenseGuard::from_entitlement(recovery)
         ));
+    }
+
+    #[test]
+    fn operator_reservation_skips_evaluation_accounting() {
+        // The build harness enables CI allowances. Prove the real path in an
+        // isolated process, without mutating environment shared by parallel tests.
+        const CHILD: &str = "FOCUSA_OPERATOR_RESERVATION_TEST_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "middleware::entitlement::tests::operator_reservation_skips_evaluation_accounting",
+                    "--nocapture",
+                ])
+                .env_remove("FOCUSA_TEST_MODE")
+                .env(CHILD, "1")
+                .status()
+                .unwrap();
+            assert!(status.success(), "normal-mode reservation proof failed");
+            return;
+        }
+        assert!(std::env::var_os("FOCUSA_TEST_MODE").is_none());
+        let root = std::env::temp_dir().join(format!(
+            "focusa-operator-reservation-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let persistence = SqlitePersistence::new(&focusa_core::types::FocusaConfig {
+            data_dir: root.to_string_lossy().into_owned(),
+            ..Default::default()
+        })
+        .unwrap();
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node");
+        snapshot.state = EntitlementState::Active;
+        snapshot.product_code = Some("focusa_operator_lifetime_v1".into());
+        snapshot.posture = Some("paid".into());
+        snapshot.expires_at = Some(chrono::Utc::now() + chrono::Duration::minutes(5));
+        snapshot.sequence = Some(7);
+        snapshot.lease_id = Some("lease-operator".into());
+        snapshot.lease_digest = Some("sha256:operator-test".into());
+        // No counters, allowances, or Idempotency-Key are needed for Operator usage.
+        for path in ["/v1/workpoint/item/create", "/v1/workpoint/evidence/link"] {
+            let request = Request::builder()
+                .method(Method::POST)
+                .uri(path)
+                .body(axum::body::Body::empty())
+                .unwrap();
+            let policy = resolve_route_entitlement_policy(&Method::POST, path).unwrap();
+            assert!(
+                policy.limit_bucket.is_some(),
+                "exercise a metered route: {path}"
+            );
+            let guard = LicenseGuard::from_entitlement(snapshot.clone());
+            assert_eq!(route_entitlement_denial(&guard, &Method::POST, path), None);
+            assert_eq!(
+                reserve_route_limit(&guard, &persistence, &request).unwrap(),
+                None
+            );
+
+            let mut evaluation = snapshot.clone();
+            evaluation.product_code = Some("focusa_evaluation".into());
+            evaluation.posture = Some("evaluation".into());
+            let evaluation = LicenseGuard::from_entitlement(evaluation);
+            assert_eq!(
+                reserve_route_limit(&evaluation, &persistence, &request)
+                    .unwrap_err()
+                    .code,
+                "ENTITLEMENT_IDEMPOTENCY_REQUIRED"
+            );
+            let metered_request = Request::builder()
+                .method(Method::POST)
+                .uri(path)
+                .header("Idempotency-Key", "evaluation-reservation-test")
+                .body(axum::body::Body::empty())
+                .unwrap();
+            assert_eq!(
+                reserve_route_limit(&evaluation, &persistence, &metered_request)
+                    .unwrap_err()
+                    .code,
+                "ENTITLEMENT_LIMIT_EXHAUSTED"
+            );
+        }
+        drop(persistence);
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

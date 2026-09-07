@@ -100,6 +100,8 @@ focusa workpoint resume \
   --copy-prompt
 ```
 
+`workpoint evidence-link` generates an `Idempotency-Key` automatically. For scripted retries, pass the same explicit `--idempotency-key` for the same operation; use a new key for a different operation. This supports licensed request accounting, not a guarantee of exactly-once evidence insertion.
+
 For the complete non-destructive Operator Preview path, run `scripts/demo-workpoint-happy-path.sh`.
 
 Expected result: a typed resume packet with mission, scope, proof handle, and next action. If scope is unsafe or unclear, Focusa returns a blocked envelope instead of pretending the work is canonical.

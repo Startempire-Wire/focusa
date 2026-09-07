@@ -1779,6 +1779,65 @@ impl PremiumFamilyDecision {
     }
 }
 
+/// Resolve existing Operator grants only from verified issuer metadata.
+/// Active is also used by Evaluation leases and is not itself a License Type.
+pub fn operator_license_type_grant(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    now: DateTime<Utc>,
+) -> Option<LicenseTypeGrant> {
+    use crate::authority::EntitlementState;
+    let valid_until = match snapshot.state {
+        EntitlementState::Active => snapshot.expires_at?,
+        EntitlementState::OfflineGrace => snapshot.offline_grace_until?,
+        _ => return None,
+    };
+    if now > valid_until
+        || snapshot.sequence.is_none_or(|sequence| sequence == 0)
+        || snapshot.lease_id.as_deref().is_none_or(str::is_empty)
+        || snapshot.lease_digest.as_deref().is_none_or(str::is_empty)
+    {
+        return None;
+    }
+    match (
+        snapshot.product.as_str(),
+        snapshot.product_code.as_deref()?,
+        snapshot.posture.as_deref()?,
+    ) {
+        ("focusa", "focusa_operator_lifetime_v1", "paid")
+        | ("focusa", "focusa_uiai_operator_bundle_lifetime_v1", "bundle") => {
+            Some(LicenseTypeGrant::focusa_operator_v1())
+        }
+        ("uiai-engine", "uiai_operator_lifetime_v1", "paid")
+        | ("uiai-engine", "focusa_uiai_operator_bundle_lifetime_v1", "bundle") => {
+            Some(LicenseTypeGrant::uiai_operator_v1())
+        }
+        _ => None,
+    }
+}
+
+/// Software-use counters belong to restricted access, not Operator licensing.
+/// Seats, nodes, hosted resources and unknown buckets retain their own enforcement.
+pub fn operator_includes_software_usage(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    bucket: &str,
+    now: DateTime<Utc>,
+) -> bool {
+    operator_license_type_grant(snapshot, now)
+        .is_some_and(|grant| grant.product == ProductCode::Focusa)
+        && matches!(
+            bucket,
+            "workpoints"
+                | "missions"
+                | "evidence_records"
+                | "parallel_agents"
+                | "silent_session_runs"
+                | "export_jobs"
+                | "release_proof_runs"
+                | "update_runs"
+                | "unattended_update_runs"
+        )
+}
+
 pub fn authority_policy_state(
     snapshot: &crate::authority::EntitlementSnapshot,
 ) -> PolicyEntitlementState {
@@ -1867,7 +1926,7 @@ where
         .features
         .get(feature.as_str())
         .copied()
-        .unwrap_or(false)
+        .unwrap_or_else(|| operator_license_type_grant(snapshot, now).is_some())
     {
         return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingFeature {
             family,

@@ -75,6 +75,11 @@ pub struct AuthorityLeasePayload {
     pub schema: String,
     pub lease_id: String,
     pub product: String,
+    /// Issuer-owned offer/License Type, distinct from the runtime product.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub posture: Option<String>,
     pub subject_id: String,
     pub node_id: String,
     pub sequence: u64,
@@ -106,6 +111,11 @@ pub enum EntitlementState {
 pub struct EntitlementSnapshot {
     pub state: EntitlementState,
     pub product: String,
+    /// Preserved from the verified signed payload; never inferred from Active.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub posture: Option<String>,
     pub node_id: String,
     /// Account UUID the signed lease was issued to (Spec 152E §7.1 / §15
     /// lease `subject_id`). Same-account UIAI activation routes the Focusa
@@ -128,6 +138,8 @@ impl EntitlementSnapshot {
         Self {
             state: EntitlementState::Unactivated,
             product: product.into(),
+            product_code: None,
+            posture: None,
             node_id: node_id.into(),
             subject_id: None,
             lease_id: None,
@@ -340,6 +352,8 @@ impl AuthorityLeaseVerifier {
         Ok(EntitlementSnapshot {
             state,
             product: payload.product,
+            product_code: payload.product_code,
+            posture: payload.posture,
             node_id: payload.node_id,
             subject_id: Some(payload.subject_id),
             lease_id: Some(payload.lease_id),

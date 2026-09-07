@@ -380,6 +380,8 @@ mod tests {
         focusa_license::LicenseGuard::from_entitlement(EntitlementSnapshot {
             state: EntitlementState::Active,
             product: "focusa".into(),
+            product_code: None,
+            posture: None,
             node_id: "test-node".into(),
             subject_id: None,
             lease_id: Some("lease-id".into()),

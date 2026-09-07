@@ -90,8 +90,9 @@ pub use entitlement_policy::{
     SharedNodeLimit, TEAM_REMOTE_PREMIUM_FEATURE_IDS, authority_policy_state,
     base_product_compatibility_projection, classify_operator_family_inheritance,
     embedded_entitlement_policy_registry, is_focusa_verified_no_license_family_allowed,
-    premium_family_feature_ids, reduce_entitlement_state, resolve_base_focusa_product,
-    resolve_export_packaged, resolve_premium_family,
+    operator_includes_software_usage, operator_license_type_grant, premium_family_feature_ids,
+    reduce_entitlement_state, resolve_base_focusa_product, resolve_export_packaged,
+    resolve_premium_family,
 };
 pub use facade_policy_presenter::{
     FACADE_ALWAYS_REACHABLE, FACADE_PRESENTER_FIELDS, FACADE_PRESENTER_FORBIDDEN_FIELDS,
@@ -436,7 +437,11 @@ impl LicenseGuard {
                     .into(),
             };
         };
-        if entitlement.feature_enabled(capability.label()) {
+        let operator_commercial_use = capability == Capability::CommercialUse
+            && !entitlement.features.contains_key(capability.label())
+            && entitlement_policy::operator_license_type_grant(entitlement, chrono::Utc::now())
+                .is_some_and(|grant| grant.product == entitlement_policy::ProductCode::Focusa);
+        if entitlement.feature_enabled(capability.label()) || operator_commercial_use {
             CapabilityCheck::Permitted
         } else {
             CapabilityCheck::Denied {
