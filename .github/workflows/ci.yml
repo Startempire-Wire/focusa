@@ -67,6 +67,9 @@ jobs:
       - name: Process-health check + unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"
+          # Protected production authority root (public material only) so the
+          # compile-time-embedded-root acceptance test compiles with real trust.
+          FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
         run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace -- --test-threads=1"
       # Workspace tests above already include the Pi transaction and update
       # regressions. Keep one lint pass, with stronger all-target coverage,
