@@ -114,9 +114,8 @@ fn bearer_token() -> Option<String> {
 }
 
 /// Probe 1: private agent-kb-api identifies this machine as known.
-/// Strong signal: authenticated /v1/operator returns a valid operator
-/// payload. Weak signal: the private API answers /v1/health ok on the
-/// canonical machine-local port (it only exists on registered machines).
+/// Uses authenticated operator metadata as a discovery signal only. A public
+/// health response proves liveness, never machine identity or entitlement.
 fn probe_agent_kb_known() -> bool {
     let base = kb_api_url();
     if let Some(token) = bearer_token() {
@@ -137,12 +136,7 @@ fn probe_agent_kb_known() -> bool {
             }
         }
     }
-    http_get_json(&format!("{base}/v1/health"), None)
-        .map(|payload| {
-            payload.get("status").and_then(Value::as_str) == Some("ok")
-                || payload.get("ok").and_then(Value::as_bool) == Some(true)
-        })
-        .unwrap_or(false)
+    false
 }
 
 /// Probe 2: Tailscale identifies this device as a member of the operator
@@ -188,17 +182,21 @@ fn probe_tailnet_member() -> bool {
     let _ = child.wait();
     let raw = std::fs::read(&probe_path).unwrap_or_default();
     let _ = std::fs::remove_file(&probe_path);
-    if finished.is_none() {
+    if !finished.is_some_and(|status| status.success()) {
         return false;
     }
     let parsed: Value = match serde_json::from_slice(&raw) {
         Ok(value) => value,
         Err(_) => return false,
     };
+    tailnet_status_matches(&parsed, &tailnet_suffix())
+}
+
+fn tailnet_status_matches(parsed: &Value, expected: &str) -> bool {
     let Some(self_info) = parsed.get("Self") else {
         return false;
     };
-    let running = self_info
+    let running = parsed
         .get("BackendState")
         .and_then(Value::as_str)
         .map(|state| state == "Running")
@@ -207,14 +205,17 @@ fn probe_tailnet_member() -> bool {
         .get("Online")
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    let expected = tailnet_suffix();
-    let member = self_info
-        .get("MagicDNSSuffix")
-        .or_else(|| self_info.get("TailnetName"))
+    let identified = self_info
+        .get("ID")
         .and_then(Value::as_str)
-        .map(|suffix| suffix.trim_end_matches('.').eq_ignore_ascii_case(&expected))
+        .is_some_and(|id| !id.trim().is_empty());
+    let member = parsed
+        .get("CurrentTailnet")
+        .and_then(|tailnet| tailnet.get("MagicDNSSuffix"))
+        .and_then(Value::as_str)
+        .map(|suffix| suffix.trim_end_matches('.').eq_ignore_ascii_case(expected))
         .unwrap_or(false);
-    running && online && member
+    running && online && identified && member
 }
 
 /// Cached developer-origin check with short TTL. Testable via
@@ -272,8 +273,6 @@ pub struct DeveloperOriginReport {
     pub active: bool,
     pub agent_kb_known: bool,
     pub tailnet_member: bool,
-    pub tailnet_suffix: String,
-    pub kb_api_url: String,
     pub cached: bool,
     pub ttl_ms: u64,
 }
@@ -293,8 +292,6 @@ pub fn developer_origin_report() -> DeveloperOriginReport {
         active: kb_known || tailnet,
         agent_kb_known: kb_known,
         tailnet_member: tailnet,
-        tailnet_suffix: tailnet_suffix(),
-        kb_api_url: kb_api_url(),
         cached,
         ttl_ms: ttl,
     }
@@ -310,6 +307,42 @@ mod tests {
             .unwrap()
     }
     use super::*;
+
+    #[test]
+    fn tailnet_probe_uses_native_top_level_identity_fields() {
+        let valid = serde_json::json!({
+            "BackendState": "Running",
+            "CurrentTailnet": {"MagicDNSSuffix": "developer.example.ts.net"},
+            "Self": {"ID": "fixture-node", "Online": true}
+        });
+        assert!(tailnet_status_matches(&valid, "developer.example.ts.net"));
+        assert!(!tailnet_status_matches(&valid, "other.example.ts.net"));
+        for (pointer, value) in [
+            ("/BackendState", serde_json::json!("NeedsLogin")),
+            ("/Self/Online", serde_json::json!(false)),
+            ("/Self/ID", serde_json::json!("")),
+            ("/CurrentTailnet", serde_json::Value::Null),
+        ] {
+            let mut invalid = valid.clone();
+            *invalid.pointer_mut(pointer).unwrap() = value;
+            assert!(!tailnet_status_matches(
+                &invalid,
+                "developer.example.ts.net"
+            ));
+        }
+        let wrong_shape = serde_json::json!({
+            "Self": {"ID": "fixture-node", "Online": true,
+                "BackendState": "Running", "MagicDNSSuffix": "developer.example.ts.net"}
+        });
+        assert!(!tailnet_status_matches(
+            &wrong_shape,
+            "developer.example.ts.net"
+        ));
+        assert!(!tailnet_status_matches(
+            &serde_json::Value::Null,
+            "developer.example.ts.net"
+        ));
+    }
 
     #[test]
     fn either_source_activates_developer_origin() {
@@ -361,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn real_kb_api_probe_resolves_against_a_local_fixture() {
+    fn health_response_does_not_establish_known_machine() {
         let _guard = test_lock();
         use std::net::TcpListener;
         use std::sync::atomic::AtomicU16;
@@ -373,10 +406,9 @@ mod tests {
             if let Ok((mut stream, _)) = listener.accept() {
                 let mut buf = [0_u8; 2048];
                 let _ = stream.read(&mut buf);
-                // Satisfy both authenticated /v1/operator and unauthenticated
-                // /v1/health probes so host-local token presence cannot change
-                // how many fixture connections are required.
-                let body = r#"{"status":"ok","ok":true,"source":"fixture"}"#;
+                // Liveness-only JSON must not become an identity grant, even
+                // when returned from an authenticated request.
+                let body = r#"{"status":"ok","ok":true}"#;
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
                     body.len()
@@ -385,15 +417,23 @@ mod tests {
             }
         });
         let previous_url = std::env::var("FOCUSA_AGENT_KB_API_URL").ok();
+        let previous_token = std::env::var("FOCUSA_AGENT_KB_TOKEN").ok();
         unsafe {
+            std::env::set_var("FOCUSA_AGENT_KB_TOKEN", "fixture-only-not-a-credential");
             std::env::set_var(
                 "FOCUSA_AGENT_KB_API_URL",
                 format!("http://127.0.0.1:{}", PORT.load(Ordering::SeqCst)),
             );
         }
         invalidate_developer_origin_cache();
-        assert!(developer_origin_active_with(probe_agent_kb_known, || false));
-        let _ = handle.join();
+        assert!(!developer_origin_active_with(probe_agent_kb_known, || {
+            false
+        }));
+        handle.join().unwrap();
+        match previous_token {
+            Some(value) => unsafe { std::env::set_var("FOCUSA_AGENT_KB_TOKEN", value) },
+            None => unsafe { std::env::remove_var("FOCUSA_AGENT_KB_TOKEN") },
+        }
         match previous_url {
             Some(value) => unsafe { std::env::set_var("FOCUSA_AGENT_KB_API_URL", value) },
             None => unsafe { std::env::remove_var("FOCUSA_AGENT_KB_API_URL") },

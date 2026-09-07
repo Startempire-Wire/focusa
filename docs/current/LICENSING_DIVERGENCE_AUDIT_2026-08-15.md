@@ -4,6 +4,14 @@
 all license decisions into one entitlement service).
 **State:** IR1 divergence audit; collapse implementation planned.
 
+**2026-09-07 verification (#307):** The inventory below is historical. Current
+production guards resolve signed authority; the developer-origin module has no
+runtime entitlement caller. Its probe now reads the top-level Tailscale
+`BackendState` and `CurrentTailnet`, requires a stable Self identity, rejects
+failed commands and health-only responses, and omits private endpoint/network
+identifiers from serialized reports. These probe repairs do not activate
+developer entitlement. Installed first-party grant and consumer proof remain open.
+
 ## Two engines today
 
 ### A. `focusa-license` (445 LOC) — tier/capability engine
