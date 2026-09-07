@@ -221,8 +221,23 @@ final class FocusaSpec152eAuthorityKeySetSeam
     private string $rootSeed32;
     private string $leaseSeed32;
 
-    public function __construct(string $rootSeed32, string $leaseSeed32, callable $clock)
+    private string $rootId;
+    private string $leaseId;
+    private int $keySequence;
+
+    public function __construct(#[SensitiveParameter] string $rootSeed32, #[SensitiveParameter] string $leaseSeed32, callable $clock,
+        string $rootId = self::ROOT_KEY_ID, string $leaseId = self::LEASE_KEY_ID,
+        int $keySequence = self::KEY_SET_SEQUENCE)
     {
+        foreach ([$rootId, $leaseId] as $id) {
+            if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/D', $id)) {
+                throw new InvalidArgumentException('bounded authority key ID required');
+            }
+        }
+        if ($rootId === $leaseId || $keySequence < 1) throw new InvalidArgumentException('distinct key IDs and positive sequence required');
+        $this->rootId = $rootId;
+        $this->leaseId = $leaseId;
+        $this->keySequence = $keySequence;
         $this->assertKeyBytes($rootSeed32, 'root');
         $this->assertKeyBytes($leaseSeed32, 'lease');
         $this->rootSeed32 = $rootSeed32;
@@ -230,8 +245,9 @@ final class FocusaSpec152eAuthorityKeySetSeam
         $this->clock = Closure::fromCallable($clock);
     }
 
-    public function rootKeyId(): string { return self::ROOT_KEY_ID; }
-    public function leaseKeyId(): string { return self::LEASE_KEY_ID; }
+    public function rootKeyId(): string { return $this->rootId; }
+    public function leaseKeyId(): string { return $this->leaseId; }
+    public function keySetSequence(): int { return $this->keySequence; }
     public function leaseSeed(): string { return $this->leaseSeed32; }
     public function rootPublicKeyB64(): string { return base64_encode(FocusaSpec152eEd25519Signer::publicKeyFromSeed($this->rootSeed32)); }
     public function leasePublicKeyB64(): string { return base64_encode(FocusaSpec152eEd25519Signer::publicKeyFromSeed($this->leaseSeed32)); }
@@ -248,18 +264,70 @@ final class FocusaSpec152eAuthorityKeySetSeam
         FocusaSpec152eEddBoundLeaseIssuer::assertTimestamp($notAfter);
         $payload = [
             'schema' => self::KEY_SET_SCHEMA,
-            'sequence' => self::KEY_SET_SEQUENCE,
+            'sequence' => $this->keySetSequence(),
             'issued_at' => $issuedAt,
             'expires_at' => $expiresAt,
             'keys' => [[
-                'key_id' => self::LEASE_KEY_ID,
+                'key_id' => $this->leaseKeyId(),
                 'public_key_b64' => $this->leasePublicKeyB64(),
                 'status' => 'active',
                 'not_before' => $notBefore,
                 'not_after' => $notAfter,
             ]],
         ];
-        return $this->seal($payload, self::ROOT_KEY_ID, $this->rootSeed32, FocusaSpec152eEd25519Signer::KEY_SET_DOMAIN);
+        return $this->seal($payload, $this->rootKeyId(), $this->rootSeed32, FocusaSpec152eEd25519Signer::KEY_SET_DOMAIN);
+    }
+
+    /** Protected provider configuration only; never forward request fields here. */
+    public static function fromProtectedConfiguration(#[SensitiveParameter] array $config, callable $clock): self
+    {
+        if (($config['schema'] ?? '') !== 'focusa.authority_signing_config.v1') {
+            throw new DomainException('AUTHORITY_SIGNING_CONFIG_REQUIRED');
+        }
+        $seeds = [];
+        foreach (['root_seed_b64', 'lease_seed_b64'] as $field) {
+            $seed = base64_decode((string) ($config[$field] ?? ''), true);
+            if ($seed === false || strlen($seed) !== 32) throw new DomainException('AUTHORITY_SIGNING_KEY_INVALID');
+            foreach ([range(0,31), range(32,63)] as $fixture) {
+                if (hash_equals(implode('', array_map('chr', $fixture)), $seed)) {
+                    throw new DomainException('AUTHORITY_FIXTURE_KEY_FORBIDDEN');
+                }
+            }
+            $seeds[] = $seed;
+        }
+        if (hash_equals($seeds[0], $seeds[1])) throw new DomainException('AUTHORITY_SIGNING_KEYS_NOT_SEPARATED');
+        $sequence = $config['key_set_sequence'] ?? null;
+        if (!is_int($sequence) || $sequence <= self::KEY_SET_SEQUENCE) throw new DomainException('AUTHORITY_SIGNING_SEQUENCE_INVALID');
+        $rootId = (string) ($config['root_key_id'] ?? '');
+        $leaseId = (string) ($config['lease_key_id'] ?? '');
+        if ($rootId === self::ROOT_KEY_ID || $leaseId === self::LEASE_KEY_ID) throw new DomainException('AUTHORITY_RETIRED_KEY_ID');
+        $validity = [];
+        foreach (['issued_at', 'expires_at', 'not_before', 'not_after'] as $field) {
+            $value = (string) ($config[$field] ?? '');
+            FocusaSpec152eEddBoundLeaseIssuer::assertTimestamp($value);
+            $validity[$field] = $value;
+        }
+        $now = (string) $clock();
+        FocusaSpec152eEddBoundLeaseIssuer::assertTimestamp($now);
+        if ($validity['issued_at'] > $now || $validity['not_before'] > $now
+            || $validity['expires_at'] <= $now || $validity['not_after'] <= $now
+            || $validity['not_before'] < $validity['issued_at'] || $validity['not_after'] > $validity['expires_at']) {
+            throw new DomainException('AUTHORITY_SIGNING_WINDOW_INVALID');
+        }
+        $signer = new self($seeds[0], $seeds[1], $clock, $rootId, $leaseId, $sequence);
+        $signer->validity = $validity;
+        return $signer;
+    }
+
+    private array $validity = [
+        'issued_at' => '2026-08-01T00:00:00Z', 'expires_at' => '2030-01-01T00:00:00Z',
+        'not_before' => '2026-08-01T00:00:00Z', 'not_after' => '2029-01-01T00:00:00Z',
+    ];
+
+    public function configuredKeySetEnvelope(): array
+    {
+        return $this->keySetEnvelope($this->validity['issued_at'], $this->validity['expires_at'],
+            $this->validity['not_before'], $this->validity['not_after']);
     }
 
     /** Seal any canonical payload into a signed envelope. */
@@ -327,9 +395,11 @@ final class FocusaSpec152eEddAccountAdapter
     public function resolve(string $accountUuid): array
     {
         FocusaSpec152eEddBoundLeaseIssuer::assertUuid($accountUuid, 'account');
+        $lock = $this->db->inTransaction() && $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql'
+            ? ' FOR UPDATE' : '';
         $statement = $this->db->prepare(
             "SELECT account_uuid, customer_id, status, status_reason, highest_entitlement_sequence
-             FROM {$this->prefix}wpuiai_authority_accounts WHERE account_uuid = :uuid"
+             FROM {$this->prefix}wpuiai_authority_accounts WHERE account_uuid = :uuid" . $lock
         );
         $statement->execute([':uuid' => $accountUuid]);
         $account = $statement->fetch(PDO::FETCH_ASSOC);
@@ -370,7 +440,7 @@ final class FocusaSpec152eEddLicenseAdapter
         }
         $statement = $this->db->prepare(
             "SELECT id AS license_id, customer_id, download_id, payment_id, license_key, status,
-                    3 AS activation_limit, expiration, date_created
+                    expiration, date_created
              FROM {$this->prefix}edd_licenses WHERE id = :id"
         );
         $statement->execute([':id' => $licenseId]);
@@ -384,13 +454,32 @@ final class FocusaSpec152eEddLicenseAdapter
         if (($license['status'] ?? '') !== 'active') {
             throw new DomainException('EDD_LICENSE_UNUSABLE');
         }
-        if (filter_var($license['activation_limit'], FILTER_VALIDATE_INT) === false
-            || (int) $license['activation_limit'] < 1) {
-            throw new DomainException('EDD_LICENSE_UNUSABLE');
+        if (!function_exists('edd_software_licensing')) {
+            throw new DomainException('EDD_LICENSE_ADAPTER_UNAVAILABLE');
         }
+        $native = edd_software_licensing()->get_license($licenseId);
+        if (!$native) throw new DomainException('EDD_LICENSE_UNUSABLE');
+        $limit = $native->get_activation_limit();
+        $limit = filter_var($limit, FILTER_VALIDATE_INT);
+        // EDD defines zero as unlimited; the server-owned node cap still applies.
+        if ($limit === false || $limit < 0) throw new DomainException('EDD_LICENSE_UNUSABLE');
+        $license['activation_limit'] = $limit;
         $expiration = $license['expiration'];
-        if ($expiration !== null && $expiration !== '' && (int) $expiration < strtotime($now)) {
-            throw new DomainException('EDD_LICENSE_UNUSABLE');
+        if ($expiration !== null && $expiration !== '') {
+            $rawExpiration = (string) $expiration;
+            $expiration = filter_var($expiration, FILTER_VALIDATE_INT);
+            if ($expiration === false) {
+                // Historical exports use RFC3339; current EDD rows use Unix seconds.
+                try {
+                    FocusaSpec152eEddBoundLeaseIssuer::assertTimestamp($rawExpiration);
+                    $expiration = strtotime($rawExpiration);
+                } catch (InvalidArgumentException $error) {
+                    throw new DomainException('EDD_LICENSE_UNUSABLE', 0, $error);
+                }
+            }
+            if ($expiration === false || $expiration < 0 || ($expiration > 0 && $expiration < strtotime($now))) {
+                throw new DomainException('EDD_LICENSE_UNUSABLE');
+            }
         }
         return $license;
     }
@@ -432,7 +521,7 @@ final class FocusaSpec152eEddOrderAdapter
             throw new DomainException('EDD_ORDER_PENDING');
         }
         $items = $this->db->prepare(
-            "SELECT id AS order_item_id, order_id, product_id, price_id, quantity, ROUND(subtotal,2) AS subtotal, ROUND(total,2) AS total
+            "SELECT id AS order_item_id, order_id, product_id, price_id, quantity, subtotal, total
              FROM {$this->prefix}edd_order_items
              WHERE order_id = :order AND product_id = :product"
         );
@@ -441,11 +530,20 @@ final class FocusaSpec152eEddOrderAdapter
         if ($item === false) {
             throw new DomainException('EDD_ORDER_UNVERIFIED');
         }
-        $itemTotal = (string) $item['total'];
-        if ($itemTotal !== $expectedPrice) {
+        $itemTotal = self::decimalAmount((string) $item['total']);
+        if ($itemTotal === null || $itemTotal !== self::decimalAmount($expectedPrice)) {
             throw new DomainException('EDD_ORDER_UNVERIFIED');
         }
         return ['order' => $order, 'item' => $item];
+    }
+
+    /** Compare database decimal representations exactly, without floating-point rounding. */
+    private static function decimalAmount(string $amount): ?string
+    {
+        if (preg_match('/^(\d+)(?:\.(\d+))?$/D', $amount, $parts) !== 1) return null;
+        $whole = ltrim($parts[1], '0');
+        $fraction = rtrim($parts[2] ?? '', '0');
+        return ($whole === '' ? '0' : $whole) . ($fraction === '' ? '' : '.' . $fraction);
     }
 }
 
@@ -544,9 +642,32 @@ final class FocusaSpec152eEddProductAdapter
         ],
     ];
 
+    /** Canonical protected-offer mapping, shared by issuance and refresh. */
+    public static function downloadIdFor(string $productCode): int
+    {
+        return [
+            'focusa_operator_lifetime_v1' => 1736,
+            'uiai_operator_lifetime_v1' => 1002,
+            'focusa_uiai_operator_bundle_lifetime_v1' => 1003,
+            'focusa_evaluation' => 1735,
+        ][$productCode] ?? 0;
+    }
+
     /** Resolve the server-owned grant for one public product code. */
     public static function resolve(string $productCode): array
     {
+        // Internal profile: deliberately absent from the public offer registry.
+        // Issuance additionally requires provider-approved existing-node assurance.
+        if ($productCode === 'focusa_developer') {
+            $grant = self::SERVER_OWNED_GRANTS['focusa_evaluation'];
+            $grant['license_type'] = 'focusa_developer';
+            $grant['posture'] = 'developer';
+            $grant['features'] = self::SERVER_OWNED_GRANTS['focusa_operator_lifetime_v1']['features'];
+            $grant['features'] += ['developer_channel' => true, 'ota_auto_update' => true, 'official_release_bundle' => true];
+            $grant['commercial']['term'] = 'first_party';
+            $grant['commercial']['upgrade_policy'] = 'provider_managed_not_for_sale';
+            return $grant;
+        }
         $grant = self::SERVER_OWNED_GRANTS[$productCode] ?? null;
         if ($grant === null) {
             throw new DomainException('PRODUCT_MAPPING_REQUIRED');
@@ -619,7 +740,7 @@ final class FocusaSpec152eEddBoundLeaseIssuer
     public const LEASE_PAYLOAD_SCHEMA = 'focusa.authority_lease.v1';
     public const ENVELOPE_SCHEMA = 'focusa.signed_envelope.v1';
     public const RESULT_SCHEMA = 'focusa.spec152e.edd_bound_lease_issuance.v1';
-    public const VERSION = 1;
+    public const VERSION = 2;
     public const STATUS_ACTIVE = 'active';
     public const REFRESH_WINDOW_DAYS = 90;
     public const OFFLINE_GRACE_DAYS = 30;
@@ -629,6 +750,12 @@ final class FocusaSpec152eEddBoundLeaseIssuer
 
     /** @var Closure(): string */
     private Closure $clock;
+    private const OWNED_TABLES = [
+        'wpuiai_authority_leases', 'wpuiai_authority_lease_sequences',
+        'wpuiai_authority_lease_idempotency', 'wpuiai_authority_lease_schema_migrations',
+        'wpuiai_authority_lease_schema_events',
+    ];
+
     private PDO $db;
     private string $prefix;
     private FocusaSpec152eAuthorityKeySetSeam $keySet;
@@ -653,11 +780,8 @@ final class FocusaSpec152eEddBoundLeaseIssuer
     {
         self::assertTimestamp($appliedAt);
         $encodedProvenance = self::encodeProvenance($provenance);
-        $leases = $this->table('wpuiai_authority_leases');
-        $sequences = $this->table('wpuiai_authority_lease_sequences');
-        $idempotency = $this->table('wpuiai_authority_lease_idempotency');
-        $migrations = $this->table('wpuiai_authority_lease_schema_migrations');
-        $events = $this->table('wpuiai_authority_lease_schema_events');
+        [$leases, $sequences, $idempotency, $migrations, $events] = array_map([$this, 'table'], self::OWNED_TABLES);
+        $engine = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' ENGINE=InnoDB' : '';
         $uuid = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? 'VARCHAR(36)' : 'TEXT';
         $key = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? 'VARCHAR(191)' : 'TEXT';
 
@@ -665,11 +789,11 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             lease_uuid {$uuid} NOT NULL PRIMARY KEY,
             account_uuid {$uuid} NOT NULL,
             customer_id BIGINT NOT NULL,
-            edd_order_id BIGINT NOT NULL,
-            edd_order_item_id BIGINT NOT NULL,
-            edd_license_id BIGINT NOT NULL,
+            edd_order_id BIGINT NULL,
+            edd_order_item_id BIGINT NULL,
+            edd_license_id BIGINT NULL,
             product_code VARCHAR(191) NOT NULL,
-            posture VARCHAR(16) NOT NULL CHECK (posture IN ('paid', 'evaluation', 'bundle')),
+            posture VARCHAR(16) NOT NULL CHECK (posture IN ('paid', 'evaluation', 'bundle', 'developer')),
             node_id VARCHAR(191) NOT NULL,
             sequence BIGINT NOT NULL CHECK (sequence >= 1),
             authority_key_id VARCHAR(64) NOT NULL,
@@ -686,8 +810,9 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             idempotency_key {$key} NOT NULL UNIQUE,
             migration_provenance TEXT NOT NULL,
             created_at VARCHAR(32) NOT NULL,
-            updated_at VARCHAR(32) NOT NULL
-        )");
+            updated_at VARCHAR(32) NOT NULL,
+            CHECK (posture = 'developer' OR (edd_order_id IS NOT NULL AND edd_order_item_id IS NOT NULL AND edd_license_id IS NOT NULL))
+        )" . $engine);
         $this->db->exec("CREATE TABLE IF NOT EXISTS {$sequences} (
             account_uuid {$uuid} NOT NULL,
             product_code VARCHAR(191) NOT NULL,
@@ -695,7 +820,7 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             created_at VARCHAR(32) NOT NULL,
             updated_at VARCHAR(32) NOT NULL,
             PRIMARY KEY (account_uuid, product_code)
-        )");
+        )" . $engine);
         $this->db->exec("CREATE TABLE IF NOT EXISTS {$idempotency} (
             idempotency_key {$key} NOT NULL PRIMARY KEY,
             operation VARCHAR(32) NOT NULL,
@@ -703,21 +828,22 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             lease_uuid {$uuid} NOT NULL,
             result_state VARCHAR(16) NOT NULL,
             created_at VARCHAR(32) NOT NULL
-        )");
+        )" . $engine);
         $this->db->exec("CREATE TABLE IF NOT EXISTS {$migrations} (
             schema_version BIGINT NOT NULL PRIMARY KEY,
             schema_name VARCHAR(191) NOT NULL,
             applied_at VARCHAR(32) NOT NULL,
             migration_provenance TEXT NOT NULL
-        )");
+        )" . $engine);
         $this->db->exec("CREATE TABLE IF NOT EXISTS {$events} (
             event_key {$key} NOT NULL PRIMARY KEY,
             event_type VARCHAR(32) NOT NULL,
             schema_version BIGINT NOT NULL,
             occurred_at VARCHAR(32) NOT NULL,
             migration_provenance TEXT NOT NULL
-        )");
+        )" . $engine);
 
+        $this->upgradeFirstPartyLeaseSchema($leases);
         $statement = $this->db->prepare(
             "INSERT INTO {$migrations} (schema_version, schema_name, applied_at, migration_provenance)
              SELECT :version, :schema, :applied_at, :provenance
@@ -730,6 +856,69 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             ':provenance' => $encodedProvenance,
             ':existing_version' => self::VERSION,
         ]);
+    }
+
+    /** Upgrade only the issuer ledger; existing identities and lease rows remain unchanged. */
+    private function upgradeFirstPartyLeaseSchema(string $leases): void
+    {
+        if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
+            // SQLite is the isolated contract-test backend, not the WordPress deployment.
+            $query = $this->db->prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?");
+            $query->execute([$leases]);
+            if (strpos((string) $query->fetchColumn(), "'developer'") === false) {
+                throw new DomainException('FIRST_PARTY_SQLITE_LEGACY_SCHEMA_UNSUPPORTED');
+            }
+            return;
+        }
+        $query = $this->db->prepare("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME IN ('edd_order_id','edd_order_item_id','edd_license_id')");
+        $query->execute([$leases]);
+        $columns = $query->fetchAll(PDO::FETCH_ASSOC);
+        if (count($columns) !== 3) throw new DomainException('LEASE_SCHEMA_COLUMNS_MISMATCH');
+        $changes = [];
+        foreach ($columns as $column) {
+            if ($column['IS_NULLABLE'] === 'YES') continue;
+            if (preg_match('/^bigint(?:\(\d+\))?(?: unsigned)?$/iD', $column['COLUMN_TYPE']) !== 1) {
+                throw new DomainException('LEASE_SCHEMA_COLUMN_TYPE_MISMATCH');
+            }
+            $changes[] = 'MODIFY COLUMN `' . $column['COLUMN_NAME'] . '` ' . $column['COLUMN_TYPE'] . ' NULL';
+        }
+        $query = $this->db->prepare("SELECT c.CONSTRAINT_NAME, c.CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS c JOIN information_schema.TABLE_CONSTRAINTS t ON c.CONSTRAINT_SCHEMA=t.CONSTRAINT_SCHEMA AND c.CONSTRAINT_NAME=t.CONSTRAINT_NAME WHERE t.TABLE_SCHEMA=DATABASE() AND t.TABLE_NAME=? AND t.CONSTRAINT_TYPE='CHECK'");
+        $query->execute([$leases]);
+        $postureSupported = false;
+        $billingGuard = false;
+        $maria = stripos((string) $this->db->getAttribute(PDO::ATTR_SERVER_VERSION), 'MariaDB') !== false;
+        foreach ($query->fetchAll(PDO::FETCH_ASSOC) as $check) {
+            $clause = strtolower($check['CHECK_CLAUSE']);
+            if (strpos($clause, 'posture') === false) continue;
+            $normalized = preg_replace("/_[a-z0-9]+(?=')/", '', $clause);
+            $normalized = preg_replace('/[\s`]/', '', $normalized);
+            if (strpos($clause, 'edd_order_id') !== false) {
+                $tokens = str_replace(['(', ')'], '', $normalized);
+                if ($tokens !== "posture='developer'oredd_order_idisnotnullandedd_order_item_idisnotnullandedd_license_idisnotnull") {
+                    throw new DomainException('LEASE_SCHEMA_BILLING_CHECK_MISMATCH');
+                }
+                $billingGuard = true;
+                continue;
+            }
+            // Never drop an unrelated or strengthened administrator constraint.
+            if (preg_match("/^\(*posturein\('(?:paid|evaluation|bundle|developer)'(?:,'(?:paid|evaluation|bundle|developer)')*\)\)*$/D", $normalized) !== 1) {
+                throw new DomainException('LEASE_SCHEMA_POSTURE_CHECK_MISMATCH');
+            }
+            preg_match_all("/'([^']+)'/", $clause, $values);
+            $values = $values[1]; sort($values);
+            if ($values === ['bundle', 'developer', 'evaluation', 'paid']) {
+                $postureSupported = true;
+                continue;
+            }
+            if ($values !== ['bundle', 'evaluation', 'paid']) {
+                throw new DomainException('LEASE_SCHEMA_POSTURE_CHECK_MISMATCH');
+            }
+            $name = str_replace('`', '``', $check['CONSTRAINT_NAME']);
+            $changes[] = ($maria ? 'DROP CHECK `' : 'DROP CONSTRAINT `') . $name . '`';
+        }
+        if (!$postureSupported) $changes[] = "ADD CHECK (posture IN ('paid','evaluation','bundle','developer'))";
+        if (!$billingGuard) $changes[] = "ADD CHECK (posture='developer' OR (edd_order_id IS NOT NULL AND edd_order_item_id IS NOT NULL AND edd_license_id IS NOT NULL))";
+        if ($changes !== []) $this->db->exec("ALTER TABLE {$leases} " . implode(', ', $changes));
     }
 
     /**
@@ -781,10 +970,6 @@ final class FocusaSpec152eEddBoundLeaseIssuer
 
         return $this->transaction(function () use ($request, $accountUuid, $productCode, $nodeId, $devicePublicKey, $idempotencyKey, $requestId, $digest): array {
             $replay = $this->replay($idempotencyKey, 'issue_lease', $digest);
-            if ($replay !== null) {
-                return $this->leaseResult($replay['lease_uuid']);
-            }
-
             $grant = FocusaSpec152eEddProductAdapter::resolve($productCode);
             $node = (new FocusaSpec152eEddNodeAdapter($this->db, $this->prefix))->resolve(
                 $nodeId,
@@ -796,21 +981,42 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             $customerId = (int) $account['customer_id'];
             $now = (string) ($this->clock)();
 
-            $license = (new FocusaSpec152eEddLicenseAdapter($this->db, $this->prefix))->resolve(
-                (int) $node['edd_license_id'],
-                $customerId,
-                $now,
-            );
-            if ((int) $license['download_id'] !== $this->grantDownloadId($productCode)) {
-                throw new DomainException('EDD_ORDER_UNVERIFIED');
+            $license = null;
+            $orderBinding = null;
+            if ($grant['posture'] === 'developer') {
+                if (($node['assurance_class'] ?? '') !== 'first_party_developer_v1') {
+                    throw new DomainException('FIRST_PARTY_APPROVAL_REQUIRED');
+                }
+            } else {
+                $license = (new FocusaSpec152eEddLicenseAdapter($this->db, $this->prefix))->resolve(
+                    (int) $node['edd_license_id'],
+                    $customerId,
+                    $now,
+                );
+                if ($license['activation_limit'] > 0) {
+                    $grant['limits']['node_limit'] = min($grant['limits']['node_limit'], $license['activation_limit']);
+                }
+                if ((int) $license['download_id'] !== FocusaSpec152eEddProductAdapter::downloadIdFor($productCode)) {
+                    throw new DomainException('EDD_ORDER_UNVERIFIED');
+                }
+                $orderBinding = (new FocusaSpec152eEddOrderAdapter($this->db, $this->prefix))->resolve(
+                    $license,
+                    $customerId,
+                    $grant['commercial']['price_usd'],
+                );
             }
-            $orderBinding = (new FocusaSpec152eEddOrderAdapter($this->db, $this->prefix))->resolve(
-                $license,
-                $customerId,
-                $grant['commercial']['price_usd'],
-            );
 
-            $sequence = $this->nextSequence($accountUuid, $productCode, (int) $account['highest_entitlement_sequence']);
+            // Redelivery is immutable, but never outranks current revocation,
+            // account, node, first-party approval, or customer billing checks.
+            if ($replay !== null) {
+                $result = $this->leaseResult($replay['lease_uuid']);
+                if ($result['status'] !== self::STATUS_ACTIVE) {
+                    throw new DomainException('LEASE_NOT_ACTIVE');
+                }
+                return $result;
+            }
+
+            $sequence = $this->nextSequence($accountUuid, (int) $account['highest_entitlement_sequence']);
             $issuedAt = (string) ($request['issued_at'] ?? $now);
             self::assertTimestamp($issuedAt);
             $leaseUuid = (string) ($request['lease_uuid'] ?? self::opaqueUuid());
@@ -830,7 +1036,7 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             $payloadBytes = self::canonicalJson($payload);
             $envelope = $this->keySet->seal(
                 $payload,
-                FocusaSpec152eAuthorityKeySetSeam::LEASE_KEY_ID,
+                $this->keySet->leaseKeyId(),
                 $this->keySet->leaseSeed(),
                 FocusaSpec152eEd25519Signer::LEASE_DOMAIN,
             );
@@ -856,14 +1062,14 @@ final class FocusaSpec152eEddBoundLeaseIssuer
                 ':lease_uuid' => $leaseUuid,
                 ':account_uuid' => $accountUuid,
                 ':customer_id' => $customerId,
-                ':edd_order_id' => (int) $orderBinding['order']['order_id'],
-                ':edd_order_item_id' => (int) $orderBinding['item']['order_item_id'],
-                ':edd_license_id' => (int) $license['license_id'],
+                ':edd_order_id' => $payload['order_id'],
+                ':edd_order_item_id' => $payload['order_item_id'],
+                ':edd_license_id' => $payload['edd_license_id'],
                 ':product_code' => $productCode,
                 ':posture' => $grant['posture'],
                 ':node_id' => $nodeId,
                 ':sequence' => $sequence,
-                ':authority_key_id' => FocusaSpec152eAuthorityKeySetSeam::LEASE_KEY_ID,
+                ':authority_key_id' => $this->keySet->leaseKeyId(),
                 ':envelope_digest' => $envelopeDigest,
                 ':payload_digest' => $payloadDigest,
                 ':payload_b64' => (string) $envelope['payload_b64'],
@@ -876,7 +1082,7 @@ final class FocusaSpec152eEddBoundLeaseIssuer
                 ':status_reason' => null,
                 ':idempotency_key' => $idempotencyKey,
                 ':migration_provenance' => self::encodeProvenance([
-                    'source' => 'edd_bound_lease_issuer',
+                    'source' => $grant['posture'] === 'developer' ? 'first_party_existing_node_grant' : 'edd_bound_lease_issuer',
                     'request_id' => $requestId,
                 ]),
                 ':created_at' => $now,
@@ -981,8 +1187,8 @@ final class FocusaSpec152eEddBoundLeaseIssuer
     private function buildPayload(
         string $leaseId,
         array $account,
-        array $license,
-        array $orderBinding,
+        ?array $license,
+        ?array $orderBinding,
         array $grant,
         array $node,
         int $sequence,
@@ -990,7 +1196,7 @@ final class FocusaSpec152eEddBoundLeaseIssuer
     ): array {
         $expiresAt = self::plusDays($issuedAt, $grant['posture'] === 'evaluation' ? self::EVALUATION_DAYS : self::REFRESH_WINDOW_DAYS);
         $offlineGraceUntil = $grant['posture'] === 'evaluation' ? null : self::plusDays($expiresAt, self::OFFLINE_GRACE_DAYS);
-        $previous = $this->previousLeaseDigest((string) $account['account_uuid'], (string) $grant['license_type'], $sequence);
+        $previous = $this->previousLeaseDigest((string) $account['account_uuid'], (string) $node['node_uuid'], $sequence);
         $payload = [
             'schema' => self::LEASE_PAYLOAD_SCHEMA,
             'lease_id' => $leaseId,
@@ -1000,16 +1206,16 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             'subject_id' => (string) $account['account_uuid'],
             'account_id' => (string) $account['account_uuid'],
             'customer_id' => (int) $account['customer_id'],
-            'order_id' => (int) $orderBinding['order']['order_id'],
-            'order_item_id' => (int) $orderBinding['item']['order_item_id'],
-            'edd_license_id' => (int) $license['license_id'],
+            'order_id' => $orderBinding === null ? null : (int) $orderBinding['order']['order_id'],
+            'order_item_id' => $orderBinding === null ? null : (int) $orderBinding['item']['order_item_id'],
+            'edd_license_id' => $license === null ? null : (int) $license['license_id'],
             'node_id' => (string) $node['node_uuid'],
             'sequence' => $sequence,
             'issued_at' => $issuedAt,
             'not_before' => $issuedAt,
             'expires_at' => $expiresAt,
             'offline_grace_until' => $offlineGraceUntil,
-            'authority_key_id' => FocusaSpec152eAuthorityKeySetSeam::LEASE_KEY_ID,
+            'authority_key_id' => $this->keySet->leaseKeyId(),
             'status' => self::STATUS_ACTIVE,
             'features' => $grant['features'],
             'limits' => $grant['limits'],
@@ -1023,13 +1229,17 @@ final class FocusaSpec152eEddBoundLeaseIssuer
 
     /** Server-derived monotonic sequence: strictly greater than the prior lease
      *  and than any entitlement transition already recorded on the account. */
-    private function nextSequence(string $accountUuid, string $productCode, int $accountSequence): int
+    private function nextSequence(string $accountUuid, int $accountSequence): int
     {
-        $ledger = $this->sequenceLedger($accountUuid, $productCode);
-        $base = $ledger !== null ? (int) $ledger['current_sequence'] : 0;
-        if ($accountSequence > $base) {
-            return $accountSequence + 1;
-        }
+        // A node can move between product profiles without resetting its reader.
+        // Account-row locking serializes allocations; the current locking read
+        // avoids a stale MySQL repeatable-read snapshot. Entitlement revisions
+        // remain separate from lease issuance sequences.
+        $lock = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
+        $query = $this->db->prepare("SELECT current_sequence FROM {$this->table('wpuiai_authority_lease_sequences')} WHERE account_uuid=? ORDER BY current_sequence DESC LIMIT 1" . $lock);
+        $query->execute([$accountUuid]);
+        $base = max($accountSequence, (int) $query->fetchColumn());
+        if ($base === PHP_INT_MAX) throw new DomainException('LEASE_SEQUENCE_EXHAUSTED');
         return $base + 1;
     }
 
@@ -1094,17 +1304,17 @@ final class FocusaSpec152eEddBoundLeaseIssuer
         ];
     }
 
-    private function previousLeaseDigest(string $accountUuid, string $licenseType, int $sequence): ?string
+    private function previousLeaseDigest(string $accountUuid, string $nodeId, int $sequence): ?string
     {
         if ($sequence < 2) {
             return null;
         }
         $statement = $this->db->prepare(
             "SELECT payload_digest FROM {$this->table('wpuiai_authority_leases')}
-             WHERE account_uuid = :account AND product_code = :product AND sequence < :sequence
+             WHERE account_uuid = :account AND node_id = :node AND sequence < :sequence
              ORDER BY sequence DESC LIMIT 1"
         );
-        $statement->execute([':account' => $accountUuid, ':product' => $licenseType, ':sequence' => $sequence]);
+        $statement->execute([':account' => $accountUuid, ':node' => $nodeId, ':sequence' => $sequence]);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
         return $row === false ? null : (string) $row['payload_digest'];
     }
@@ -1129,33 +1339,8 @@ final class FocusaSpec152eEddBoundLeaseIssuer
     /** The active lease key from the seam's canonical key set (for verification). */
     private function keySet(): array
     {
-        return [
-            'schema' => FocusaSpec152eAuthorityKeySetSeam::KEY_SET_SCHEMA,
-            'sequence' => FocusaSpec152eAuthorityKeySetSeam::KEY_SET_SEQUENCE,
-            'issued_at' => '2026-08-01T00:00:00Z',
-            'expires_at' => '2030-01-01T00:00:00Z',
-            'keys' => [[
-                'key_id' => FocusaSpec152eAuthorityKeySetSeam::LEASE_KEY_ID,
-                'public_key_b64' => $this->keySet->leasePublicKeyB64(),
-                'status' => 'active',
-                'not_before' => '2026-08-01T00:00:00Z',
-                'not_after' => '2029-01-01T00:00:00Z',
-            ]],
-        ];
-    }
-
-    private function grantDownloadId(string $productCode): int
-    {
-        // Server-owned download mapping (spec 152E §8, spec 172 protected offers):
-        // the evaluation and paid licenses bind to the mapped EDD download for the
-        // product code. The fixture registry pins explicit downloads so the
-        // implicit Download-453 mapping is never used.
-        return [
-            'focusa_operator_lifetime_v1' => 1736,
-            'uiai_operator_lifetime_v1' => 1002,
-            'focusa_uiai_operator_bundle_lifetime_v1' => 1003,
-            'focusa_evaluation' => 1735,
-        ][$productCode] ?? 0;
+        return FocusaSpec152eAuthorityKeySetSeam::decodeJson(
+            $this->keySet->configuredKeySetEnvelope()['payload_b64']);
     }
 
     public function table(string $name): string
@@ -1240,8 +1425,24 @@ final class FocusaSpec152eEddBoundLeaseIssuer
         return hash('sha256', json_encode($parts, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
     }
 
+    private function requireTransactionalStorage(): void
+    {
+        if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') return;
+        $names = array_map([$this, 'table'], array_merge(self::OWNED_TABLES, ['wpuiai_authority_accounts', 'wpuiai_authority_nodes']));
+        $query = $this->db->prepare("SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN (" . implode(',', array_fill(0, count($names), '?')) . ")");
+        $query->execute($names);
+        $rows = $query->fetchAll(PDO::FETCH_ASSOC);
+        if (count($rows) !== count($names)) throw new DomainException('AUTHORITY_STORAGE_TABLES_MISSING');
+        foreach ($rows as $row) {
+            if (strcasecmp((string) $row['ENGINE'], 'InnoDB') !== 0) {
+                throw new DomainException('AUTHORITY_STORAGE_NOT_TRANSACTIONAL');
+            }
+        }
+    }
+
     private function transaction(callable $operation): array
     {
+        $this->requireTransactionalStorage();
         $this->db->beginTransaction();
         try {
             $result = $operation();

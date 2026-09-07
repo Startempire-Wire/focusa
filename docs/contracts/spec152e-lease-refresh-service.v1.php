@@ -289,13 +289,6 @@ final class FocusaSpec152eLeaseRefreshService
     ];
 
     /** Server-owned EDD download mapping (spec 152E §8); mirrors the issuer's frozen registry. */
-    private const SERVER_OWNED_DOWNLOAD_BY_PRODUCT = [
-        'focusa_operator_lifetime_v1' => 1001,
-        'uiai_operator_lifetime_v1' => 1002,
-        'focusa_uiai_operator_bundle_lifetime_v1' => 1003,
-        'focusa_evaluation' => 1004,
-    ];
-
     private PDO $db;
     private FocusaSpec152eEddBoundLeaseIssuer $issuer;
     private FocusaSpec152eAuthorityKeySetSeam $keySet;
@@ -479,7 +472,11 @@ final class FocusaSpec152eLeaseRefreshService
         $reason ??= $this->checkSequence($lease, $account, $currentSequence);
         $reason ??= $this->checkLifecyclePosture($accountUuid, $licenseId);
         $reason ??= $this->checkOfflineBounds($lease, $now);
-        $reason ??= $this->checkEddTruth($licenseId, $customerId, $productCode, $grant, $now);
+        // First-party renewal is backed by provider approval on the existing node,
+        // not by a fabricated purchase or the node's historical Evaluation order.
+        if (($grant['posture'] ?? '') !== 'developer') {
+            $reason ??= $this->checkEddTruth($licenseId, $customerId, $productCode, $grant, $now);
+        }
         if ($reason !== null) {
             return $this->recordRefusal($account, $lease, $nodeId, $productCode, $reason, $requestId, $idempotencyKey, $digest, $now);
         }
@@ -645,6 +642,12 @@ final class FocusaSpec152eLeaseRefreshService
         if ((string) $node['account_uuid'] !== $accountUuid || (string) $node['product_code'] !== $productCode) {
             return 'NODE_NOT_BOUND';
         }
+        if ($productCode === 'focusa_developer') {
+            return ($node['assurance_class'] ?? '') === 'first_party_developer_v1'
+                && ($lease['posture'] ?? '') === 'developer'
+                && $lease['edd_license_id'] === null
+                ? null : 'NODE_NOT_BOUND';
+        }
         if ((int) $node['edd_license_id'] !== (int) $lease['edd_license_id']) {
             return 'STALE_SEQUENCE';
         }
@@ -731,7 +734,7 @@ final class FocusaSpec152eLeaseRefreshService
     {
         try {
             $license = (new FocusaSpec152eEddLicenseAdapter($this->db, $this->prefix))->resolve($licenseId, $customerId, $now);
-            if ((int) $license['download_id'] !== self::downloadIdFor($productCode)) {
+            if ((int) $license['download_id'] !== FocusaSpec152eEddProductAdapter::downloadIdFor($productCode)) {
                 return 'EDD_ORDER_UNVERIFIED';
             }
             (new FocusaSpec152eEddOrderAdapter($this->db, $this->prefix))->resolve(
@@ -784,12 +787,12 @@ final class FocusaSpec152eLeaseRefreshService
             'issued_at' => $now,
             'not_before' => $now,
             'expires_at' => FocusaSpec152eEddBoundLeaseIssuer::plusDays($now, self::REFUSAL_VALIDITY_DAYS),
-            'authority_key_id' => FocusaSpec152eAuthorityKeySetSeam::LEASE_KEY_ID,
+            'authority_key_id' => $this->keySet->leaseKeyId(),
             'signer' => self::REFUSAL_SIGNER,
         ];
         $refusal = $this->keySet->seal(
             $refusalPayload,
-            FocusaSpec152eAuthorityKeySetSeam::LEASE_KEY_ID,
+            $this->keySet->leaseKeyId(),
             $this->keySet->leaseSeed(),
             FocusaSpec152eEd25519Signer::LEASE_DOMAIN,
         );
@@ -825,11 +828,11 @@ final class FocusaSpec152eLeaseRefreshService
                 // edd_customer_id is the account's EDD customer id (customer_id view and the
                 // authority-account repository's edd_customer_id are the same EDD customer).
                 $this->outboxHook->append([
-                    'event_type' => $eventType,
+                    'event_type' => ($lease['posture'] === 'developer' ? 'first_party_' : '') . $eventType,
                     'account_uuid' => (string) $account['account_uuid'],
                     'edd_customer_id' => (int) $account['customer_id'],
                     'lease_uuid' => (string) $lease['lease_uuid'],
-                    'license_id' => (int) $lease['edd_license_id'],
+                    'license_id' => $lease['edd_license_id'] === null ? null : (int) $lease['edd_license_id'],
                     'request_id' => $requestId,
                     'idempotency_key' => self::derivedInternalKey('refresh-' . $eventType, $idempotencyKey),
                     'state_reason' => $settlement[1] ?? $reason,
@@ -875,21 +878,21 @@ final class FocusaSpec152eLeaseRefreshService
             $this->upsertCredential($rotatedLeaseUuid, (string) $account['account_uuid'], $nodeId, $productCode, $credential, $now);
 
             $this->outboxHook->append([
-                'event_type' => 'lease_superseded',
+                'event_type' => $lease['posture'] === 'developer' ? 'first_party_lease_superseded' : 'lease_superseded',
                 'account_uuid' => (string) $account['account_uuid'],
                 'edd_customer_id' => (int) $account['customer_id'],
                 'lease_uuid' => (string) $lease['lease_uuid'],
-                'license_id' => (int) $lease['edd_license_id'],
+                'license_id' => $lease['edd_license_id'] === null ? null : (int) $lease['edd_license_id'],
                 'request_id' => $requestId,
                 'idempotency_key' => self::derivedInternalKey('refresh-lease_superseded', $idempotencyKey),
                 'state_reason' => 'refresh_rotated',
             ]);
             $this->outboxHook->append([
-                'event_type' => 'lease_issued',
+                'event_type' => $lease['posture'] === 'developer' ? 'first_party_lease_issued' : 'lease_issued',
                 'account_uuid' => (string) $account['account_uuid'],
                 'edd_customer_id' => (int) $account['customer_id'],
                 'lease_uuid' => $rotatedLeaseUuid,
-                'license_id' => (int) $lease['edd_license_id'],
+                'license_id' => $lease['edd_license_id'] === null ? null : (int) $lease['edd_license_id'],
                 'request_id' => $requestId,
                 'idempotency_key' => self::derivedInternalKey('refresh-lease_issued', $idempotencyKey),
                 'state_reason' => 'refresh_rotated',
@@ -1016,7 +1019,7 @@ final class FocusaSpec152eLeaseRefreshService
     private function nodeRow(string $nodeId): ?array
     {
         $statement = $this->db->prepare(
-            "SELECT node_uuid, account_uuid, edd_license_id, product_code, device_public_key, status
+            "SELECT node_uuid, account_uuid, edd_license_id, product_code, device_public_key, assurance_class, status
              FROM {$this->prefix}wpuiai_authority_nodes WHERE node_uuid = :node"
         );
         $statement->execute([':node' => $nodeId]);
@@ -1037,25 +1040,8 @@ final class FocusaSpec152eLeaseRefreshService
 
     private function keySet(): array
     {
-        // Mirrors FocusaSpec152eEddBoundLeaseIssuer::keySet(): the seam's canonical lease key.
-        return [
-            'schema' => FocusaSpec152eAuthorityKeySetSeam::KEY_SET_SCHEMA,
-            'sequence' => FocusaSpec152eAuthorityKeySetSeam::KEY_SET_SEQUENCE,
-            'issued_at' => '2026-08-01T00:00:00Z',
-            'expires_at' => '2030-01-01T00:00:00Z',
-            'keys' => [[
-                'key_id' => FocusaSpec152eAuthorityKeySetSeam::LEASE_KEY_ID,
-                'public_key_b64' => $this->keySet->leasePublicKeyB64(),
-                'status' => 'active',
-                'not_before' => '2026-08-01T00:00:00Z',
-                'not_after' => '2029-01-01T00:00:00Z',
-            ]],
-        ];
-    }
-
-    private static function downloadIdFor(string $productCode): int
-    {
-        return self::SERVER_OWNED_DOWNLOAD_BY_PRODUCT[$productCode] ?? 0;
+        return FocusaSpec152eAuthorityKeySetSeam::decodeJson(
+            $this->keySet->configuredKeySetEnvelope()['payload_b64']);
     }
 
     private static function derivedInternalKey(string $prefix, string $idempotencyKey): string

@@ -224,7 +224,7 @@ function orderStatus(PDO $db, int $orderId): string
 
 // ── Bounded event schema and signer ───────────────────────────────────
 
-expect_outbox(count(FocusaSpec152eAuthorityEventSchema::EVENT_TYPES) === 23, 'event schema registry is bounded at 23 event types');
+expect_outbox(count(FocusaSpec152eAuthorityEventSchema::EVENT_TYPES) === 26, 'event schema registry is bounded at 26 event types');
 expect_outbox(FocusaSpec152eAuthorityEventSchema::SURFACES === ['customer', 'order', 'license', 'refund', 'subscription', 'node', 'lease'], 'surfaces are exactly customer/order/license/refund/subscription/node/lease');
 expect_outbox(FocusaSpec152eAuthorityEventSchema::KEY_ID === 'wpuiai.spec152e.outbox.v1', 'signing key id is explicit and server-owned');
 expect_outbox(FocusaSpec152eAuthorityEventSigner::SIGNATURE_ALGORITHM === 'hmac_sha256.spec152e.outbox.v1', 'signature algorithm is explicit');

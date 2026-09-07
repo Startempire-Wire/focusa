@@ -11,6 +11,7 @@
 // expiry/node removal with a signed recovery-only refusal so stale software/state cannot
 // restore access. Every settlement is idempotent, outbox-journaled, and preservation-only.
 declare(strict_types=1);
+require_once __DIR__ . '/fixtures/spec152e_edd_runtime_fixture.php';
 
 $root = dirname(__DIR__);
 require_once $root . '/docs/contracts/spec152e-authority-account.v1.php';
@@ -117,7 +118,7 @@ function seed_fixture(PDO $db): void
 {
     $db->exec('CREATE TABLE wp_edd_customers (customer_id INTEGER PRIMARY KEY, email TEXT, name TEXT, date_created TEXT)');
     $db->exec('CREATE TABLE wp_edd_orders (id INTEGER PRIMARY KEY, order_id INTEGER, customer_id INTEGER, status TEXT, total TEXT, date_created TEXT)');
-    $db->exec('CREATE TABLE wp_edd_order_items (order_item_id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, price_id INTEGER, quantity INTEGER, subtotal TEXT, total TEXT)');
+    $db->exec('CREATE TABLE wp_edd_order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, price_id INTEGER, quantity INTEGER, subtotal TEXT, total TEXT)');
     $db->exec('CREATE TABLE wp_edd_licenses (id INTEGER PRIMARY KEY, license_id INTEGER, customer_id INTEGER, download_id INTEGER, payment_id INTEGER, license_key TEXT, status TEXT, activation_limit INTEGER, expiration TEXT, date_created TEXT)');
     // Superset authority-account view: the EDD-bound issuer reads customer_id; the account
     // repository / outbox / projector read edd_customer_id (same EDD customer).
@@ -134,8 +135,8 @@ function seed_paid(PDO $db, int $customerId, string $accountUuid, int $highest, 
     $db->exec("INSERT OR IGNORE INTO wp_edd_customers VALUES ({$customerId}, 'c{$customerId}@example.invalid', 'Fixture', '2026-08-01T00:00:00Z')");
     $db->exec("INSERT OR IGNORE INTO wp_wpuiai_authority_accounts VALUES ('{$accountUuid}', {$customerId}, {$customerId}, NULL, NULL, 'active', 'mailbox_verified', {$highest}, '{}', '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_edd_orders VALUES ({$orderId}, {$orderId}, {$customerId}, '{$orderStatus}', '697.00', '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_order_items VALUES ({$itemId}, {$orderId}, 1001, 0, 1, '697.00', '697.00')");
-    $db->exec("INSERT INTO wp_edd_licenses VALUES ({$licenseId}, {$licenseId}, {$customerId}, 1001, {$orderId}, 'F0C15A-{$customerId}-0001-0001-0001', '{$status}', 3, NULL, '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_order_items VALUES ({$itemId}, {$orderId}, 1736, 0, 1, '697.00', '697.00')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES ({$licenseId}, {$licenseId}, {$customerId}, 1736, {$orderId}, 'F0C15A-{$customerId}-0001-0001-0001', '{$status}', 3, NULL, '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('{$nodeId}', '{$accountUuid}', {$licenseId}, '" . PRODUCT_PAID . "', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 }
 
@@ -158,6 +159,7 @@ function build_components(PDO $db, string $clockValue): array
     $eventSchema = new FocusaSpec152eAuthorityEventSchema();
     $signer = new FocusaSpec152eAuthorityEventSigner('test-server-side-secret-for-spec152e-outbox-v1!', FocusaSpec152eAuthorityEventSchema::KEY_ID);
     $outboxHook = new FocusaSpec152eEddAuthorityHook($db, $outboxSchema, $eventSchema, $signer, $accounts, 'wp_', $clock);
+    focusa_fixture_edd_runtime($db);
     $issuer = new FocusaSpec152eEddBoundLeaseIssuer($db, $keySet, $clock, 'wp_');
     $issuer->migrate('2026-08-08T05:00:00Z', ['source' => 'lease_refresh_lifecycle_test']);
     $refreshSchema = new FocusaSpec152eLeaseRefreshMigration($db, 'wp_');
@@ -204,14 +206,14 @@ seed_paid($db, 1501, $X1, 0, 9901, 99011, 7901, 'node-none-001');
 // Eval accounts
 $db->exec("INSERT INTO wp_edd_customers VALUES (2002, 'c2002@example.invalid', 'Eval Fixture', '2026-08-01T00:00:00Z')");
 $db->exec("INSERT INTO wp_edd_orders VALUES (9002, 9002, 2002, 'complete', '0.00', '2026-08-01T00:00:00Z')");
-$db->exec("INSERT INTO wp_edd_order_items VALUES (90022, 9002, 1004, 0, 1, '0.00', '0.00')");
-$db->exec("INSERT INTO wp_edd_licenses VALUES (7002, 7002, 2002, 1004, 9002, 'E5A10000-0002-0002-0002-0002', 'active', 1, '2026-09-07T18:30:00Z', '2026-08-08T18:30:00Z')");
+$db->exec("INSERT INTO wp_edd_order_items VALUES (90022, 9002, 1735, 0, 1, '0.00', '0.00')");
+$db->exec("INSERT INTO wp_edd_licenses VALUES (7002, 7002, 2002, 1735, 9002, 'E5A10000-0002-0002-0002-0002', 'active', 1, '2026-09-07T18:30:00Z', '2026-08-08T18:30:00Z')");
 $db->exec("INSERT INTO wp_wpuiai_authority_accounts VALUES ('{$E1}', 2002, 2002, NULL, NULL, 'active', 'account_promoted', 6, '{}', '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')");
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-eval-golden-001', '{$E1}', 7002, '" . PRODUCT_EVAL . "', '" . EVAL_DEVICE_KEY . "', 'device_key_v1', 'active')");
 $db->exec("INSERT INTO wp_edd_customers VALUES (2302, 'c2302@example.invalid', 'Eval Expire', '2026-08-01T00:00:00Z')");
 $db->exec("INSERT INTO wp_edd_orders VALUES (9102, 9102, 2302, 'complete', '0.00', '2026-08-01T00:00:00Z')");
-$db->exec("INSERT INTO wp_edd_order_items VALUES (91022, 9102, 1004, 0, 1, '0.00', '0.00')");
-$db->exec("INSERT INTO wp_edd_licenses VALUES (7003, 7003, 2302, 1004, 9102, 'E5A10000-0003-0003-0003-0003', 'active', 1, '2026-09-07T18:30:00Z', '2026-08-08T18:30:00Z')");
+$db->exec("INSERT INTO wp_edd_order_items VALUES (91022, 9102, 1735, 0, 1, '0.00', '0.00')");
+$db->exec("INSERT INTO wp_edd_licenses VALUES (7003, 7003, 2302, 1735, 9102, 'E5A10000-0003-0003-0003-0003', 'active', 1, '2026-09-07T18:30:00Z', '2026-08-08T18:30:00Z')");
 $db->exec("INSERT INTO wp_wpuiai_authority_accounts VALUES ('{$E2}', 2302, 2302, NULL, NULL, 'active', 'account_promoted', 6, '{}', '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')");
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-eval-expire-001', '{$E2}', 7003, '" . PRODUCT_EVAL . "', '" . EVAL_DEVICE_KEY . "', 'device_key_v1', 'active')");
 // Unverified account (pending) for hard-failure tests
@@ -641,6 +643,28 @@ foreach ([$credA1, $rotCred, $f1NewCred, $credR1, $credV1, $credS1, $credM1, $cr
     expect_refresh(strpos($dbDump, $plaintext) === false, 'hygiene: plaintext refresh credential is never stored at rest');
 }
 expect_refresh(preg_match('/rc_[0-9a-f]{48}/', $dbDump) !== 1, 'hygiene: no refresh credential token appears in any stored row');
+
+// Existing-node first-party renewal must not depend on historical billing.
+$developerDb = new PDO('sqlite::memory:');
+$developerDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+seed_fixture($developerDb);
+seed_paid($developerDb, 8801, $A1, 0, 8802, 8803, 8804, 'node-developer-existing');
+$developerDb->exec("UPDATE wp_wpuiai_authority_nodes SET product_code='focusa_developer', assurance_class='first_party_developer_v1'");
+$developerComponents = build_components($developerDb, NOW);
+$developerLease = $developerComponents['issuer']->issueLease([
+    'account_uuid'=>$A1, 'product_code'=>'focusa_developer', 'node_id'=>'node-developer-existing',
+    'device_public_key'=>PAID_DEVICE_KEY, 'idempotency_key'=>'developer-initial-0001', 'request_id'=>'req-developer-initial-0001',
+]);
+$developerCredential = $developerComponents['service']->issueRefreshCredential([
+    'lease_uuid'=>$developerLease['lease_uuid'], 'idempotency_key'=>'developer-credential-0001', 'request_id'=>'req-developer-credential-0001',
+]);
+$developerDb->exec("UPDATE wp_edd_licenses SET status='expired'");
+$developerRotation = $developerComponents['service']->refresh($request($A1, 'node-developer-existing', 'developer-refresh-0001', $developerCredential['refresh_credential'], $developerLease['sequence'], 'focusa_developer'));
+expect_refresh($developerRotation['state'] === 'activated', 'approved developer renews without historical EDD entitlement');
+expect_refresh($developerRotation['lease']['claims']['node_id'] === 'node-developer-existing', 'developer renewal preserves existing node');
+expect_refresh($developerRotation['lease']['claims']['previous_lease_digest'] === $developerLease['payload_digest'], 'developer renewal preserves predecessor');
+expect_refresh($developerRotation['lease']['claims']['posture'] === 'developer', 'developer renewal retains signed developer posture');
+focusa_fixture_edd_runtime($db);
 
 echo json_encode([
     'schema' => 'focusa.spec152e.lease_refresh_lifecycle_validation.v1',

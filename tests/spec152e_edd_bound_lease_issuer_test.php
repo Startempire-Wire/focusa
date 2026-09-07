@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/fixtures/spec152e_edd_runtime_fixture.php';
+require_once __DIR__ . '/spec152e_first_party_schema_migration_test.php';
+run_first_party_schema_boundary_tests();
 // Exact verification for focusa-vbcqu.20.13.35: the EDD-bound signed lease
 // issuer (spec 152E §7.5, §10, §11, §12, §15, §17, §18, §19, §20, §23).
 // Issues signed leases only after verified account + usable EDD license +
@@ -70,23 +73,23 @@ function expect_lease_domain(callable $operation, string $code, string $message)
 function seed_fixture(PDO $db): void
 {
     $db->exec('CREATE TABLE wp_edd_customers (customer_id INTEGER PRIMARY KEY, email TEXT, name TEXT, date_created TEXT)');
-    $db->exec('CREATE TABLE wp_edd_orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, total TEXT, date_created TEXT)');
-    $db->exec('CREATE TABLE wp_edd_order_items (order_item_id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, price_id INTEGER, quantity INTEGER, subtotal TEXT, total TEXT)');
-    $db->exec('CREATE TABLE wp_edd_licenses (license_id INTEGER PRIMARY KEY, customer_id INTEGER, download_id INTEGER, payment_id INTEGER, license_key TEXT, status TEXT, activation_limit INTEGER, expiration TEXT, date_created TEXT)');
+    $db->exec('CREATE TABLE wp_edd_orders (id INTEGER PRIMARY KEY, customer_id INTEGER, status TEXT, total TEXT, date_created TEXT)');
+    $db->exec('CREATE TABLE wp_edd_order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, price_id INTEGER, quantity INTEGER, subtotal TEXT, total TEXT)');
+    $db->exec('CREATE TABLE wp_edd_licenses (id INTEGER PRIMARY KEY, customer_id INTEGER, download_id INTEGER, payment_id INTEGER, license_key TEXT, status TEXT, activation_limit INTEGER, expiration TEXT, date_created TEXT)');
     $db->exec('CREATE TABLE wp_wpuiai_authority_accounts (account_uuid TEXT PRIMARY KEY, customer_id INTEGER, status TEXT, status_reason TEXT, highest_entitlement_sequence INTEGER)');
     $db->exec('CREATE TABLE wp_wpuiai_authority_nodes (node_uuid TEXT PRIMARY KEY, account_uuid TEXT, edd_license_id INTEGER, product_code TEXT, device_public_key TEXT, assurance_class TEXT, status TEXT)');
 
     $db->exec("INSERT INTO wp_edd_customers VALUES (1001, 'c1001@example.invalid', 'Paid Fixture', '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_edd_orders VALUES (9001, 1001, 'complete', '697.00', '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_order_items VALUES (90011, 9001, 1001, 0, 1, '697.00', '697.00')");
-    $db->exec("INSERT INTO wp_edd_licenses VALUES (7001, 1001, 1001, 9001, 'F0C15A-0001-0001-0001-0001', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_order_items VALUES (90011, 9001, 1736, 0, 1, '697.00', '697.00')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES (7001, 1001, 1736, 9001, 'F0C15A-0001-0001-0001-0001', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_wpuiai_authority_accounts VALUES ('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 1001, 'active', 'mailbox_verified', 41)");
     $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-paid-golden-001', 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 7001, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 
     $db->exec("INSERT INTO wp_edd_customers VALUES (2002, 'c2002@example.invalid', 'Eval Fixture', '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_edd_orders VALUES (9002, 2002, 'complete', '0.00', '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_order_items VALUES (90022, 9002, 1004, 0, 1, '0.00', '0.00')");
-    $db->exec("INSERT INTO wp_edd_licenses VALUES (7002, 2002, 1004, 9002, 'E5A10000-0002-0002-0002-0002', 'active', 1, '2026-09-07T18:30:00Z', '2026-08-08T18:30:00Z')");
+    $db->exec("INSERT INTO wp_edd_order_items VALUES (90022, 9002, 1735, 0, 1, '0.00', '0.00')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES (7002, 2002, 1735, 9002, 'E5A10000-0002-0002-0002-0002', 'active', 1, '2026-09-07T18:30:00Z', '2026-08-08T18:30:00Z')");
     $db->exec("INSERT INTO wp_wpuiai_authority_accounts VALUES ('b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 2002, 'active', 'account_promoted', 6)");
     $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-eval-golden-001', 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 7002, 'focusa_evaluation', '" . EVAL_DEVICE_KEY . "', 'device_key_v1', 'active')");
 
@@ -104,17 +107,17 @@ function seed_fixture(PDO $db): void
     // 7004 stays on customer 4004 for the cross-customer rejection.
     $db->exec("INSERT INTO wp_edd_customers VALUES (4004, 'c4004@example.invalid', 'Negative Fixture', '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_edd_orders VALUES (9004, 1001, 'complete', '697.00', '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_order_items VALUES (90044, 9004, 1001, 0, 1, '697.00', '697.00')");
-    $db->exec("INSERT INTO wp_edd_licenses VALUES (7004, 4004, 1001, 9004, 'F0C15A-0004-0004-0004-0004', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_licenses VALUES (7005, 1001, 1001, 9004, 'F0C15A-0005-0005-0005-0005', 'revoked', 3, NULL, '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_licenses VALUES (7006, 1001, 1001, 9004, 'F0C15A-0006-0006-0006-0006', 'active', 0, NULL, '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_licenses VALUES (7007, 1001, 1001, 9004, 'F0C15A-0007-0007-0007-0007', 'active', 3, '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_order_items VALUES (90044, 9004, 1736, 0, 1, '697.00', '697.00')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES (7004, 4004, 1736, 9004, 'F0C15A-0004-0004-0004-0004', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES (7005, 1001, 1736, 9004, 'F0C15A-0005-0005-0005-0005', 'revoked', 3, NULL, '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES (7006, 1001, 1736, 9004, 'F0C15A-0006-0006-0006-0006', 'active', -1, NULL, '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES (7007, 1001, 1736, 9004, 'F0C15A-0007-0007-0007-0007', 'active', 3, '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_edd_orders VALUES (9005, 1001, 'pending', '697.00', '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_order_items VALUES (90055, 9005, 1001, 0, 1, '697.00', '697.00')");
-    $db->exec("INSERT INTO wp_edd_licenses VALUES (7008, 1001, 1001, 9005, 'F0C15A-0008-0008-0008-0008', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_order_items VALUES (90055, 9005, 1736, 0, 1, '697.00', '697.00')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES (7008, 1001, 1736, 9005, 'F0C15A-0008-0008-0008-0008', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_edd_orders VALUES (9006, 1001, 'complete', '299.00', '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_order_items VALUES (90066, 9006, 1001, 0, 1, '299.00', '299.00')");
-    $db->exec("INSERT INTO wp_edd_licenses VALUES (7009, 1001, 1001, 9006, 'F0C15A-0009-0009-0009-0009', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_order_items VALUES (90066, 9006, 1736, 0, 1, '299.00', '299.00')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES (7009, 1001, 1736, 9006, 'F0C15A-0009-0009-0009-0009', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_wpuiai_authority_accounts VALUES ('d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f80', 4004, 'pending', 'email_challenge_sent', 0)");
     $db->exec("INSERT INTO wp_wpuiai_authority_accounts VALUES ('e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8091', 1001, 'active', 'mailbox_verified', 41)");
     $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-deactivated-001', 'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8091', 7001, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'deactivated')");
@@ -129,6 +132,7 @@ function build_issuer(PDO $db): FocusaSpec152eEddBoundLeaseIssuer
         implode('', array_map('chr', range(32, 63))),
         static fn() => NOW,
     );
+    focusa_fixture_edd_runtime($db);
     $issuer = new FocusaSpec152eEddBoundLeaseIssuer($db, $keySet, static fn() => NOW, 'wp_');
     $issuer->migrate('2026-08-08T05:00:00Z', ['source' => 'edd_bound_lease_issuer_test', 'work_item' => 'focusa-vbcqu.20.13.35']);
     $issuer->migrate('2026-08-08T05:01:00Z', ['source' => 'repeat_must_preserve_first_schema_application']);
@@ -260,6 +264,60 @@ expect_lease_domain(
 );
 
 // ── Positive: idempotency and sequence ledger ──
+
+// First-party grants use an already approved, bound node: no new identity,
+// fabricated purchase, or dependency on a surviving evaluation order.
+$devDb = new PDO('sqlite::memory:');
+$devDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+seed_fixture($devDb);
+$devIssuer = build_issuer($devDb);
+$devPrior = $devIssuer->issueLease($evalRequest);
+$devNodes = (int) $devDb->query('SELECT COUNT(*) FROM wp_wpuiai_authority_nodes')->fetchColumn();
+$devDb->exec("UPDATE wp_wpuiai_authority_nodes SET product_code='focusa_developer' WHERE node_uuid='node-eval-golden-001'");
+$devRequest = $request('b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 'focusa_developer', 'node-eval-golden-001', EVAL_DEVICE_KEY, 'first-party-grant-0001');
+$devRequest += ['lease_uuid' => '44444444-4444-4444-8444-444444444444', 'lease_id' => 'lease-first-party-golden-001'];
+expect_lease_domain(static fn() => $devIssuer->issueLease($devRequest), 'FIRST_PARTY_APPROVAL_REQUIRED', 'a product string alone never grants developer access');
+expect_lease(!array_key_exists('focusa_developer', FocusaSpec152eEddProductAdapter::SERVER_OWNED_GRANTS), 'developer profile is not a public purchasable offer');
+$devDb->exec("UPDATE wp_wpuiai_authority_nodes SET assurance_class='first_party_developer_v1' WHERE node_uuid='node-eval-golden-001'");
+$devDb->exec('DELETE FROM wp_edd_licenses');
+$devDb->exec('DELETE FROM wp_edd_orders');
+$devDb->exec('DELETE FROM wp_edd_order_items');
+$dev = $devIssuer->issueLease($devRequest);
+expect_lease($dev['claims']['product_code'] === 'focusa_developer' && $dev['claims']['posture'] === 'developer', 'provider-approved developer claims');
+$developerVector = json_decode(file_get_contents(dirname(RUST_FIXTURE_PATH) . '/spec152-first-party-developer-vector.json'), true, 512, JSON_THROW_ON_ERROR);
+expect_lease($dev['envelope'] === $developerVector['lease_envelope'], 'PHP issuance matches the independent Rust developer fixture byte-for-byte');
+expect_lease($dev['claims']['node_id'] === $devPrior['claims']['node_id'], 'developer activation preserves the existing node');
+expect_lease($dev['claims']['previous_lease_digest'] === $devPrior['payload_digest'], 'product transition preserves the same-node signed chain');
+expect_lease($dev['sequence'] > $devPrior['sequence'], 'profile transition increases the existing lease sequence');
+expect_lease((int) $devDb->query("SELECT highest_entitlement_sequence FROM wp_wpuiai_authority_accounts WHERE account_uuid='b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'")->fetchColumn() === 6, 'lease issuance does not fabricate an entitlement revision');
+expect_lease($dev['claims']['order_id'] === null && $dev['claims']['order_item_id'] === null && $dev['claims']['edd_license_id'] === null, 'developer grant does not invent billing provenance');
+expect_lease($dev['claims']['limits'] === $devPrior['claims']['limits'], 'existing single-node and operator-seat limits remain');
+foreach (['developer_channel', 'ota_auto_update', 'official_release_bundle'] as $feature) {
+    expect_lease($dev['claims']['features'][$feature] === true, 'developer channel rights are explicit signed grants: ' . $feature);
+}
+expect_lease((int) $devDb->query('SELECT COUNT(*) FROM wp_wpuiai_authority_nodes')->fetchColumn() === $devNodes, 'issuance creates no new node');
+expect_lease($devIssuer->issueLease($devRequest)['envelope'] === $dev['envelope'], 'developer delivery is idempotent');
+$devDb->exec("UPDATE wp_wpuiai_authority_nodes SET status='revoked' WHERE node_uuid='node-eval-golden-001'");
+$devRevoked = $devRequest;
+$devRevoked['idempotency_key'] = 'first-party-revoked-0001';
+expect_lease_domain(static fn() => $devIssuer->issueLease($devRevoked), 'NODE_NOT_ACTIVE', 'developer assurance does not override node revocation');
+
+expect_lease_domain(static fn() => $devIssuer->issueLease($devRequest), 'NODE_NOT_ACTIVE', 'cached delivery does not override node revocation');
+
+$limitDb = new PDO('sqlite::memory:');
+$limitDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+seed_fixture($limitDb);
+$limitIssuer = build_issuer($limitDb);
+$limitDb->exec('UPDATE wp_edd_licenses SET activation_limit=0 WHERE id=7001');
+$unlimited = $limitIssuer->issueLease($paidRequest);
+expect_lease($unlimited['claims']['limits']['node_limit'] === 3, 'EDD unlimited preserves the server-owned product cap');
+$limitDb->exec('UPDATE wp_edd_licenses SET activation_limit=1 WHERE id=7001');
+$lowerLimitRequest = $paidRequest;
+$lowerLimitRequest['idempotency_key'] = 'lower-limit-0001';
+unset($lowerLimitRequest['lease_uuid'], $lowerLimitRequest['lease_id']);
+$lower = $limitIssuer->issueLease($lowerLimitRequest);
+expect_lease($lower['claims']['limits']['node_limit'] === 1, 'lower authoritative EDD limit remains binding');
+focusa_fixture_edd_runtime($db);
 
 $replay = $issuer->issueLease($paidRequest);
 expect_lease($replay['envelope'] === $paid['envelope'], 'idempotent replay returns the byte-identical lease');
@@ -451,9 +509,9 @@ $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-expired-001', '{$
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-pending-001', '{$revokedAccount}', 7008, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-price-001', '{$revokedAccount}', 7009, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-crosslicense-001', '{$revokedAccount}', 7004, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
-$db->exec("INSERT INTO wp_edd_licenses VALUES (7010, 1001, 1001, 9001, 'F0C15A-0010-0010-0010-0010', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
+$db->exec("INSERT INTO wp_edd_licenses VALUES (7010, 1001, 1736, 9001, 'F0C15A-0010-0010-0010-0010', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-crosscustomer-001', 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 7010, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
-$db->exec("UPDATE wp_edd_licenses SET customer_id = 4004 WHERE license_id = 7010");
+$db->exec("UPDATE wp_edd_licenses SET customer_id = 4004 WHERE id = 7010");
 expect_lease_domain(
     static fn() => $issuer->issueLease($request($revokedAccount, 'focusa_operator_lifetime_v1', 'node-revoked-001', PAID_DEVICE_KEY, 'neg-revoked-0001')),
     'EDD_LICENSE_UNUSABLE',
@@ -462,7 +520,7 @@ expect_lease_domain(
 expect_lease_domain(
     static fn() => $issuer->issueLease($request($revokedAccount, 'focusa_operator_lifetime_v1', 'node-zero-001', PAID_DEVICE_KEY, 'neg-zero-0001')),
     'EDD_LICENSE_UNUSABLE',
-    'zero-capacity EDD license never issues',
+    'invalid negative EDD capacity never issues',
 );
 expect_lease_domain(
     static fn() => $issuer->issueLease($request($revokedAccount, 'focusa_operator_lifetime_v1', 'node-expired-001', PAID_DEVICE_KEY, 'neg-expired-license-0001')),

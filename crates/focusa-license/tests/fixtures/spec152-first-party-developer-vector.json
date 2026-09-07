@@ -1,0 +1,22 @@
+{
+    "fixture_only": true,
+    "root_key_id": "authority-root-2026-01",
+    "root_public_key_b64": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+    "key_set_envelope": {
+        "schema": "focusa.signed_envelope.v1",
+        "signer_key_id": "authority-root-2026-01",
+        "payload_b64": "eyJleHBpcmVzX2F0IjoiMjAzMC0wMS0wMVQwMDowMDowMFoiLCJpc3N1ZWRfYXQiOiIyMDI2LTA4LTAxVDAwOjAwOjAwWiIsImtleXMiOlt7ImtleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwibm90X2FmdGVyIjoiMjAyOS0wMS0wMVQwMDowMDowMFoiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wMVQwMDowMDowMFoiLCJwdWJsaWNfa2V5X2I2NCI6IktheTY0VUc4eXZDeUxocVUwMDBMeHpZZVVtMEwvaExJbDVTOGt5S1diZGM9Iiwic3RhdHVzIjoiYWN0aXZlIn1dLCJzY2hlbWEiOiJmb2N1c2EuYXV0aG9yaXR5X2tleV9zZXQudjEiLCJzZXF1ZW5jZSI6N30=",
+        "signature_b64": "zHkLUrbBnvUsf2zT4da8MnB//tN6gH/jpZf/aXdDko5aL2IjHfDOjVmTy43o9MJ3ew6o2bMv8Eiqh7FMswe8DQ=="
+    },
+    "lease_envelope": {
+        "schema": "focusa.signed_envelope.v1",
+        "signer_key_id": "authority-lease-2026-01",
+        "payload_b64": "eyJhY2NvdW50X2lkIjoiYjJjM2Q0ZTUtZjZhNy00YjhjLTlkMGUtMWYyYTNiNGM1ZDZlIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjAuMDAiLCJwcmljZV92ZXJzaW9uIjoidjEiLCJyZWZ1bmRfcG9saWN5Ijoibm9uZSIsInRlcm0iOiJmaXJzdF9wYXJ0eSIsInVwZ3JhZGVfcG9saWN5IjoicHJvdmlkZXJfbWFuYWdlZF9ub3RfZm9yX3NhbGUifSwiY3VzdG9tZXJfaWQiOjIwMDIsImVkZF9saWNlbnNlX2lkIjpudWxsLCJleHBpcmVzX2F0IjoiMjAyNi0xMS0wNlQxODozMDowMFoiLCJmZWF0dXJlcyI6eyJhdXRvbWF0aW9uIjp0cnVlLCJiYXNlX2ZvY3VzYSI6dHJ1ZSwiZGV2ZWxvcGVyX2NoYW5uZWwiOnRydWUsIm9mZmljaWFsX3JlbGVhc2VfYnVuZGxlIjp0cnVlLCJvdGFfYXV0b191cGRhdGUiOnRydWUsInByZW1pdW1fdXBkYXRlcyI6dHJ1ZSwicmVsZWFzZV9wcm9vZiI6dHJ1ZSwidGVhbV9yZW1vdGUiOnRydWV9LCJpc3N1ZWRfYXQiOiIyMDI2LTA4LTA4VDE4OjMwOjAwWiIsImxlYXNlX2lkIjoibGVhc2UtZmlyc3QtcGFydHktZ29sZGVuLTAwMSIsImxpbWl0cyI6eyJub2RlX2xpbWl0IjoxLCJvcGVyYXRvcl9zZWF0cyI6MX0sIm5vZGVfaWQiOiJub2RlLWV2YWwtZ29sZGVuLTAwMSIsIm5vdF9iZWZvcmUiOiIyMDI2LTA4LTA4VDE4OjMwOjAwWiIsIm9mZmxpbmVfZ3JhY2VfdW50aWwiOiIyMDI2LTEyLTA2VDE4OjMwOjAwWiIsIm9yZGVyX2lkIjpudWxsLCJvcmRlcl9pdGVtX2lkIjpudWxsLCJwb3N0dXJlIjoiZGV2ZWxvcGVyIiwicHJldmlvdXNfbGVhc2VfZGlnZXN0Ijoic2hhMjU2OmJmNTNiNTRjOTg0ZmViNWVkMjVjOTk5Y2NkMGExNGZhNjMwZTc0MGI2ODcyNDk1MGZiNDE4ODYzNzY4YTAxZTkiLCJwcm9kdWN0IjoiZm9jdXNhIiwicHJvZHVjdF9jb2RlIjoiZm9jdXNhX2RldmVsb3BlciIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6OCwic3RhdHVzIjoiYWN0aXZlIiwic3ViamVjdF9pZCI6ImIyYzNkNGU1LWY2YTctNGI4Yy05ZDBlLTFmMmEzYjRjNWQ2ZSJ9",
+        "signature_b64": "5y20aCyKd4Dhylzix1FVU53bXW8EiiPLs5hImKEqOrDU8AYA4t5SnndX8YMvG/oHst8kbMSPhpqj1VbECWDMBw=="
+    },
+    "expected_lease_digest": "sha256:5b72e063f94c03cc5c36fda0605185954da9a4158c1d64441a08e44fdf396967",
+    "expected_previous_digest": "sha256:bf53b54c984feb5ed25c999ccd0a14fa630e740b68724950fb418863768a01e9",
+    "expected_node_id": "node-eval-golden-001",
+    "minimum_sequence": 7,
+    "verification_time": "2026-08-08T18:30:00Z"
+}

@@ -142,112 +142,126 @@ fn signed_license_type_and_posture_survive_verification() {
 }
 
 #[test]
-fn operator_software_is_included_without_evaluation_counters() {
+fn signed_full_software_profiles_keep_security_and_resource_boundaries() {
     use focusa_license::{
         CapabilityFamily, operator_includes_software_usage, operator_license_type_grant,
         resolve_premium_family,
     };
     let vector = vector();
     let now = at("2026-08-03T00:00:00Z");
-    let envelope = resign_lease(|payload| {
-        payload.product_code = Some("focusa_uiai_operator_bundle_lifetime_v1".into());
-        payload.posture = Some("bundle".into());
-        payload.features.clear();
-        payload.limits.clear();
-        payload.expires_at = Utc::now() + chrono::Duration::hours(1);
-    });
-    let snapshot = verifier(&vector)
-        .verify_lease(&envelope, &context("2026-08-03T00:00:00Z"))
-        .unwrap();
-    assert!(operator_license_type_grant(&snapshot, now).is_some());
-    for bucket in [
-        "workpoints",
-        "missions",
-        "evidence_records",
-        "parallel_agents",
-        "silent_session_runs",
-        "export_jobs",
-        "release_proof_runs",
-        "update_runs",
-        "unattended_update_runs",
+    for (product_code, posture, operator) in [
+        ("focusa_uiai_operator_bundle_lifetime_v1", "bundle", true),
+        ("focusa_developer", "developer", false),
     ] {
-        assert!(
-            operator_includes_software_usage(&snapshot, bucket, now),
-            "{bucket}"
+        let envelope = resign_lease(|payload| {
+            payload.product_code = Some(product_code.into());
+            payload.posture = Some(posture.into());
+            payload.features.clear();
+            payload.limits.clear();
+            payload.expires_at = Utc::now() + chrono::Duration::hours(1);
+        });
+        let snapshot = verifier(&vector)
+            .verify_lease(&envelope, &context("2026-08-03T00:00:00Z"))
+            .unwrap();
+        assert_eq!(
+            operator_license_type_grant(&snapshot, now).is_some(),
+            operator
         );
-    }
-    for bucket in [
-        "nodes",
-        "node_limit",
-        "operator_seats",
-        "team_operators",
-        "hosted_compute",
-        "unknown",
-    ] {
-        assert!(
-            !operator_includes_software_usage(&snapshot, bucket, now),
-            "{bucket}"
+        assert_eq!(
+            focusa_license::developer_license_active(&snapshot, now),
+            !operator
         );
-    }
-    assert!(
-        resolve_premium_family(
-            &snapshot,
-            CapabilityFamily::Automation,
-            "focusa.agent.silent_sessions",
-            now
-        )
-        .is_feature()
-    );
-    let guard = focusa_license::LicenseGuard::from_entitlement(snapshot.clone());
-    assert!(!guard.check(Capability::CommercialUse).is_denied());
-    assert!(guard.check(Capability::HostedMode).is_denied());
-    assert!(guard.check(Capability::ProductEmbedding).is_denied());
-    assert!(guard.check(Capability::TelemetrySend).is_denied());
+        for bucket in [
+            "workpoints",
+            "missions",
+            "evidence_records",
+            "parallel_agents",
+            "silent_session_runs",
+            "export_jobs",
+            "release_proof_runs",
+            "update_runs",
+            "unattended_update_runs",
+        ] {
+            assert!(
+                operator_includes_software_usage(&snapshot, bucket, now),
+                "{bucket}"
+            );
+        }
+        for bucket in [
+            "nodes",
+            "node_limit",
+            "operator_seats",
+            "team_operators",
+            "hosted_compute",
+            "unknown",
+        ] {
+            assert!(
+                !operator_includes_software_usage(&snapshot, bucket, now),
+                "{bucket}"
+            );
+        }
+        assert!(
+            resolve_premium_family(
+                &snapshot,
+                CapabilityFamily::Automation,
+                "focusa.agent.silent_sessions",
+                now
+            )
+            .is_feature()
+        );
+        let guard = focusa_license::LicenseGuard::from_entitlement(snapshot.clone());
+        assert!(!guard.check(Capability::CommercialUse).is_denied());
+        assert!(guard.check(Capability::HostedMode).is_denied());
+        assert!(guard.check(Capability::ProductEmbedding).is_denied());
+        assert!(guard.check(Capability::TelemetrySend).is_denied());
 
-    let mut denied = snapshot.clone();
-    denied
-        .features
-        .insert("focusa.agent.silent_sessions".into(), false);
-    assert!(
-        !resolve_premium_family(
-            &denied,
-            CapabilityFamily::Automation,
-            "focusa.agent.silent_sessions",
+        let mut denied = snapshot.clone();
+        denied
+            .features
+            .insert("focusa.agent.silent_sessions".into(), false);
+        assert!(
+            !resolve_premium_family(
+                &denied,
+                CapabilityFamily::Automation,
+                "focusa.agent.silent_sessions",
+                now
+            )
+            .is_feature()
+        );
+        for (code, posture) in [
+            ("focusa_evaluation", "evaluation"),
+            ("focusa_operator_lifetime_v1", "evaluation"),
+            ("unknown", "paid"),
+            ("focusa_developer", "paid"),
+            ("focusa_operator_lifetime_v1", "developer"),
+        ] {
+            let mut other = snapshot.clone();
+            other.product_code = Some(code.into());
+            other.posture = Some(posture.into());
+            assert!(!operator_includes_software_usage(&other, "workpoints", now));
+        }
+        let mut expired = snapshot.clone();
+        expired.expires_at = Some(now - chrono::Duration::seconds(1));
+        assert!(!operator_includes_software_usage(
+            &expired,
+            "workpoints",
             now
-        )
-        .is_feature()
-    );
-    for (code, posture) in [
-        ("focusa_evaluation", "evaluation"),
-        ("focusa_operator_lifetime_v1", "evaluation"),
-        ("unknown", "paid"),
-    ] {
-        let mut other = snapshot.clone();
-        other.product_code = Some(code.into());
-        other.posture = Some(posture.into());
-        assert!(!operator_includes_software_usage(&other, "workpoints", now));
+        ));
+        let mut revoked = snapshot.clone();
+        revoked.state = EntitlementState::RecoveryOnly;
+        assert!(!operator_includes_software_usage(
+            &revoked,
+            "workpoints",
+            now
+        ));
+        let mut wrong_product = snapshot;
+        wrong_product.product = "unregistered".into();
+        assert!(!operator_includes_software_usage(
+            &wrong_product,
+            "workpoints",
+            now
+        ));
     }
-    let mut expired = snapshot.clone();
-    expired.expires_at = Some(now - chrono::Duration::seconds(1));
-    assert!(!operator_includes_software_usage(
-        &expired,
-        "workpoints",
-        now
-    ));
-    let mut revoked = snapshot.clone();
-    revoked.state = EntitlementState::RecoveryOnly;
-    assert!(!operator_includes_software_usage(
-        &revoked,
-        "workpoints",
-        now
-    ));
-    let mut wrong_product = snapshot;
-    wrong_product.product = "unregistered".into();
-    assert!(!operator_includes_software_usage(
-        &wrong_product,
-        "workpoints",
-        now
-    ));
 }
 
 #[test]
@@ -277,6 +291,55 @@ fn authority_golden_vector_verifies_byte_for_byte() {
 }
 
 #[test]
+fn php_issued_developer_profile_preserves_identity_and_full_software_access() {
+    #[derive(Deserialize)]
+    struct DeveloperVector {
+        #[serde(flatten)]
+        golden: GoldenVector,
+        expected_previous_digest: String,
+        expected_node_id: String,
+        minimum_sequence: u64,
+        verification_time: String,
+    }
+    let fixture: DeveloperVector = serde_json::from_str(include_str!(
+        "fixtures/spec152-first-party-developer-vector.json"
+    ))
+    .unwrap();
+    let now = at(&fixture.verification_time);
+    let context = LeaseVerificationContext {
+        expected_product: "focusa".into(),
+        expected_node_id: fixture.expected_node_id,
+        now,
+        minimum_sequence: Some(fixture.minimum_sequence),
+        expected_previous_digest: Some(fixture.expected_previous_digest),
+    };
+    let snapshot = verifier(&fixture.golden)
+        .verify_lease(&fixture.golden.lease_envelope, &context)
+        .expect("actual PHP-issued developer envelope verifies in Rust");
+    assert_eq!(snapshot.state, EntitlementState::Active);
+    assert_eq!(
+        snapshot.lease_digest.as_deref(),
+        Some(fixture.golden.expected_lease_digest.as_str())
+    );
+    assert_eq!(snapshot.product_code.as_deref(), Some("focusa_developer"));
+    assert_eq!(snapshot.posture.as_deref(), Some("developer"));
+    assert!(focusa_license::developer_license_active(&snapshot, now));
+    for feature in [
+        "packaged_installer",
+        "focusa.release.proof",
+        "developer_channel",
+        "ota_auto_update",
+    ] {
+        assert!(
+            focusa_license::software_feature_enabled(&snapshot, feature, now),
+            "{feature}"
+        );
+    }
+    assert_eq!(snapshot.limit("node_limit"), Some(1));
+    assert_eq!(snapshot.limit("operator_seats"), Some(1));
+}
+
+#[test]
 fn forged_or_edited_payload_is_rejected() {
     let vector = vector();
     let mut forged = vector.lease_envelope.clone();
@@ -284,6 +347,21 @@ fn forged_or_edited_payload_is_rejected() {
     let position = payload.iter().position(|byte| *byte == b'4').unwrap();
     payload[position] = b'9';
     forged.payload_b64 = BASE64.encode(payload);
+    assert_eq!(
+        verifier(&vector).verify_lease(&forged, &context("2026-08-03T00:00:00Z")),
+        Err(AuthorityVerificationError::InvalidSignature)
+    );
+}
+
+#[test]
+fn unsigned_developer_profile_is_rejected() {
+    let vector = vector();
+    let mut forged = vector.lease_envelope.clone();
+    let mut payload: serde_json::Value =
+        serde_json::from_slice(&BASE64.decode(&forged.payload_b64).unwrap()).unwrap();
+    payload["product_code"] = serde_json::json!("focusa_developer");
+    payload["posture"] = serde_json::json!("developer");
+    forged.payload_b64 = BASE64.encode(serde_json::to_vec(&payload).unwrap());
     assert_eq!(
         verifier(&vector).verify_lease(&forged, &context("2026-08-03T00:00:00Z")),
         Err(AuthorityVerificationError::InvalidSignature)

@@ -22,6 +22,7 @@
 // No raw email, secret, license key, or unmasked real-email evidence is emitted; the
 // only fixture emails use the reserved .invalid TLD.
 declare(strict_types=1);
+require_once __DIR__ . '/fixtures/spec152e_edd_runtime_fixture.php';
 
 $root = dirname(__DIR__);
 require_once $root . '/docs/contracts/spec152e-activation-registration.v1.php';
@@ -122,7 +123,7 @@ function seed_fixture(PDO $db): void
 {
     $db->exec('CREATE TABLE wp_edd_customers (customer_id INTEGER PRIMARY KEY, email TEXT, name TEXT, date_created TEXT)');
     $db->exec('CREATE TABLE wp_edd_orders (id INTEGER PRIMARY KEY, order_id INTEGER, customer_id INTEGER, status TEXT, total TEXT, date_created TEXT)');
-    $db->exec('CREATE TABLE wp_edd_order_items (order_item_id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, price_id INTEGER, quantity INTEGER, subtotal TEXT, total TEXT)');
+    $db->exec('CREATE TABLE wp_edd_order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, price_id INTEGER, quantity INTEGER, subtotal TEXT, total TEXT)');
     $db->exec('CREATE TABLE wp_edd_licenses (
         id INTEGER PRIMARY KEY, license_id INTEGER, customer_id INTEGER, user_id INTEGER NULL,
         download_id INTEGER, payment_id INTEGER, product_id INTEGER, order_id INTEGER,
@@ -142,9 +143,9 @@ function seed_paid(PDO $db, int $customerId, string $accountUuid, int $highest, 
     $db->exec("INSERT OR IGNORE INTO wp_wpuiai_authority_accounts (account_uuid, edd_customer_id, customer_id, wordpress_user_id, stripe_customer_id, status, status_reason, highest_entitlement_sequence, migration_provenance, created_at, updated_at)
         VALUES ('{$accountUuid}', {$customerId}, {$customerId}, NULL, NULL, 'active', 'mailbox_verified', {$highest}, '{}', '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_edd_orders (id, order_id, customer_id, status, total, date_created) VALUES ({$orderId}, {$orderId}, {$customerId}, '{$orderStatus}', '697.00', '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_order_items (order_item_id, order_id, product_id, price_id, quantity, subtotal, total) VALUES ({$itemId}, {$orderId}, 1001, 0, 1, '697.00', '697.00')");
+    $db->exec("INSERT INTO wp_edd_order_items (id, order_id, product_id, price_id, quantity, subtotal, total) VALUES ({$itemId}, {$orderId}, 1736, 0, 1, '697.00', '697.00')");
     $db->exec("INSERT INTO wp_edd_licenses (id, license_id, customer_id, download_id, payment_id, product_id, license_key, status, activation_limit, expiration, date_created)
-        VALUES ({$licenseId}, {$licenseId}, {$customerId}, 1001, {$orderId}, 1001, 'F0C15A-{$customerId}-0001-0001-0001', '{$status}', 3, NULL, '2026-08-01T00:00:00Z')");
+        VALUES ({$licenseId}, {$licenseId}, {$customerId}, 1736, {$orderId}, 1736, 'F0C15A-{$customerId}-0001-0001-0001', '{$status}', 3, NULL, '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_wpuiai_authority_nodes (node_uuid, account_uuid, edd_license_id, product_code, device_public_key, assurance_class, status)
         VALUES ('{$nodeId}', '{$accountUuid}', {$licenseId}, '" . PRODUCT_PAID . "', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 }
@@ -155,9 +156,9 @@ function seed_eval(PDO $db, int $customerId, string $accountUuid, int $orderId, 
     $db->exec("INSERT OR IGNORE INTO wp_wpuiai_authority_accounts (account_uuid, edd_customer_id, customer_id, wordpress_user_id, stripe_customer_id, status, status_reason, highest_entitlement_sequence, migration_provenance, created_at, updated_at)
         VALUES ('{$accountUuid}', {$customerId}, {$customerId}, NULL, NULL, 'active', 'account_promoted', 6, '{}', '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_edd_orders (id, order_id, customer_id, status, total, date_created) VALUES ({$orderId}, {$orderId}, {$customerId}, 'complete', '0.00', '2026-08-01T00:00:00Z')");
-    $db->exec("INSERT INTO wp_edd_order_items (order_item_id, order_id, product_id, price_id, quantity, subtotal, total) VALUES ({$itemId}, {$orderId}, 1004, 0, 1, '0.00', '0.00')");
+    $db->exec("INSERT INTO wp_edd_order_items (id, order_id, product_id, price_id, quantity, subtotal, total) VALUES ({$itemId}, {$orderId}, 1735, 0, 1, '0.00', '0.00')");
     $db->exec("INSERT INTO wp_edd_licenses (id, license_id, customer_id, download_id, payment_id, product_id, license_key, status, activation_limit, expiration, date_created)
-        VALUES ({$licenseId}, {$licenseId}, {$customerId}, 1004, {$orderId}, 1004, 'E5A10000-0002-0002-0002-0002', 'active', 1, '{$expiration}', '2026-08-08T18:30:00Z')");
+        VALUES ({$licenseId}, {$licenseId}, {$customerId}, 1735, {$orderId}, 1735, 'E5A10000-0002-0002-0002-0002', 'active', 1, '{$expiration}', '2026-08-08T18:30:00Z')");
     $db->exec("INSERT INTO wp_wpuiai_authority_nodes (node_uuid, account_uuid, edd_license_id, product_code, device_public_key, assurance_class, status)
         VALUES ('{$nodeId}', '{$accountUuid}', {$licenseId}, '" . PRODUCT_EVAL . "', '" . EVAL_DEVICE_KEY . "', 'device_key_v1', 'active')");
 }
@@ -181,6 +182,7 @@ function build_components(PDO $db, string $clockValue): array
     $eventSchema = new FocusaSpec152eAuthorityEventSchema();
     $signer = new FocusaSpec152eAuthorityEventSigner('test-server-side-secret-for-spec152e-outbox-v1!', FocusaSpec152eAuthorityEventSchema::KEY_ID);
     $outboxHook = new FocusaSpec152eEddAuthorityHook($db, $outboxSchema, $eventSchema, $signer, $accounts, 'wp_', $clock);
+    focusa_fixture_edd_runtime($db);
     $issuer = new FocusaSpec152eEddBoundLeaseIssuer($db, $keySet, $clock, 'wp_');
     $issuer->migrate('2026-08-08T05:00:00Z', ['source' => 'authority_lease_acceptance']);
     $refreshSchema = new FocusaSpec152eLeaseRefreshMigration($db, 'wp_');

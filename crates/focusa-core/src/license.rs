@@ -44,6 +44,7 @@ pub enum LicenseMode {
     Unactivated,
     RecoveryOnly,
     Entitled,
+    Developer,
     OfflineGrace,
     Evaluation,
     Operator,
@@ -59,6 +60,7 @@ impl LicenseMode {
             LicenseMode::Unactivated => "Unactivated",
             LicenseMode::RecoveryOnly => "RecoveryOnly",
             LicenseMode::Entitled => "Entitled",
+            LicenseMode::Developer => "DeveloperFull",
             LicenseMode::OfflineGrace => "OfflineGrace",
             LicenseMode::Evaluation => "Evaluation",
             LicenseMode::Operator => "Operator",
@@ -151,6 +153,9 @@ impl LocalLicense {
 /// `focusa license status` output shape.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LicenseStatus {
+    /// Machine eligibility is separate from the signed developer entitlement.
+    #[serde(default)]
+    pub developer_origin_eligible: bool,
     /// Canonical signed-authority projection. `None` is migration-only and must
     /// never be interpreted as an entitlement grant.
     pub authority: Option<focusa_license::EntitlementProjection>,
@@ -255,11 +260,20 @@ pub fn license_file_path() -> PathBuf {
 
 /// Load the one canonical signed authority entitlement projection.
 pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
-    let guard = focusa_license::resolve_license_guard();
+    license_status_from_guard(&focusa_license::resolve_license_guard())
+}
+
+fn license_status_from_guard(
+    guard: &focusa_license::LicenseGuard,
+) -> anyhow::Result<LicenseStatus> {
     let entitlement = guard.entitlement.as_ref();
     let authority = focusa_license::entitlement_projection(entitlement)
         .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+    let developer = entitlement.is_some_and(|snapshot| {
+        focusa_license::developer_license_active(snapshot, chrono::Utc::now())
+    });
     let mode = match entitlement.map(|snapshot| snapshot.state) {
+        _ if developer => LicenseMode::Developer,
         Some(focusa_license::authority::EntitlementState::Active) => LicenseMode::Entitled,
         Some(focusa_license::authority::EntitlementState::OfflineGrace) => {
             LicenseMode::OfflineGrace
@@ -271,21 +285,31 @@ pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
     };
     let features = entitlement
         .map(|snapshot| {
+            let now = chrono::Utc::now();
             snapshot
                 .features
-                .iter()
-                .filter(|(_, enabled)| **enabled)
-                .map(|(feature, _)| feature.clone())
+                .keys()
+                .cloned()
+                .chain(focusa_license::registered_software_feature_ids().map(str::to_string))
+                .filter(|feature| focusa_license::software_feature_enabled(snapshot, feature, now))
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
                 .collect()
         })
         .unwrap_or_default();
     Ok(LicenseStatus {
         authority: Some(authority),
+        developer_origin_eligible: guard.verified_developer_origin(),
         mode,
         product: entitlement
             .map(|snapshot| snapshot.product.clone())
             .unwrap_or_else(|| "focusa".to_string()),
-        tier: guard.tier.label().to_string(),
+        tier: if developer {
+            "developer_full"
+        } else {
+            guard.tier.label()
+        }
+        .to_string(),
         status: guard.tier.label().to_string(),
         commercial_use: matches!(
             guard.check(focusa_license::Capability::CommercialUse),
@@ -309,6 +333,7 @@ pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
 fn status_from_local(local: &LocalLicense) -> LicenseStatus {
     LicenseStatus {
         authority: None,
+        developer_origin_eligible: false,
         mode: local.mode(),
         product: local.product.clone(),
         tier: local.tier.clone(),
@@ -545,7 +570,7 @@ pub fn check_feature(license_file: &Path, feature: &str) -> Result<String, Licen
         let reason = match status.mode {
             LicenseMode::Unactivated => "unactivated",
             LicenseMode::RecoveryOnly => "recovery_only",
-            LicenseMode::Entitled => "signed_authority_lease",
+            LicenseMode::Entitled | LicenseMode::Developer => "signed_authority_lease",
             LicenseMode::OfflineGrace => "signed_authority_offline_grace",
             LicenseMode::Evaluation => "evaluation",
             LicenseMode::Operator => "operator_license",
@@ -706,6 +731,55 @@ async fn registry_ping_blocking(registry: &str) -> anyhow::Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn signed_developer_status_projects_effective_software_without_faking_claims() {
+        use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-fixture");
+        snapshot.state = EntitlementState::Active;
+        snapshot.product_code = Some("focusa_developer".into());
+        snapshot.posture = Some("developer".into());
+        snapshot.lease_id = Some("developer-fixture".into());
+        snapshot.sequence = Some(1);
+        snapshot.lease_digest = Some("sha256:fixture".into());
+        snapshot.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
+        snapshot.features.insert("public_stream".into(), false);
+        let guard = focusa_license::LicenseGuard::from_entitlement(snapshot.clone());
+        let status = license_status_from_guard(&guard).unwrap();
+        assert_eq!(status.mode, LicenseMode::Developer);
+        assert_eq!(status.tier, "developer_full");
+        assert!(status.commercial_use);
+        assert!(
+            status
+                .features
+                .iter()
+                .any(|feature| feature == "packaged_installer")
+        );
+        assert!(
+            status
+                .features
+                .iter()
+                .any(|feature| feature == "focusa.export.packaged")
+        );
+        assert!(
+            !status
+                .features
+                .iter()
+                .any(|feature| feature == "public_stream")
+        );
+        assert!(!status.developer_origin_eligible); // a supplied snapshot cannot assert origin
+        assert_eq!(
+            guard.entitlement.as_ref().unwrap().features,
+            snapshot.features
+        );
+        snapshot.state = EntitlementState::RecoveryOnly;
+        let denied =
+            license_status_from_guard(&focusa_license::LicenseGuard::from_entitlement(snapshot))
+                .unwrap();
+        assert_eq!(denied.mode, LicenseMode::RecoveryOnly);
+        assert!(!denied.commercial_use);
+        assert!(denied.features.is_empty());
+    }
 
     #[test]
     fn evaluation_mode_is_evaluation() {

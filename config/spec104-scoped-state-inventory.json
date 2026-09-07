@@ -756,7 +756,7 @@
       "authority_bearing": false
     },
     {
-      "path": "crates/focusa-core/src/license_developer_origin.rs",
+      "path": "crates/focusa-license/src/developer_origin.rs",
       "symbol": "CACHE",
       "classification": "infra_allowlist",
       "status": "infra_allowed",
@@ -766,7 +766,7 @@
       "authority_bearing": false
     },
     {
-      "path": "crates/focusa-core/src/license_developer_origin.rs",
+      "path": "crates/focusa-license/src/developer_origin.rs",
       "symbol": "TEST_MUTEX",
       "classification": "infra_allowlist",
       "status": "infra_allowed",

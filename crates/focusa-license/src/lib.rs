@@ -18,6 +18,7 @@ pub mod authority_http;
 pub mod authority_store;
 pub mod capsule_manifest;
 pub mod denial_ux;
+pub mod developer_origin;
 pub mod dynamic_operation_manifest;
 mod entitlement_policy;
 pub mod facade_policy_presenter;
@@ -89,10 +90,11 @@ pub use entitlement_policy::{
     SPEC172_UIAI_VERIFIED_NO_LICENSE_BLOCKED_FAMILIES, SaleStatus, SecurityPrerequisite,
     SharedNodeLimit, TEAM_REMOTE_PREMIUM_FEATURE_IDS, authority_policy_state,
     base_product_compatibility_projection, classify_operator_family_inheritance,
-    embedded_entitlement_policy_registry, is_focusa_verified_no_license_family_allowed,
-    operator_includes_software_usage, operator_license_type_grant, premium_family_feature_ids,
-    reduce_entitlement_state, resolve_base_focusa_product, resolve_export_packaged,
-    resolve_premium_family,
+    developer_license_active, embedded_entitlement_policy_registry, full_software_product,
+    is_focusa_verified_no_license_family_allowed, operator_includes_software_usage,
+    operator_license_type_grant, premium_family_feature_ids, reduce_entitlement_state,
+    registered_software_feature_ids, resolve_base_focusa_product, resolve_export_packaged,
+    resolve_premium_family, software_feature_enabled, software_license_includes_usage,
 };
 pub use facade_policy_presenter::{
     FACADE_ALWAYS_REACHABLE, FACADE_PRESENTER_FIELDS, FACADE_PRESENTER_FORBIDDEN_FIELDS,
@@ -372,6 +374,10 @@ pub struct LicenseGuard {
     pub bsl_change_date: DateTime<Utc>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entitlement: Option<authority::EntitlementSnapshot>,
+    /// Process-local origin checking is enabled only by the runtime resolver.
+    /// Serialized guards and supplied snapshots cannot assert trusted origin.
+    #[serde(skip)]
+    runtime_origin_context: bool,
 }
 
 impl LicenseGuard {
@@ -386,6 +392,7 @@ impl LicenseGuard {
             expires_at: Some(now + chrono::Duration::days(duration_days)),
             bsl_change_date: bsl_change_date(),
             entitlement: None,
+            runtime_origin_context: false,
         }
     }
 
@@ -400,6 +407,7 @@ impl LicenseGuard {
             expires_at: None,
             bsl_change_date: bsl_change_date(),
             entitlement: None,
+            runtime_origin_context: false,
         }
     }
 
@@ -418,7 +426,15 @@ impl LicenseGuard {
             expires_at: entitlement.expires_at,
             bsl_change_date: bsl_change_date(),
             entitlement: Some(entitlement),
+            runtime_origin_context: false,
         }
+    }
+
+    /// Recheck runtime origin through the bounded shared resolver. This is
+    /// eligibility evidence only: it never replaces the signed entitlement or
+    /// authorizes software, identity, or role capabilities by itself.
+    pub fn verified_developer_origin(&self) -> bool {
+        self.runtime_origin_context && developer_origin::developer_origin_active()
     }
 
     /// Returns true if the authority lease or legacy evaluation has expired.
@@ -437,11 +453,11 @@ impl LicenseGuard {
                     .into(),
             };
         };
-        let operator_commercial_use = capability == Capability::CommercialUse
+        let included_commercial_use = capability == Capability::CommercialUse
             && !entitlement.features.contains_key(capability.label())
-            && entitlement_policy::operator_license_type_grant(entitlement, chrono::Utc::now())
-                .is_some_and(|grant| grant.product == entitlement_policy::ProductCode::Focusa);
-        if entitlement.feature_enabled(capability.label()) || operator_commercial_use {
+            && entitlement_policy::full_software_product(entitlement, chrono::Utc::now())
+                == Some(entitlement_policy::ProductCode::Focusa);
+        if entitlement.feature_enabled(capability.label()) || included_commercial_use {
             CapabilityCheck::Permitted
         } else {
             CapabilityCheck::Denied {
@@ -496,11 +512,13 @@ pub fn resolve_license_guard() -> LicenseGuard {
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."));
-    resolve_license_guard_from(
+    let mut guard = resolve_license_guard_from(
         &home.join(".config/focusa"),
         authority_store::embedded_production_trust_roots(),
         Utc::now(),
-    )
+    );
+    guard.runtime_origin_context = true;
+    guard
 }
 
 pub fn resolve_license_guard_from(
@@ -563,6 +581,7 @@ fn read_license_json() -> Option<LicenseGuard> {
         bsl_change_date: parse_iso(json.get("bsl_change_date")?.as_str()?)
             .unwrap_or_else(bsl_change_date),
         entitlement: None,
+        runtime_origin_context: false,
     })
 }
 
@@ -593,6 +612,7 @@ fn read_license_toml() -> Option<LicenseGuard> {
         bsl_change_date: parse_iso(table.get("bsl_change_date")?.as_str()?)
             .unwrap_or_else(bsl_change_date),
         entitlement: None,
+        runtime_origin_context: false,
     })
 }
 
@@ -747,6 +767,17 @@ mod tests {
     }
 
     #[test]
+    fn serialized_guard_cannot_assert_runtime_developer_origin() {
+        let mut value = serde_json::to_value(LicenseGuard::eval(30)).unwrap();
+        value["runtime_origin_context"] = serde_json::json!(true);
+        value["developer_full"] = serde_json::json!(true);
+        let guard: LicenseGuard = serde_json::from_value(value).unwrap();
+        assert!(!guard.runtime_origin_context);
+        assert!(!guard.verified_developer_origin());
+        assert!(guard.check(Capability::CommercialUse).is_denied());
+    }
+
+    #[test]
     fn self_issued_eval_cannot_grant_local_eval() {
         let g = LicenseGuard::eval(7);
         assert!(g.check(Capability::LocalEval).is_denied());
@@ -794,6 +825,7 @@ mod tests {
             expires_at: None,
             bsl_change_date: bsl_change_date(),
             entitlement: None,
+            runtime_origin_context: false,
         };
         assert!(g.check(Capability::CommercialUse).is_denied());
         assert!(g.check(Capability::HostedMode).is_denied());
