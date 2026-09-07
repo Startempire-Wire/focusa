@@ -12,9 +12,7 @@ mod distribution_manifest;
 #[path = "system_service_process.rs"]
 mod process;
 
-pub(crate) use distribution_manifest::{
-    prepare_distribution_manifest, validate_distribution_manifest,
-};
+pub(crate) use distribution_manifest::prepare_distribution_manifest;
 
 use anyhow::{Context, Result, anyhow, bail};
 #[allow(deprecated)]

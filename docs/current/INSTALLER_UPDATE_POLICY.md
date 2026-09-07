@@ -38,8 +38,9 @@ curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall --purge-dat
 
 From `v0.9.188`, the checksummed agent-context archive must carry the exact
 `focusa.distribution_manifest.v1` bytes published and signed by the same Release.
-The Rust installer validates release identity and canonical paths, installs the
-local copy, and promotes `/usr/local/lib/focusa/distribution-manifest.json` inside
+The Rust installer uses the platform-independent `commands::distribution_manifest`
+validator for release identity and canonical paths; Linux transaction code reuses
+that same validator rather than owning it. The installer installs the local copy, and promotes `/usr/local/lib/focusa/distribution-manifest.json` inside
 the binary/service rollback boundary. A failed health or CallGraph probe restores
 the prior manifest with the prior runtime. For `v0.9.188+`, `focusa update apply`
 reuses this exact install lifecycle rather than maintaining a second binary/package

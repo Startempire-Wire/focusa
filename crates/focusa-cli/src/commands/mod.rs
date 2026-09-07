@@ -25,6 +25,7 @@ pub mod daemon_routing;
 pub mod debug;
 pub mod deck;
 pub mod device_pairing;
+pub(crate) mod distribution_manifest;
 pub mod doctor;
 pub mod dxux;
 pub mod ecs;

@@ -1,6 +1,6 @@
 [package]
 name = "focusa-menubar"
-version = "0.9.189"
+version = "0.9.190"
 edition = "2021"
 
 [build-dependencies]

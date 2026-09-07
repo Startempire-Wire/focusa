@@ -1,6 +1,6 @@
 {
   "name": "focusa-pi-bridge",
-  "version": "0.9.189",
+  "version": "0.9.190",
   "type": "module",
   "private": true,
   "description": "Focusa cognitive integration extension for Pi coding agent",

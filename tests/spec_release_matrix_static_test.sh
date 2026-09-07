@@ -250,8 +250,16 @@ grep -Fq 'if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true"
 if grep -Eq 'FOCUSA_RECOVERY_RECEIPT|verified_test_receipts|appveyor_recovery_test_receipt' "$APPVEYOR"; then
   fail "AppVeyor recovery must run current-candidate tests instead of frozen receipts"
 fi
-grep -Fq '$testCommands = @("cargo test --release $mode --target $env:RUST_TARGET -p focusa-license") + $coreCommands' "$APPVEYOR" \
-  || fail "AppVeyor recovery lost actual license/core test execution"
+python3 - "$APPVEYOR" <<'PY'
+import re, sys
+source = open(sys.argv[1], encoding="utf-8").read()
+match = re.search(r"\$testCommands\s*=\s*@\((.*?)\)\s*\+\s*\$coreCommands", source, re.S)
+assert match, "AppVeyor recovery lost the actual license/CLI/core test list"
+assert re.findall(r'"([^"\n]+)"', match.group(1)) == [
+    "cargo test --release $mode --target $env:RUST_TARGET -p focusa-license",
+    "cargo test --release $mode --target $env:RUST_TARGET -p focusa-cli --test distribution_manifest_portability",
+], "AppVeyor recovery changed or omitted actual candidate test commands"
+PY
 [ "$(grep -Fc 'ConvertFrom-Json' "$APPVEYOR")" -eq 1 ] \
   || fail "AppVeyor must parse controller recovery metadata exactly once before candidate checkout"
 if grep -Fq 'Get-Content "config/appveyor-release-recovery.json"' "$APPVEYOR"; then
@@ -335,6 +343,8 @@ grep -Fq 'appveyor_tauri_ci_normalized=$env:CI' "$APPVEYOR" \
   || fail "AppVeyor lacks lowercase Tauri CI proof"
 [ "$(grep -Fc '2>&1"' "$APPVEYOR")" -ge 3 ] \
   || fail "AppVeyor native commands do not redirect normal Cargo stderr inside cmd.exe"
+grep -Fq 'cargo test --release $mode --target $env:RUST_TARGET -p focusa-cli --test distribution_manifest_portability' "$APPVEYOR" \
+  || fail "AppVeyor lacks actual portable installer manifest regression coverage"
 python3 - "$APPVEYOR_RECOVERY" "$CODEMAGIC_RECOVERY" "$WF" "$CODEMAGIC" <<'PY'
 import json, re, sys
 for recovery_path in sys.argv[1:3]:

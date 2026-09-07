@@ -3674,8 +3674,10 @@ fn install_distribution_manifest(
         );
         return Ok(None);
     }
-    let bytes =
-        crate::commands::system_service::validate_distribution_manifest(&source, expected_tag)?;
+    let bytes = crate::commands::distribution_manifest::validate_distribution_manifest(
+        &source,
+        expected_tag,
+    )?;
     let destination = install_root.join("distribution-manifest.json");
     let staged = install_root.join(format!(
         ".distribution-manifest.staged-{}",
