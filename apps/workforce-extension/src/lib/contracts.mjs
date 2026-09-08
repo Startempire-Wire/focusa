@@ -14,6 +14,28 @@ function timestamp(value, field, nullable = false) {
   return date.toISOString();
 }
 
+export const MAX_PUBLIC_WORK_BYTES = 16384;
+
+// Public display artifact, never a connection, execution grant or live worker status.
+export function validatePublicWorkSnapshot(input) {
+  const fields = ['schema', 'visibility', 'project', 'mission', 'state', 'stage', 'next_action', 'checkpoint_at', 'published_at', 'stale'];
+  if (!input || input.schema !== 'focusa.public_work_snapshot.v1' || input.visibility !== 'public' ||
+      Object.keys(input).length !== fields.length || Object.keys(input).some(key => !fields.includes(key)) ||
+      !['active', 'blocked', 'completed'].includes(input.state) || typeof input.stale !== 'boolean' ||
+      typeof input.checkpoint_at !== 'string' || typeof input.published_at !== 'string') {
+    throw new TypeError('public Work snapshot contract mismatch');
+  }
+  return Object.freeze({
+    schema: input.schema, visibility: 'public',
+    project: bounded(input.project, 'project', 100),
+    mission: bounded(input.mission, 'mission', 480), state: input.state,
+    stage: bounded(input.stage, 'stage', 120),
+    next_action: bounded(input.next_action, 'next_action', 480),
+    checkpoint_at: timestamp(input.checkpoint_at, 'checkpoint_at'),
+    published_at: timestamp(input.published_at, 'published_at'), stale: input.stale,
+  });
+}
+
 export function validateConnectionRecord(input) {
   if (!input || input.schema !== 'focusa.workforce_connection.v1') throw new TypeError('connection schema mismatch');
   const scopes = input.granted_scopes;

@@ -1,3 +1,4 @@
+import { mountPublicWork } from './lib/public-work.mjs';
 import { fetchBrowserFleet } from './lib/api-client.mjs';
 import { loadNotifPrefs, saveNotifPrefs } from './lib/notifications.mjs';
 import { listNotifications, markNotificationsRead, notificationFromEvent, saveNotification, unreadNotificationCount } from './lib/notifications.mjs';
@@ -181,7 +182,12 @@ document.querySelector('#mark-start-notifications-read')?.addEventListener('clic
 document.querySelector('#daemon-select')?.addEventListener('change',async(event)=>{selectedConnectionId=event.target.value;await storage?.set({'focusa_startpage_connection.v1':selectedConnectionId});streamAbort?.abort();await startLiveUpdates();startFleetEventStream();});
 document.querySelector('#fleet-refresh')?.addEventListener('click',async()=>{await loadSelectedConnection();loadFleet();startFleetEventStream();});
 
-notifications=await listNotifications().catch(()=>[]);renderStartNotifications();
-const savedSelection=await storage?.get('focusa_startpage_connection.v1');selectedConnectionId=savedSelection?.['focusa_startpage_connection.v1']||null;
-const state={...defaults,...(await read()).focusa_startpage_widgets};renderWidgets(state);renderNotifPrefToggles();bind();clock();setInterval(clock,30000);startLiveUpdates();startFleetEventStream();
+if (new URL(window.location.href).searchParams.get('public-work') === '1') {
+  await mountPublicWork(document, chrome.runtime.getURL('public-work.json'));
+  clock(); setInterval(clock,30000);
+} else {
+  notifications=await listNotifications().catch(()=>[]);renderStartNotifications();
+  const savedSelection=await storage?.get('focusa_startpage_connection.v1');selectedConnectionId=savedSelection?.['focusa_startpage_connection.v1']||null;
+  const state={...defaults,...(await read()).focusa_startpage_widgets};renderWidgets(state);renderNotifPrefToggles();bind();clock();setInterval(clock,30000);startLiveUpdates();startFleetEventStream();
+}
 window.addEventListener('pagehide',()=>streamAbort?.abort());
