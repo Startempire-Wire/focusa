@@ -315,8 +315,9 @@ jobs:
           curl -fsS '${{ steps.cfg.outputs.health_url }}' | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("version",""))' | tee /tmp/focusa-live-version.txt
           LIVE_VERSION="$(cat /tmp/focusa-live-version.txt)"
           test "$LIVE_VERSION" = "$expected"
-          test "$(systemctl show focusa-daemon.service -p MainPID --value)" -gt 0
-          test "$(readlink -f /proc/$(systemctl show focusa-daemon.service -p MainPID --value)/exe)" = /usr/local/bin/focusa-daemon
+          daemon_pid="$(sudo -n systemctl show focusa-daemon.service -p MainPID --value)"
+          test "$daemon_pid" -gt 0
+          test "$(sudo -n readlink -f /proc/$daemon_pid/exe)" = /usr/local/bin/focusa-daemon
           test "$(systemctl show focusa-daemon.service -p WorkingDirectory --value)" = /usr/local/lib/focusa
 
       - name: Self-healing smoke check
