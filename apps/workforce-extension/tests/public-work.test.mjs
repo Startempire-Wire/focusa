@@ -80,3 +80,22 @@ test('explicit public bootstrap never reads private storage; normal route is ret
     else {assert.ok(events.includes('private-runtime'));assert.ok(events.includes('storage'));assert.ok(!events.includes('public'));}
   }
 });
+
+test('real start-page module graph links and renders without private reads',async()=>{
+  const document=dom();
+  const replacements={document,
+    window:{location:{href:'chrome-extension://test/startpage.html?public-work=1'},addEventListener(){}},
+    chrome:{runtime:{getURL:path=>'chrome-extension://test/'+path},storage:{local:{get(){throw new Error('private read');},set(){throw new Error('private write');}}}},
+    fetch:async()=>new Response(JSON.stringify(sample())),setInterval:()=>0};
+  const originals=new Map(Object.keys(replacements).map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]));
+  try {
+    for(const [key,value] of Object.entries(replacements))Object.defineProperty(globalThis,key,{value,writable:true,configurable:true});
+    await import(new URL('../src/startpage.mjs?public-work-module-test',import.meta.url));
+    assert.ok(document.host.textContent.includes(sample().mission));
+    assert.ok(document.host.textContent.includes(sample().next_action));
+  } finally {
+    for(const [key,descriptor] of originals) {
+      if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];
+    }
+  }
+});

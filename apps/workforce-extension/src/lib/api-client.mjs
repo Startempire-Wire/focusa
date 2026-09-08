@@ -52,4 +52,5 @@ export async function fetchProjection(kind, { baseUrl, token, fetchImpl = global
 
 export const fetchHealth = (options) => fetchProjection('health', options);
 export const fetchWorkLoop = (options) => fetchProjection('work_loop', options);
-export const fetchRoster = (options) => fetchProjection('roster', options)
+export const fetchRoster = (options) => fetchProjection('roster', options);
+export const fetchBrowserFleet = (options) => fetchProjection('browser_fleet', options);
