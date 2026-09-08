@@ -310,6 +310,10 @@ pub(super) fn create_private_dir(path: &Path) -> Result<()> {
     Ok(())
 }
 #[cfg(unix)]
+// statvfs field widths differ per platform (u32 on macOS, u64 on Linux), so the
+// u64 widening is required on Apple targets and a no-op that clippy flags as a
+// useless conversion on Linux. Keep it platform-neutral and silence the lint.
+#[allow(clippy::useless_conversion)]
 pub(super) fn filesystem_space(path: &Path) -> Result<(u64, u64)> {
     let c_path = CString::new(path.as_os_str().as_encoded_bytes())?;
     let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
