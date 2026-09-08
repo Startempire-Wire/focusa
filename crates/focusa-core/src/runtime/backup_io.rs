@@ -317,8 +317,8 @@ pub(super) fn filesystem_space(path: &Path) -> Result<(u64, u64)> {
         return Err(std::io::Error::last_os_error().into());
     }
     Ok((
-        stat.f_bavail.saturating_mul(stat.f_frsize),
-        stat.f_blocks.saturating_mul(stat.f_frsize),
+        u64::from(stat.f_bavail).saturating_mul(u64::from(stat.f_frsize)),
+        u64::from(stat.f_blocks).saturating_mul(u64::from(stat.f_frsize)),
     ))
 }
 #[cfg(windows)]
