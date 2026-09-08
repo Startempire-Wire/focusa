@@ -352,20 +352,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SUDO=''
-          AGENT_CONTEXT_DIR="$HOME/.focusa/agent-context"
-          if [[ "$(id -u)" -ne 0 ]]; then
-            SUDO='sudo'
-            AGENT_CONTEXT_DIR=/root/.focusa/agent-context
-          fi
-          $SUDO -H env \
-            FOCUSA_DISTRIBUTION_MANIFEST=/usr/local/lib/focusa/distribution-manifest.json \
-            FOCUSA_AGENT_CONTEXT_DIR="$AGENT_CONTEXT_DIR" \
+          # Unprivileged parity audit: the canonical state root and the release
+          # temp dir are runner-readable; no root needed for a read-only audit.
+          FOCUSA_DISTRIBUTION_MANIFEST=/usr/local/lib/focusa/distribution-manifest.json \
+            FOCUSA_AGENT_CONTEXT_DIR=/usr/local/lib/focusa/agent-context \
             FOCUSA_RELEASE_MANIFEST=/tmp/focusa-release/release-manifest.json \
-            FOCUSA_RELEASE_ASSET_SUFFIX='${{ steps.cfg.outputs.asset_suffix }}' \
+            FOCUSA_RELEASE_ASSET_SUFFIX="${{ steps.cfg.outputs.asset_suffix }}" \
             node "$GITHUB_WORKSPACE/scripts/audit-distribution-parity.mjs" --json \
             > /tmp/focusa-release/distribution-parity.json
-          $SUDO chmod 0644 /tmp/focusa-release/distribution-parity.json
           jq -e '.schema == "focusa.distribution_parity.v1" and .parity_ok == true and (.drift | length) == 0' \
             /tmp/focusa-release/distribution-parity.json >/dev/null
 
