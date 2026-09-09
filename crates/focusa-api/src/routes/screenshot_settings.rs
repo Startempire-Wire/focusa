@@ -89,7 +89,9 @@ fn defaults() -> SettingsState {
     SettingsState {
         revision: 1,
         values: SettingsValues {
-            enablement: Enablement { auto_screenshot: false },
+            enablement: Enablement {
+                auto_screenshot: false,
+            },
             image: default_image(),
             presentation: default_presentation(),
         },
@@ -194,14 +196,15 @@ async fn put_settings(
     Json(body): Json<PutRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     match apply_put(&state.config.data_dir, body.expected_revision, body.values).await {
-        Ok(next) => Ok(Json(serde_json::to_value(next).unwrap_or_else(|_| json!({})))),
+        Ok(next) => Ok(Json(
+            serde_json::to_value(next).unwrap_or_else(|_| json!({})),
+        )),
         Err((status, err)) => Err((status, Json(err))),
     }
 }
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route(SETTINGS_ENDPOINT, get(get_settings).put(put_settings))
+    Router::new().route(SETTINGS_ENDPOINT, get(get_settings).put(put_settings))
 }
 
 #[cfg(test)]
@@ -275,9 +278,7 @@ mod tests {
     /// exactly these fields from this endpoint. Field drift breaks the UI.
     #[test]
     fn merged_menubar_client_still_binds_this_contract() {
-        let client = include_str!(
-            "../../../apps/menubar/src/lib/components/Settings.svelte"
-        );
+        let client = include_str!("../../../apps/menubar/src/lib/components/Settings.svelte");
         for token in [
             SETTINGS_ENDPOINT,
             "expected_revision",
