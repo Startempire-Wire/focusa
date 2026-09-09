@@ -560,6 +560,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::info::router())
         .merge(routes::llms_txt::router())
         .merge(routes::env::router())
+        .merge(routes::screenshot_settings::router())
         .merge(routes::commands::router())
         .merge(routes::compaction::router())
         .merge(routes::compaction_policy::router())
