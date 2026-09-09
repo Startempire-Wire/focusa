@@ -1,5 +1,10 @@
 //! Durable authority-lease state and production trust-root boundary.
 
+// Compile-time embed written by build.rs (never runtime env or local files).
+// Included from OUT_DIR so a regenerated file forces recompile — the old
+// option_env! form kept stale cached crates without the roots (v0.9.191
+// release proof: Windows/macOS desktop binaries shipped with no trust roots).
+include!(concat!(env!("OUT_DIR"), "/authority_root_keys.rs"));
 use std::{
     collections::BTreeMap,
     fs::OpenOptions,
@@ -151,8 +156,7 @@ fn temporary_state_path(path: &Path) -> PathBuf {
 /// Runtime environment variables and local files are intentionally excluded.
 pub fn embedded_production_trust_roots()
 -> Result<BTreeMap<String, VerifyingKey>, AuthorityStoreError> {
-    let raw = option_env!("FOCUSA_AUTHORITY_ROOT_KEYS_JSON").unwrap_or("");
-    parse_production_trust_roots(raw)
+    parse_production_trust_roots(FOCUSA_AUTHORITY_ROOT_KEYS_JSON_EMBEDDED)
 }
 
 /// Resolve durable state into the sole runtime entitlement projection.

@@ -52,6 +52,25 @@ fn main() {
         generated,
     )
     .expect("write generated policy registry");
+    // Live-corrected 2026-09-09 (v0.9.191 release proof): the production
+    // authority trust roots were embedded via option_env! in authority_store.rs,
+    // which cargo does NOT re-evaluate for cached crates. The released Windows
+    // and macOS desktop binaries shipped with NO trust roots ("lease signing
+    // key is absent" on every customer lease verification). The roots are now
+    // written by build.rs into OUT_DIR and included by authority_store.rs, with
+    // rerun-if-env-changed forcing regeneration whenever the signing roots
+    // rotate. A stale cache can never strip the roots again.
+    let roots = env::var("FOCUSA_AUTHORITY_ROOT_KEYS_JSON").unwrap_or_default();
+    println!("cargo:rerun-if-env-changed=FOCUSA_AUTHORITY_ROOT_KEYS_JSON");
+    let roots_generated = format!(
+        "pub const FOCUSA_AUTHORITY_ROOT_KEYS_JSON_EMBEDDED: &str = {roots:?};\n"
+    );
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR"))
+            .join("authority_root_keys.rs"),
+        roots_generated,
+    )
+    .expect("write authority root keys embed");
 }
 
 fn load_yaml(path: &Path) -> Value {
