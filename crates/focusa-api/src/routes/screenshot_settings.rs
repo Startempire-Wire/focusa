@@ -278,7 +278,7 @@ mod tests {
     /// exactly these fields from this endpoint. Field drift breaks the UI.
     #[test]
     fn merged_menubar_client_still_binds_this_contract() {
-        let client = include_str!("../../../apps/menubar/src/lib/components/Settings.svelte");
+        let client = include_str!("../../../../apps/menubar/src/lib/components/Settings.svelte");
         for token in [
             SETTINGS_ENDPOINT,
             "expected_revision",
