@@ -89,5 +89,5 @@ only as historical evidence. It is **not** current authority:
 - `cargo test -p focusa-core event_retention` — 4 tests: junk pruning,
   cold export + chain anchoring, lexicographic cutoff, orphan sweep.
 - `cargo test -p focusa-api retention` — route dry-run/cadence and recovery-gate coverage.
-- `tests/181-focusa-backup-runtime-contract-test.sh` — backup-gated route, receipt, and cold-export fsync wiring.
+- `tests/186-focusa-backup-runtime-contract-test.sh` — backup-gated route, receipt, and cold-export fsync wiring.
 - Released/installed live retention acceptance remains open; source tests are not production proof.

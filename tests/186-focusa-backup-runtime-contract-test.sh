@@ -53,4 +53,4 @@ if grep -Eq 'focusa stop|systemctl stop|pkill' "$core/backup.rs" "$backup_io" "$
   exit 1
 fi
 
-printf 'PASS: Spec 181 backup runtime/consumer wiring present; RPO remains breached for the nonconforming snapshot-chunk prototype.\n'
+printf 'PASS: Spec 186 backup runtime/consumer wiring present; RPO remains breached for the nonconforming snapshot-chunk prototype.\n'

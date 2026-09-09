@@ -1,4 +1,4 @@
-# 181 — Focusa Continuous Rolling Backup, Restore, and Retention Specification
+# 186 — Focusa Continuous Rolling Backup, Restore, and Retention Specification
 
 **Status:** implementation in progress
 **Authority:** GitHub #487; Bead `focusa-6r16j`; Sir V3 recovery baseline 2026-08-31
@@ -259,7 +259,7 @@ Initial implementation:
 - `crates/focusa-cli/src/commands/backup.rs` and command registration — thin client parity.
 - `docs/158-event-ledger-retention-and-db-size-architecture.md` — truthful implementation refs/status.
 - `docs/current/DATA_RETENTION_BACKUP_DELETION_POLICY.md` — contract references.
-- `tests/181-focusa-backup-runtime-contract-test.sh` — consumer/static wiring proof.
+- `tests/186-focusa-backup-runtime-contract-test.sh` — consumer/static wiring proof.
 
 Live operations after source proof:
 
@@ -314,7 +314,7 @@ cargo test -p focusa-core runtime::event_retention -- --nocapture
 cargo test -p focusa-api backups -- --nocapture
 cargo check -p focusa-api
 cargo test -p focusa-cli backup -- --nocapture
-bash tests/181-focusa-backup-runtime-contract-test.sh
+bash tests/186-focusa-backup-runtime-contract-test.sh
 ```
 
 Required proof layers: producer tests, API/CLI consumer tests, cross-version legacy-generation rejection, installed Linux/macOS/Windows path semantics, and live restore evidence.
