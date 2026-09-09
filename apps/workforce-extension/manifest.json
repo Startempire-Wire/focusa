@@ -3,7 +3,7 @@
   "name": "Focusa Workforce",
   "short_name": "Focusa",
   "description": "Observe, orient, create, and orchestrate your governed Focusa workforce.",
-  "version": "0.9.184",
+  "version": "0.9.191",
   "version_name": "0.9.184-dev",
   "minimum_chrome_version": "114",
   "action": {
