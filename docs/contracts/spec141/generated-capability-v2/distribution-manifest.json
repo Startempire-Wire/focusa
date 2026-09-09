@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.191",
-  "source_commit": "db335dcfb",
-  "generated_at": "2026-09-08T09:31:38.442380Z",
+  "source_commit": "cdf09f94ecd3c4d61ff565551140e6f3adcb3327",
+  "generated_at": "2026-09-09T17:41:11.569263Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:5ac96215ca15d8fb220f809fb58444328af33b122f55377e3d8226979dc8308f",
@@ -16,8 +16,8 @@
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:e7a9a1fb11c0f351a835332e8302cdf1ed7e03c5f871dc839a5786b175baae07",
-      "file_count": 832,
+      "sha256": "sha256:0d11cbb58e407b0babf70fae135a27ec44227254aa3b5b23c54b1716d3f3c6d2",
+      "file_count": 833,
       "source_paths": [
         "Cargo.toml",
         "Cargo.lock",
@@ -67,7 +67,7 @@
     },
     "installers": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:c8028ceaced336d0b00e2b5fbda073a46d17b1374c5056d69ca86add1e84037c",
+      "sha256": "sha256:57556fa67ab4e273894e48382597c40c0fbb2fe7b9298fbc04b4bee717d7046c",
       "file_count": 3,
       "source_paths": [
         "scripts/install-focusa.sh",
@@ -77,7 +77,7 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:ef2f9738aadffdbbdad2b27df43f59c9eea977c741ca0c2c04502c6688111d00",
+      "sha256": "sha256:68cb9ee60200765958f6b3fc164fcceb86b1693a9567277168b90fe304e4a814",
       "file_count": 35,
       "source_paths": [
         ".appveyor.yml",
