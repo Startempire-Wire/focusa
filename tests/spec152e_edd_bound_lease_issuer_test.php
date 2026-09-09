@@ -520,10 +520,13 @@ expect_lease_throws(
 $issuer->issueLease($request('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'focusa_operator_lifetime_v1', 'node-paid-golden-001', PAID_DEVICE_KEY, 'lease-conflict-0001'));
 $conflictRequest = $request('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'focusa_operator_lifetime_v1', 'node-paid-golden-001', PAID_DEVICE_KEY, 'lease-conflict-0001');
 $conflictRequest['node_id'] = 'node-other-001';
+// #371(4): a stale idempotency row (different digest) must not wedge redemption —
+// the row is cleared and the new request evaluates on its own merits; an unknown
+// node still fails closed on its own validation.
 expect_lease_domain(
     static fn() => $issuer->issueLease($conflictRequest),
-    'IDEMPOTENCY_CONFLICT',
-    'changed reuse of an idempotency key fails closed',
+    'NODE_NOT_FOUND',
+    'changed reuse of an idempotency key clears the stale row and the new request still fails closed on its own failure',
 );
 
 // Refunded/revoked/expired licenses never issue.

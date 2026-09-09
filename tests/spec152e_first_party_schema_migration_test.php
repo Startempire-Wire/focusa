@@ -41,7 +41,7 @@ function run_schema_case(array $columns, array $checks, string $version = '8.0.4
     return $db->writes;
 }
 function run_first_party_schema_boundary_tests(): array {
-$columns = array_map(static fn($name) => ['COLUMN_NAME' => $name, 'COLUMN_TYPE' => 'bigint(20) unsigned', 'IS_NULLABLE' => 'NO'], ['edd_order_id', 'edd_order_item_id', 'edd_license_id']);
+$columns = array_map(static fn($name) => ['COLUMN_NAME' => $name, 'COLUMN_TYPE' => $name === 'posture' ? 'varchar(16)' : 'bigint(20) unsigned', 'IS_NULLABLE' => 'NO'], ['edd_order_id', 'edd_order_item_id', 'edd_license_id', 'posture']);
 $old = [['CONSTRAINT_NAME' => 'lease_posture', 'CHECK_CLAUSE' => "(`posture` in (_utf8mb4'paid',_utf8mb4'evaluation',_utf8mb4'bundle'))"]];
 foreach (['8.0.44' => 'DROP CONSTRAINT', '10.11.13-MariaDB' => 'DROP CHECK'] as $version => $drop) {
     $writes = run_schema_case($columns, $old, $version);
@@ -52,7 +52,7 @@ $new = [
     ['CONSTRAINT_NAME' => 'lease_posture', 'CHECK_CLAUSE' => "posture IN ('paid','evaluation','bundle','developer')"],
     ['CONSTRAINT_NAME' => 'lease_billing', 'CHECK_CLAUSE' => "posture='developer' OR (edd_order_id IS NOT NULL AND edd_order_item_id IS NOT NULL AND edd_license_id IS NOT NULL)"],
 ];
-$nullable = array_map(static fn($row) => array_replace($row, ['IS_NULLABLE' => 'YES']), $columns);
+$nullable = array_map(static fn($row) => $row['COLUMN_NAME'] === 'posture' ? $row : array_replace($row, ['IS_NULLABLE' => 'YES']), $columns);
 schema_check(run_schema_case($nullable, $new) === [], 'current schema migration is idempotent');
 $unsafe = $old;
 $unsafe[0]['CHECK_CLAUSE'] .= ' AND operator_seats > 0';

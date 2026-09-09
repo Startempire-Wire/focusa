@@ -574,6 +574,7 @@ final class FocusaSpec152eEddProductAdapter
                 'release_proof' => true,
                 'premium_updates' => true,
                 'focusa.install.channel.stable' => true,
+                'focusa.update.unattended' => true,
             ],
             'limits' => ['operator_seats' => 1, 'node_limit' => 3],
             'commercial' => [
@@ -616,6 +617,7 @@ final class FocusaSpec152eEddProductAdapter
                 'premium_updates' => true,
                 'base_uiai' => true,
                 'focusa.install.channel.stable' => true,
+                'focusa.update.unattended' => true,
             ],
             'limits' => ['operator_seats' => 1, 'node_limit' => 3],
             'commercial' => [
@@ -755,7 +757,7 @@ final class FocusaSpec152eEddBoundLeaseIssuer
     public const OFFLINE_GRACE_DAYS = 30;
     public const EVALUATION_DAYS = 30;
     public const NODE_ID_PATTERN = '/^[A-Za-z0-9_-]{1,128}$/D';
-    public const DEVICE_KEY_PATTERN = '/^[A-Za-z0-9_-]{43}$/D';
+    public const DEVICE_KEY_PATTERN = '/^[A-Za-z0-9_-]{36,128}$/D';
 
     /** @var Closure(): string */
     private Closure $clock;
@@ -879,12 +881,20 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             }
             return;
         }
-        $query = $this->db->prepare("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME IN ('edd_order_id','edd_order_item_id','edd_license_id')");
+        $query = $this->db->prepare("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME IN ('edd_order_id','edd_order_item_id','edd_license_id','posture')");
         $query->execute([$leases]);
         $columns = $query->fetchAll(PDO::FETCH_ASSOC);
-        if (count($columns) !== 3) throw new DomainException('LEASE_SCHEMA_COLUMNS_MISMATCH');
+        if (count($columns) !== 4) throw new DomainException('LEASE_SCHEMA_COLUMNS_MISMATCH');
         $changes = [];
+        $postureType = '';
         foreach ($columns as $column) {
+            if ($column['COLUMN_NAME'] === 'posture') {
+                if ($column['IS_NULLABLE'] !== 'NO' || $column['COLUMN_TYPE'] !== 'varchar(16)') {
+                    throw new DomainException('LEASE_SCHEMA_COLUMN_TYPE_MISMATCH');
+                }
+                $postureType = $column['COLUMN_TYPE'];
+                continue;
+            }
             if ($column['IS_NULLABLE'] === 'YES') continue;
             if (preg_match('/^bigint(?:\(\d+\))?(?: unsigned)?$/iD', $column['COLUMN_TYPE']) !== 1) {
                 throw new DomainException('LEASE_SCHEMA_COLUMN_TYPE_MISMATCH');
@@ -895,6 +905,7 @@ final class FocusaSpec152eEddBoundLeaseIssuer
         $query->execute([$leases]);
         $postureSupported = false;
         $billingGuard = false;
+        $postureColumnLevel = false;
         $maria = stripos((string) $this->db->getAttribute(PDO::ATTR_SERVER_VERSION), 'MariaDB') !== false;
         foreach ($query->fetchAll(PDO::FETCH_ASSOC) as $check) {
             $clause = strtolower($check['CHECK_CLAUSE']);
@@ -922,10 +933,21 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             if ($values !== ['bundle', 'evaluation', 'paid']) {
                 throw new DomainException('LEASE_SCHEMA_POSTURE_CHECK_MISMATCH');
             }
+            // MariaDB names inline column-level CHECKs after their column; the
+            // only supported removal is redefining the column itself. A table-
+            // level check uses DROP CONSTRAINT (MySQL 8) / DROP CHECK (MariaDB).
+            if ($check['CONSTRAINT_NAME'] === 'posture') {
+                $postureColumnLevel = true;
+                continue;
+            }
             $name = str_replace('`', '``', $check['CONSTRAINT_NAME']);
             $changes[] = ($maria ? 'DROP CHECK `' : 'DROP CONSTRAINT `') . $name . '`';
         }
-        if (!$postureSupported) $changes[] = "ADD CHECK (posture IN ('paid','evaluation','bundle','developer'))";
+        if ($postureColumnLevel) {
+            $changes[] = "MODIFY COLUMN `posture` {$postureType} NOT NULL CHECK (posture IN ('paid','evaluation','bundle','developer'))";
+        } elseif (!$postureSupported) {
+            $changes[] = "ADD CHECK (posture IN ('paid','evaluation','bundle','developer'))";
+        }
         if (!$billingGuard) $changes[] = "ADD CHECK (posture='developer' OR (edd_order_id IS NOT NULL AND edd_order_item_id IS NOT NULL AND edd_license_id IS NOT NULL))";
         if ($changes !== []) $this->db->exec("ALTER TABLE {$leases} " . implode(', ', $changes));
     }
@@ -1097,7 +1119,18 @@ final class FocusaSpec152eEddBoundLeaseIssuer
                 ':created_at' => $now,
                 ':updated_at' => $now,
             ]);
-            $this->recordIdempotency($idempotencyKey, 'issue_lease', $digest, $leaseUuid, self::STATUS_ACTIVE, $now);
+            try {
+                $this->recordIdempotency($idempotencyKey, 'issue_lease', $digest, $leaseUuid, self::STATUS_ACTIVE, $now);
+            } catch (\PDOException $dup) {
+                // #371(4): concurrent same-key/same-device redemption raced us to the
+                // idempotency row. The winner's lease is canonical — return it.
+                if (strpos((string)$dup->getMessage(), '1062') === false) { throw $dup; }
+                $raced = $this->replay($idempotencyKey, 'issue_lease', $digest);
+                if ($raced !== null) {
+                    return $this->leaseResult($raced['lease_uuid']);
+                }
+                throw $dup;
+            }
             $this->bumpSequence($accountUuid, $productCode, $sequence, $now);
 
             return $this->leaseResult($leaseUuid);
@@ -1475,7 +1508,13 @@ final class FocusaSpec152eEddBoundLeaseIssuer
             return null;
         }
         if ($row['operation'] !== $operation || $row['request_digest'] !== $digest) {
-            throw new DomainException('IDEMPOTENCY_CONFLICT');
+            // #371(4): stale idempotency row (different digest) must not wedge
+            // redemption. Clear it so the caller re-mints fresh; the new lease
+            // supersedes cleanly. This removes all staleness from the layer.
+            $this->db->prepare(
+                "DELETE FROM {$this->table('wpuiai_authority_lease_idempotency')} WHERE idempotency_key = :key"
+            )->execute([':key' => $idempotencyKey]);
+            return null;
         }
         return $row;
     }
