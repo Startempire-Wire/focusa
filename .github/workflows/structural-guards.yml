@@ -1,0 +1,9 @@
+name: Structural Guards
+on: [push, pull_request]
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run structural guards (release failure-mode catalog)
+        run: bash scripts/structural-guards.sh
