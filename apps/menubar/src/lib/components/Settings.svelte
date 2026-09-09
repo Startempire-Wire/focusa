@@ -6,6 +6,7 @@
     DEFAULT_API_URL,
     PUBLIC_PAIRING_URL_KEY,
     getApiUrl,
+    requestJson,
     loadSavedConnections,
     removeSavedConnection,
     saveConnection,
@@ -33,6 +34,28 @@
   let publicPairingUrl = $state(localStorage.getItem(PUBLIC_PAIRING_URL_KEY) || '');
   let updateResult = $state<MenubarUpdateResult | null>(null);
   let updateBusy = $state(false);
+  let evidenceSettings = $state<any>(null);
+  let evidenceSettingsState = $state<'loading' | 'ready' | 'unavailable' | 'saving'>('loading');
+  let evidenceSettingsError = $state('');
+
+  async function loadEvidenceSettings() {
+    if (!url) { evidenceSettingsState = 'unavailable'; evidenceSettingsError = 'Connect to Focusa first.'; return; }
+    evidenceSettingsState = 'loading'; evidenceSettingsError = '';
+    try {
+      evidenceSettings = await requestJson('/api/screenshot/settings'); evidenceSettingsState = 'ready';
+    } catch (error) { evidenceSettingsState = 'unavailable'; evidenceSettingsError = error instanceof Error ? error.message : 'Settings endpoint unavailable.'; }
+  }
+
+  async function saveEvidenceSettings() {
+    if (!evidenceSettings || !url) return;
+    evidenceSettingsState = 'saving'; evidenceSettingsError = '';
+    try {
+      const values = { enablement: { auto_screenshot: evidenceSettings.values.enablement.auto_screenshot }, image: { quality: Number(evidenceSettings.values.image.quality) }, presentation: { theme: evidenceSettings.values.presentation.theme } };
+      evidenceSettings = await requestJson('/api/screenshot/settings', { method: 'PUT', body: { expected_revision: evidenceSettings.revision, values } }); evidenceSettingsState = 'ready';
+    } catch (error) { evidenceSettingsState = 'unavailable'; evidenceSettingsError = error instanceof Error ? error.message : 'Settings update failed.'; }
+  }
+
+  void loadEvidenceSettings();
 
   function persistActive(nextUrl = url) {
     const normalized = nextUrl.trim().replace(/\/$/, '');
@@ -241,6 +264,21 @@
     {/if}
   </section>
 
+  <section class="section evidence-settings">
+    <div class="section-label">EVIDENCE SHARING</div>
+    <p class="hint">Connected to canonical UIAI Evidence Share Settings. This Desktop surface stores no duplicate packet or settings authority.</p>
+    {#if evidenceSettingsState === 'loading'}<p class="hint">Loading effective settings…</p>
+    {:else if evidenceSettingsState === 'unavailable'}<div class="test-result err"><span>Evidence settings unavailable — {evidenceSettingsError}</span><button class="btn ghost small" onclick={() => loadEvidenceSettings()}>Retry</button></div>
+    {:else if evidenceSettings}
+      <div class="evidence-meta"><span>Scope: {evidenceSettings.scope?.project_ref || 'global'}{evidenceSettings.scope?.workstream_ref ? ` · ${evidenceSettings.scope.workstream_ref}` : ''}</span><span>Revision {evidenceSettings.revision} · {evidenceSettings.sources?.join(' → ')}</span></div>
+      <label class="field"><span class="field-label">Evidence presentation</span><select class="input" bind:value={evidenceSettings.values.presentation.theme}><option value="system">System theme</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+      <label class="field"><span class="field-label">Image quality ({evidenceSettings.values.image.quality})</span><input class="input" type="range" min="40" max="100" step="1" bind:value={evidenceSettings.values.image.quality} /></label>
+      <label class="check-field"><input type="checkbox" bind:checked={evidenceSettings.values.enablement.auto_screenshot} /><span>Automatically create screenshot Evidence Share Packets</span></label>
+      <div class="action-row"><button class="btn primary" onclick={() => saveEvidenceSettings()} disabled={evidenceSettingsState === 'saving'}>{evidenceSettingsState === 'saving' ? 'Saving…' : 'Save evidence settings'}</button><button class="btn ghost" onclick={() => loadEvidenceSettings()}>Refresh effective values</button></div>
+      <p class="field-help">Advanced lifecycle, scoped storage, privacy, verification, video, and offline controls remain governed by the canonical settings authority.</p>
+    {/if}
+  </section>
+
   <section class="section">
     <div class="section-label">STATUS</div>
     <div class="status-grid">
@@ -322,6 +360,9 @@
   .status-row { display: flex; justify-content: space-between; gap: var(--sp-2); font-size: var(--text-sm); }
   .status-key { color: var(--fg-secondary); }
   .status-val.green { color: var(--green); } .status-val.red { color: var(--red); }
+  .evidence-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-2); margin: var(--sp-2) 0 var(--sp-3); color: var(--fg-tertiary); font-family: var(--font-mono); font-size: var(--text-xs); }
+  .check-field { display: flex; align-items: center; gap: var(--sp-2); color: var(--fg-secondary); font-size: var(--text-sm); }
+  .check-field input { accent-color: var(--accent); }
   .help-item { display: flex; gap: var(--sp-2); }
   .help-num { width: 20px; height: 20px; border-radius: 50%; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--fg-secondary); flex-shrink: 0; }
   .help-text { font-size: var(--text-sm); color: var(--fg-secondary); line-height: 1.4; }
