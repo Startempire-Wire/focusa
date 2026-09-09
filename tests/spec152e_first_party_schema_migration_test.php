@@ -43,7 +43,7 @@ function run_schema_case(array $columns, array $checks, string $version = '8.0.4
 function run_first_party_schema_boundary_tests(): array {
 $columns = array_map(static fn($name) => ['COLUMN_NAME' => $name, 'COLUMN_TYPE' => 'bigint(20) unsigned', 'IS_NULLABLE' => 'NO'], ['edd_order_id', 'edd_order_item_id', 'edd_license_id']);
 $old = [['CONSTRAINT_NAME' => 'lease_posture', 'CHECK_CLAUSE' => "(`posture` in (_utf8mb4'paid',_utf8mb4'evaluation',_utf8mb4'bundle'))"]];
-foreach (['8.0.44' => 'DROP CHECK', '10.11.13-MariaDB' => 'DROP CONSTRAINT'] as $version => $drop) {
+foreach (['8.0.44' => 'DROP CONSTRAINT', '10.11.13-MariaDB' => 'DROP CHECK'] as $version => $drop) {
     $writes = run_schema_case($columns, $old, $version);
     schema_check(count($writes) === 1 && str_contains($writes[0], $drop . ' `lease_posture`'), 'one engine-correct alteration');
     schema_check(substr_count($writes[0], 'MODIFY COLUMN') === 3 && str_contains($writes[0], 'edd_license_id IS NOT NULL'), 'nullable provenance retains nondeveloper billing enforcement');

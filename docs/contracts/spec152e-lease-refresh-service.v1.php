@@ -744,6 +744,9 @@ final class FocusaSpec152eLeaseRefreshService
             );
         } catch (DomainException $error) {
             $code = $error->getMessage();
+            if ($code === 'EDD_ORDER_REVOKED') {
+                return 'REVOKED';
+            }
             if (in_array($code, ['EDD_LICENSE_UNUSABLE', 'LICENSE_ACCOUNT_MISMATCH', 'EDD_ORDER_PENDING', 'EDD_ORDER_UNVERIFIED'], true)) {
                 return $code;
             }

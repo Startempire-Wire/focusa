@@ -478,14 +478,16 @@ foreach (['node-lic-001', 'node-cust-001', 'node-pending-001', 'node-download-00
 }
 $db->exec("UPDATE wp_edd_licenses SET status = 'revoked' WHERE license_id = 8101");
 $db->exec("UPDATE wp_edd_licenses SET customer_id = 9999 WHERE license_id = 8102");
-$db->exec("UPDATE wp_edd_orders SET status = 'pending' WHERE order_id = 9803");
+$db->exec("UPDATE wp_edd_orders SET status = 'revoked' WHERE order_id = 9803");
 $db->exec("UPDATE wp_edd_licenses SET download_id = 1004 WHERE license_id = 8104");
 $eddLicRefusal = $service->refresh($request($B1, 'node-lic-001', 'refresh-b1-lic-0001', $b1Creds['node-lic-001'], 42));
 expect_refusal($eddLicRefusal, 'EDD_LICENSE_UNUSABLE', $service, 'unusable EDD license denies refresh');
 $eddCustRefusal = $service->refresh($request($B1, 'node-cust-001', 'refresh-b1-cust-0001', $b1Creds['node-cust-001'], 43));
 expect_refusal($eddCustRefusal, 'LICENSE_ACCOUNT_MISMATCH', $service, 'license of another customer denies refresh');
-$eddPendingRefusal = $service->refresh($request($B1, 'node-pending-001', 'refresh-b1-pending-0001', $b1Creds['node-pending-001'], 44));
-expect_refusal($eddPendingRefusal, 'EDD_ORDER_PENDING', $service, 'unsatisfied EDD order denies refresh');
+// Owner policy (2026-09-09): payment-plan orders refresh with full access; only
+// a manual dashboard revocation (revoked/refunded order) denies refresh.
+$eddRevokedRefusal = $service->refresh($request($B1, 'node-pending-001', 'refresh-b1-pending-0001', $b1Creds['node-pending-001'], 44));
+expect_refusal($eddRevokedRefusal, 'REVOKED', $service, 'manually revoked order denies refresh (dashboard-only revocation policy)');
 $eddDownloadRefusal = $service->refresh($request($B1, 'node-download-001', 'refresh-b1-download-0001', $b1Creds['node-download-001'], 45));
 expect_refusal($eddDownloadRefusal, 'EDD_ORDER_UNVERIFIED', $service, 'download/price mismatch denies refresh');
 expect_refresh(($issuer->findLease($b1Seeds['node-lic-001']['lease_uuid'])['status'] ?? '') === 'superseded', 'EDD-truth refusal settles the lease to superseded');

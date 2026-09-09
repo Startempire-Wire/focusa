@@ -31,8 +31,8 @@
             "envelope": {
                 "schema": "focusa.signed_envelope.v1",
                 "signer_key_id": "authority-lease-2026-01",
-                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1wYWlkLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS1wYWlkLWdvbGRlbi0wMDEiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0xMi0wNlQxODozMDowMFoiLCJvcmRlcl9pZCI6OTAwMSwib3JkZXJfaXRlbV9pZCI6OTAwMTEsInBvc3R1cmUiOiJwYWlkIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV9vcGVyYXRvcl9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6NDIsInN0YXR1cyI6ImFjdGl2ZSIsInN1YmplY3RfaWQiOiJhMWIyYzNkNC1lNWY2LTRhN2ItOGM5ZC0wZTFmMmEzYjRjNWQifQ==",
-                "signature_b64": "yUHGUB2UmxWagCjn5zBzsFrUkoYA6o8YjOxeGf/fEZGqNNagTjrZ2cxtNfPGP9nkKs3DAc1ZG73WaFxAgc+rCg=="
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjY5Ny4wMCIsInByaWNlX3ZlcnNpb24iOiJ2MSIsInJlZnVuZF9wb2xpY3kiOiJ3aG9sZV9vcmRlcl8zMF9kYXlzIiwidGVybSI6ImxpZmV0aW1lIiwidXBncmFkZV9wb2xpY3kiOiJleHBsaWNpdF91cGdyYWRlX29yX2Nyb3NzX2dyYWRlX3JlcXVpcmVkX2V4aXN0aW5nX29wZXJhdG9yX3YxX3ByZXNlcnZlZCJ9LCJjdXN0b21lcl9pZCI6MTAwMSwiZWRkX2xpY2Vuc2VfaWQiOjcwMDEsImV4cGlyZXNfYXQiOiIyMDI2LTExLTA2VDE4OjMwOjAwWiIsImZlYXR1cmVzIjp7ImF1dG9tYXRpb24iOnRydWUsImJhc2VfZm9jdXNhIjp0cnVlLCJmb2N1c2EuaW5zdGFsbC5jaGFubmVsLnN0YWJsZSI6dHJ1ZSwicHJlbWl1bV91cGRhdGVzIjp0cnVlLCJyZWxlYXNlX3Byb29mIjp0cnVlLCJ0ZWFtX3JlbW90ZSI6dHJ1ZX0sImlzc3VlZF9hdCI6IjIwMjYtMDgtMDhUMTg6MzA6MDBaIiwibGVhc2VfaWQiOiJsZWFzZS1nb2xkZW4tcGFpZC0wMDAxIiwibGltaXRzIjp7Im5vZGVfbGltaXQiOjMsIm9wZXJhdG9yX3NlYXRzIjoxfSwibm9kZV9pZCI6Im5vZGUtcGFpZC1nb2xkZW4tMDAxIiwibm90X2JlZm9yZSI6IjIwMjYtMDgtMDhUMTg6MzA6MDBaIiwib2ZmbGluZV9ncmFjZV91bnRpbCI6IjIwMjYtMTItMDZUMTg6MzA6MDBaIiwib3JkZXJfaWQiOjkwMDEsIm9yZGVyX2l0ZW1faWQiOjkwMDExLCJwb3N0dXJlIjoicGFpZCIsInByb2R1Y3QiOiJmb2N1c2EiLCJwcm9kdWN0X2NvZGUiOiJmb2N1c2Ffb3BlcmF0b3JfbGlmZXRpbWVfdjEiLCJzY2hlbWEiOiJmb2N1c2EuYXV0aG9yaXR5X2xlYXNlLnYxIiwic2VxdWVuY2UiOjQyLCJzdGF0dXMiOiJhY3RpdmUiLCJzdWJqZWN0X2lkIjoiYTFiMmMzZDQtZTVmNi00YTdiLThjOWQtMGUxZjJhM2I0YzVkIn0=",
+                "signature_b64": "4JhkVa1k6jHEZPeV0Z5nLdH6tEWwHxhWh0w7bnMl7NEG4mMndTTTv8+goDvbKuShsL72ALAa1nJWlhk7aXCXCQ=="
             },
             "claims": {
                 "account_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
@@ -51,6 +51,7 @@
                 "features": {
                     "automation": true,
                     "base_focusa": true,
+                    "focusa.install.channel.stable": true,
                     "premium_updates": true,
                     "release_proof": true,
                     "team_remote": true
@@ -147,8 +148,8 @@
             "envelope": {
                 "schema": "focusa.signed_envelope.v1",
                 "signer_key_id": "authority-lease-2026-01",
-                "payload_b64": "eyJhY2NvdW50X2lkIjoiYzNkNGU1ZjYtYTdiOC00YzlkLTBlMWYtMmEzYjRjNWQ2ZTdmIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjEyNTQuNjAiLCJwcmljZV92ZXJzaW9uIjoidjEiLCJyZWZ1bmRfcG9saWN5Ijoid2hvbGVfb3JkZXJfMzBfZGF5cyIsInRlcm0iOiJsaWZldGltZSIsInVwZ3JhZGVfcG9saWN5IjoiZXhwbGljaXRfdXBncmFkZV9vcl9jcm9zc19ncmFkZV9yZXF1aXJlZF9leGlzdGluZ19vcGVyYXRvcl92MV9wcmVzZXJ2ZWQifSwiY3VzdG9tZXJfaWQiOjMwMDMsImVkZF9saWNlbnNlX2lkIjo3MDAzLCJleHBpcmVzX2F0IjoiMjAyNi0xMS0wNlQxODozMDowMFoiLCJmZWF0dXJlcyI6eyJhdXRvbWF0aW9uIjp0cnVlLCJiYXNlX2ZvY3VzYSI6dHJ1ZSwiYmFzZV91aWFpIjp0cnVlLCJwcmVtaXVtX3VwZGF0ZXMiOnRydWUsInJlbGVhc2VfcHJvb2YiOnRydWUsInRlYW1fcmVtb3RlIjp0cnVlfSwiaXNzdWVkX2F0IjoiMjAyNi0wOC0wOFQxODozMDowMFoiLCJsZWFzZV9pZCI6ImxlYXNlLWdvbGRlbi1idW5kbGUtMDAwMSIsImxpbWl0cyI6eyJub2RlX2xpbWl0IjozLCJvcGVyYXRvcl9zZWF0cyI6MX0sIm5vZGVfaWQiOiJub2RlLWJ1bmRsZS1nb2xkZW4tMDAxIiwibm90X2JlZm9yZSI6IjIwMjYtMDgtMDhUMTg6MzA6MDBaIiwib2ZmbGluZV9ncmFjZV91bnRpbCI6IjIwMjYtMTItMDZUMTg6MzA6MDBaIiwib3JkZXJfaWQiOjkwMDMsIm9yZGVyX2l0ZW1faWQiOjkwMDMzLCJwb3N0dXJlIjoiYnVuZGxlIiwicHJvZHVjdCI6ImZvY3VzYSIsInByb2R1Y3RfY29kZSI6ImZvY3VzYV91aWFpX29wZXJhdG9yX2J1bmRsZV9saWZldGltZV92MSIsInNjaGVtYSI6ImZvY3VzYS5hdXRob3JpdHlfbGVhc2UudjEiLCJzZXF1ZW5jZSI6OSwic3RhdHVzIjoiYWN0aXZlIiwic3ViamVjdF9pZCI6ImMzZDRlNWY2LWE3YjgtNGM5ZC0wZTFmLTJhM2I0YzVkNmU3ZiJ9",
-                "signature_b64": "vNi1mMYkypAN7Alwhg7ghOSkNQWAAB+YIE1JCvyYk/srp7VJG9Dz6S5VwGE22UJ4ykF/+Wr6oCOhyVWtAxFeBA=="
+                "payload_b64": "eyJhY2NvdW50X2lkIjoiYzNkNGU1ZjYtYTdiOC00YzlkLTBlMWYtMmEzYjRjNWQ2ZTdmIiwiYXV0aG9yaXR5X2tleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwiY29tbWVyY2lhbCI6eyJub2RlX3NldCI6Im9wZXJhdG9yX3NoYXJlZF92MSIsInByaWNlX3VzZCI6IjEyNTQuNjAiLCJwcmljZV92ZXJzaW9uIjoidjEiLCJyZWZ1bmRfcG9saWN5Ijoid2hvbGVfb3JkZXJfMzBfZGF5cyIsInRlcm0iOiJsaWZldGltZSIsInVwZ3JhZGVfcG9saWN5IjoiZXhwbGljaXRfdXBncmFkZV9vcl9jcm9zc19ncmFkZV9yZXF1aXJlZF9leGlzdGluZ19vcGVyYXRvcl92MV9wcmVzZXJ2ZWQifSwiY3VzdG9tZXJfaWQiOjMwMDMsImVkZF9saWNlbnNlX2lkIjo3MDAzLCJleHBpcmVzX2F0IjoiMjAyNi0xMS0wNlQxODozMDowMFoiLCJmZWF0dXJlcyI6eyJhdXRvbWF0aW9uIjp0cnVlLCJiYXNlX2ZvY3VzYSI6dHJ1ZSwiYmFzZV91aWFpIjp0cnVlLCJmb2N1c2EuaW5zdGFsbC5jaGFubmVsLnN0YWJsZSI6dHJ1ZSwicHJlbWl1bV91cGRhdGVzIjp0cnVlLCJyZWxlYXNlX3Byb29mIjp0cnVlLCJ0ZWFtX3JlbW90ZSI6dHJ1ZX0sImlzc3VlZF9hdCI6IjIwMjYtMDgtMDhUMTg6MzA6MDBaIiwibGVhc2VfaWQiOiJsZWFzZS1nb2xkZW4tYnVuZGxlLTAwMDEiLCJsaW1pdHMiOnsibm9kZV9saW1pdCI6Mywib3BlcmF0b3Jfc2VhdHMiOjF9LCJub2RlX2lkIjoibm9kZS1idW5kbGUtZ29sZGVuLTAwMSIsIm5vdF9iZWZvcmUiOiIyMDI2LTA4LTA4VDE4OjMwOjAwWiIsIm9mZmxpbmVfZ3JhY2VfdW50aWwiOiIyMDI2LTEyLTA2VDE4OjMwOjAwWiIsIm9yZGVyX2lkIjo5MDAzLCJvcmRlcl9pdGVtX2lkIjo5MDAzMywicG9zdHVyZSI6ImJ1bmRsZSIsInByb2R1Y3QiOiJmb2N1c2EiLCJwcm9kdWN0X2NvZGUiOiJmb2N1c2FfdWlhaV9vcGVyYXRvcl9idW5kbGVfbGlmZXRpbWVfdjEiLCJzY2hlbWEiOiJmb2N1c2EuYXV0aG9yaXR5X2xlYXNlLnYxIiwic2VxdWVuY2UiOjksInN0YXR1cyI6ImFjdGl2ZSIsInN1YmplY3RfaWQiOiJjM2Q0ZTVmNi1hN2I4LTRjOWQtMGUxZi0yYTNiNGM1ZDZlN2YifQ==",
+                "signature_b64": "kcn1w43FE2AmadNmf9IgMrBEMFWQRk90BV699pyRxnQqpZ+3gd4DAcOVZqLHEuapkTLuPNKyQUmfej0pyTKUAg=="
             },
             "claims": {
                 "account_id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
@@ -168,6 +169,7 @@
                     "automation": true,
                     "base_focusa": true,
                     "base_uiai": true,
+                    "focusa.install.channel.stable": true,
                     "premium_updates": true,
                     "release_proof": true,
                     "team_remote": true

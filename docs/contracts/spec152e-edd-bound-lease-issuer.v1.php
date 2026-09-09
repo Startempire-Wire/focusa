@@ -517,8 +517,12 @@ final class FocusaSpec152eEddOrderAdapter
         if ($order === false || (int) $order['customer_id'] !== $customerId) {
             throw new DomainException('EDD_ORDER_UNVERIFIED');
         }
-        if (($order['status'] ?? '') !== 'complete') {
-            throw new DomainException('EDD_ORDER_PENDING');
+        // Owner policy (2026-09-09): payment-plan bundles are honored. The
+        // software never revokes a plan on its own — settlement serves full
+        // access for in-progress plans, and only a manual operator revocation
+        // from the store dashboard (refunded/revoked state) fails here.
+        if (in_array($order['status'] ?? '', ['refunded', 'revoked'], true)) {
+            throw new DomainException('EDD_ORDER_REVOKED');
         }
         $items = $this->db->prepare(
             "SELECT id AS order_item_id, order_id, product_id, price_id, quantity, subtotal, total
@@ -529,6 +533,9 @@ final class FocusaSpec152eEddOrderAdapter
         $item = $items->fetch(PDO::FETCH_ASSOC);
         if ($item === false) {
             throw new DomainException('EDD_ORDER_UNVERIFIED');
+        }
+        if (in_array($item['status'] ?? '', ['refunded', 'revoked'], true)) {
+            throw new DomainException('EDD_ORDER_REVOKED');
         }
         $itemTotal = self::decimalAmount((string) $item['total']);
         if ($itemTotal === null || $itemTotal !== self::decimalAmount($expectedPrice)) {
@@ -566,6 +573,7 @@ final class FocusaSpec152eEddProductAdapter
                 'team_remote' => true,
                 'release_proof' => true,
                 'premium_updates' => true,
+                'focusa.install.channel.stable' => true,
             ],
             'limits' => ['operator_seats' => 1, 'node_limit' => 3],
             'commercial' => [
@@ -607,6 +615,7 @@ final class FocusaSpec152eEddProductAdapter
                 'release_proof' => true,
                 'premium_updates' => true,
                 'base_uiai' => true,
+                'focusa.install.channel.stable' => true,
             ],
             'limits' => ['operator_seats' => 1, 'node_limit' => 3],
             'commercial' => [

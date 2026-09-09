@@ -118,6 +118,9 @@ function seed_fixture(PDO $db): void
     $db->exec("INSERT INTO wp_edd_orders VALUES (9006, 1001, 'complete', '299.00', '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_edd_order_items VALUES (90066, 9006, 1736, 0, 1, '299.00', '299.00')");
     $db->exec("INSERT INTO wp_edd_licenses VALUES (7009, 1001, 1736, 9006, 'F0C15A-0009-0009-0009-0009', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_orders VALUES (9007, 1001, 'revoked', '697.00', '2026-08-01T00:00:00Z')");
+    $db->exec("INSERT INTO wp_edd_order_items VALUES (90077, 9007, 1736, 0, 1, '697.00', '697.00')");
+    $db->exec("INSERT INTO wp_edd_licenses VALUES (7011, 1001, 1736, 9007, 'F0C15A-0011-0011-0011-0011', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
     $db->exec("INSERT INTO wp_wpuiai_authority_accounts VALUES ('d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f80', 4004, 'pending', 'email_challenge_sent', 0)");
     $db->exec("INSERT INTO wp_wpuiai_authority_accounts VALUES ('e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8091', 1001, 'active', 'mailbox_verified', 41)");
     $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-deactivated-001', 'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8091', 7001, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'deactivated')");
@@ -172,8 +175,10 @@ $bundleRequest = $request('c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f', 'focusa_uiai_o
 // ── Positive: paid / evaluation / bundle issuance byte-exact with golden vectors ──
 
 $paid = $issuer->issueLease($paidRequest);
+if (getenv('FOCUSA_SPEC152E_REGEN_VECTORS') !== '1') {
 expect_lease($paid['envelope'] === $vector['vectors']['paid']['envelope'], 'paid envelope byte-exact with the golden vector');
 expect_lease($paid['claims'] === $vector['vectors']['paid']['claims'], 'paid claims byte-exact with the golden vector');
+}
 expect_lease($paid['sequence'] === 42, 'paid lease server-derived sequence 42');
 expect_lease($paid['posture'] === 'paid', 'paid lease posture');
 
@@ -196,8 +201,10 @@ expect_lease($claims['commercial']['price_usd'] === '697.00' && $claims['commerc
 expect_lease($claims['commercial']['refund_policy'] === 'whole_order_30_days', 'paid refund policy claim');
 
 $eval = $issuer->issueLease($evalRequest);
+if (getenv('FOCUSA_SPEC152E_REGEN_VECTORS') !== '1') {
 expect_lease($eval['envelope'] === $vector['vectors']['evaluation']['envelope'], 'evaluation envelope byte-exact with the golden vector');
 expect_lease($eval['claims'] === $vector['vectors']['evaluation']['claims'], 'evaluation claims byte-exact with the golden vector');
+}
 expect_lease($eval['sequence'] === 7, 'evaluation lease server-derived sequence 7');
 expect_lease($eval['claims']['posture'] === 'evaluation', 'evaluation posture claim');
 expect_lease($eval['claims']['expires_at'] === '2026-09-07T18:30:00Z', 'evaluation expiry = now + 30d');
@@ -207,8 +214,10 @@ expect_lease($eval['claims']['commercial']['price_usd'] === '0.00', 'evaluation 
 expect_lease($eval['claims']['features']['automation'] === false, 'evaluation limited features');
 
 $bundle = $issuer->issueLease($bundleRequest);
+if (getenv('FOCUSA_SPEC152E_REGEN_VECTORS') !== '1') {
 expect_lease($bundle['envelope'] === $vector['vectors']['bundle']['envelope'], 'bundle envelope byte-exact with the golden vector');
 expect_lease($bundle['claims'] === $vector['vectors']['bundle']['claims'], 'bundle claims byte-exact with the golden vector');
+}
 expect_lease($bundle['sequence'] === 9, 'bundle lease server-derived sequence 9');
 expect_lease($bundle['claims']['posture'] === 'bundle', 'bundle posture claim');
 expect_lease($bundle['claims']['features']['base_uiai'] === true, 'bundle exact-union feature claim');
@@ -285,6 +294,22 @@ $devDb->exec('DELETE FROM wp_edd_order_items');
 $dev = $devIssuer->issueLease($devRequest);
 expect_lease($dev['claims']['product_code'] === 'focusa_developer' && $dev['claims']['posture'] === 'developer', 'provider-approved developer claims');
 $developerVector = json_decode(file_get_contents(dirname(RUST_FIXTURE_PATH) . '/spec152-first-party-developer-vector.json'), true, 512, JSON_THROW_ON_ERROR);
+// Regenerate mode: rewrite the golden vectors (lease + first-party developer)
+// from this exact fixture + signer. Used when the server-owned grant registry
+// changes (e.g. honored payment-plan or stable-channel grants); the assertions
+// below validate the rewritten files byte-for-byte.
+if (getenv('FOCUSA_SPEC152E_REGEN_VECTORS') === '1') {
+    $vector['vectors']['paid']['envelope'] = $paid['envelope'];
+    $vector['vectors']['paid']['claims'] = $paid['claims'];
+    $vector['vectors']['bundle']['envelope'] = $bundle['envelope'];
+    $vector['vectors']['bundle']['claims'] = $bundle['claims'];
+    file_put_contents(VECTOR_PATH, json_encode($vector, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    $developerVector['lease_envelope'] = $dev['envelope'];
+    $developerVector['expected_lease_digest'] = 'sha256:' . hash('sha256', FocusaSpec152eAuthorityKeySetSeam::decodePayload($dev['envelope']['payload_b64']));
+    file_put_contents(dirname(RUST_FIXTURE_PATH) . '/spec152-first-party-developer-vector.json', json_encode($developerVector, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    echo "golden vectors regenerated: paid+bundle+developer\n";
+    exit(0);
+}
 expect_lease($dev['envelope'] === $developerVector['lease_envelope'], 'PHP issuance matches the independent Rust developer fixture byte-for-byte');
 expect_lease($dev['claims']['node_id'] === $devPrior['claims']['node_id'], 'developer activation preserves the existing node');
 expect_lease($dev['claims']['previous_lease_digest'] === $devPrior['payload_digest'], 'product transition preserves the same-node signed chain');
@@ -507,6 +532,7 @@ $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-revoked-001', '{$
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-zero-001', '{$revokedAccount}', 7006, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-expired-001', '{$revokedAccount}', 7007, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-pending-001', '{$revokedAccount}', 7008, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
+$db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-revoked-order-001', '{$revokedAccount}', 7011, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-price-001', '{$revokedAccount}', 7009, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 $db->exec("INSERT INTO wp_wpuiai_authority_nodes VALUES ('node-crosslicense-001', '{$revokedAccount}', 7004, 'focusa_operator_lifetime_v1', '" . PAID_DEVICE_KEY . "', 'device_key_v1', 'active')");
 $db->exec("INSERT INTO wp_edd_licenses VALUES (7010, 1001, 1736, 9001, 'F0C15A-0010-0010-0010-0010', 'active', 3, NULL, '2026-08-01T00:00:00Z')");
@@ -527,10 +553,16 @@ expect_lease_domain(
     'EDD_LICENSE_UNUSABLE',
     'expired EDD license never issues',
 );
+// Owner policy (2026-09-09): payment-plan orders are honored — an in-progress
+// plan issues full access; only a manual dashboard revocation fails settlement.
+expect_lease(
+    $issuer->issueLease($request($revokedAccount, 'focusa_operator_lifetime_v1', 'node-pending-001', PAID_DEVICE_KEY, 'pos-pending-plan-0001'))['claims']['status'] === 'active',
+    'payment-plan pending order issues (honor policy, owner directive 2026-09-09)',
+);
 expect_lease_domain(
-    static fn() => $issuer->issueLease($request($revokedAccount, 'focusa_operator_lifetime_v1', 'node-pending-001', PAID_DEVICE_KEY, 'neg-pending-0001')),
-    'EDD_ORDER_PENDING',
-    'pending EDD order never issues',
+    static fn() => $issuer->issueLease($request($revokedAccount, 'focusa_operator_lifetime_v1', 'node-revoked-order-001', PAID_DEVICE_KEY, 'neg-revoked-order-0001')),
+    'EDD_ORDER_REVOKED',
+    'manually revoked order never issues (dashboard-only revocation policy)',
 );
 expect_lease_domain(
     static fn() => $issuer->issueLease($request($revokedAccount, 'focusa_operator_lifetime_v1', 'node-price-001', PAID_DEVICE_KEY, 'neg-price-order-0001')),
