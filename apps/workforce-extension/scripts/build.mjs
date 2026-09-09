@@ -53,3 +53,14 @@ for (const ent of await readdir(dist, { recursive: true })) {
   if (out !== txt) { await writeFile(p, out); touched++; }
 }
 console.log(`PASS: built ${brand} MV3 unpacked extension at ${dist} (${touched} files re-branded)`);
+
+// ── Public demo: FOCUSA_PUBLIC_NEWTAB=1 makes the default new tab render the
+// public Work view (dated, curated snapshot). Private builds are unchanged. ──
+if (process.env.FOCUSA_PUBLIC_NEWTAB === '1') {
+  await writeFile(resolve(dist, 'public-newtab.html'),
+    '<!doctype html><meta http-equiv="refresh" content="0; url=startpage.html?public-work=1">\n');
+  const distManifest = JSON.parse(await readFile(resolve(dist, 'manifest.json'), 'utf8'));
+  distManifest.chrome_url_overrides = { newtab: 'public-newtab.html' };
+  await writeFile(resolve(dist, 'manifest.json'), `${JSON.stringify(distManifest, null, 2)}\n`);
+  console.log('PASS: default new tab points at the public Work view (FOCUSA_PUBLIC_NEWTAB=1)');
+}
