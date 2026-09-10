@@ -62,12 +62,10 @@ fn main() {
     // rotate. A stale cache can never strip the roots again.
     let roots = env::var("FOCUSA_AUTHORITY_ROOT_KEYS_JSON").unwrap_or_default();
     println!("cargo:rerun-if-env-changed=FOCUSA_AUTHORITY_ROOT_KEYS_JSON");
-    let roots_generated = format!(
-        "pub const FOCUSA_AUTHORITY_ROOT_KEYS_JSON_EMBEDDED: &str = {roots:?};\n"
-    );
+    let roots_generated =
+        format!("pub const FOCUSA_AUTHORITY_ROOT_KEYS_JSON_EMBEDDED: &str = {roots:?};\n");
     fs::write(
-        PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR"))
-            .join("authority_root_keys.rs"),
+        PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR")).join("authority_root_keys.rs"),
         roots_generated,
     )
     .expect("write authority root keys embed");
