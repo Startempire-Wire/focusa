@@ -1,22 +1,22 @@
 {
   "schema": "focusa.distribution_manifest.v1",
-  "release_version": "0.9.191",
-  "source_commit": "cdf09f94ecd3c4d61ff565551140e6f3adcb3327",
-  "generated_at": "2026-09-09T17:41:11.569263Z",
+  "release_version": "0.9.192",
+  "source_commit": "fe18dab25",
+  "generated_at": "2026-09-10T01:24:43.869676Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
-    "Cargo.toml": "sha256:5ac96215ca15d8fb220f809fb58444328af33b122f55377e3d8226979dc8308f",
-    "apps/pi-extension/package.json": "sha256:6e02cf6d12c3f6cd213bc6fe09a4a99ea2ef1243d6296ef4d0d5f4fbdcf37213",
+    "Cargo.toml": "sha256:d74d33bb6b18d1b0fd6f2bb6d6385b07a09ee75bcdc6802339aa68813d74be77",
+    "apps/pi-extension/package.json": "sha256:fba3c0e834a41ad382330bfefe773c06e096c5c2cb744b2cfc368b9376cf3a81",
     "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:2155f36bc42db7be22d2a2895e3cfa8e9fafcaa1744ffb5e84be669bfe175ba8",
     "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59",
-    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:5e5f6ecd1b5edcde38073c7aa30b907109ebfed83a19f46da329cf4f94a9c4b1",
+    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:01c1b56589bfcf426355fcc7b7b3cb83055dd0db2ad3013ce6e82d54048c089d",
     "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:a66526810da63c379fad60c80c71884c556b6d297ca81d9dfcdd7ec7874f9991",
     "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:0969b4eb0662422a8dbbf524f2db281dd86286c6427b45f9a16140416a72109c"
   },
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:0d11cbb58e407b0babf70fae135a27ec44227254aa3b5b23c54b1716d3f3c6d2",
+      "sha256": "sha256:693556be51fcb1b13ba923f05d1f962e4209b0968b140c1539f4a330ccd0da3c",
       "file_count": 833,
       "source_paths": [
         "Cargo.toml",
@@ -26,7 +26,7 @@
     },
     "pi_extension": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:bd145061f8c33c4ab6d1c2a1248c440bed27bd1a92eccabe6e2ac9d5eed2e959",
+      "sha256": "sha256:731d24620d0c7965c092a25460ed2feaef1eb6887d18107fef23f2fb254b4c76",
       "file_count": 187,
       "source_paths": [
         "apps/pi-extension"
@@ -34,8 +34,8 @@
     },
     "agent_skills": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:9e2782725e1032330abf1053890638fd829e0f471888139eba767f448cc7dc80",
-      "file_count": 64,
+      "sha256": "sha256:d460196d869f426c697ecaca6b142f0ccb34bc5a9938d0c4704bb6b749ec23dd",
+      "file_count": 65,
       "source_paths": [
         ".pi/skills",
         "scripts/focusa-skill-doctor"
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:1c6507b907ec7dd4b411af8302d868fe3bf531b7ae98dbec4904b94d29c30286",
+      "sha256": "sha256:efd4c68e28b3dd3ef2dec6f99bab8210a932256a92d39016705a788ee59e2df0",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -67,7 +67,7 @@
     },
     "installers": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:57556fa67ab4e273894e48382597c40c0fbb2fe7b9298fbc04b4bee717d7046c",
+      "sha256": "sha256:f802a06b49b240eb80419a21798802b27c29f727c9c4d46449b034900e17305a",
       "file_count": 3,
       "source_paths": [
         "scripts/install-focusa.sh",
@@ -120,7 +120,7 @@
     "capability_surfaces": {
       "contract_count": 157,
       "registry_sha256": "sha256:39736968dff3752679c7b00d0d8b7962b77e09ed003cebcb928a8d341d5933aa",
-      "agent_card_sha256": "sha256:5e5f6ecd1b5edcde38073c7aa30b907109ebfed83a19f46da329cf4f94a9c4b1",
+      "agent_card_sha256": "sha256:01c1b56589bfcf426355fcc7b7b3cb83055dd0db2ad3013ce6e82d54048c089d",
       "pi_tools_sha256": "sha256:0969b4eb0662422a8dbbf524f2db281dd86286c6427b45f9a16140416a72109c",
       "mcp_tools_sha256": "sha256:a66526810da63c379fad60c80c71884c556b6d297ca81d9dfcdd7ec7874f9991",
       "openai_tools_sha256": "sha256:39a5becb4c0cc66102da23d178861db3d42bce1227b1a13eded6ef844194ec88",

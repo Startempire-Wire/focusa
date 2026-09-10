@@ -10,7 +10,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "agent-stateful-cognitive-runtime"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -628,7 +628,7 @@ checksum = "c3e64b0cc0439b12df2fa678eae89a1c56a529fd067a9115f7827f1fffd22b32"
 
 [[package]]
 name = "cognitive-state-projection"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "agent-stateful-cognitive-runtime",
  "hex",
@@ -1335,7 +1335,7 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "focusa-api"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -1366,7 +1366,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-bench"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "chrono",
  "serde",
@@ -1377,7 +1377,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-cli"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1407,7 +1407,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-core"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1444,7 +1444,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-harness-adapters"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "chrono",
  "focusa-core",
@@ -1455,7 +1455,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-license"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -1473,7 +1473,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-session-runner"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1495,7 +1495,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-terminal-ui"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "crossterm 0.28.1",
  "ratatui",
@@ -1506,7 +1506,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-tui"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2218,7 +2218,7 @@ checksum = "7a79a3332a6609480d7d0c9eab957bca6b455b91bb84e66d19f5ff66294b85b8"
 
 [[package]]
 name = "letta-adapter"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "agent-stateful-cognitive-runtime",
  "hex",
@@ -2987,7 +2987,7 @@ dependencies = [
 
 [[package]]
 name = "pi-client-tool-gateway"
-version = "0.9.191"
+version = "0.9.192"
 dependencies = [
  "agent-stateful-cognitive-runtime",
  "chrono",
