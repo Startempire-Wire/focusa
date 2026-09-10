@@ -784,6 +784,16 @@
       "target": "test-only serialization lock for orchestrator tests, no authority-bearing state",
       "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
       "authority_bearing": false
+    },
+    {
+      "annex_id": "INF-19",
+      "path": "crates/focusa-api/src/routes/screenshot_settings.rs",
+      "symbol": "WRITE_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Synchronization-only lock for atomic screenshot-evidence-share settings file I/O; typed ScopeKey records remain authoritative (Spec 185 settings authority lives in the daemon reducer, never in this route)",
+      "acceptance_test": "screenshot settings route tests plus Spec104 singleton inventory gate"
     }
   ]
 }
