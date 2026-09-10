@@ -860,6 +860,67 @@
         "Return bounded evidence and executable recovery."
       ],
       "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-deslop",
+      "description": "Use when cleaning AI-code slop, reviewing diffs, checking for similar code before writing, or running the deslop duplication analysis.",
+      "triggers": [
+        "cleanup review",
+        "deslop analysis",
+        "diff review before write"
+      ],
+      "non_triggers": [
+        "green-field feature implementation with no existing code",
+        "unrelated runtime work"
+      ],
+      "tools": [
+        "focusa_tool_search",
+        "focusa_tool_describe",
+        "focusa_evidence_capture"
+      ],
+      "recovery": [
+        "focusa_tool_doctor"
+      ],
+      "runbook_notes": [
+        "Load the local deslop skill instructions before any cleanup work (canonical helpers, no renamed duplication).",
+        "Review diffs and existing similar code before writing new code; reject copy-paste variants.",
+        "Record cleanup evidence through focusa_evidence_capture with stable handles."
+      ],
+      "done": "Skill file present with runbook; admitted via config/agent-skills-v2.json registry v2."
+    },
+    {
+      "name": "focusa-roadmap-to-workpoint",
+      "description": "Bounded reusable workflow for pre-implementation reasoning: scope, authority, decisions, blockers, graph, Trajectory, and Workpoint derivation.",
+      "triggers": [
+        "pre-implementation planning",
+        "before a code change in an unfamiliar scope",
+        "engineering lifecycle stage selection"
+      ],
+      "non_triggers": [
+        "discussion-only review with no repository work",
+        "routine single-file edits with clear authority"
+      ],
+      "tools": [
+        "focusa_agent_prompt",
+        "focusa_utility_card",
+        "focusa_agent_card",
+        "focusa_tool_search",
+        "focusa_trajectory_view",
+        "focusa_workpoint_checkpoint"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify"
+      ],
+      "runbook_notes": [
+        "Verify project scope: canonical root, continuity, Workset.",
+        "Discover live authority and current state: ledger, trajectory, work loop.",
+        "Close decisions (spec, requirement rows) and map blockers/risks (bd blocked/ready, dependency graph).",
+        "Design implementation order, materialize tasks with dependencies (bd create), and prepare point-of-need contracts.",
+        "Audit graph correctness (no cycles, coverage) and derive MLG, STG, waypoint, and the current Workpoint.",
+        "Expose the first authorized ready frontier (bd ready)."
+      ],
+      "done": "Skill file present with runbook; admitted via config/agent-skills-v2.json registry v2."
     }
   ]
 }

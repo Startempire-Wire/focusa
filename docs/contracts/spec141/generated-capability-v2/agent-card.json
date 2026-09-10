@@ -46,7 +46,7 @@
   "pi_tool_docs_count": 157,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   "pi_tool_docs_path": "docs/focusa-tools/tools/",
-  "skill_count": 30,
+  "skill_count": 31,
   "skills": [
     "skill:focusa",
     "skill:focusa-agent-bootstrap",
@@ -67,6 +67,7 @@
     "skill:focusa-project-scope",
     "skill:focusa-release-proof",
     "skill:focusa-resource-performance",
+    "skill:focusa-roadmap-to-workpoint",
     "skill:focusa-security-auth-licensing",
     "skill:focusa-session-recovery",
     "skill:focusa-silent-sessions",
@@ -234,6 +235,14 @@
       ]
     },
     {
+      "skill_ref": "skill:focusa-roadmap-to-workpoint",
+      "manifest_ref": ".pi/skills/focusa-roadmap-to-workpoint/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-roadmap-to-workpoint/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-roadmap-to-workpoint/references/01-focusa-roadmap-to-workpoint-runbook.md"
+      ]
+    },
+    {
       "skill_ref": "skill:focusa-security-auth-licensing",
       "manifest_ref": ".pi/skills/focusa-security-auth-licensing/SKILL.md",
       "packaged_manifest_ref": "apps/pi-extension/skills/focusa-security-auth-licensing/SKILL.md",
@@ -342,7 +351,7 @@
     "skill:focusa-workpoint",
     "skill:predictive-power"
   ],
-  "runbook_count": 32,
+  "runbook_count": 33,
   "runbook_refs": [
     ".pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md",
     ".pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md",
@@ -362,6 +371,7 @@
     ".pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md",
     ".pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md",
     ".pi/skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md",
+    ".pi/skills/focusa-roadmap-to-workpoint/references/01-focusa-roadmap-to-workpoint-runbook.md",
     ".pi/skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md",
     ".pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md",
     ".pi/skills/focusa-silent-sessions/references/01-focusa-silent-sessions-runbook.md",
@@ -400,5 +410,5 @@
     "workset"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:980c132692185510d79b0c5997f748ee816a7bef1bf66a2e1acb704e88b23716"
+  "card_digest": "sha256:e7b2a2d0ae88df89467ec5655221b51bf3c878a38f1d87b3a6def1826fceda54"
 }

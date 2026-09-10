@@ -1,4 +1,4 @@
-# Focusa Deslop Runbook
+# Focusa Roadmap To Workpoint Runbook
 
 ## Preconditions
 
@@ -13,21 +13,30 @@
 ## Dependency graph
 
 ```text
-focusa_tool_search -> focusa_tool_describe
-focusa_tool_describe -> focusa_evidence_capture
+focusa_agent_prompt -> focusa_utility_card
+focusa_utility_card -> focusa_agent_card
+focusa_agent_card -> focusa_tool_search
+focusa_tool_search -> focusa_trajectory_view
+focusa_trajectory_view -> focusa_workpoint_checkpoint
 ```
 
 ## Minimal path
 
-1. Call `focusa_tool_search` with only required bounded inputs.
-2. Call `focusa_tool_describe` with only required bounded inputs.
-3. Call `focusa_evidence_capture` with only required bounded inputs.
+1. Call `focusa_agent_prompt` with only required bounded inputs.
+2. Call `focusa_utility_card` with only required bounded inputs.
+3. Call `focusa_agent_card` with only required bounded inputs.
+4. Call `focusa_tool_search` with only required bounded inputs.
+5. Call `focusa_trajectory_view` with only required bounded inputs.
+6. Call `focusa_workpoint_checkpoint` with only required bounded inputs.
 
 ## Current domain procedure
 
-1. Load the local deslop skill instructions before any cleanup work (canonical helpers, no renamed duplication).
-2. Review diffs and existing similar code before writing new code; reject copy-paste variants.
-3. Record cleanup evidence through focusa_evidence_capture with stable handles.
+1. Verify project scope: canonical root, continuity, Workset.
+2. Discover live authority and current state: ledger, trajectory, work loop.
+3. Close decisions (spec, requirement rows) and map blockers/risks (bd blocked/ready, dependency graph).
+4. Design implementation order, materialize tasks with dependencies (bd create), and prepare point-of-need contracts.
+5. Audit graph correctness (no cycles, coverage) and derive MLG, STG, waypoint, and the current Workpoint.
+6. Expose the first authorized ready frontier (bd ready).
 
 ## Branches
 

@@ -3,17 +3,65 @@ name: focusa-deslop
 description: "Use when cleaning AI-code slop, reviewing diffs, checking for similar code before writing, or running the deslop duplication analysis."
 ---
 
-# Focusa Deslop Playbook
+# Focusa Deslop
 
-Slop-free codebase playbook. Detail lives in
-`references/01-focusa-deslop-runbook.md`.
+Use when cleaning AI-code slop, reviewing diffs, checking for similar code before writing, or running the deslop duplication analysis.
 
-## Start here
+## Progressive disclosure
 
-1. Before writing: `deslop .` / MCP `find-similar` — never write a
-   renamed copy of an existing helper.
-2. Boilerplate converges through canonical constructors
-   (error_envelope, tool_result_v1, store/ledger patterns).
-3. Review diffs against the runbook taxonomy; scrub with the recipe.
-4. Report a 1-3 sentence summary of what changed.
-5. `.deslop.toml` owns the ceiling (CI advisory → gating after baseline).
+1. Load this core file only when its trigger matches.
+2. Read `references/01-focusa-deslop-runbook.md` only for the selected workflow.
+3. Use `focusa_tool_describe` to cold-load exact schemas only for selected tools.
+4. Open linked specs/evidence only when a branch requires them.
+
+## Trigger examples
+
+- cleanup review
+- deslop analysis
+- diff review before write
+
+## Non-trigger examples
+
+- green-field feature implementation with no existing code
+- unrelated runtime work
+
+## Required sequence
+
+1. `focusa_tool_search`
+2. `focusa_tool_describe`
+3. `focusa_evidence_capture`
+
+Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
+
+## Operator alignment
+
+- Refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps.
+- Treat cwd as launch location only; missing trajectory or project markers do not imply a new user or new project.
+- Use plain language and progressive disclosure; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested.
+- Never invent deadlines or urgency; use temporal authority and express forecast uncertainty as a range.
+- Measure meaningful tasks in wall-clock operator time: predict delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons.
+- Apply Focusa tools to accomplish the operator's desired outcome within operator constraints, rather than making Focusa mechanics the center of conversation.
+
+## Failure recovery
+
+- `focusa_tool_doctor`
+
+Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection, and ambiguous side effects as recovery states—not completion.
+
+## Routing metadata
+
+- prerequisites: verified project identity and typed continuity when durable scope matters
+- use_instead_when: use the narrower owner in `docs/contracts/65-focusa-skill-ownership-manifest.json`
+- next_skills: `focusa-workpoint`, `focusa-evidence-outcomes`, `focusa-metacognition`
+- failure_handoff: `focusa-troubleshooting`
+- authority_boundary: operator steering leads; daemon and typed Workpoint/Trajectory contracts remain canonical
+- workflow: `focusa-project-scope` → `focusa-deslop` → `focusa-workpoint` → `focusa-evidence-outcomes`
+- minimum_contract: `focusa.tool_affordance_catalog.v1`
+- source_status: generated core plus hand-authored registry content; no sibling-body injection
+- supersession: none
+
+## Done condition
+
+Skill file present with runbook; admitted via config/agent-skills-v2.json registry v2.
+
+Stable evidence or receipt refs must support any completion claim.
