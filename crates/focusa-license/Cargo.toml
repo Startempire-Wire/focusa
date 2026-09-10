@@ -16,7 +16,19 @@ base64 = { workspace = true }
 ed25519-dalek = { workspace = true }
 sha2 = { workspace = true }
 uuid = { workspace = true }
-keyring = { workspace = true }
+# Issue #598: keyring v3 compiles its in-process mock store unless a platform
+# backend feature is enabled. Enable the real backend per target so persisted
+# poll credentials actually reach the OS store and survive across processes.
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { workspace = true, features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { workspace = true, features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Keyutils works headless (no keyring daemon / DBus required).
+keyring = { workspace = true, features = ["linux-native"] }
+
 reqwest = { workspace = true, features = ["blocking"] }
 
 [build-dependencies]

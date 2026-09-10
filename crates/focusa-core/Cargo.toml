@@ -25,7 +25,16 @@ base64 = { workspace = true }
 hex = { workspace = true }
 reqwest = { workspace = true }
 oauth2 = { workspace = true }
-keyring = { workspace = true }
+# Issue #598: platform backends must be enabled per target (see focusa-license).
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { workspace = true, features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { workspace = true, features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { workspace = true, features = ["linux-native"] }
+
 rand_core = { version = "0.6", features = ["getrandom"] }
 libc = "0.2"
 chrono-tz = "0.10"
