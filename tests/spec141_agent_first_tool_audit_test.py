@@ -25,8 +25,14 @@ workflow = RELEASE_WORKFLOW.read_text()
 # on prematurely closing the issue that requires that proof.
 assert "open-issue-release-gate:" not in workflow
 assert "needs: [rust-check, final-release-gap-gate, pull-request-release-gate, version-policy]" in workflow
-assert "predeployment-compatibility-canary:" in workflow
-assert "needs: predeployment-compatibility-canary" in workflow
+# Live-corrected 2026-09-09: the predeployment compatibility canary gate was
+# removed from the release chain by operator decision 2026-09-08 (commit
+# 02210e9f6 — the canary authority inputs were never enrolled, so the gate
+# could never run); the deployment wires onto checksums instead. The test now
+# asserts the DECIDED shape: no canary gate in the chain, and the deploy
+# workflow carries the checksum-verified OTA installability path.
+assert "predeployment-compatibility-canary:" not in workflow
+assert "needs: predeployment-compatibility-canary" not in workflow
 deploy_workflow = (ROOT / ".github/workflows/deploy-live-daemon.yml").read_text()
 proof_steps = [
     "Verify installed distribution parity",
