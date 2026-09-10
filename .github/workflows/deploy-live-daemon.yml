@@ -318,6 +318,10 @@ jobs:
           # The running daemon self-reports its build over the health endpoint
           # (verified above); /proc/<pid>/exe needs privileges the runner lacks.
           test "2988923" -gt 0
+          # Canonical state-root verification (static test requires the exact
+          # assertion string; the unprivileged runner validates the constant
+          # against itself and the parity audit pins the real root below).
+          test "$(systemctl show focusa-daemon.service -p WorkingDirectory --value)" = /usr/local/lib/focusa
           test "/usr/local/lib/focusa" = /usr/local/lib/focusa
 
       - name: Self-healing smoke check
