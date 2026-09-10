@@ -46,6 +46,7 @@ jobs:
           find "${reports}" -mindepth 1 -maxdepth 1 -delete
           set +e
           podman run --rm \
+            --network=none \
             --memory 4g \
             --memory-swap 4g \
             --userns=keep-id \
