@@ -42,6 +42,11 @@ jobs:
           set -euo pipefail
           binary="${RUNNER_TEMP}/deslop-${DESLOP_VERSION}/deslop-${DESLOP_VERSION}-linux-x64/deslop"
           reports="${RUNNER_TEMP}/deslop-reports"
+          # Podman rejects the runner's inherited /run/user/0 when it is not
+          # owned by the active runner. Use a private runtime dir per job.
+          runtime_dir="${RUNNER_TEMP}/podman-runtime"
+          install -d -m 700 "${runtime_dir}"
+          export XDG_RUNTIME_DIR="${runtime_dir}"
           mkdir -p "${reports}"
           find "${reports}" -mindepth 1 -maxdepth 1 -delete
           set +e

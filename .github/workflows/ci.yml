@@ -83,7 +83,9 @@ jobs:
   menubar:
     name: Menubar
     # Spec 178: visible restoration target, but non-authoritative while GitHub
-    # hosted macOS is billing-locked. Codemagic release receipts fail closed.
+    # hosted macOS is billing-locked. Keep it skipped until the operator sets
+    # FOCUSA_GITHUB_MACOS_RESTORED=true; Codemagic release receipts fail closed.
+    if: vars.FOCUSA_GITHUB_MACOS_RESTORED == 'true'
     continue-on-error: true
     runs-on: macos-latest
     steps:

@@ -2,7 +2,11 @@ name: Structural Guards
 on: [push, pull_request]
 jobs:
   guards:
-    runs-on: ubuntu-latest
+    # The guard is already wired into pre-commit/pre-push and is read-only.
+    # Run trusted pushes on the self-hosted runner to avoid a hosted billing
+    # dependency; never execute untrusted pull-request code on that runner.
+    if: github.event_name == 'push'
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
       - name: Run structural guards (release failure-mode catalog)

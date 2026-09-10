@@ -75,10 +75,16 @@ are canonical in `docs/178-focusa-temporary-ci-provider-parity-and-github-restor
 
 1. `ci.yml`: add `paths-ignore: ['**.md', 'docs/**']` to push+PR triggers;
    extend `cancel-in-progress` to push events (not just PRs).
-2. No new crons anywhere. The `billing-bypass-expiry` Azure cron was removed
+2. The GitHub-hosted Menubar job stays skipped until
+   `FOCUSA_GITHUB_MACOS_RESTORED=true`; Codemagic remains the release proof.
+3. Stable release reuses the single Release Contract Check CI receipt; the
+   duplicate tag wait is only a receipt-forwarding compatibility job. A
+   markdown/docs-only candidate uses the local release-contract and Spec 104
+   gates without polling for a nonexistent CI run.
+4. No new crons anywhere. The `billing-bypass-expiry` Azure cron was removed
    with the Azure bypass (not approved for use).
-3. Disabled burners stay disabled (`audit-recorder`, watchdog schedule).
-4. Any new workflow MUST declare its expected monthly minutes in a header
+5. Disabled burners stay disabled (`audit-recorder`, watchdog schedule).
+6. Any new workflow MUST declare its expected monthly minutes in a header
    comment. Reviewer gate: more than ~60 min/month needs operator approval.
 
 ## 4. Dev machine policy

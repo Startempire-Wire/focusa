@@ -218,17 +218,21 @@ require(
         "Release blocked by release-scoped pull requests",
         "unrelated open pull requests remain queued outside the locked candidate",
         "Require exact candidate-SHA preflight receipts",
-        "Exact tag CI proof",
+        "candidate_ci_skipped reason=docs-only",
+        "FOCUSA_CANDIDATE_CI_REQUIRED",
+        "Exact tag CI proof (reused)",
         "tag-ci-proof",
+        "needs: rust-check",
         "needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]",
         "shared-key: release-target-${{ matrix.target }}",
-        "actions/workflows/ci.yml/runs",
-        "2>/dev/null || echo '[]'",
+        "git diff-tree --root --no-commit-id --name-only -r",
     ],
     "Release trigger/cache controls",
 )
 assert "Release cargo test" not in RELEASE, "Release duplicates source/tag CI cargo tests on the critical path"
 assert "Release clippy" not in RELEASE, "Release duplicates source/tag CI clippy on the critical path"
+assert "FOCUSA_GITHUB_MACOS_RESTORED" in CI, "billing-locked macOS must remain skipped until restoration"
+assert "XDG_RUNTIME_DIR" in (ROOT / ".github/workflows/deslop.yml").read_text(), "Deslop must use a runner-owned Podman runtime dir"
 require(
     RELEASE,
     [
