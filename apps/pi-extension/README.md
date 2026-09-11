@@ -63,6 +63,14 @@ Expected results:
 - Full resource one-shot returns `full resource ok`.
 - Focusa skill smoke returns `focusa skill load ok`.
 
+## Proposed agent-to-agent messaging
+
+[Direct agent messaging proposal](../../docs/proposals/pi-agent-messaging.md)
+describes opt-in, daemon-owned communication between enrolled Pi sessions without
+operator copy/paste. It preserves scope, permissions, independent review, bounded
+follow-up delivery, and existing task ownership. **Design only: no messaging tools
+or commands are implemented or enabled by that proposal.**
+
 ## Related operational note
 
 If Pi reports `Cannot find module './init.ts'` from `pi-mcp-adapter`, verify the active global/user package is complete. A stale incomplete global install can shadow a complete user-local package.
