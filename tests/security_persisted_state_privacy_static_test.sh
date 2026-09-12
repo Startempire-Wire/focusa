@@ -44,17 +44,26 @@ for marker in \
 done
 
 # Project docs should not contain obvious raw private key blocks.
-if rg -n \
+# Keep the three reviewed fixture/source exclusions exact; report paths only.
+scan_output="$(mktemp)"
+trap 'rm -f "$scan_output"' EXIT
+if rg -l \
   --glob '!.git/**' \
   --glob '!node_modules/**' \
   --glob '!target/**' \
   --glob '!tests/security_persisted_state_privacy_static_test.sh' \
   --glob '!crates/focusa-core/src/silent_sessions/runner_security_test.rs' \
   --glob '!docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md' \
-  -- '-----BEGIN .*PRIVATE KEY-----' "$ROOT_DIR" >/tmp/focusa-private-key-scan.txt 2>/dev/null; then
+  -- '-----BEGIN .*PRIVATE KEY-----' "$ROOT_DIR" >"$scan_output"; then
   echo "private key block detected in repository" >&2
-  cat /tmp/focusa-private-key-scan.txt >&2
+  cat "$scan_output" >&2
   exit 1
+else
+  scan_status=$?
+  if [[ "$scan_status" -ne 1 ]]; then
+    echo "private key scanner failed (exit $scan_status); privacy check incomplete" >&2
+    exit "$scan_status"
+  fi
 fi
 
 echo "✓ persisted-state privacy classes and redaction markers present"

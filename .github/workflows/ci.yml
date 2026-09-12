@@ -140,6 +140,10 @@ jobs:
           if command -v rg >/dev/null 2>&1; then echo "ripgrep installed via apt"; exit 0; fi
           echo "apt failed, installing ripgrep via static binary"
           curl -fsSL https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep-14.1.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/rg.tar.gz && tar -xzf /tmp/rg.tar.gz -C /tmp && sudo mv /tmp/ripgrep-14.1.0-x86_64-unknown-linux-musl/rg /usr/local/bin/rg && rg --version
+      - name: Persisted-state privacy scanner regression
+        run: |
+          python3 tests/434_privacy_scanner_regression_test.py
+          bash tests/security_persisted_state_privacy_static_test.sh
       - name: Auto-heal audit trail
         run: python3 scripts/auto-heal-audit.py
 
