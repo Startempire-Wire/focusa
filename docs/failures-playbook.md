@@ -134,3 +134,14 @@ Native-keyring dependency placement is checked by
 `python3 tests/598_keyring_platform_manifest_test.py` and the Rust CI job.
 These tests do not establish cross-platform custody, secure file publication,
 or backend-recovery continuity; those require separate acceptance evidence.
+
+## Background-job list output and privacy-scanner failures
+
+`focusa bg list` (text or JSON) treats a closed output consumer such as `head`
+as clean termination. Other output I/O failures still return errors; this does
+not suppress API or job-reconciliation failures.
+
+The persisted-state privacy gate reports matching file paths, not key payloads.
+Only ripgrep exit 1 means no matches; tool errors fail the gate. The scanner
+owns the exact reviewed source/fixture exclusions: never broaden them to hide
+a failure. Regression proof: `python3 tests/434_privacy_scanner_regression_test.py`.
