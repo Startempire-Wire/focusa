@@ -1174,7 +1174,13 @@ export function registerTurns(pi: ExtensionAPI) {
 
     if (!getAttachmentRuntime().seenFirstBeforeAgentStart) {
       getAttachmentRuntime().seenFirstBeforeAgentStart = true;
-      if (nativeSessionAllowsNonessentialPersistence()) {
+      // Issue #603: the utility card travels as a custom_message via
+      // sendMessage, which lands AFTER the final assistant entry. In print
+      // (pi -p) and JSON/RPC modes that flips the last state message away
+      // from assistant, so pi's text print branch silently skips output and
+      // exits 0. The card is TUI chrome: send it only on interactive
+      // surfaces (ctx.hasUI), matching the widget gate above.
+      if (nativeSessionAllowsNonessentialPersistence() && ctx.hasUI) {
         const fallbackCard = buildFocusaUtilityCard("visible");
         void buildAwarenessPacket("reload")
           .then((packet) => renderAwarenessPacketText(packet))
