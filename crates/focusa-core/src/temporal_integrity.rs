@@ -28,33 +28,127 @@ pub enum TemporalIntegrityError {
 
 pub fn load_or_create_temporal_signing_key() -> Result<(String, SigningKey), TemporalIntegrityError>
 {
-    let entry = keyring::Entry::new("focusa-temporal-signing", "host-ed25519")
-        .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
-    let signing_key = match entry.get_password() {
+    // OS keystore is the primary custody path (see #598: per-target native
+    // backends). Headless/container hosts without a usable keystore fall back
+    // to a durable 0600 key file under the daemon data directory so Spec 137
+    // temporal authority does not fail closed on every headless deployment.
+    let entry = match keyring::Entry::new("focusa-temporal-signing", "host-ed25519") {
+        Ok(entry) => Some(entry),
+        Err(_) => None,
+    };
+    if let Some(entry) = entry {
+        match entry.get_password() {
+            Ok(encoded) => {
+                let bytes: [u8; 32] = STANDARD
+                    .decode(encoded)
+                    .ok()
+                    .and_then(|bytes| bytes.try_into().ok())
+                    .ok_or(TemporalIntegrityError::KeyStoreCorrupt)?;
+                let signing_key = SigningKey::from_bytes(&bytes);
+                return Ok((temporal_key_id(&signing_key), signing_key));
+            }
+            Err(keyring::Error::NoEntry) => {
+                let signing_key = generate_temporal_signing_key();
+                if entry
+                    .set_password(&STANDARD.encode(signing_key.to_bytes()))
+                    .is_ok()
+                {
+                    return Ok((temporal_key_id(&signing_key), signing_key));
+                }
+                // Keystore rejected the write; persist via the file fallback so
+                // the generated key remains durable across restarts.
+                if store_temporal_signing_key_file(&signing_key).is_ok() {
+                    return Ok((temporal_key_id(&signing_key), signing_key));
+                }
+                return Ok((temporal_key_id(&signing_key), signing_key));
+            }
+            Err(_) => {}
+        }
+    }
+    load_or_create_temporal_signing_key_file()
+}
+
+fn temporal_key_id(signing_key: &SigningKey) -> String {
+    format!(
+        "temporal-ed25519:{}",
+        hex::encode(Sha256::digest(signing_key.verifying_key().as_bytes()))
+    )
+}
+
+fn generate_temporal_signing_key() -> SigningKey {
+    let mut secret = [0_u8; 32];
+    OsRng.fill_bytes(&mut secret);
+    SigningKey::from_bytes(&secret)
+}
+
+/// Headless-safe durable custody for the host temporal signing key.
+///
+/// Precedence: `FOCUSA_TEMPORAL_SIGNING_KEY_FILE` override, then
+/// `FOCUSA_DATA_DIR/keys/temporal-signing-key.b64`, then the default Focusa
+/// data directory. The file is created 0600 (unix) and written atomically.
+fn temporal_signing_key_file_path() -> std::path::PathBuf {
+    if let Ok(explicit) = std::env::var("FOCUSA_TEMPORAL_SIGNING_KEY_FILE") {
+        let explicit = explicit.trim();
+        if !explicit.is_empty() {
+            return std::path::PathBuf::from(explicit);
+        }
+    }
+    let base = std::env::var("FOCUSA_DATA_DIR")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(crate::types::default_focusa_data_dir()));
+    base.join("keys").join("temporal-signing-key.b64")
+}
+
+fn load_or_create_temporal_signing_key_file(
+) -> Result<(String, SigningKey), TemporalIntegrityError> {
+    let path = temporal_signing_key_file_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    }
+    match std::fs::read_to_string(&path) {
         Ok(encoded) => {
             let bytes: [u8; 32] = STANDARD
-                .decode(encoded)
+                .decode(encoded.trim())
                 .ok()
                 .and_then(|bytes| bytes.try_into().ok())
                 .ok_or(TemporalIntegrityError::KeyStoreCorrupt)?;
-            SigningKey::from_bytes(&bytes)
+            let signing_key = SigningKey::from_bytes(&bytes);
+            Ok((temporal_key_id(&signing_key), signing_key))
         }
-        Err(keyring::Error::NoEntry) => {
-            let mut secret = [0_u8; 32];
-            OsRng.fill_bytes(&mut secret);
-            let key = SigningKey::from_bytes(&secret);
-            entry
-                .set_password(&STANDARD.encode(key.to_bytes()))
-                .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
-            key
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            let signing_key = generate_temporal_signing_key();
+            store_temporal_signing_key_file(&signing_key)?;
+            Ok((temporal_key_id(&signing_key), signing_key))
         }
-        Err(_) => return Err(TemporalIntegrityError::KeyStoreUnavailable),
-    };
-    let key_id = format!(
-        "temporal-ed25519:{}",
-        hex::encode(Sha256::digest(signing_key.verifying_key().as_bytes()))
-    );
-    Ok((key_id, signing_key))
+        Err(_) => Err(TemporalIntegrityError::KeyStoreUnavailable),
+    }
+}
+
+fn store_temporal_signing_key_file(
+    signing_key: &SigningKey,
+) -> Result<(), TemporalIntegrityError> {
+    let path = temporal_signing_key_file_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    }
+    let encoded = STANDARD.encode(signing_key.to_bytes());
+    let temp_path = path.with_extension("b64.tmp");
+    std::fs::write(&temp_path, encoded)
+        .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&temp_path, std::fs::Permissions::from_mode(0o600))
+            .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    }
+    std::fs::rename(&temp_path, &path)
+        .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    Ok(())
 }
 
 pub fn sign_temporal_event(
@@ -266,5 +360,52 @@ mod tests {
         sign_temporal_event(&mut event, &key_id, &key);
         verify_temporal_event_signature(&event, None)
             .expect("None key_id should accept any valid key");
+    }
+
+    /// Env-var mutations are process-global; keep file-fallback scenarios in
+    /// one serialized test to avoid cross-test interference.
+    #[test]
+    fn file_keystore_fallback_creates_reloads_and_fails_closed_on_corruption() {
+        use std::sync::{Mutex, MutexGuard, OnceLock};
+        static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        let lock: &'static Mutex<()> = ENV_LOCK.get_or_init(|| Mutex::new(()));
+        let _guard: MutexGuard<()> = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+
+        let dir = std::env::temp_dir().join(format!(
+            "focusa-temporal-keystore-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let key_path = dir.join("temporal-signing-key.b64");
+
+        // SAFETY: env mutation serialized by ENV_LOCK; single-threaded test.
+        // The file keystore functions are exercised directly so this test is
+        // deterministic on hosts where the OS keystore is available (#598
+        // native backends) and where it is not (headless CI).
+        unsafe { std::env::set_var("FOCUSA_TEMPORAL_SIGNING_KEY_FILE", &key_path) };
+        let first = load_or_create_temporal_signing_key_file().expect("file keystore create");
+        let second = load_or_create_temporal_signing_key_file().expect("file keystore reload");
+        assert_eq!(first.0, second.0, "key must be durable across calls");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = std::fs::metadata(&key_path).unwrap().permissions().mode();
+            assert_eq!(mode & 0o777, 0o600, "key file must be owner-only");
+        }
+
+        std::fs::write(&key_path, "not-base64!!").unwrap();
+        assert_eq!(
+            load_or_create_temporal_signing_key_file().err(),
+            Some(TemporalIntegrityError::KeyStoreCorrupt),
+            "corrupt key material must fail closed"
+        );
+
+        unsafe { std::env::remove_var("FOCUSA_TEMPORAL_SIGNING_KEY_FILE") };
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
