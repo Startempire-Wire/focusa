@@ -794,6 +794,16 @@
       "status": "infra_allowed",
       "target": "Synchronization-only lock for atomic screenshot-evidence-share settings file I/O; typed ScopeKey records remain authoritative (Spec 185 settings authority lives in the daemon reducer, never in this route)",
       "acceptance_test": "screenshot settings route tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-20",
+      "path": "crates/focusa-core/src/temporal_integrity.rs",
+      "symbol": "ENV_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Test-only mutex serializing process env mutation in temporal keystore regression tests",
+      "acceptance_test": "cfg-test-only static classification"
     }
   ]
 }
