@@ -49,23 +49,31 @@ pub fn load_or_create_temporal_signing_key() -> Result<(String, SigningKey), Tem
             }
             Err(keyring::Error::NoEntry) => {
                 let signing_key = generate_temporal_signing_key();
-                if entry
-                    .set_password(&STANDARD.encode(signing_key.to_bytes()))
-                    .is_ok()
-                {
-                    return Ok((temporal_key_id(&signing_key), signing_key));
-                }
-                // Keystore rejected the write; persist via the file fallback so
-                // the generated key remains durable across restarts.
-                if store_temporal_signing_key_file(&signing_key).is_ok() {
-                    return Ok((temporal_key_id(&signing_key), signing_key));
-                }
-                return Ok((temporal_key_id(&signing_key), signing_key));
+                let persisted = entry.set_password(&STANDARD.encode(signing_key.to_bytes()));
+                return temporal_key_after_primary_write(
+                    signing_key,
+                    persisted,
+                    load_or_create_temporal_signing_key_file,
+                );
             }
             Err(_) => {}
         }
     }
     load_or_create_temporal_signing_key_file()
+}
+
+// Keep the persistence-result boundary testable without a host OS keyring.
+// On failure, load the existing fallback identity before considering creation;
+// never expose an ephemeral key or suppress a fallback custody error.
+fn temporal_key_after_primary_write(
+    signing_key: SigningKey,
+    persisted: Result<(), keyring::Error>,
+    fallback: impl FnOnce() -> Result<(String, SigningKey), TemporalIntegrityError>,
+) -> Result<(String, SigningKey), TemporalIntegrityError> {
+    match persisted {
+        Ok(()) => Ok((temporal_key_id(&signing_key), signing_key)),
+        Err(_) => fallback(),
+    }
 }
 
 fn temporal_key_id(signing_key: &SigningKey) -> String {
@@ -401,5 +409,50 @@ mod tests {
 
         unsafe { std::env::remove_var("FOCUSA_TEMPORAL_SIGNING_KEY_FILE") };
         let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(test)]
+mod persistence_failure_regression_tests {
+    use super::*;
+
+    #[test]
+    fn primary_and_fallback_failure_never_return_ephemeral_key() {
+        for expected in [
+            TemporalIntegrityError::KeyStoreUnavailable,
+            TemporalIntegrityError::KeyStoreCorrupt,
+        ] {
+            let result = temporal_key_after_primary_write(
+                generate_temporal_signing_key(),
+                Err(keyring::Error::NoEntry),
+                || Err(expected.clone()),
+            );
+            assert_eq!(result.err(), Some(expected));
+        }
+    }
+
+    #[test]
+    fn failed_primary_write_preserves_existing_fallback_identity() {
+        let existing = generate_temporal_signing_key();
+        let expected = temporal_key_id(&existing);
+        let (id, key) = temporal_key_after_primary_write(
+            generate_temporal_signing_key(),
+            Err(keyring::Error::NoEntry),
+            || Ok((expected.clone(), existing)),
+        )
+        .unwrap();
+        assert_eq!(id, expected);
+        assert_eq!(temporal_key_id(&key), expected);
+    }
+
+    #[test]
+    fn successful_primary_write_does_not_invoke_fallback() {
+        let key = generate_temporal_signing_key();
+        let expected = temporal_key_id(&key);
+        let (id, _) = temporal_key_after_primary_write(key, Ok(()), || {
+            panic!("a successful primary write must not change custody")
+        })
+        .unwrap();
+        assert_eq!(id, expected);
     }
 }

@@ -120,3 +120,17 @@ Unicode-directory, missing-directory, and null-path regressions. Linux tests
 do not prove Windows compilation or execution. A corrected candidate requires
 a distinct release identity: never move the v0.9.188 tag or upload patched
 source under its identity. Tracked in issue #583.
+
+## Temporal signing-key persistence failures
+
+A failed OS-keyring write must not expose an ephemeral signing key. The fallback
+load/create result is authoritative: existing fallback keys are reused, and
+`KeyStoreUnavailable` / `KeyStoreCorrupt` errors propagate rather than reporting
+success. Preserve existing key files when diagnosing either error; deleting or
+regenerating a key can break signed-history continuity.
+
+Focused proof: `cargo test --locked -p focusa-core --lib temporal_integrity`.
+Native-keyring dependency placement is checked by
+`python3 tests/598_keyring_platform_manifest_test.py` and the Rust CI job.
+These tests do not establish cross-platform custody, secure file publication,
+or backend-recovery continuity; those require separate acceptance evidence.

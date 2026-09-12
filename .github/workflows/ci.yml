@@ -64,6 +64,8 @@ jobs:
           toolchain: nightly-2026-08-28
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Native keyring platform dependency regression
+        run: python3 tests/598_keyring_platform_manifest_test.py
       - name: Process-health check + unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"
