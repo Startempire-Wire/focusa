@@ -278,11 +278,26 @@ pub fn reconcile_stale_jobs(
                     "[launch_failed:daemon_reconcile] lifecycle owner is missing".to_string();
             }
             BackgroundJobStatus::Running => {
-                record.status = BackgroundJobStatus::MonitorLost;
+                // #432: the row must settle an explicit failed receipt whose
+                // tail is the job's real durable output, not a stranded
+                // nonterminal row with only a generic marker. The monitor's
+                // log survives its death, so read the bounded tail from it;
+                // the child's true exit code is unobtainable once the
+                // lifecycle owner is gone, so the generic monitor_failed
+                // code is retained and the diagnostic marker is appended.
+                let diagnostic_tail = format!(
+                    "[monitor_failed:daemon_reconcile] lifecycle owner is missing"
+                );
+                let real_tail =
+                    crate::background_jobs::bounded_log_tail(&record.log_path, 4096);
+                record.status = BackgroundJobStatus::Failed;
                 record.failure_class = Some(BackgroundJobFailureClass::MonitorFailed);
                 record.exit_code = Some(BackgroundJobFailureClass::MonitorFailed.exit_code());
-                record.output_tail =
-                    "[monitor_failed:daemon_reconcile] lifecycle owner is missing".to_string();
+                record.output_tail = if real_tail.is_empty() {
+                    diagnostic_tail
+                } else {
+                    format!("{real_tail}\n{diagnostic_tail}")
+                };
             }
             _ => continue,
         }
@@ -563,7 +578,10 @@ mod tests {
             Some(BackgroundJobFailureClass::LaunchFailed)
         );
         let running = load_job(&conn, "r1").unwrap().unwrap();
-        assert_eq!(running.status, BackgroundJobStatus::MonitorLost);
+        // #432: a running row whose monitor died settles an explicit failed
+        // receipt (real durable-log tail when available) instead of a
+        // stranded nonterminal row.
+        assert_eq!(running.status, BackgroundJobStatus::Failed);
         assert_eq!(
             running.failure_class,
             Some(BackgroundJobFailureClass::MonitorFailed)

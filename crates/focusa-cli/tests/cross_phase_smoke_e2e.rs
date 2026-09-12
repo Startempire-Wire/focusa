@@ -367,6 +367,112 @@ fn detached_background_job_reuses_one_durable_row() {
 }
 
 #[test]
+fn running_monitor_loss_settles_durable_terminal_receipt() {
+    // #432: when a running job's detached monitor dies, the next CLI surface
+    // must reconcile the durable row to an explicit failed terminal receipt
+    // (bounded diagnostic tail) instead of stranding it nonterminal.
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("repo root");
+    let (_daemon, base_url) = start_isolated_daemon(repo_root);
+    let portable_cwd = std::env::temp_dir().to_string_lossy().into_owned();
+    let name = format!("monitor-loss-e2e-{}", std::process::id());
+    let dispatched = Command::new(FOCUSA_BIN)
+        .args([
+            "bg",
+            "--json",
+            "run",
+            "--detach",
+            "--name",
+            &name,
+            "--cwd",
+            &portable_cwd,
+            "--",
+            "sleep",
+            "8",
+        ])
+        .env("FOCUSA_API_URL", &base_url)
+        .output()
+        .expect("dispatch detached long-running background job");
+    assert!(
+        dispatched.status.success(),
+        "dispatch failed: {}",
+        String::from_utf8_lossy(&dispatched.stderr)
+    );
+    let receipt: serde_json::Value =
+        serde_json::from_slice(&dispatched.stdout).expect("dispatch receipt");
+    let job_id = receipt["job_id"]
+        .as_str()
+        .expect("durable job id")
+        .to_string();
+
+    let status = || {
+        let listed = Command::new(FOCUSA_BIN)
+            .args(["bg", "--json", "list"])
+            .env("FOCUSA_API_URL", &base_url)
+            .output()
+            .expect("list background jobs");
+        let parsed: serde_json::Value = serde_json::from_slice(&listed.stdout).expect("list json");
+        parsed["jobs"]
+            .as_array()
+            .expect("jobs array")
+            .iter()
+            .find(|job| job["job_id"].as_str() == Some(job_id.as_str()))
+            .cloned()
+            .expect("dispatched job row")
+    };
+
+    let mut job = status();
+    assert_eq!(
+        job["status"], "running",
+        "long-running job must reach running"
+    );
+    let monitor_pid = job["pid"].as_u64().expect("bound monitor pid");
+    let killed = Command::new("kill")
+        .args(["-9", &monitor_pid.to_string()])
+        .output()
+        .expect("kill detached monitor");
+    assert!(
+        killed.status.success(),
+        "kill monitor failed: {}",
+        String::from_utf8_lossy(&killed.stderr)
+    );
+
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        job = status();
+        let status = job["status"].as_str().expect("job status");
+        if matches!(status, "completed" | "failed") {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "monitor loss never settled terminal: {job}"
+        );
+        thread::sleep(Duration::from_millis(300));
+    }
+    assert_eq!(
+        job["status"], "failed",
+        "monitor loss must settle failed: {job}"
+    );
+    assert_eq!(job["failure_class"], "monitor_failed");
+    assert!(
+        job["completed_at"].is_string(),
+        "terminal receipt must carry completed_at"
+    );
+    let tail = job["output_tail"].as_str().unwrap_or_default();
+    assert!(
+        tail.contains("daemon_reconcile"),
+        "terminal receipt must carry the bounded diagnostic tail: {tail}"
+    );
+    assert_eq!(
+        job["exit_code"], 125,
+        "monitor-loss settlement uses exit 125"
+    );
+}
+
+#[test]
 fn stale_queued_creator_reconciles_through_normal_completion() {
     let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
