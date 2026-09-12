@@ -479,6 +479,20 @@ impl ActivationAuthority for ActivationHttpClient {
                 context.request_id.clone(),
             )
         })?;
+        // Issue #595 hardening: a non-terminal start without a poll credential
+        // is unresumable. Fail fast here with the typed code instead of
+        // dead-ending after the verification step.
+        if reply.poll_credential.is_none()
+            && !reply
+                .transitions
+                .iter()
+                .any(|transition| transition.label() == "delivered")
+        {
+            return Err(ActivationError::new(
+                ActivationErrorCode::PollCredentialRequired,
+                context.request_id.clone(),
+            ));
+        }
         Ok(ActivationStartReply {
             transitions: reply.transitions,
             poll_credential: reply.poll_credential,
