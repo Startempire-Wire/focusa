@@ -1,8 +1,27 @@
 #!/usr/bin/env node
 // #600 regression: noun-phrase ownership statements must validate; matched
 // pattern surfaced in rejection reasons for deterministic wording adjustment.
-import { strict as assert } from "node:assert";
-import { validateDecision } from "../src/tools.ts";
+// Transpiles the self-contained decision-validation module so the test does
+// not load the full tool graph (background-job-tools.test.mjs pattern).
+import assert from "node:assert/strict";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import ts from "typescript";
+
+const moduleSourcePath = fileURLToPath(new URL("../src/decision-validation.ts", import.meta.url));
+const compiledModulePath = join(tmpdir(), `focusa-decision-validation-${process.pid}.mjs`);
+const compiledModule = ts.transpileModule(readFileSync(moduleSourcePath, "utf8"), {
+  compilerOptions: {
+    module: ts.ModuleKind.ES2022,
+    target: ts.ScriptTarget.ES2022,
+  },
+});
+writeFileSync(compiledModulePath, compiledModule.outputText);
+process.on("exit", () => rmSync(compiledModulePath, { force: true }));
+
+const { validateDecision } = await import(pathToFileURL(compiledModulePath));
 
 const ownership = [
   "Build agents own engineering-stage progression within the authorized outcome; advancing stages never expands authority.",
