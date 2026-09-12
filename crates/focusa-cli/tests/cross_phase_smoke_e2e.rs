@@ -330,6 +330,31 @@ fn detached_background_job_reuses_one_durable_row() {
     assert!(listed.status.success());
     let list_result: serde_json::Value =
         serde_json::from_slice(&listed.stdout).expect("background job list");
+    // Real CLI + real isolated daemon: close the output consumer before spawn,
+    // so both renderers deterministically encounter EPIPE rather than relying
+    // on scheduler timing in a shell `| head` pipeline.
+    #[cfg(unix)]
+    for args in [vec!["bg", "list"], vec!["bg", "--json", "list"]] {
+        use std::os::fd::OwnedFd;
+        use std::os::unix::net::UnixStream;
+        let (consumer, producer) = UnixStream::pair().expect("closed stdout pair");
+        drop(consumer);
+        let producer: OwnedFd = producer.into();
+        let closed = Command::new(FOCUSA_BIN)
+            .args(args)
+            .env("FOCUSA_API_URL", &base_url)
+            .stdout(Stdio::from(producer))
+            .stderr(Stdio::piped())
+            .output()
+            .expect("list with closed stdout");
+        assert!(
+            closed.status.success(),
+            "closed stdout must be clean: {}",
+            String::from_utf8_lossy(&closed.stderr)
+        );
+        assert!(!String::from_utf8_lossy(&closed.stderr).contains("panicked"));
+    }
+
     let direct_job = list_result["jobs"]
         .as_array()
         .unwrap()

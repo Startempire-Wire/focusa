@@ -1,6 +1,9 @@
 //! `focusa bg` — typed background execution with durable completion.
 //! The CLI owns monitoring; the daemon persists and broadcasts transitions.
 
+#[path = "bg_list_output.rs"]
+mod list_output;
+
 use clap::{Args, Subcommand};
 use focusa_core::background_jobs::{BackgroundJobFailureClass, current_process_start_token};
 use serde_json::{Value, json};
@@ -116,21 +119,7 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                     }
                 }
             }
-            if json_mode {
-                println!("{}", serde_json::to_string_pretty(&result)?);
-            } else {
-                for job in result
-                    .get("jobs")
-                    .and_then(|j| j.as_array())
-                    .into_iter()
-                    .flatten()
-                {
-                    let id = job.get("job_id").and_then(|v| v.as_str()).unwrap_or("?");
-                    let name = job.get("name").and_then(|v| v.as_str()).unwrap_or("?");
-                    let status = job.get("status").and_then(|v| v.as_str()).unwrap_or("?");
-                    println!("{id}\t{status}\t{name}");
-                }
-            }
+            list_output::write_list(std::io::stdout().lock(), &result, json_mode)?;
             Ok(())
         }
         BgCmd::Status(args) => {
