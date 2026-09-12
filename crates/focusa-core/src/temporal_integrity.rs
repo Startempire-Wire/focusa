@@ -106,8 +106,7 @@ fn load_or_create_temporal_signing_key_file() -> Result<(String, SigningKey), Te
 {
     let path = temporal_signing_key_file_path();
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+        std::fs::create_dir_all(parent).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
     }
     match std::fs::read_to_string(&path) {
         Ok(encoded) => {
@@ -128,26 +127,21 @@ fn load_or_create_temporal_signing_key_file() -> Result<(String, SigningKey), Te
     }
 }
 
-fn store_temporal_signing_key_file(
-    signing_key: &SigningKey,
-) -> Result<(), TemporalIntegrityError> {
+fn store_temporal_signing_key_file(signing_key: &SigningKey) -> Result<(), TemporalIntegrityError> {
     let path = temporal_signing_key_file_path();
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+        std::fs::create_dir_all(parent).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
     }
     let encoded = STANDARD.encode(signing_key.to_bytes());
     let temp_path = path.with_extension("b64.tmp");
-    std::fs::write(&temp_path, encoded)
-        .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    std::fs::write(&temp_path, encoded).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&temp_path, std::fs::Permissions::from_mode(0o600))
             .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
     }
-    std::fs::rename(&temp_path, &path)
-        .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    std::fs::rename(&temp_path, &path).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
     Ok(())
 }
 
