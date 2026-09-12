@@ -285,11 +285,9 @@ pub fn reconcile_stale_jobs(
                 // the child's true exit code is unobtainable once the
                 // lifecycle owner is gone, so the generic monitor_failed
                 // code is retained and the diagnostic marker is appended.
-                let diagnostic_tail = format!(
-                    "[monitor_failed:daemon_reconcile] lifecycle owner is missing"
-                );
-                let real_tail =
-                    crate::background_jobs::bounded_log_tail(&record.log_path, 4096);
+                let diagnostic_tail =
+                    format!("[monitor_failed:daemon_reconcile] lifecycle owner is missing");
+                let real_tail = crate::background_jobs::bounded_log_tail(&record.log_path, 4096);
                 record.status = BackgroundJobStatus::Failed;
                 record.failure_class = Some(BackgroundJobFailureClass::MonitorFailed);
                 record.exit_code = Some(BackgroundJobFailureClass::MonitorFailed.exit_code());
