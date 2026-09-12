@@ -293,14 +293,14 @@ function mirrorFailedFocusWrite(
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TASK_PATTERNS =
-  /\b(Fix all|Implement|Add|Create|Update|Remove|Check|Verify|Test|Build|Deploy|NEXT:|Signal:)\b/i;
+  /\b(Fix all|Implement|Add|Create|Update|Remove|Check|Verify|Test|Build(?! agents?\b)|Deploy|NEXT:|Signal:)\b/i;
 const DEBUG_PATTERNS =
   /(\bDEBUG\b|\bTODO\b|\bstack trace\b|\berror\b|\bfailed\b|\bcrash\b|\bbroken\b|\bbug\b|\bat line\b|\bTraceback\b)/i;
 const SELF_REF_PATTERNS =
   /\b(I think|I tried|I'm working|I'm doing|working on|trying to|in this session|while I was|I was just)\b/i;
 const MULTI_SENTENCE = /\.\s+\w/;
 
-function validateDecision(decision: string): { valid: boolean; reason?: string } {
+export function validateDecision(decision: string): { valid: boolean; reason?: string } {
   // §AsccSections: decisions = crystallized choices that guide future action.
   // Keep the public validator aligned with pushDelta's canonical Focus State limit.
   if (decision.length > 160) {
@@ -310,11 +310,11 @@ function validateDecision(decision: string): { valid: boolean; reason?: string }
         "Too verbose — distill to ONE crystallized sentence (max 160 chars). Use scratchpad for elaboration.",
     };
   }
-  if (TASK_PATTERNS.test(decision)) {
+  const taskMatch = TASK_PATTERNS.exec(decision);
+  if (taskMatch) {
     return {
       valid: false,
-      reason:
-        "Sounds like a task list — decisions capture ARCHITECTURAL CHOICES, not implementation plans. Write task in scratchpad. Distill the decision.",
+      reason: `Sounds like a task list (matched: ${taskMatch[0]}) — decisions capture ARCHITECTURAL CHOICES, not implementation plans. Write task in scratchpad. Distill the decision.`,
     };
   }
   if (DEBUG_PATTERNS.test(decision)) {
