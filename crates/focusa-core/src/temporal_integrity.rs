@@ -102,8 +102,8 @@ fn temporal_signing_key_file_path() -> std::path::PathBuf {
     base.join("keys").join("temporal-signing-key.b64")
 }
 
-fn load_or_create_temporal_signing_key_file(
-) -> Result<(String, SigningKey), TemporalIntegrityError> {
+fn load_or_create_temporal_signing_key_file() -> Result<(String, SigningKey), TemporalIntegrityError>
+{
     let path = temporal_signing_key_file_path();
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)
