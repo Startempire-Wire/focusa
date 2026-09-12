@@ -2321,12 +2321,19 @@ async fn execute_manifest_bound_apply(
             validate_canary_mutation_target(&root, Path::new(target))?;
         }
     }
+    // Issue #593: the install mode must follow the running executable's
+    // actual surface, not any-part target paths. Auxiliary plan parts
+    // (session_runner, installer) carry canonical /usr/local fallback paths
+    // even on per-user installs, which promoted every macOS user update to
+    // system-install mode and failed the transaction at install.rs.
     let system_install = compatibility_canary_root.is_none()
-        && plan.parts.iter().any(|part| {
-            part.target_path
-                .as_deref()
-                .is_some_and(|path| path.starts_with("/usr/local/"))
-        });
+        && std::env::current_exe()
+            .ok()
+            .map(|exe| {
+                let exe = std::fs::canonicalize(&exe).unwrap_or(exe);
+                running_surface_is_system(&exe)
+            })
+            .unwrap_or(false);
     let mut args = exact_release_install_args(
         &plan.latest.tag,
         &plan.latest.github_repo,
@@ -4341,6 +4348,10 @@ async fn inspect_executable_part(
     })
 }
 
+fn running_surface_is_system(exe: &std::path::Path) -> bool {
+    exe.starts_with("/usr/local/bin/") || exe.starts_with("/usr/local/lib/focusa/")
+}
+
 fn resolve_path(command: &str, canonical: &str) -> Option<String> {
     let override_key = format!(
         "FOCUSA_{}_PATH",
@@ -4555,7 +4566,7 @@ mod tests {
         inspect_package_part, normalize_version, path_is_git_managed,
         pi_extension_package_from_agent_dir, pi_extension_package_from_settings,
         release_binary_asset_name, release_tag_for_version, rollback_promoted_parts,
-        validate_canary_mutation_target,
+        running_surface_is_system, validate_canary_mutation_target,
     };
     #[cfg(target_os = "macos")]
     use super::{restart_daemon_service, stop_daemon_service};
@@ -4947,5 +4958,30 @@ mod version_staleness_tests {
         assert!(version_is_stale("current", "0.9.152"));
         assert!(version_is_stale("0.9.152", "current"));
         assert!(!version_is_stale("current", "current"));
+    }
+
+    #[test]
+    fn running_surface_distinguishes_system_from_user_install() {
+        // Issue #593 regression: user-installed update binaries (~/.focusa,
+        // ~/.local/bin) must never promote to system-install mode, while the
+        // canonical /usr/local surfaces must.
+        assert!(running_surface_is_system(std::path::Path::new(
+            "/usr/local/bin/focusa"
+        )));
+        assert!(running_surface_is_system(std::path::Path::new(
+            "/usr/local/lib/focusa/bin/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "/Users/barry/.focusa/bin/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "/home/lucy/.local/bin/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "/home/dev/target/debug/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "C:\\Users\\lucy\\AppData\\Local\\focusa\\focusa.exe"
+        )));
     }
 }
