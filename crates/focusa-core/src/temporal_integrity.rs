@@ -32,10 +32,7 @@ pub fn load_or_create_temporal_signing_key() -> Result<(String, SigningKey), Tem
     // backends). Headless/container hosts without a usable keystore fall back
     // to a durable 0600 key file under the daemon data directory so Spec 137
     // temporal authority does not fail closed on every headless deployment.
-    let entry = match keyring::Entry::new("focusa-temporal-signing", "host-ed25519") {
-        Ok(entry) => Some(entry),
-        Err(_) => None,
-    };
+    let entry = keyring::Entry::new("focusa-temporal-signing", "host-ed25519").ok();
     if let Some(entry) = entry {
         match entry.get_password() {
             Ok(encoded) => {
