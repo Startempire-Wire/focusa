@@ -1,18 +1,18 @@
 {
   "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
   "baseline_counts": {
-    "covered": 732,
-    "total": 1209,
-    "unmatched": 477
+    "covered": 725,
+    "total": 1175,
+    "unmatched": 450
   },
   "baseline_coverage": "docs/contracts/spec152-entitlement-coverage.v1.json",
-  "coverage_canonical_sha256": "ec271b0583fe7ec06166383b4b0fc16fae10bc68ada6555d0c1b051b9e54aa9f",
+  "coverage_canonical_sha256": "65f2695172e8699aa98f15ec2c0c05d510b28755e359643505c11f37ddd00cde",
   "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
   "policy_file_sha256": "7aa11eae5eb360325b23441f9c67554604d476027a4a343e5d0fb263f4c4df87",
   "resolution_counts": {
-    "base_entitlement_candidate": 200,
-    "inherit_canonical_operation": 209,
-    "premium_family_candidate": 55,
+    "base_entitlement_candidate": 190,
+    "inherit_canonical_operation": 194,
+    "premium_family_candidate": 53,
     "recovery_or_read_allowance": 4,
     "scanner_exclusion_test_only": 9
   },
@@ -23,43 +23,43 @@
     "test-only files are excluded without hiding production entrypoints",
     "recovery read export repair rollback and stable security paths remain available subject to security"
   ],
-  "runtime_file_entries": 48,
-  "runtime_file_entries_after_test_exclusion": 39,
+  "runtime_file_entries": 37,
+  "runtime_file_entries_after_test_exclusion": 28,
   "schema": "focusa.spec152f.surface_reconciliation.v1",
   "shards": {
     "cli": {
       "path": "docs/contracts/spec152f-surface-reconciliation/cli.v1.json",
-      "row_count": 98,
-      "sha256": "9f371abbd7183f7981f8a7e1de1b0bc6dc0af96def1a02c2f31266bc6c1fc9cf"
+      "row_count": 96,
+      "sha256": "1aeccd2c0581d9c1a2939ebbc430e4ffa0d54fe8bd58b7aed62b512d22737981"
     },
     "menubar": {
       "path": "docs/contracts/spec152f-surface-reconciliation/menubar.v1.json",
-      "row_count": 87,
-      "sha256": "a75101db8cc49805e25dfb878cc9969bb594ced10d29cac6387ebd3e3c6359c0"
+      "row_count": 85,
+      "sha256": "8fc51f101a08d187bd4d95fae85484cfea97069904c80226b96dcaf762714170"
     },
     "rest": {
       "path": "docs/contracts/spec152f-surface-reconciliation/rest.v1.json",
-      "row_count": 244,
-      "sha256": "91d9357063fdd561d45778f43dfd6d1f77a5de6bce2bb1d01509734446191ebe"
+      "row_count": 232,
+      "sha256": "90619c14ae83921aa57594c8b61361c037e76603fa481d874e32b0010a96b81c"
     },
     "runtime_files": {
       "path": "docs/contracts/spec152f-surface-reconciliation/runtime_files.v1.json",
-      "row_count": 48,
-      "sha256": "1df0f6da34be9078c58aedac4cddb17bee9b743b9fe2b51ffc0e22913241a8bd"
+      "row_count": 37,
+      "sha256": "fe0b0440fb4603bee8da783ee6c4cb499033890038af912ed07902cc1e97a269"
     }
   },
   "source_digests": {
     "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "325103e2cad44e6278bd312bb19537f6edfd22eb0ec948d7e71715d16295c983",
-    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "ea65c659e4728ac47f036944dc93ddd8c6be2a9022c324193cb45f5c5fdddea3",
-    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "e06685bfab39b9db42bf950ae5bd0413dad19dbc6a2f078d8d265dc1b4733f23"
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "96298159ece65d8f9d0c5f2d35ee3ab91c3858ec3af7cf5d90ed1e04884253b0",
+    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "61dd49eb0cbb814da39a807047b914b5636596a229e81696ae4d0e05f00583ef"
   },
   "surface_counts": {
-    "cli": 98,
+    "cli": 96,
     "export": 5,
-    "menubar": 87,
-    "pi_tool": 17,
+    "menubar": 85,
+    "pi_tool": 6,
     "release": 18,
-    "rest": 244,
+    "rest": 232,
     "scheduler": 2,
     "update": 6
   },

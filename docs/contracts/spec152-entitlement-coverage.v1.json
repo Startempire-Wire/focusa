@@ -1,7 +1,7 @@
 {
   "counts": {
-    "covered": 1200,
-    "total": 1200,
+    "covered": 1166,
+    "total": 1166,
     "unmatched": 0
   },
   "coverage": [
@@ -76,18 +76,6 @@
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
       "symbol_or_route": "Awareness"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "crates/focusa-cli/src/main.rs",
-      "surface": "cli",
-      "symbol_or_route": "Bg"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -868,18 +856,6 @@
       "source": "crates/focusa-cli/src/main.rs",
       "surface": "cli",
       "symbol_or_route": "Skills"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "crates/focusa-cli/src/main.rs",
-      "surface": "cli",
-      "symbol_or_route": "Sms"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1839,7 +1815,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:197"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:174"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1851,7 +1827,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:198"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:175"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1863,7 +1839,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:230"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:207"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1875,7 +1851,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:231"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:208"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1887,7 +1863,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:243"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:220"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1899,7 +1875,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:244"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:221"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1911,7 +1887,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:249"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:226"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1923,7 +1899,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:252"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:229"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1935,7 +1911,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:261"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:238"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1947,7 +1923,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:271"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:266"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -1959,31 +1935,7 @@
       "recovery_allowance": false,
       "source": "apps/menubar/src/lib/components/Settings.svelte",
       "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:277"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "apps/menubar/src/lib/components/Settings.svelte",
-      "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:304"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "apps/menubar/src/lib/components/Settings.svelte",
-      "surface": "menubar",
-      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:308"
+      "symbol_or_route": "apps/menubar/src/lib/components/Settings.svelte:270"
     },
     {
       "feature": "focusa.core.workpoint",
@@ -5490,138 +5442,6 @@
       "symbol_or_route": "focusa_silent_sessions"
     },
     {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_checkpoint"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_enrollment"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_events"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_health"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_otp_challenge"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_otp_inject"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_read_thread"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_revoke"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_search"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_send"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "inherit_canonical_operation",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
-      "surface": "pi_tool",
-      "symbol_or_route": "focusa_sms_threads"
-    },
-    {
       "feature": "focusa.core.evidence",
       "gate_location": "Pi tool preflight",
       "limit_bucket": null,
@@ -7390,104 +7210,6 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/background-jobs/{job_id}/complete"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "read",
-      "pre_side_effect_test": "not_applicable",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/backups.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/backups/generations"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "read",
-      "pre_side_effect_test": "not_applicable",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/backups.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/backups/health"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/backups.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/backups/prune"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/backups.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/backups/restore-drill"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/backups.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/backups/run"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/backups.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/backups/settle-off-host"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/backups.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/backups/verify"
     },
     {
       "feature": null,
@@ -12673,20 +12395,6 @@
       "symbol_or_route": "/v1/session/start"
     },
     {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/shutdown.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/shutdown"
-    },
-    {
       "feature": null,
       "gate_location": null,
       "limit_bucket": null,
@@ -12853,34 +12561,6 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/silent-sessions/{session_id}/adopt"
-    },
-    {
-      "feature": "focusa.agent.silent_sessions",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/silent_sessions.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/silent-sessions/{session_id}/approvals"
-    },
-    {
-      "feature": "focusa.agent.silent_sessions",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/silent_sessions.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/silent-sessions/{session_id}/approvals/preview"
     },
     {
       "feature": null,
@@ -13217,160 +12897,6 @@
       ],
       "surface": "rest",
       "symbol_or_route": "/v1/skills"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/checkpoint"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "read",
-      "pre_side_effect_test": "not_applicable",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/enrollment"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "read",
-      "pre_side_effect_test": "not_applicable",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/events"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "read",
-      "pre_side_effect_test": "not_applicable",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/health"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/otp/challenges"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/otp/inject"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/revoke"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "read",
-      "pre_side_effect_test": "not_applicable",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/search"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/send"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "read",
-      "pre_side_effect_test": "not_applicable",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/threads"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "read",
-      "pre_side_effect_test": "not_applicable",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/sms.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/sms/threads/{thread}/messages"
     },
     {
       "feature": "focusa.core.mission",
@@ -15821,8 +15347,8 @@
   "schema": "focusa.entitlement_coverage.v1",
   "source_digests": {
     "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "325103e2cad44e6278bd312bb19537f6edfd22eb0ec948d7e71715d16295c983",
-    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "ea65c659e4728ac47f036944dc93ddd8c6be2a9022c324193cb45f5c5fdddea3",
-    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "e06685bfab39b9db42bf950ae5bd0413dad19dbc6a2f078d8d265dc1b4733f23"
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "96298159ece65d8f9d0c5f2d35ee3ab91c3858ec3af7cf5d90ed1e04884253b0",
+    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "61dd49eb0cbb814da39a807047b914b5636596a229e81696ae4d0e05f00583ef"
   },
   "unmatched_surfaces": []
 }
