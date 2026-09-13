@@ -219,6 +219,13 @@ function truncateForSummary(s: string, max: number): string {
   return s.slice(0, max - 1) + "…";
 }
 
+function focusaApiV1Base(): string {
+  const configured = String(
+    getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1",
+  ).replace(/\/+$/, "");
+  return configured.endsWith("/v1") ? configured : `${configured}/v1`;
+}
+
 // FOCUSA_FIX-vuop: register a model_select listener that invalidates the
 // session frame on model switch so subsequent Focusa daemon requests use
 // the correct Pi session identity.
@@ -4639,8 +4646,8 @@ pi.registerTool({
     workset_id: Type.String({ description: "Workset id." }),
   }),
   async execute(_id: any, params: any) {
-    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
-    const res = await fetch(`${base}/v1/worksets/${encodeURIComponent(params.workset_id)}/projection`);
+    const base = focusaApiV1Base();
+    const res = await fetch(`${base}/worksets/${encodeURIComponent(params.workset_id)}/projection`);
     const body = await res.json();
     return toolResult(
       res.ok,
@@ -4664,7 +4671,7 @@ pi.registerTool({
   }),
   async execute(_id: any, params: any) {
     const runtime = getAttachmentRuntime();
-    const base = String(runtime?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1").replace(/\/+$/, "");
+    const base = focusaApiV1Base();
     const token = runtime?.cfg?.focusaToken || "";
     const controller = new AbortController();
     const timeout = setTimeout(
@@ -4737,10 +4744,10 @@ pi.registerTool({
     run_id: Type.String({ description: "CallGraph run id." }),
   }),
   async execute(_id: any, params: any) {
-    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const base = focusaApiV1Base();
     const [runRes, pathsRes] = await Promise.all([
-      fetch(`${base}/v1/callgraph-runs/${encodeURIComponent(params.run_id)}`),
-      fetch(`${base}/v1/callgraph-runs/${encodeURIComponent(params.run_id)}/paths`),
+      fetch(`${base}/callgraph-runs/${encodeURIComponent(params.run_id)}`),
+      fetch(`${base}/callgraph-runs/${encodeURIComponent(params.run_id)}/paths`),
     ]);
     const run = await runRes.json();
     const paths = await pathsRes.json();
@@ -4874,7 +4881,7 @@ pi.registerTool({
     policy_max_turns_per_session: Type.Optional(Type.Number({ description: "Per-lane turn cap (default 12)." })),
   }),
   async execute(_id: any, params: any) {
-    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const base = focusaApiV1Base();
     const body: any = {
       multiplier: Number(params.multiplier),
       work_items: params.work_items || [],
@@ -4882,7 +4889,7 @@ pi.registerTool({
     if (params.policy_max_turns_per_session != null) {
       body.policy_max_turns_per_session = Number(params.policy_max_turns_per_session);
     }
-    const res = await fetch(`${base}/v1/silent-sessions/fanout`, {
+    const res = await fetch(`${base}/silent-sessions/fanout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

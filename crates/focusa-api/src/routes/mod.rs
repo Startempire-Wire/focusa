@@ -113,6 +113,7 @@ pub mod silent_sessions_projection;
 pub mod silent_sessions_restart;
 pub mod silent_sessions_retention;
 pub mod silent_sessions_retention_export;
+pub mod silent_sessions_wait;
 pub mod skills;
 pub mod sms;
 pub mod snapshots;
