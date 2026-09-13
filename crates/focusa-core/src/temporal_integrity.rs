@@ -3,6 +3,7 @@ use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use rand_core::{OsRng, RngCore};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::io::Write;
 
 use crate::temporal::{TemporalEvent, temporal_event_digest};
 
@@ -45,6 +46,12 @@ pub fn load_or_create_temporal_signing_key() -> Result<(String, SigningKey), Tem
                 return Ok((temporal_key_id(&signing_key), signing_key));
             }
             Err(keyring::Error::NoEntry) => {
+                if let Some((key_id, signing_key)) = load_temporal_signing_key_file()? {
+                    // The fallback identity remains authoritative during a primary-backend
+                    // outage. Best-effort promotion must never rotate or suppress it.
+                    let _ = entry.set_password(&STANDARD.encode(signing_key.to_bytes()));
+                    return Ok((key_id, signing_key));
+                }
                 let signing_key = generate_temporal_signing_key();
                 let persisted = entry.set_password(&STANDARD.encode(signing_key.to_bytes()));
                 return temporal_key_after_primary_write(
@@ -107,46 +114,107 @@ fn temporal_signing_key_file_path() -> std::path::PathBuf {
     base.join("keys").join("temporal-signing-key.b64")
 }
 
-fn load_or_create_temporal_signing_key_file() -> Result<(String, SigningKey), TemporalIntegrityError>
+fn load_temporal_signing_key_file() -> Result<Option<(String, SigningKey)>, TemporalIntegrityError>
 {
     let path = temporal_signing_key_file_path();
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    let metadata = match std::fs::symlink_metadata(&path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(_) => return Err(TemporalIntegrityError::KeyStoreUnavailable),
+    };
+    if !metadata.file_type().is_file() || metadata.file_type().is_symlink() || metadata.len() > 256
+    {
+        return Err(TemporalIntegrityError::KeyStoreCorrupt);
     }
-    match std::fs::read_to_string(&path) {
-        Ok(encoded) => {
-            let bytes: [u8; 32] = STANDARD
-                .decode(encoded.trim())
-                .ok()
-                .and_then(|bytes| bytes.try_into().ok())
-                .ok_or(TemporalIntegrityError::KeyStoreCorrupt)?;
-            let signing_key = SigningKey::from_bytes(&bytes);
-            Ok((temporal_key_id(&signing_key), signing_key))
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if metadata.permissions().mode() & 0o077 != 0 {
+            return Err(TemporalIntegrityError::KeyStoreUnavailable);
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            let signing_key = generate_temporal_signing_key();
-            store_temporal_signing_key_file(&signing_key)?;
-            Ok((temporal_key_id(&signing_key), signing_key))
-        }
-        Err(_) => Err(TemporalIntegrityError::KeyStoreUnavailable),
     }
+    let encoded =
+        std::fs::read_to_string(&path).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    let bytes: [u8; 32] = STANDARD
+        .decode(encoded.trim())
+        .ok()
+        .and_then(|bytes| bytes.try_into().ok())
+        .ok_or(TemporalIntegrityError::KeyStoreCorrupt)?;
+    let signing_key = SigningKey::from_bytes(&bytes);
+    Ok(Some((temporal_key_id(&signing_key), signing_key)))
+}
+
+fn load_or_create_temporal_signing_key_file() -> Result<(String, SigningKey), TemporalIntegrityError>
+{
+    if let Some(existing) = load_temporal_signing_key_file()? {
+        return Ok(existing);
+    }
+    let signing_key = generate_temporal_signing_key();
+    store_temporal_signing_key_file(&signing_key)?;
+    load_temporal_signing_key_file()?.ok_or(TemporalIntegrityError::KeyStoreUnavailable)
 }
 
 fn store_temporal_signing_key_file(signing_key: &SigningKey) -> Result<(), TemporalIntegrityError> {
     let path = temporal_signing_key_file_path();
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    let parent = path
+        .parent()
+        .ok_or(TemporalIntegrityError::KeyStoreUnavailable)?;
+    std::fs::create_dir_all(parent).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    let parent_metadata = std::fs::symlink_metadata(parent)
+        .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    if !parent_metadata.file_type().is_dir() || parent_metadata.file_type().is_symlink() {
+        return Err(TemporalIntegrityError::KeyStoreUnavailable);
     }
+
     let encoded = STANDARD.encode(signing_key.to_bytes());
-    let temp_path = path.with_extension("b64.tmp");
-    std::fs::write(&temp_path, encoded).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&temp_path, std::fs::Permissions::from_mode(0o600))
-            .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    let mut random = OsRng;
+    let mut staged = None;
+    for _ in 0..8 {
+        let candidate = parent.join(format!(
+            ".temporal-signing-key.{}.{}.tmp",
+            std::process::id(),
+            random.next_u64()
+        ));
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        match options.open(&candidate) {
+            Ok(file) => {
+                staged = Some((candidate, file));
+                break;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(_) => return Err(TemporalIntegrityError::KeyStoreUnavailable),
+        }
     }
-    std::fs::rename(&temp_path, &path).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    let (temp_path, mut temp_file) = staged.ok_or(TemporalIntegrityError::KeyStoreUnavailable)?;
+    if temp_file
+        .write_all(encoded.as_bytes())
+        .and_then(|_| temp_file.sync_all())
+        .is_err()
+    {
+        let _ = std::fs::remove_file(&temp_path);
+        return Err(TemporalIntegrityError::KeyStoreUnavailable);
+    }
+    drop(temp_file);
+
+    match std::fs::hard_link(&temp_path, &path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+        Err(_) => {
+            let _ = std::fs::remove_file(&temp_path);
+            return Err(TemporalIntegrityError::KeyStoreUnavailable);
+        }
+    }
+    std::fs::remove_file(&temp_path).map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
+    #[cfg(unix)]
+    std::fs::File::open(parent)
+        .and_then(|directory| directory.sync_all())
+        .map_err(|_| TemporalIntegrityError::KeyStoreUnavailable)?;
     Ok(())
 }
 
@@ -390,11 +458,41 @@ mod tests {
         let second = load_or_create_temporal_signing_key_file().expect("file keystore reload");
         assert_eq!(first.0, second.0, "key must be durable across calls");
 
+        std::fs::remove_file(&key_path).unwrap();
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(8));
+        let workers = (0..8)
+            .map(|_| {
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    load_or_create_temporal_signing_key_file().expect("concurrent create")
+                })
+            })
+            .collect::<Vec<_>>();
+        let mut concurrent_ids = workers
+            .into_iter()
+            .map(|worker| worker.join().unwrap().0)
+            .collect::<Vec<_>>();
+        concurrent_ids.sort();
+        concurrent_ids.dedup();
+        assert_eq!(
+            concurrent_ids.len(),
+            1,
+            "concurrent creation must publish one identity"
+        );
+
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             let mode = std::fs::metadata(&key_path).unwrap().permissions().mode();
             assert_eq!(mode & 0o777, 0o600, "key file must be owner-only");
+            std::fs::set_permissions(&key_path, std::fs::Permissions::from_mode(0o644)).unwrap();
+            assert_eq!(
+                load_or_create_temporal_signing_key_file().err(),
+                Some(TemporalIntegrityError::KeyStoreUnavailable),
+                "overbroad existing-file permissions must fail closed"
+            );
+            std::fs::set_permissions(&key_path, std::fs::Permissions::from_mode(0o600)).unwrap();
         }
 
         std::fs::write(&key_path, "not-base64!!").unwrap();
