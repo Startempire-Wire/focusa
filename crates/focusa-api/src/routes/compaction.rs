@@ -1123,13 +1123,15 @@ mod tests {
         state.trajectory.active_trajectory_id = Some(trajectory.trajectory_id.clone());
         state.trajectory.records.push(trajectory);
 
-        let mut workpoint = focusa_core::types::WorkpointRecord::default();
-        workpoint.project_root = Some("/tmp/project-a".into());
-        workpoint.continuity_id = Some("continuity-a".into());
-        workpoint.canonical = true;
-        workpoint.status = WorkpointStatus::Active;
-        workpoint.mission = Some("FOREIGN WORKPOINT MISSION".into());
-        workpoint.next_slice = Some("FOREIGN NEXT SLICE".into());
+        let workpoint = focusa_core::types::WorkpointRecord {
+            project_root: Some("/tmp/project-a".into()),
+            continuity_id: Some("continuity-a".into()),
+            canonical: true,
+            status: WorkpointStatus::Active,
+            mission: Some("FOREIGN WORKPOINT MISSION".into()),
+            next_slice: Some("FOREIGN NEXT SLICE".into()),
+            ..Default::default()
+        };
         state.workpoint.active_workpoint_id = Some(workpoint.workpoint_id);
         state.workpoint.records.push(workpoint);
 
