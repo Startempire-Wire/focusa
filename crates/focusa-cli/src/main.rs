@@ -242,6 +242,9 @@ enum Commands {
     /// Remote workspace binding lifecycle operations.
     Remote(commands::remote::RemoteArgs),
 
+    /// Infrastructure inventory operations.
+    Infra(commands::infra::InfraArgs),
+
     /// CallGraph export projections.
     Callgraph(commands::callgraph::CallgraphArgs),
 
@@ -1157,6 +1160,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Workset(args) => commands::workset::run(args.cmd, cli.json).await,
         Commands::Workstream(args) => commands::workstream::run(args.cmd, cli.json).await,
         Commands::Remote(args) => commands::remote::run(args.cmd, cli.json).await,
+        Commands::Infra(args) => commands::infra::run(args.cmd, cli.json).await,
         Commands::Callgraph(args) => commands::callgraph::run(args.cmd, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Init(args) => commands::init::run(args, cli.json).await,

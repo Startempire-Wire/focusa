@@ -37,6 +37,7 @@ pub mod focus;
 pub mod gate;
 pub mod help;
 pub mod hlt;
+pub mod infra;
 pub mod init;
 pub mod install;
 pub mod intro;

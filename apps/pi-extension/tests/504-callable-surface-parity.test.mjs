@@ -12,13 +12,25 @@ test("silent completion routes are compiled and mounted", () => {
   assert.match(server, /\.merge\(routes::silent_sessions_wait::router\(\)\)/);
 });
 
-test("orphan Workset, Workstream, Remote, and CallGraph CLI modules are callable", () => {
+test("accepted orphan CLI modules are callable", () => {
   const modules = read("crates/focusa-cli/src/commands/mod.rs");
   const main = read("crates/focusa-cli/src/main.rs");
-  for (const moduleName of ["workset", "workstream", "remote", "callgraph"]) {
+  for (const moduleName of [
+    "workset",
+    "workstream",
+    "remote",
+    "infra",
+    "callgraph",
+  ]) {
     assert.match(modules, new RegExp(`pub mod ${moduleName};`));
   }
-  for (const variant of ["Workset", "Workstream", "Remote", "Callgraph"]) {
+  for (const variant of [
+    "Workset",
+    "Workstream",
+    "Remote",
+    "Infra",
+    "Callgraph",
+  ]) {
     assert.match(main, new RegExp(`Commands::${variant}\\(args\\) =>`));
   }
 });
