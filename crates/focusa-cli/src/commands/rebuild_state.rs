@@ -23,9 +23,17 @@ pub struct RebuildStateArgs {
     /// Dry run: rebuild but do not write.
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
+    /// Confirm replacement of the live snapshots row.
+    #[arg(long, default_value_t = false)]
+    pub confirm: bool,
 }
 
 pub async fn run(args: RebuildStateArgs, json_mode: bool) -> anyhow::Result<()> {
+    if !args.dry_run && !args.confirm {
+        anyhow::bail!(
+            "rebuild-state writes the live snapshots row; pass --confirm or use --dry-run"
+        );
+    }
     let snapshot_json: String = {
         let conn = rusqlite::Connection::open(&args.snapshot_db)?;
         conn.query_row(
@@ -59,6 +67,7 @@ pub async fn run(args: RebuildStateArgs, json_mode: bool) -> anyhow::Result<()> 
             Ok(EventLogEntry {
                 id: uuid::Uuid::parse_str(&id_raw).unwrap_or(uuid::Uuid::nil()),
                 timestamp: row.get(1)?,
+                temporal: Default::default(),
                 origin,
                 correlation_id: row.get(3)?,
                 event: serde_json::from_str::<focusa_core::types::FocusaEvent>(

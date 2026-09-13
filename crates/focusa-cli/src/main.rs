@@ -245,6 +245,9 @@ enum Commands {
     /// Infrastructure inventory operations.
     Infra(commands::infra::InfraArgs),
 
+    /// Rebuild daemon projection state from durable ledgers.
+    RebuildState(commands::rebuild_state::RebuildStateArgs),
+
     /// CallGraph export projections.
     Callgraph(commands::callgraph::CallgraphArgs),
 
@@ -1161,6 +1164,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Workstream(args) => commands::workstream::run(args.cmd, cli.json).await,
         Commands::Remote(args) => commands::remote::run(args.cmd, cli.json).await,
         Commands::Infra(args) => commands::infra::run(args.cmd, cli.json).await,
+        Commands::RebuildState(args) => commands::rebuild_state::run(args, cli.json).await,
         Commands::Callgraph(args) => commands::callgraph::run(args.cmd, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Init(args) => commands::init::run(args, cli.json).await,

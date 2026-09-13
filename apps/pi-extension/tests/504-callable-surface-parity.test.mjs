@@ -20,6 +20,7 @@ test("accepted orphan CLI modules are callable", () => {
     "workstream",
     "remote",
     "infra",
+    "rebuild_state",
     "callgraph",
   ]) {
     assert.match(modules, new RegExp(`pub mod ${moduleName};`));
@@ -29,10 +30,14 @@ test("accepted orphan CLI modules are callable", () => {
     "Workstream",
     "Remote",
     "Infra",
+    "RebuildState",
     "Callgraph",
   ]) {
     assert.match(main, new RegExp(`Commands::${variant}\\(args\\) =>`));
   }
+  const rebuildState = read("crates/focusa-cli/src/commands/rebuild_state.rs");
+  assert.match(rebuildState, /if !args\.dry_run && !args\.confirm/);
+  assert.match(rebuildState, /pass --confirm or use --dry-run/);
 });
 
 test("direct Pi callers normalize to exactly one v1 path segment", () => {

@@ -60,6 +60,7 @@ pub mod predict;
 pub mod preload;
 pub mod project;
 pub mod proposals;
+pub mod rebuild_state;
 pub mod recover;
 pub mod reflection;
 pub mod release;
