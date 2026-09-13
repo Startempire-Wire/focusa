@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:d6a5da4f698ad023d0e2088d707101828e60dc5f51c1dae5e2f065831e53eee8`
+Registry digest: `sha256:ec9775458f22ba12fee89dbc180ded2497e9e7fa5ca2ebf6c2c545e8352c8d5a`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -379,7 +379,7 @@ Record an operator-originated canonical instruction amendment proposal without a
 
 ## focusa_cockpit_projection
 
-Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Read a bounded project cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation. Use it when Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.cockpit.projection`
 - Family: `cockpit`

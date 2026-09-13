@@ -4812,7 +4812,7 @@ pi.registerTool({
   name: "focusa_cockpit_projection",
   label: "Focusa Cockpit Projection",
   description:
-    "Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view.",
+    "Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation.",
   promptSnippet: "One read = worksets + callgraph frontier + steers + bg board.",
   parameters: Type.Object({
     project_root: Type.Optional(Type.String({ description: "Project root scope (defaults to the session cwd)." })),
@@ -4821,19 +4821,27 @@ pi.registerTool({
     const runtime = getAttachmentRuntime();
     const projectRoot = params.project_root || runtime?.sessionCwd || process.cwd();
     const res = await focusaFetchDetailed("/cockpit/projection");
-    if (!res.ok) {
+    const data = res.body;
+    if (!res.ok || data?.status !== "ok") {
+      const diagnostic = scopedResponseHuman(data, `HTTP ${res.status}`);
       return toolResult(
         false,
-        res.body?.status || "blocked",
-        `Cockpit projection failed: ${res.body?.summary || res.status}`,
-        res.body
+        "blocked",
+        `Cockpit projection failed (HTTP ${res.status}): ${diagnostic}${res.status === 404 ? "; installed route unavailable—verify installed revision and supported capabilities before retrying" : ""}`,
+        { response: data, http_status: res.status, failure_class: scopedResponseFailureClass(res, data) }
       );
     }
-    const data = res.body || {};
-    const worksets = data.worksets || [];
-    const runs = data.callgraph || [];
-    const steers = data.steers || [];
-    const bg = data.background || {};
+    if (!Array.isArray(data.worksets) || !Array.isArray(data.callgraph) ||
+        !Array.isArray(data.steers) || !Array.isArray(data.background?.jobs) ||
+        !Number.isInteger(data.background?.active) || data.background.active < 0) {
+      return toolResult(false, "blocked", "Cockpit projection incomplete: required board data is missing or invalid; no empty or settled state inferred.", {
+        http_status: res.status, failure_class: "invalid_projection_response",
+      });
+    }
+    const worksets = data.worksets;
+    const runs = data.callgraph;
+    const steers = data.steers;
+    const bg = data.background;
     return toolResult(
       true,
       "ok",

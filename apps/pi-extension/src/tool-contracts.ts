@@ -1286,7 +1286,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_cockpit_projection",
     label: "Cockpit Projection",
     purpose:
-      "Read a bounded project cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs.",
+      "Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work.",
     family: "cockpit",
     ontology_action: "cockpit.projection",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
