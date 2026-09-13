@@ -40,5 +40,12 @@ detachment.
 ## Recovery
 
 Monitor-lost jobs are detected by `bg status` (pid liveness) and marked
-`monitor_lost`. `focusa rebuild-state` recovers canonical state from the
-event chain when a snapshot is unavailable.
+`monitor_lost`. `focusa rebuild-state` replays newer events onto an explicitly
+supplied older snapshot. It requires existing input databases and exactly one
+existing `focusa` target snapshot; it does not initialize missing state.
+Use `--dry-run` to inspect replay without database writes. Replacement requires
+`--confirm`. A rejected replay event aborts without writing; a missing or
+ambiguous target snapshot fails and rolls back rather than reporting success.
+These checks are not proof of concurrent-writer safety: use only the approved
+offline recovery procedure with preserved backups, never production snapshots
+as test fixtures.
