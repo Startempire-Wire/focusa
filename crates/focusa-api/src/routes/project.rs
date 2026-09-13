@@ -1804,23 +1804,18 @@ fn discover_identity(
     if let Some(raw_fingerprint) = remote_hint.persisted_project_fingerprint.as_ref() {
         if let Some(persisted_fingerprint) = clean(Some(raw_fingerprint.as_str())) {
             if persisted_fingerprint != fingerprint {
-                if remote_hint.is_present() && persisted_fingerprint == legacy_path_fingerprint {
-                    mismatches.push(json!({
-                        "source": "persisted_session_identity_fingerprint",
-                        "expected": fingerprint.clone(),
-                        "actual": persisted_fingerprint,
-                        "severity": "warning",
-                        "advisory": true,
-                        "migration": "legacy_path_fingerprint_to_remote_locator_v1"
-                    }));
-                } else {
-                    mismatches.push(json!({
-                        "source": "persisted_session_identity_fingerprint",
-                        "expected": fingerprint.clone(),
-                        "actual": persisted_fingerprint,
-                        "severity": "high",
-                    }));
-                }
+                mismatches.push(json!({
+                    "source": "persisted_session_identity_fingerprint",
+                    "expected": fingerprint.clone(),
+                    "actual": persisted_fingerprint,
+                    "severity": "warning",
+                    "advisory": true,
+                    "migration": if remote_hint.is_present() && persisted_fingerprint == legacy_path_fingerprint {
+                        "legacy_path_fingerprint_to_remote_locator_v1"
+                    } else {
+                        "refresh_persisted_fingerprint_from_verified_identity"
+                    }
+                }));
             }
         }
     }
@@ -5740,6 +5735,65 @@ mod tests {
                     .iter()
                     .any(|item| item.get("source").and_then(Value::as_str)
                         == Some("persisted_session_identity_fingerprint")))
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn stale_persisted_fingerprint_is_advisory_when_verified_identity_agrees() {
+        let root = temp_project("persisted-fingerprint-drift");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join(".git/config"), "").unwrap();
+        fs::create_dir_all(root.join(".beads")).unwrap();
+        fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
+        let baseline = project_identity_payload_for_scope_with_remote(
+            root.to_str(),
+            None,
+            None,
+            RemoteProjectHint::default(),
+            None,
+        );
+        let payload = project_identity_payload_for_scope_with_remote(
+            root.to_str(),
+            None,
+            None,
+            RemoteProjectHint {
+                persisted_project_root: Some(root.to_string_lossy().into_owned()),
+                persisted_project_fingerprint: Some("project-fnv1a64:deadbeefdeadbeef".to_string()),
+                ..RemoteProjectHint::default()
+            },
+            None,
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/status")
+                .and_then(Value::as_str),
+            baseline
+                .pointer("/project_identity/status")
+                .and_then(Value::as_str),
+            "fingerprint drift must not downgrade otherwise identical identity evidence"
+        );
+        assert_eq!(
+            payload.get("canonical").and_then(Value::as_bool),
+            baseline.get("canonical").and_then(Value::as_bool)
+        );
+        let mismatch = payload
+            .pointer("/project_identity/mismatches")
+            .and_then(Value::as_array)
+            .and_then(|items| {
+                items.iter().find(|item| {
+                    item.get("source").and_then(Value::as_str)
+                        == Some("persisted_session_identity_fingerprint")
+                })
+            })
+            .expect("advisory fingerprint refresh record");
+        assert_eq!(
+            mismatch.get("severity").and_then(Value::as_str),
+            Some("warning")
+        );
+        assert_eq!(
+            mismatch.get("advisory").and_then(Value::as_bool),
+            Some(true)
         );
         let _ = fs::remove_dir_all(root);
     }
