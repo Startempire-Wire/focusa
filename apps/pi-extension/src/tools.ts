@@ -3388,6 +3388,24 @@ pi.registerTool({
     return parts.length > 0 ? parts.join(",") : "empty";
   }
 
+  function formatWorkLoopScope(value: any): string {
+    if (!value || typeof value !== "object") return String(value || "unknown");
+    const root = value.root_scope?.root_path || value.project_root;
+    const continuity = value.continuity_id;
+    const subpath = value.working_subpath_id;
+    const fields = [
+      root ? `project_root=${String(root)}` : "",
+      continuity ? `continuity_id=${String(continuity)}` : "",
+      subpath ? `working_subpath_id=${String(subpath)}` : "",
+    ].filter(Boolean);
+    if (fields.length > 0) return fields.join(",");
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "unknown";
+    }
+  }
+
   function explainWorkLoopResult(
     result: { ok: boolean; status: number; body: any | null },
     fallback: string
@@ -3413,17 +3431,24 @@ pi.registerTool({
       result.body?.status === "rejected_scope_mismatch" ||
       result.status === 409
     ) {
-      const field = String(result.body?.field || "scope");
-      const expected = String(
-        result.body?.expected_project_root || result.body?.expected_continuity_id || "unknown"
+      const field = String(result.body?.field || "workstream_scope");
+      const active = formatWorkLoopScope(
+        result.body?.active_execution_scope ||
+          result.body?.expected_scope ||
+          result.body?.expected_project_root ||
+          result.body?.expected_continuity_id
       );
-      const actual = String(
-        result.body?.packet_project_root || result.body?.packet_continuity_id || "unknown"
+      const requested = formatWorkLoopScope(
+        result.body?.requested_scope ||
+          result.body?.packet_scope ||
+          result.body?.packet_project_root ||
+          result.body?.packet_continuity_id
       );
       const hint = String(
-        result.body?.next_step_hint || "resume/checkpoint the Workpoint in the same scope before retrying"
+        result.body?.next_step_hint ||
+          "inspect writer ownership, then explicitly stop or rebind the active Work Loop before retrying mutations"
       );
-      return `blocked: scope mismatch on ${field} expected=${expected} packet=${actual}; ${hint}`;
+      return `blocked: scope mismatch on ${field} active={${active}} requested={${requested}}; ${hint}`;
     }
     if (result.status === 0) return "blocked: daemon unavailable";
     // #266: daemon envelopes may carry error as an object {code, message};
