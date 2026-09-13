@@ -975,6 +975,8 @@ mod tests {
         let mut state = FocusaState::new();
         state.trajectory.records.push(TrajectoryProjectionRecord {
             trajectory_id: "generic".into(),
+            project_root: Some("/tmp/safe-project".into()),
+            continuity_id: Some("generic-test".into()),
             long_term_goal: "Maintain project".into(),
             desired_end_state: "Done".into(),
             hlt_status: HltStatus::GenericDegraded,
@@ -986,7 +988,7 @@ mod tests {
             &BuildCompactionPacketRequest {
                 resume_source: None,
                 project_root: Some("/tmp/safe-project".into()),
-                continuity_id: None,
+                continuity_id: Some("generic-test".into()),
                 session_id: None,
                 current_ask: None,
                 ask_kind: None,
