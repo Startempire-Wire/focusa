@@ -2381,7 +2381,7 @@
     {
       "name": "focusa_workset_projection",
       "label": "Workset Projection",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger.",
       "family": "workset",
       "ontology_action": "workset.projection",
       "ontology_objects": [
@@ -2447,7 +2447,7 @@
     {
       "name": "focusa_callgraph_observe",
       "label": "CallGraph Observe",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation.",
       "family": "callgraph",
       "ontology_action": "callgraph.observe",
       "ontology_objects": [
@@ -2480,7 +2480,7 @@
     {
       "name": "focusa_credentials_verify",
       "label": "Credentials Verify",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values.",
       "family": "credential",
       "ontology_action": "credential.verify",
       "ontology_objects": [
@@ -2513,7 +2513,7 @@
     {
       "name": "focusa_cockpit_projection",
       "label": "Cockpit Projection",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Read a bounded project cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs.",
       "family": "cockpit",
       "ontology_action": "cockpit.projection",
       "ontology_objects": [
@@ -2646,7 +2646,7 @@
     {
       "name": "focusa_fast_forward",
       "label": "Fast Forward",
-      "purpose": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "purpose": "Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes.",
       "family": "session_fanout",
       "ontology_action": "session.fanout",
       "ontology_objects": [

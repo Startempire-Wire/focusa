@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:78e4a214223840b95637a62e869e73fd8d99115cfaba007145d5035cc924878b`
+Registry digest: `sha256:a1b6116f070545af2ed94df52d1ae9ff51ff69d5f41a0df60d1e8a35a385b705`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -335,7 +335,7 @@ Verify a Call Stack Design against bounded implementation surfaces and report dr
 
 ## focusa_callgraph_observe
 
-Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.callgraph.observe`
 - Family: `callgraph`
@@ -379,7 +379,7 @@ Record an operator-originated canonical instruction amendment proposal without a
 
 ## focusa_cockpit_projection
 
-Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Read a bounded project cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.cockpit.projection`
 - Family: `cockpit`
@@ -478,7 +478,7 @@ Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menub
 
 ## focusa_credentials_verify
 
-Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.credentials.verify`
 - Family: `credential`
@@ -665,7 +665,7 @@ Record a specific failure with diagnosis in Focus State. Must identify WHAT fail
 
 ## focusa_fast_forward
 
-Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.fast.forward`
 - Family: `session_fanout`
@@ -1732,7 +1732,7 @@ Fetch the active Focusa WorkpointResumePacket after compaction, resume, context 
 
 ## focusa_workset_projection
 
-Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.workset.projection`
 - Family: `workset`

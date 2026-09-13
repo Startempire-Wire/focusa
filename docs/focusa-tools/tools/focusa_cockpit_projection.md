@@ -1,10 +1,10 @@
 # `focusa_cockpit_projection`
 
-Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Read a bounded project cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Read a bounded project cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs.
 - Capability family: `cockpit`; namespace: `focusa.cockpit`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -72,4 +72,4 @@ Likely next: `focusa_workset_projection`, `focusa_bg_status`.
 - CLI: none.
 - REST: `/v1/cockpit/projection `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:4e37245b027360e92c155738f725a535d8159c86c62bd732902d1f835081554c`.
+- Descriptor digest: `sha256:2ae40506231efc18d69e06f16f5e82a8845214821e1bd997182cbfce9cdf1b60`.

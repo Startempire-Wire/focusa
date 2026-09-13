@@ -1,10 +1,10 @@
 # `focusa_workset_projection`
 
-Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger.
 - Capability family: `workset`; namespace: `focusa.workset`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -74,4 +74,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_callgraph_validate`.
 - CLI: none.
 - REST: `/v1/worksets `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:d5350211c874cf4ebd08b6b589633dbe53e70b29b5bab857db7aec93e996aa4c`.
+- Descriptor digest: `sha256:e13ac141b494b9abc3728f991f68943eff0c7c5d33f4007c0d84aa00755e6a73`.

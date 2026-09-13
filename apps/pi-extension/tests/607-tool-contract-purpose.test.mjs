@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const contracts = readFileSync(new URL("../src/tool-contracts.ts", import.meta.url), "utf8");
+const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
+const contracts = read("../src/tool-contracts.ts");
+const registry = JSON.parse(read("../../../docs/current/focusa-tool-contracts.json"));
+const generatedReference = read(
+  "../../../docs/contracts/spec141/generated-capability-v2/agent-capability-reference.md",
+);
 const scratchPurpose = "Write working notes to /tmp/pi-scratch/";
 
 assert.equal(
@@ -29,6 +34,21 @@ for (const [name, purposePattern] of [
   const block = contracts.slice(start, next === -1 ? contracts.length : next);
   assert.match(block, purposePattern, `${name} must describe its own capability`);
   assert.doesNotMatch(block, /pi-scratch|Scratchpad/, `${name} must not inherit Scratchpad guidance`);
+
+  const registryContract = registry.contracts.find((item) => item.name === name);
+  assert.ok(registryContract, `missing canonical JSON contract for ${name}`);
+  assert.match(registryContract.purpose, purposePattern);
+  assert.doesNotMatch(registryContract.purpose, /pi-scratch|Scratchpad/);
+
+  const heading = generatedReference.indexOf(`## ${name}`);
+  assert.notEqual(heading, -1, `missing generated Markdown for ${name}`);
+  const nextHeading = generatedReference.indexOf("\n## ", heading + 1);
+  const generatedBlock = generatedReference.slice(
+    heading,
+    nextHeading === -1 ? generatedReference.length : nextHeading,
+  );
+  assert.match(generatedBlock, purposePattern);
+  assert.doesNotMatch(generatedBlock, /pi-scratch|Scratchpad/);
 }
 
-console.log("Issue #607 tool-contract purpose isolation passed");
+console.log("Issue #607 source, canonical registry, and generated-doc purpose isolation passed");

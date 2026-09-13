@@ -1,10 +1,10 @@
 # `focusa_callgraph_observe`
 
-Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation.
 - Capability family: `callgraph`; namespace: `focusa.callgraph`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -74,4 +74,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`.
 - CLI: none.
 - REST: `/v1/callgraph-runs/{run_id}/frontier `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:532febcbb0a88c75d7fe4b831066fea5f04809840310b905c94a0df9a3807d31`.
+- Descriptor digest: `sha256:0b0a50d4611a71be0d1e4f562581ecc75d0d93b43e3205244233e14f35f3afa8`.

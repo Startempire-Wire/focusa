@@ -1,10 +1,10 @@
 # `focusa_credentials_verify`
 
-Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values.
 - Capability family: `credential`; namespace: `focusa.credential`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -85,4 +85,4 @@ Likely next: `focusa_credentials_verify`, `focusa_tool_doctor`.
 - CLI: none.
 - REST: `/v1/credentials/verify-requirement `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:34d363b87644a57983a035075cf6d6aaa76f47cb9895c238fa64870e4c888e48`.
+- Descriptor digest: `sha256:8be9fb06055bcd5a17a32f65bd02fcbcda75893439e6be47cac9368703898770`.
