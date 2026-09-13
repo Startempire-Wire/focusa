@@ -5,7 +5,7 @@
 //! redacted provider descriptors. The provider adapter seam consumes
 //! these verdicts before any use.
 
-use axum::Json;
+use axum::{Json, http::StatusCode};
 use focusa_core::credential_authority::{
     CredentialRequirement, CredentialUseGrant, grant_state, verify_requirement,
 };
@@ -50,14 +50,19 @@ pub async fn grant_status(Json(body): Json<GrantStateBody>) -> Json<Value> {
     }))
 }
 
-pub async fn providers() -> Json<Value> {
-    // The provider adapter seam registers descriptors through the ledger;
-    // this projection lists the redaction-guarded model shapes only.
-    Json(json!({
-        "status": "ok",
-        "providers": [],
-        "note": "provider registry is ledger-backed; descriptors are registered by the adapter seam",
-    }))
+/// Provider enrollment/custody is not implemented by the pure-verdict routes.
+/// Return an explicit unsupported operation, not a successful empty registry.
+pub async fn providers() -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::NOT_IMPLEMENTED,
+        Json(json!({
+            "status": "unsupported",
+            "code": "credential_provider_registry_not_implemented",
+            "providers": [],
+            "note": "provider registry is not wired; pure requirement verification does not establish provider fulfillment",
+            "owner_issue": "https://github.com/Startempire-Wire/focusa/issues/526",
+        })),
+    )
 }
 
 pub fn router<S>() -> axum::Router<S>
@@ -84,8 +89,25 @@ mod tests {
     use tower::ServiceExt;
 
     #[tokio::test]
-    async fn verify_route_returns_typed_denial_instead_of_not_found() {
+    async fn unavailable_provider_registry_preserves_pure_verification() {
         let app: axum::Router = router();
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/v1/credentials/providers")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
+        let bytes = to_bytes(response.into_body(), 4096).await.unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["status"], "unsupported");
+        assert_eq!(body["code"], "credential_provider_registry_not_implemented");
+        assert_eq!(body["providers"], json!([]));
+        assert!(!body["note"].as_str().unwrap().contains("ledger-backed"));
         let request = Request::builder()
             .method("POST")
             .uri("/v1/credentials/verify-requirement")
