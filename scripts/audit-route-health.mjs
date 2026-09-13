@@ -34,6 +34,8 @@ const main = async () => {
     "/runtime-constitution", "/background-jobs", "/adapters",
     "/worksets", "/direction/operations", "/work-items/providers",
     "/silent-sessions", "/silent-sessions/capabilities",
+    "/silent-sessions/completions?since_seq=0&limit=1",
+    "/silent-sessions/wait?session_id=route-health-probe&since_seq=0&timeout_ms=100",
     "/metacognition/status", "/work-loop/status?summary_only=true",
     "/workpoint/current", "/trajectory/view", "/project/list",
   ];
@@ -47,6 +49,7 @@ const main = async () => {
   await probe("POST", "/silent-sessions/fanout", {
     work_items: ["a", "b"], multiplier: 2,
   });
+  await probe("POST", "/silent-sessions/sweep-completions", {});
   await probe("POST", "/predictions", {
     scope: {
       root_scope: { scope_kind: "project", scope_id: "focusa", root_path: "/srv/focusa", canonical_name: "focusa", fingerprint: "probe" },
