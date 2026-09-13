@@ -20,19 +20,31 @@ def without_inline_test_modules(body: str) -> str:
 
     Mask Rust strings/chars/comments only for delimiter discovery. Route literals
     outside test modules remain intact for this inventory's existing parser.
+    Unterminated literal/comment boundaries fail closed; lifetimes stay code.
     This is not a general Rust cfg evaluator or proof of HTTP registration.
     """
     tokens = re.compile(
         r'(?:br|r)(?P<hashes>\#{0,255})".*?"(?P=hashes)'
         r'|b?"(?:\\.|[^"\\])*"'
         r"|b?'(?:\\(?:u\{[0-9a-fA-F_]+\}|x[0-9a-fA-F]{2}|.)|[^'\\\n])'"
-        r'|//[^\n]*|/\*', re.S,
+        r'|//[^\n]*|/\*'
+        r'|(?P<unterminated>(?:br|r)\#{0,255}"|b?"|b\')'
+        r"|(?P<apostrophe>')", re.S,
     )
     masked = list(body)
     delimiters = re.compile(r'/\*|\*/')
     cursor = 0
     while match := tokens.search(body, cursor):
         end = match.end()
+        if match.group('unterminated') is not None:
+            raise ValueError("unterminated Rust string or character literal")
+        if match.group('apostrophe') is not None:
+            # A complete character was consumed above. An identifier after an
+            # apostrophe can instead begin a lifetime or loop label.
+            if end < len(body) and body[end].isidentifier():
+                cursor = end
+                continue
+            raise ValueError("unterminated Rust character literal")
         if match.group() == "/*":
             depth = 1
             while depth:
@@ -72,7 +84,7 @@ def main() -> int:
     paths: dict[str, set[str]] = {}
     methods: dict[str, set[str]] = {}
     for source in source_files:
-        body = without_inline_test_modules(source.read_text(errors="strict"))
+        body = without_inline_test_modules(source.read_text(encoding="utf-8", errors="strict"))
         relative_source = str(source.relative_to(ROOT))
         string_constants = dict(
             re.findall(
@@ -112,7 +124,7 @@ def main() -> int:
         (
             ROOT
             / "docs/contracts/spec135/generated-contract-v1/operation-registry.json"
-        ).read_text()
+        ).read_text(encoding="utf-8")
     )
     agent_paths = {item["path"] for item in registry["operations"]}
     for operation in registry["operations"]:
@@ -244,18 +256,18 @@ def main() -> int:
     api_body = "\n".join(api_lines).rstrip() + "\n"
     if args.check:
         drift = []
-        if not OUTPUT.exists() or OUTPUT.read_text() != body:
+        if not OUTPUT.exists() or OUTPUT.read_text(encoding="utf-8") != body:
             drift.append(str(OUTPUT.relative_to(ROOT)))
-        if not API_REFERENCE.exists() or API_REFERENCE.read_text() != api_body:
+        if not API_REFERENCE.exists() or API_REFERENCE.read_text(encoding="utf-8") != api_body:
             drift.append(str(API_REFERENCE.relative_to(ROOT)))
         if drift:
             print(f"Spec141 route/API reference drift: {', '.join(drift)}", flush=True)
             return 1
     else:
         OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-        OUTPUT.write_text(body)
+        OUTPUT.write_text(body, encoding="utf-8")
         API_REFERENCE.parent.mkdir(parents=True, exist_ok=True)
-        API_REFERENCE.write_text(api_body)
+        API_REFERENCE.write_text(api_body, encoding="utf-8")
     print(
         json.dumps(
             {

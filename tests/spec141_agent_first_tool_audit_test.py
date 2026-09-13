@@ -20,6 +20,12 @@ subprocess.run(
     check=True,
 )
 
+subprocess.run(
+    ["python3", str(ROOT / "tests/613_source_inventory_utf8_test.py")],
+    cwd=ROOT,
+    check=True,
+)
+
 workflow = RELEASE_WORKFLOW.read_text()
 # Tracking state is not installed evidence: collecting proof must not depend
 # on prematurely closing the issue that requires that proof.

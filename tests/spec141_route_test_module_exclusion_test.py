@@ -59,6 +59,17 @@ fn production() { router.route("/real", get(handler)); }
             with self.assertRaises(ValueError):
                 module.without_inline_test_modules(body)
 
+    def test_unterminated_literals_fail_closed(self):
+        for literal in ['"unterminated', 'r#"unterminated"', 'br##"unfinished"#', "b'x", "'}"]:
+            with self.subTest(literal=literal), self.assertRaises(ValueError):
+                module.without_inline_test_modules(
+                    '#[cfg(test)] mod tests { let value = ' + literal + '; }'
+                )
+
+    def test_lifetimes_are_not_character_literals(self):
+        body = "fn keep<'a, 'α>(x: &'a str, y: &'α str) { 'label: loop { break 'label; } }"
+        self.assertEqual(module.without_inline_test_modules(body), body)
+
     def test_actual_auth_fixture_is_not_an_api_surface(self):
         body = (ROOT / 'crates/focusa-api/src/middleware/auth.rs').read_text()
         self.assertIn('/v1/state/permission-probe', body)
