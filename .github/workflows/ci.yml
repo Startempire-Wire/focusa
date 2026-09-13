@@ -125,21 +125,12 @@ jobs:
 
   release-automation-static:
     name: Release Automation (static)
-    runs-on: self-hosted
+    # Includes a functional TUI compile; keep it off the production/deploy host.
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
-      - name: Install ripgrep
-        timeout-minutes: 10
-        run: |
-          if command -v rg >/dev/null 2>&1; then echo "ripgrep already present"; exit 0; fi
-          # Fix azure mirror hangs by clearing mirrorlist and using archive directly
-          sudo rm -f /etc/apt/apt-mirrors.txt 2>/dev/null || true
-          sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g; s|https://azure.archive.ubuntu.com|https://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
-          # Try apt with timeout, fallback to binary download to avoid mirror outage
-          (timeout 45 sudo apt-get update -o Acquire::Retries=3 && sudo apt-get install -y ripgrep) || true
-          if command -v rg >/dev/null 2>&1; then echo "ripgrep installed via apt"; exit 0; fi
-          echo "apt failed, installing ripgrep via static binary"
-          curl -fsSL https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep-14.1.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/rg.tar.gz && tar -xzf /tmp/rg.tar.gz -C /tmp && sudo mv /tmp/ripgrep-14.1.0-x86_64-unknown-linux-musl/rg /usr/local/bin/rg && rg --version
+      - name: Verify preinstalled ripgrep
+        run: command -v rg && rg --version
       - name: Persisted-state privacy scanner regression
         run: |
           python3 tests/434_privacy_scanner_regression_test.py

@@ -1,19 +1,10 @@
-# Continuous release-profile warm builder (quality-neutral speed win).
-#
-# On every push to main, rebuild the EXACT canonical release profile for the
-# three Linux targets (thin-LTO, cross containers, pinned toolchain, trust
-# root env) on the dedicated OVH warm-builder runner. At tag time the release
-# legs run in the same workspace/target-dir: cargo fingerprints guarantee the
-# shipped binaries are compiled from the exact tag sources with the exact
-# canonical profile — a stale cache can only cost time, never alter output.
+# Optional, manually dispatched release-profile cache warmup.
+# Shares the OVH build runner with required CI; ordinary pushes must not queue
+# speculative release builds ahead of issue verification. Canonical profiles
+# and exact-source release checks remain unchanged.
 name: Release Warm Builder
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
   workflow_dispatch: {}
 
 concurrency:
