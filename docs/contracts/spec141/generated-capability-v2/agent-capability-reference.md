@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:697e42dee03e653f6aa75e70d13dd8ab1d5cee6fca7eb21ed75107eba5dd85a4`
+Registry digest: `sha256:d6a5da4f698ad023d0e2088d707101828e60dc5f51c1dae5e2f065831e53eee8`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -632,7 +632,7 @@ Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DX
 
 ## focusa_epistemic_operation
 
-Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.epistemic.operation`
 - Family: `metacognition`

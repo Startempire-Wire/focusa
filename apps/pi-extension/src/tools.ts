@@ -3171,9 +3171,9 @@ pi.registerTool({
   }
 
   function scopedResponseHuman(body: any, fallback: string): string {
-    return String(
+    return safeErrorText(
       body?.human_readable || body?.human?.summary || body?.summary || body?.reason || body?.error || fallback
-    );
+    ).slice(0, 500);
   }
 
   function typedTrajectoryScopeMatches(value: any, projectRoot: string, continuityId: string): boolean {
@@ -3204,6 +3204,8 @@ pi.registerTool({
     path: string,
     opts: RequestInit = {}
   ): Promise<{ ok: boolean; status: number; body: any | null }> {
+    // Generated operations carry /v1; legacy callers pass API-relative paths.
+    path = path.replace(/^\/v1(?=\/|\?|$)/, "");
     const method = String(opts.method || "GET").toUpperCase();
     const timeout = timeoutBudgetForRoute(path, method);
     const bindingDecision = currentProjectBindingDecision();
@@ -3253,7 +3255,7 @@ pi.registerTool({
         },
       };
     }
-    const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const base = focusaApiV1Base();
     const token = getAttachmentRuntime().cfg?.focusaToken || "";
     const currentKey = currentAttachmentKey();
     if (!currentKey) throw new Error("attachment_runtime_key_required");
@@ -15165,7 +15167,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     name: "focusa_epistemic_operation",
     label: "Epistemic Operation",
     description:
-      "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally.",
+      "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally.",
     parameters: Type.Object({
       operation_id: Type.Union(SPEC138_OPERATIONS.map((row) => Type.Literal(row.operation_id)) as any),
       id: Type.Optional(Type.String({ description: "Value for canonical {id} path segments." })),
@@ -15211,10 +15213,20 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         method: "POST",
         body: JSON.stringify({ operation_id: descriptor.operation_id, scope, event: p.event }),
       } : undefined);
+      const status = res.body?.status || (res.ok ? "completed" : "blocked");
+      const failed = !res.ok || ["blocked", "denied", "error", "failed"].includes(status);
+      const failureClass = failed ? scopedResponseFailureClass(res, res.body) : undefined;
+      const diagnostic = failed ? scopedResponseHuman(res.body, `HTTP ${res.status}`) : "";
       return {
-        content: [{ type: "text", text: `${descriptor.label} → ${res.body?.status || (res.ok ? "completed" : "blocked")}` }],
+        content: [{ type: "text", text: `${descriptor.label} → ${status}${failed ? ` (HTTP ${res.status}): ${diagnostic}` : ""}` }],
         details: {
-          ok: res.ok, status: res.body?.status, operation: descriptor,
+          ok: !failed, status, operation: descriptor,
+          http_status: res.status, failure_class: failureClass,
+          next_tools: failed
+            ? failureClass === "scope_mismatch"
+              ? ["focusa_project_identity", "focusa_workpoint_resume"]
+              : ["focusa_agent_runtime_doctor"]
+            : [],
           authority: res.body?.authority, response: res.body,
           project_root: projectRoot, continuity_id: continuityId,
         },

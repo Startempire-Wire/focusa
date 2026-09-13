@@ -3045,7 +3045,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_epistemic_operation",
     label: "Epistemic Operation",
-    purpose: "Invoke one exact generated Spec 138/138A operation through durable typed API authority.",
+    purpose: "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
     family: "metacognition",
     ontology_action: "epistemic.operation.invoke",
     ontology_objects: ["Spec138OperationDescriptor", "ScopedAuthorityEvent"],
