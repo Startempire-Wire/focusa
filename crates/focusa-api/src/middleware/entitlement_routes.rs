@@ -594,16 +594,6 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("evidence_records"),
     },
     RouteEntitlementRequirement {
-        template: "/v1/compaction/controller-epoch",
-        feature: "focusa.core.evidence",
-        limit_bucket: Some("evidence_records"),
-    },
-    RouteEntitlementRequirement {
-        template: "/v1/compaction/controller-status",
-        feature: "focusa.core.evidence",
-        limit_bucket: Some("evidence_records"),
-    },
-    RouteEntitlementRequirement {
         template: "/v1/compaction/diff",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),
@@ -2070,6 +2060,16 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/silent-sessions/{session_id}/adopt",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/approvals",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/approvals/preview",
         feature: "focusa.agent.silent_sessions",
         limit_bucket: Some("silent_session_runs"),
     },

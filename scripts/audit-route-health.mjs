@@ -36,10 +36,9 @@ const main = async () => {
     "/silent-sessions", "/silent-sessions/capabilities",
     "/metacognition/status", "/work-loop/status?summary_only=true",
     "/workpoint/current", "/trajectory/view", "/project/list",
-    "/compaction/controller-epoch", // POST-only; probe below, "/v1/events/stream",
   ];
   for (const path of gets) await probe("GET", path);
-  // POSTs with minimal valid payloads
+  // POSTs with minimal payloads; validation errors prove route registration.
   await probe("POST", "/completion-claims/evaluate", {
     schema: "focusa.completion_claim.v1", work_item_id: "probe",
     acceptance_atoms: ["a"], evidence_refs: [], receipts: [], claim_text: "x",
