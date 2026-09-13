@@ -28,6 +28,14 @@ def main() -> int:
         print(f"route-health: daemon binary not found: {DAEMON}", file=sys.stderr)
         return 2
 
+    classifier = subprocess.run(
+        ["node", "--test", str(ROOT / "tests/609-route-health-classifier.test.mjs")],
+        cwd=ROOT,
+        check=False,
+    )
+    if classifier.returncode:
+        return classifier.returncode
+
     port = reserve_port()
     with tempfile.TemporaryDirectory(prefix="focusa-route-health-") as data_dir:
         log_path = Path(data_dir) / "daemon.log"
