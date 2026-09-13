@@ -71404,8 +71404,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa Tool Doctor",
-      "summary": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
-      "description": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
+      "description": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "diagnostics_hygiene",
       "namespace": "focusa.diagnostics_hygiene",
       "operation_policy": {
@@ -71834,7 +71834,7 @@
       },
       "examples": [
         {
-          "description": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
+          "description": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
           "arguments": {},
           "human_invocation": "focusa_tool_doctor { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_doctor.md"
@@ -71917,7 +71917,7 @@
         "snippet": "Use first when Focusa tools seem blocked, degraded, stale, or confusing.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c98099e6d891580b9d5d4c7e1edb496522738bd9d9f5c3e5199a3cfa737f4790"
+      "descriptor_digest": "sha256:ec85797901ca2009ee484b1991ad3d2eb813ba89714caa1c49fd4b93de743246"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86572,5 +86572,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:7f4898aec5abd3c5282fe8ea49a34b81be71e443fe031943a11c92496c2c773d"
+  "registry_digest": "sha256:697e42dee03e653f6aa75e70d13dd8ab1d5cee6fca7eb21ed75107eba5dd85a4"
 }

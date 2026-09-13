@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:7f4898aec5abd3c5282fe8ea49a34b81be71e443fe031943a11c92496c2c773d`
+Registry digest: `sha256:697e42dee03e653f6aa75e70d13dd8ab1d5cee6fca7eb21ed75107eba5dd85a4`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -1435,7 +1435,7 @@ Cold-load one complete runtime Focusa tool definition after search. Returns stri
 
 ## focusa_tool_doctor
 
-Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.tool.doctor`
 - Family: `diagnostics_hygiene`

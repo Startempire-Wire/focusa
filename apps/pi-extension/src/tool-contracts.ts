@@ -1821,7 +1821,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_tool_doctor",
     label: "Focusa Tool Doctor",
     purpose:
-      "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
+      "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
     family: "diagnostics_hygiene",
     ontology_action: "diagnostics_hygiene.tool_doctor",
     ontology_objects: ["ToolContract"],

@@ -5008,7 +5008,7 @@ pi.registerTool({
 
     label: "Focusa Tool Doctor",
     description:
-      "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
+      "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
     promptSnippet: "Use first when Focusa tools seem blocked, degraded, stale, or confusing.",
     parameters: Type.Object({
       scope: Type.Optional(
@@ -5038,7 +5038,6 @@ pi.registerTool({
       const loop = await focusaFetchDetailed("/work-loop/status?summary_only=true", { method: "GET" });
       const liveContracts = await focusaFetchDetailed("/ontology/tool-contracts", { method: "GET" });
       const uiaiBrowser = await uiaiBrowserHealthCard();
-      const ready = health.ok && workpoint.ok;
       const contractSummary = focusaToolContractSummary();
       const scopedContracts =
         String(p.scope || "all") === "all"
@@ -5072,10 +5071,6 @@ pi.registerTool({
           return live && stableJson(live) !== stableJson(contract);
         })
         .map((contract) => contract.name);
-      const repairProjectRoot =
-        getLastProjectRootResolution()?.projectRoot || resolvePiProjectRoot(getSessionCwd() || process.cwd());
-      const portableDaemonRestart =
-        "if command -v focusa-daemon >/dev/null 2>&1; then nohup focusa-daemon >/tmp/focusa-daemon.log 2>&1 & elif command -v systemctl >/dev/null 2>&1; then systemctl restart focusa-daemon; else echo 'start focusa-daemon manually from this checkout' >&2; fi";
       const contractDrift = {
         live_ok: liveContracts.ok,
         static_count: FOCUSA_TOOL_CONTRACTS.length,
@@ -5090,11 +5085,8 @@ pi.registerTool({
           extra_live.length > 0 ||
           stale_live_contracts.length > 0,
         repair_commands: [
-          `cd ${repairProjectRoot}`,
-          "cargo build --release --bins",
-          portableDaemonRestart,
-          "curl -sS --max-time 5 http://127.0.0.1:8787/v1/ontology/tool-contracts | jq '.version, (.contracts|length)'",
-          "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures",
+          "focusa status --agent --json",
+          "focusa doctor --scope host --json",
         ],
       };
       const hookCounts = getAttachmentRuntime().spec92HookTelemetry.reduce(
@@ -5126,7 +5118,13 @@ pi.registerTool({
       const sessionScopeSafe = isProjectRootAuthoritySafe(sessionRoot);
       const projectRootNeedsConfirmation = sessionResolution?.requiresOperatorConfirmation === true;
       const workpointStatus = String(workpoint.body?.status || (workpoint.ok ? "ok" : "blocked"));
-      const workpointCanonical = workpoint.body?.canonical === true || workpointStatus === "active";
+      const workpointCanonical =
+        workpoint.body?.canonical !== false &&
+        (workpoint.body?.canonical === true || workpointStatus === "active");
+      // Diagnostic dependencies are not evidence that individual operations execute.
+      const ready = health.ok && workpoint.ok && workpointCanonical &&
+        sessionScopeSafe && !projectRootNeedsConfirmation && loop.ok &&
+        !contractDrift.drift_detected;
       const recommendations: string[] = [];
       if (!health.ok)
         recommendations.push(
@@ -5188,7 +5186,7 @@ pi.registerTool({
         );
       if (contractDrift.drift_detected)
         recommendations.push(
-          "Tool contract drift detected between Pi static registry and live daemon; rebuild/restart focusa-daemon, then run live contract proof."
+          "Tool contract drift detected: inspect installed and harness revisions with focusa_agent_runtime_doctor; use an authorized canonical release/install or native reload path only after verifying the cause. Drift grants no runtime mutation authority."
         );
       const nextTools = Array.from(
         new Set([
@@ -5202,7 +5200,7 @@ pi.registerTool({
           ...(!workpoint.ok || !workpointCanonical
             ? ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"]
             : []),
-          ...(contractDrift.drift_detected ? ["focusa_tool_doctor"] : []),
+          ...(contractDrift.drift_detected ? ["focusa_agent_runtime_doctor"] : []),
         ])
       );
       const nextActions =
@@ -5237,21 +5235,23 @@ pi.registerTool({
           }
         : { drift_detected: false };
       const evidenceResult = contractDrift.drift_detected
-        ? `readiness=${ready ? "ready" : "degraded"} drift=yes causes=${JSON.stringify(driftCauseCounts)} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`
-        : `readiness=${ready ? "ready" : "degraded"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`;
+        ? `diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified drift=yes causes=${JSON.stringify(driftCauseCounts)} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`
+        : `diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`;
       const scopeStatus = !sessionScopeSafe
         ? "blocked_unsafe_launcher_cwd"
         : projectRootNeedsConfirmation
           ? "operator_confirmation_required"
           : "verified";
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"}${driftSummary} scoped=${scopedContracts.length} hooks=${getAttachmentRuntime().spec92HookTelemetry.length} token_budget=${tokenBudgetStatus} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
+      const text = `tool doctor → diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"}${driftSummary} scoped=${scopedContracts.length} hooks=${getAttachmentRuntime().spec92HookTelemetry.length} token_budget=${tokenBudgetStatus} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
       return {
         content: [{ type: "text", text }],
         details: {
-          ok: ready && !contractDrift.drift_detected,
-          status: ready && !contractDrift.drift_detected ? "completed" : "degraded",
+          ok: ready,
+          status: ready ? "completed" : "degraded",
           tool_readiness: {
             status: contractDrift.drift_detected ? "degraded" : "ready",
+            basis: "contract_registry_parity_only",
+            proves_operation_execution: false,
             contracts_total: contractSummary.total,
             live_contracts: contractDrift.live_ok ? contractDrift.live_count : null,
           },
