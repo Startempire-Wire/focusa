@@ -29,8 +29,14 @@ const verified = {
     project_root: "/home/wirebot/focusa",
     continuity_id: "focusa-continuity",
   },
-  trajectory: { action_authority_from_trajectory: true },
+  trajectory: {
+    project_root: "/home/wirebot/focusa",
+    continuity_id: "focusa-continuity",
+    action_authority_from_trajectory: true,
+  },
   workpoint: {
+    project_root: "/home/wirebot/focusa",
+    continuity_id: "focusa-continuity",
     status: "ready",
     action_authority: true,
     mission: "Current exact-scope mission",
@@ -45,7 +51,11 @@ for (const candidate of [
   { ...verified, scope: { ...verified.scope, scope_status: "mismatch" } },
   { ...verified, scope: { ...verified.scope, project_root: "/root" } },
   { ...verified, scope: { ...verified.scope, continuity_id: "foreign" } },
-  { ...verified, trajectory: { action_authority_from_trajectory: false } },
+  { ...verified, trajectory: { ...verified.trajectory, action_authority_from_trajectory: false } },
+  { ...verified, trajectory: { ...verified.trajectory, project_root: "/srv/foreign" } },
+  { ...verified, trajectory: { ...verified.trajectory, continuity_id: "foreign" } },
+  { ...verified, workpoint: { ...verified.workpoint, project_root: "/srv/foreign" } },
+  { ...verified, workpoint: { ...verified.workpoint, continuity_id: "foreign" } },
   { ...verified, workpoint: { ...verified.workpoint, action_authority: false } },
   { ...verified, workpoint: { ...verified.workpoint, status: "missing" } },
 ]) {
