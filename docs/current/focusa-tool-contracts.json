@@ -2391,7 +2391,7 @@
         "BackgroundJob"
       ],
       "api_routes": [
-        "/v1/worksets"
+        "/v1/worksets/{workset_id}/projection"
       ],
       "cli_commands": [],
       "core_surface": "workset_ledger/replay_projection",

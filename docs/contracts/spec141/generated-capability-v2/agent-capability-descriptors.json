@@ -86024,7 +86024,7 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/worksets",
+            "method": "/v1/worksets/{workset_id}/projection",
             "path": ""
           }
         ]
@@ -86037,7 +86037,7 @@
       "namespace": "focusa.workset",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/worksets",
+        "method": "/v1/worksets/{workset_id}/projection",
         "path": "",
         "operation_class": "read",
         "capability_family": "read_projection",
@@ -86052,7 +86052,7 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/worksets",
+          "method": "/v1/worksets/{workset_id}/projection",
           "path": "",
           "operation_class": "read",
           "capability_family": "read_projection",
@@ -86381,7 +86381,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/worksets",
+          "route": "/v1/worksets/{workset_id}/projection",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -86500,8 +86500,8 @@
         "snippet": "Use to inspect workset membership + completion contract state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e13ac141b494b9abc3728f991f68943eff0c7c5d33f4007c0d84aa00755e6a73"
+      "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:a1b6116f070545af2ed94df52d1ae9ff51ff69d5f41a0df60d1e8a35a385b705"
+  "registry_digest": "sha256:c07bdbe5a208e83e8ce2a2aba7e63a3d924632a878277c1976788605cbf1075b"
 }

@@ -1206,7 +1206,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     family: "workset",
     ontology_action: "workset.projection",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/worksets"],
+    api_routes: ["/v1/worksets/{workset_id}/projection"],
     cli_commands: [],
     core_surface: "workset_ledger/replay_projection",
     doc_path: "docs/focusa-tools/tools/focusa_workset_projection.md",

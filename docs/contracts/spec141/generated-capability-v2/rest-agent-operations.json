@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:a1b6116f070545af2ed94df52d1ae9ff51ff69d5f41a0df60d1e8a35a385b705",
+  "registry_digest": "sha256:c07bdbe5a208e83e8ce2a2aba7e63a3d924632a878277c1976788605cbf1075b",
   "operations": [
     {
       "method": "POST",
@@ -122175,7 +122175,7 @@
       "policy_owner": "entitlement_policy_resolver"
     },
     {
-      "method": "/v1/worksets",
+      "method": "/v1/worksets/{workset_id}/projection",
       "path": "",
       "capability_id": "focusa.workset.projection",
       "operation_id": "focusa_workset_projection",
@@ -122469,7 +122469,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/worksets",
+          "route": "/v1/worksets/{workset_id}/projection",
           "scope": {
             "kind": "read",
             "route_family": "auto"

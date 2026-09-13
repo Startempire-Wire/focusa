@@ -39,6 +39,13 @@ for (const [name, purposePattern] of [
   assert.ok(registryContract, `missing canonical JSON contract for ${name}`);
   assert.match(registryContract.purpose, purposePattern);
   assert.doesNotMatch(registryContract.purpose, /pi-scratch|Scratchpad/);
+  if (name === "focusa_workset_projection") {
+    const route = "/v1/worksets/{workset_id}/projection";
+    assert.deepEqual(registryContract.api_routes, [route]);
+    assert.ok(block.includes(JSON.stringify(route)), "Pi contract must name the projection route");
+    const routes = read("../../../crates/focusa-api/src/routes/worksets.rs");
+    assert.ok(routes.includes(`.route("${route}", get(get_projection))`));
+  }
 
   const heading = generatedReference.indexOf(`## ${name}`);
   assert.notEqual(heading, -1, `missing generated Markdown for ${name}`);
