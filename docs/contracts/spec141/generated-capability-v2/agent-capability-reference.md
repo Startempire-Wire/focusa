@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:c07bdbe5a208e83e8ce2a2aba7e63a3d924632a878277c1976788605cbf1075b`
+Registry digest: `sha256:7f4898aec5abd3c5282fe8ea49a34b81be71e443fe031943a11c92496c2c773d`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -478,7 +478,7 @@ Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menub
 
 ## focusa_credentials_verify
 
-Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.credentials.verify`
 - Family: `credential`

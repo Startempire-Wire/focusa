@@ -1265,7 +1265,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_credentials_verify",
     label: "Credentials Verify",
     purpose:
-      "Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values.",
+      "Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization.",
     family: "credential",
     ontology_action: "credential.verify",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],

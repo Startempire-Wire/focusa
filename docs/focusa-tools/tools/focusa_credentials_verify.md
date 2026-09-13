@@ -1,10 +1,10 @@
 # `focusa_credentials_verify`
 
-Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values.
+- Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization.
 - Capability family: `credential`; namespace: `focusa.credential`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -25,11 +25,17 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 {
   "requirement": {
     "schema": "example",
+    "requirement_id": "example",
+    "project_scope_ref": "example",
+    "workstream_ref": "example",
+    "callgraph_frame_ref": "example",
+    "attempt_generation": 0,
     "credential_role_ref": "example",
-    "required_operation": "example",
+    "required_operation": "use",
     "required_exposure_mode": "example",
     "exact_consumer_ref": "example",
     "exact_target_refs": [],
+    "validity_minimum_seconds": 0,
     "use_count_required": 0,
     "evidence_requirement_refs": []
   },
@@ -85,4 +91,4 @@ Likely next: `focusa_credentials_verify`, `focusa_tool_doctor`.
 - CLI: none.
 - REST: `/v1/credentials/verify-requirement `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:8be9fb06055bcd5a17a32f65bd02fcbcda75893439e6be47cac9368703898770`.
+- Descriptor digest: `sha256:ed58030e45a67954d3d9d5357927c25246120647b453a941877fd5b7d0c9a5e7`.

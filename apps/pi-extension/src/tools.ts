@@ -4764,17 +4764,25 @@ pi.registerTool({
   name: "focusa_credentials_verify",
   label: "Focusa Credentials Verify",
   description:
-    "Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam.",
-  promptSnippet: "Grant verdicts only — no secrets in or out.",
+    "Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred.",
+  promptSnippet: "Advisory model verdict only; never authorization to use credentials.",
   parameters: Type.Object({
     requirement: Type.Object({
       schema: Type.String(),
+      requirement_id: Type.String(),
+      project_scope_ref: Type.String(),
+      workstream_ref: Type.String(),
+      callgraph_frame_ref: Type.String(),
+      attempt_generation: Type.Integer({ minimum: 0, maximum: 4294967295 }),
       credential_role_ref: Type.String(),
-      required_operation: Type.String(),
+      required_operation: Type.Union(["use", "reveal", "manage", "rotate", "revoke"].map((value) => Type.Literal(value))),
       required_exposure_mode: Type.String(),
       exact_consumer_ref: Type.String(),
       exact_target_refs: Type.Array(Type.String()),
-      use_count_required: Type.Number(),
+      required_auth_challenge_support: Type.Optional(Type.Array(Type.String())),
+      precondition_refs: Type.Optional(Type.Array(Type.String())),
+      validity_minimum_seconds: Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+      use_count_required: Type.Integer({ minimum: 0, maximum: 4294967295 }),
       evidence_requirement_refs: Type.Array(Type.String()),
     }),
     grants: Type.Array(Type.Unknown()),
@@ -4792,7 +4800,7 @@ pi.registerTool({
     return toolResult(
       body.satisfied,
       body.satisfied ? "satisfied" : "denied",
-      body.satisfied ? "Requirement satisfied by the provided grants." : `Not satisfied: ${(body.reasons || []).join("; ")}`,
+      body.satisfied ? "Advisory model requirement satisfied; credential-use authorization is not established." : `Advisory model not satisfied: ${(body.reasons || []).join("; ")}`,
       body
     );
   },

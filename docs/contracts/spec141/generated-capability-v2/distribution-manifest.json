@@ -1,22 +1,22 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.194-dev",
-  "source_commit": "9333a15e",
-  "generated_at": "2026-09-13T20:09:20.542607Z",
+  "source_commit": "e235ad74",
+  "generated_at": "2026-09-13T20:36:10.367278Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:70e6386f275b488f2359fda068614fd2497bbf0e25d9a9bfbafea5b1f94c9f86",
     "apps/pi-extension/package.json": "sha256:f13ad15328dec57698bdb04dc72472ff5e5a5eb7ccd6ff49af75776642d3dbde",
     "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:2155f36bc42db7be22d2a2895e3cfa8e9fafcaa1744ffb5e84be669bfe175ba8",
     "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59",
-    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:3692708f07f0b9be86319893a7b939b704326da248543b5115e03e248c4f3600",
-    "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:6a57c2301520160cfb6b8d3cd01db22de7c2206bf0c33a245d369a717b81f869",
-    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:97e2c9e17b9130237e6839f5d50d558d5ff288c19fe57680b01ad2b31199ff56"
+    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:6c3f28c22e79f937b8e926ffaac3efdda472aee05d2b0357cea1202371ecbbb4",
+    "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:4997c6197d20bc73421906f3c74c21977599d1e0bb88138839658c4fb7e8fb71",
+    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:abe16bbe3fc621116640a04c42efd9a62cd3561ac3ba7f943589c1a762eeb5ba"
   },
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:c5a15337c2671f1835d9bbc41a35570ac85e9c76f9161084684bb70dc47829f5",
+      "sha256": "sha256:afeec92d5eaa98720fb286a7f4c7f392b23ebd54b0fac31e8dd42485a709c83e",
       "file_count": 835,
       "source_paths": [
         "Cargo.toml",
@@ -26,8 +26,8 @@
     },
     "pi_extension": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:39fa295a894efc49532ef3f3ab46136778ae2b7e45105ff693ea20618587214c",
-      "file_count": 195,
+      "sha256": "sha256:1443154bb341b40ef8ca33063cbf2ab8f2a039e9c42f8556e10fd982e6b8b891",
+      "file_count": 196,
       "source_paths": [
         "apps/pi-extension"
       ]
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:73d9a6c470f3f3dd668e049f139677498a20e6a9bcea4f8a6e4c0194025b1cfb",
+      "sha256": "sha256:2d91346879052a8acee16250bfaa15ad718138f04b04683d32ae62d25b01a4c4",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -119,11 +119,11 @@
     },
     "capability_surfaces": {
       "contract_count": 157,
-      "registry_sha256": "sha256:39d5e1b9106d8691eccd3887aded7c54237e597f10898055124bfef690f03fc8",
-      "agent_card_sha256": "sha256:3692708f07f0b9be86319893a7b939b704326da248543b5115e03e248c4f3600",
-      "pi_tools_sha256": "sha256:97e2c9e17b9130237e6839f5d50d558d5ff288c19fe57680b01ad2b31199ff56",
-      "mcp_tools_sha256": "sha256:6a57c2301520160cfb6b8d3cd01db22de7c2206bf0c33a245d369a717b81f869",
-      "openai_tools_sha256": "sha256:68cd13cce049b3fb3950cf2a51297e5765ef236836bc8dd653fdc9fc773ee7dd",
+      "registry_sha256": "sha256:a84b0346907480050263777471501315cd0481954d4c3ab07e6f24f6592785fb",
+      "agent_card_sha256": "sha256:6c3f28c22e79f937b8e926ffaac3efdda472aee05d2b0357cea1202371ecbbb4",
+      "pi_tools_sha256": "sha256:abe16bbe3fc621116640a04c42efd9a62cd3561ac3ba7f943589c1a762eeb5ba",
+      "mcp_tools_sha256": "sha256:4997c6197d20bc73421906f3c74c21977599d1e0bb88138839658c4fb7e8fb71",
+      "openai_tools_sha256": "sha256:607ca230e2953b6e300888a15d71dcb44724eec2213d39e644eebbf887e505f2",
       "openapi_sha256": "sha256:32f0db3c47ca2cd1817d62c103a60439cd0dfe88e6f3507e978c113b0a7aaab7"
     },
     "runtime_contract": {

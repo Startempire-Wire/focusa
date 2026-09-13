@@ -22250,8 +22250,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa Credentials Verify",
-      "summary": "Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values.",
-      "description": "Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization.",
+      "description": "Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "credential",
       "namespace": "focusa.credential",
       "operation_policy": {
@@ -22317,11 +22317,17 @@
             "type": "object",
             "required": [
               "schema",
+              "requirement_id",
+              "project_scope_ref",
+              "workstream_ref",
+              "callgraph_frame_ref",
+              "attempt_generation",
               "credential_role_ref",
               "required_operation",
               "required_exposure_mode",
               "exact_consumer_ref",
               "exact_target_refs",
+              "validity_minimum_seconds",
               "use_count_required",
               "evidence_requirement_refs"
             ],
@@ -22329,11 +22335,49 @@
               "schema": {
                 "type": "string"
               },
+              "requirement_id": {
+                "type": "string"
+              },
+              "project_scope_ref": {
+                "type": "string"
+              },
+              "workstream_ref": {
+                "type": "string"
+              },
+              "callgraph_frame_ref": {
+                "type": "string"
+              },
+              "attempt_generation": {
+                "minimum": 0,
+                "maximum": 4294967295,
+                "type": "integer"
+              },
               "credential_role_ref": {
                 "type": "string"
               },
               "required_operation": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "const": "use",
+                    "type": "string"
+                  },
+                  {
+                    "const": "reveal",
+                    "type": "string"
+                  },
+                  {
+                    "const": "manage",
+                    "type": "string"
+                  },
+                  {
+                    "const": "rotate",
+                    "type": "string"
+                  },
+                  {
+                    "const": "revoke",
+                    "type": "string"
+                  }
+                ]
               },
               "required_exposure_mode": {
                 "type": "string"
@@ -22347,8 +22391,27 @@
                   "type": "string"
                 }
               },
+              "required_auth_challenge_support": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "precondition_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "validity_minimum_seconds": {
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "type": "integer"
+              },
               "use_count_required": {
-                "type": "number"
+                "minimum": 0,
+                "maximum": 4294967295,
+                "type": "integer"
               },
               "evidence_requirement_refs": {
                 "type": "array",
@@ -22688,15 +22751,21 @@
       },
       "examples": [
         {
-          "description": "Ask Credential Authority whether supplied grants satisfy one requirement without exposing secret values.",
+          "description": "Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization.",
           "arguments": {
             "requirement": {
               "schema": "example",
+              "requirement_id": "example",
+              "project_scope_ref": "example",
+              "workstream_ref": "example",
+              "callgraph_frame_ref": "example",
+              "attempt_generation": 0,
               "credential_role_ref": "example",
-              "required_operation": "example",
+              "required_operation": "use",
               "required_exposure_mode": "example",
               "exact_consumer_ref": "example",
               "exact_target_refs": [],
+              "validity_minimum_seconds": 0,
               "use_count_required": 0,
               "evidence_requirement_refs": []
             },
@@ -22773,10 +22842,10 @@
         "spec141:focusa_credentials_verify"
       ],
       "prompt": {
-        "snippet": "Grant verdicts only — no secrets in or out.",
+        "snippet": "Advisory model verdict only; never authorization to use credentials.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8be9fb06055bcd5a17a32f65bd02fcbcda75893439e6be47cac9368703898770"
+      "descriptor_digest": "sha256:ed58030e45a67954d3d9d5357927c25246120647b453a941877fd5b7d0c9a5e7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86503,5 +86572,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:c07bdbe5a208e83e8ce2a2aba7e63a3d924632a878277c1976788605cbf1075b"
+  "registry_digest": "sha256:7f4898aec5abd3c5282fe8ea49a34b81be71e443fe031943a11c92496c2c773d"
 }
