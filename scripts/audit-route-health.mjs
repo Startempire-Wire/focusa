@@ -40,6 +40,21 @@ const main = async () => {
     "/workpoint/current", "/trajectory/view", "/project/list",
   ];
   for (const path of gets) await probe("GET", path);
+  const contractProbe = await probe("GET", "/ontology/tool-contracts");
+  const contracts = contractProbe.json?.contracts || [];
+  const expectedPurposes = {
+    focusa_workset_projection: /deterministic membership, requirement-disposition, and settlement projection/,
+    focusa_callgraph_observe: /CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier/,
+    focusa_credentials_verify: /Credential Authority.*without exposing secret values/,
+    focusa_cockpit_projection: /Worksets, CallGraph frontiers, direction steers, and background jobs/,
+    focusa_fast_forward: /deterministic fanout plan.*silent-session lanes/,
+  };
+  for (const [name, expected] of Object.entries(expectedPurposes)) {
+    const contract = contracts.find((item) => item.name === name);
+    if (!contract || !expected.test(String(contract.purpose || ""))) {
+      results.push({ method: "ASSERT", path: `/ontology/tool-contracts#${name}`, status: 500 });
+    }
+  }
   // POSTs with minimal payloads; validation errors prove route registration.
   await probe("POST", "/completion-claims/evaluate", {
     schema: "focusa.completion_claim.v1", work_item_id: "probe",
