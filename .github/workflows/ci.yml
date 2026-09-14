@@ -145,6 +145,9 @@ jobs:
           chmod +x tests/release_deploy_automation_static_test.sh
           ./tests/release_deploy_automation_static_test.sh
 
+      - name: Cross-build exact-identity cancellation ownership (#543, blocking)
+        run: python3 tests/cross_cancellation_cleanup_test.py
+
       - name: Installer/update policy + Pi discovery static gate
         run: bash tests/installer_update_policy_static_test.sh
 

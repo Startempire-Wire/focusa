@@ -21,6 +21,7 @@ WORKFLOWS = {
     ".github/workflows/spec132-terminal-matrix.yml": 3,
 }
 CANONICAL_CALL = "scripts/ci/run-cancellation-safe-cross.sh build --release --target"
+CI_WORKFLOW = ROOT / ".github/workflows/ci.yml"
 
 
 def write_executable(path: Path, body: str) -> None:
@@ -53,6 +54,9 @@ def main() -> None:
         assert actual == expected, f"{relative}: expected {expected} canonical calls, got {actual}"
         total += actual
     assert total == 9
+    ci = CI_WORKFLOW.read_text(encoding="utf-8")
+    assert "Cross-build exact-identity cancellation ownership (#543, blocking)" in ci
+    assert "python3 tests/cross_cancellation_cleanup_test.py" in ci
 
     with tempfile.TemporaryDirectory(prefix="focusa-cross-cleanup-") as raw:
         temp = Path(raw)
