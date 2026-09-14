@@ -3844,10 +3844,22 @@ pub enum CandidateState {
 
 // ─── Reference Store / ECS (from 07-reference-store.md) ─────────────────────
 
-/// Index of all known handles.
+/// Bounded hot index of known handles.
+///
+/// Full immutable metadata and content live in the ECS store and remain addressable by id.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ReferenceIndex {
     pub handles: Vec<HandleRef>,
+    /// Number of durable ECS handles omitted from this hot projection.
+    #[serde(default)]
+    pub cold_handle_count: u64,
+}
+
+impl ReferenceIndex {
+    pub fn total_handle_count(&self) -> u64 {
+        self.cold_handle_count
+            .saturating_add(self.handles.len() as u64)
+    }
 }
 
 /// Bounded trajectory ladder context carried by cross-cutting artifacts.

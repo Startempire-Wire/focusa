@@ -25,6 +25,7 @@ pub struct PersistenceActorMetrics {
     last_write_duration_ms: AtomicU64,
     max_write_duration_ms: AtomicU64,
     snapshot_bytes: AtomicU64,
+    database_bytes: AtomicU64,
     wal_bytes: AtomicU64,
 }
 
@@ -38,7 +39,10 @@ pub struct PersistenceActorMetricsSnapshot {
     pub saturation_total: u64,
     pub last_write_duration_ms: u64,
     pub max_write_duration_ms: u64,
+    /// Serialized canonical FocusaState payload bytes.
     pub snapshot_bytes: u64,
+    /// Main SQLite file bytes, including tables, indexes, and free pages.
+    pub database_bytes: u64,
     pub wal_bytes: u64,
 }
 
@@ -54,6 +58,7 @@ impl PersistenceActorMetrics {
             last_write_duration_ms: self.last_write_duration_ms.load(Ordering::Acquire),
             max_write_duration_ms: self.max_write_duration_ms.load(Ordering::Acquire),
             snapshot_bytes: self.snapshot_bytes.load(Ordering::Acquire),
+            database_bytes: self.database_bytes.load(Ordering::Acquire),
             wal_bytes: self.wal_bytes.load(Ordering::Acquire),
         }
     }
@@ -99,26 +104,29 @@ impl PersistenceActor {
                     .find_map(|request| request.state.clone());
                 let persistence_for_write = persistence.clone();
                 let started = Instant::now();
-                let result = tokio::task::spawn_blocking(move || -> anyhow::Result<(u64, u64)> {
-                    if let Some(latest_state) = &latest_state {
-                        persistence_for_write
-                            .persist_event_batch_and_state(&events, latest_state)?;
-                    } else {
-                        persistence_for_write.append_event_batch(&events)?;
-                    }
-                    let snapshot_bytes =
-                        std::fs::metadata(persistence_for_write.data_dir.join("focusa.sqlite"))
-                            .map(|metadata| metadata.len())
-                            .unwrap_or(0);
-                    let wal_bytes =
-                        std::fs::metadata(persistence_for_write.data_dir.join("focusa.sqlite-wal"))
-                            .map(|metadata| metadata.len())
-                            .unwrap_or(0);
-                    Ok((snapshot_bytes, wal_bytes))
-                })
-                .await
-                .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))
-                .and_then(|result| result);
+                let result =
+                    tokio::task::spawn_blocking(move || -> anyhow::Result<(u64, u64, u64)> {
+                        if let Some(latest_state) = &latest_state {
+                            persistence_for_write
+                                .persist_event_batch_and_state(&events, latest_state)?;
+                        } else {
+                            persistence_for_write.append_event_batch(&events)?;
+                        }
+                        let snapshot_bytes = persistence_for_write.snapshot_payload_bytes()?;
+                        let database_bytes =
+                            std::fs::metadata(persistence_for_write.data_dir.join("focusa.sqlite"))
+                                .map(|metadata| metadata.len())
+                                .unwrap_or(0);
+                        let wal_bytes = std::fs::metadata(
+                            persistence_for_write.data_dir.join("focusa.sqlite-wal"),
+                        )
+                        .map(|metadata| metadata.len())
+                        .unwrap_or(0);
+                        Ok((snapshot_bytes, database_bytes, wal_bytes))
+                    })
+                    .await
+                    .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))
+                    .and_then(|result| result);
 
                 let duration_ms = started.elapsed().as_millis() as u64;
                 actor_metrics
@@ -128,10 +136,13 @@ impl PersistenceActor {
                     .max_write_duration_ms
                     .fetch_max(duration_ms, Ordering::AcqRel);
                 actor_metrics.batches_total.fetch_add(1, Ordering::AcqRel);
-                if let Ok((snapshot_bytes, wal_bytes)) = &result {
+                if let Ok((snapshot_bytes, database_bytes, wal_bytes)) = &result {
                     actor_metrics
                         .snapshot_bytes
                         .store(*snapshot_bytes, Ordering::Release);
+                    actor_metrics
+                        .database_bytes
+                        .store(*database_bytes, Ordering::Release);
                     actor_metrics.wal_bytes.store(*wal_bytes, Ordering::Release);
                 } else {
                     actor_metrics.failures_total.fetch_add(1, Ordering::AcqRel);
@@ -271,6 +282,7 @@ mod tests {
         assert!(metrics.requests_coalesced_total > 0);
         assert_eq!(metrics.failures_total, 0);
         assert!(metrics.snapshot_bytes > 0);
+        assert!(metrics.database_bytes >= metrics.snapshot_bytes);
         let _ = std::fs::remove_dir_all(root);
     }
 

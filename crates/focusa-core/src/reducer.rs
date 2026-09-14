@@ -23,6 +23,7 @@
 
 use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
+use crate::reference::{DEFAULT_HOT_HANDLE_LIMIT, retain_hot_handles};
 use crate::scoped_state::WorkstreamKey;
 use crate::types::*;
 
@@ -2793,6 +2794,16 @@ pub fn reduce_with_meta(
             }
 
             state.reference_index.handles.push(handle);
+            let active_session_id = state
+                .session
+                .as_ref()
+                .filter(|session| session.status == SessionStatus::Active)
+                .map(|session| session.session_id);
+            retain_hot_handles(
+                &mut state.reference_index,
+                active_session_id,
+                DEFAULT_HOT_HANDLE_LIMIT,
+            );
         }
 
         FocusaEvent::ArtifactPinned { artifact_id } => {
@@ -5068,8 +5079,8 @@ pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
     // focus_gate.candidates, never focus_stack.
 
     // INVARIANT 6: Artifacts are immutable once registered.
-    // Enforced at registration time: ArtifactRegistered rejects duplicate IDs.
-    // No handles in reference_index share the same ID.
+    // The reducer rejects duplicate hot IDs; ReferenceStore atomically rejects reuse
+    // of durable cold IDs that are intentionally absent from this bounded projection.
     let handle_count = state.reference_index.handles.len();
     let unique_count = {
         let mut ids: Vec<_> = state.reference_index.handles.iter().map(|h| h.id).collect();

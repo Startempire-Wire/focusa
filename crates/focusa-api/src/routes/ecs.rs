@@ -18,7 +18,8 @@ use axum::{
     routing::{get, post},
 };
 use focusa_core::reference::store::ReferenceStore;
-use focusa_core::types::{HandleKind, HandleRef};
+use focusa_core::reference::{DEFAULT_HOT_HANDLE_LIMIT, retain_hot_handles};
+use focusa_core::types::{HandleKind, HandleRef, SessionStatus};
 use serde::Deserialize;
 use serde_json::json;
 use std::path::PathBuf;
@@ -270,6 +271,17 @@ async fn store_artifact(
         handle.continuity_id.as_deref(),
     );
     handle.trajectory = trajectory.clone();
+    store.persist_metadata(&handle).map_err(|error| {
+        ecs_failure(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to bind ECS artifact metadata: {error}"),
+            "storage_unavailable",
+            "ECS artifact was stored but its scoped trajectory metadata could not be committed.",
+            "Check data_dir/ecs permissions; the unregistered artifact can be safely retried with a new id.",
+            "Likely metadata directory permission, disk, or durability failure.",
+            vec!["focusa_tool_doctor"],
+        )
+    })?;
     if !focusa
         .reference_index
         .handles
@@ -277,6 +289,15 @@ async fn store_artifact(
         .any(|h| h.id == handle.id)
     {
         focusa.reference_index.handles.push(handle.clone());
+        let active_session_id = session
+            .as_ref()
+            .filter(|session| session.status == SessionStatus::Active)
+            .map(|session| session.session_id);
+        retain_hot_handles(
+            &mut focusa.reference_index,
+            active_session_id,
+            DEFAULT_HOT_HANDLE_LIMIT,
+        );
         state.mark_external_mutation();
     }
     drop(focusa);
@@ -355,7 +376,9 @@ async fn list_handles(
     State(state): State<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
     let focusa = state.focusa.read().await;
-    let total = focusa.reference_index.handles.len();
+    let hot_count = focusa.reference_index.handles.len();
+    let cold_count = focusa.reference_index.cold_handle_count;
+    let total = usize::try_from(focusa.reference_index.total_handle_count()).unwrap_or(usize::MAX);
     let default_limit = handles_default_limit();
     let full_limit = handles_full_limit();
     let full_payload_blocked =
@@ -384,6 +407,13 @@ async fn list_handles(
     let payload = json!({
         "handles": if effective_summary_only { json!(handle_summaries(&handles)) } else { json!(handles) },
         "count": total,
+        "hot_count": hot_count,
+        "cold_count": cold_count,
+        "cold_rehydrate": {
+            "mode": "exact_handle_id",
+            "route": "/v1/ecs/resolve/{handle_id}",
+            "reason": "durable ECS metadata is omitted from the bounded hot state projection"
+        },
         "bounds": bounds,
         "pressure": pressure,
         "degraded": full_payload_blocked,

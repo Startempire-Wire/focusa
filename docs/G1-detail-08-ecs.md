@@ -48,12 +48,15 @@ Root: `~/.focusa/ecs/`
 
 - `objects/` — immutable content-addressed blobs (optional in MVP)
 - `handles/` — metadata json by id
-- `index.json` — small index (id -> metadata)
+- `FocusaState.reference_index` — bounded hot projection, not a second durable store
 
-MVP simplest:
-- store blob at `objects/<id>`
-- store metadata at `handles/<id>.json`
-- update `index.json` (debounced)
+Runtime behavior:
+- store content-addressed blobs under `objects/<sha256>`
+- atomically store complete metadata under `handles/<id>.json`
+- retain at most 2,048 complete records in the hot state/snapshot projection
+- prefer pinned, active-session, then recent records within that strict bound
+- resolve evicted metadata and content losslessly by exact handle id
+- report hot, cold, and total cardinality; never call SQLite file bytes snapshot bytes
 
 ## StoreArtifact Operation
 Input:
@@ -111,9 +114,10 @@ Config can disable storing raw transcripts:
 - if enabled, store only ASCC + handles for tool outputs.
 
 ## Garbage Collection (MVP Minimal)
-- keep everything by default
-- optional config: delete blobs older than N days
-- ensure index consistency on startup (repair pass)
+- keep all durable metadata and blobs by default
+- hot-index eviction never deletes metadata or blobs
+- optional explicit garbage collection may delete eligible blobs older than N days
+- ensure durable metadata/index consistency on startup (repair pass)
 
 ## Acceptance Tests
 - storing same content results in distinct handles but same sha (ok)
@@ -139,8 +143,8 @@ Config can disable storing raw transcripts:
 
 Pinned handles:
 - never garbage collected
-- always shown in ECS listings
-- surfaced preferentially in Focus Gate
+- are prioritized in the bounded hot listing; if preferred records exceed the strict cap, cold records remain exact-ID rehydratable
+- are surfaced preferentially in Focus Gate while hot
 
 ---
 

@@ -1241,25 +1241,37 @@ Return ONLY valid JSON:
                                 session.and_then(|s| s.project_root.clone()),
                                 session.and_then(|s| s.continuity_id.clone()),
                             ) {
-                                Ok(handle) => {
-                                    tracing::info!(
-                                        turn_id = %turn_id,
-                                        bytes,
-                                        handle_id = %handle.id,
-                                        "Auto-externalized large turn output to ECS"
-                                    );
-                                    // Register handle in state via reducer.
-                                    let reg_event = FocusaEvent::ArtifactRegistered {
-                                        handle: handle.clone(),
-                                        storage_uri: format!("ecs://{}", handle.sha256),
-                                    };
-                                    if let Ok(result) =
-                                        reducer::reduce(self.state.clone(), reg_event.clone())
-                                    {
-                                        self.state = result.new_state;
-                                        let entry =
-                                            create_entry(reg_event, SignalOrigin::Daemon, None);
-                                        persistence_entries.push(entry);
+                                Ok(mut handle) => {
+                                    handle.trajectory =
+                                        self.state.trajectory_ladder_context_for_scope(
+                                            handle.project_root.as_deref(),
+                                            handle.continuity_id.as_deref(),
+                                        );
+                                    if let Err(error) = self.ecs.persist_metadata(&handle) {
+                                        tracing::warn!(
+                                            handle_id = %handle.id,
+                                            "ECS trajectory metadata binding failed: {error}"
+                                        );
+                                    } else {
+                                        tracing::info!(
+                                            turn_id = %turn_id,
+                                            bytes,
+                                            handle_id = %handle.id,
+                                            "Auto-externalized large turn output to ECS"
+                                        );
+                                        // Register handle in state via reducer.
+                                        let reg_event = FocusaEvent::ArtifactRegistered {
+                                            handle: handle.clone(),
+                                            storage_uri: format!("ecs://{}", handle.sha256),
+                                        };
+                                        if let Ok(result) =
+                                            reducer::reduce(self.state.clone(), reg_event.clone())
+                                        {
+                                            self.state = result.new_state;
+                                            let entry =
+                                                create_entry(reg_event, SignalOrigin::Daemon, None);
+                                            persistence_entries.push(entry);
+                                        }
                                     }
                                 }
                                 Err(e) => {
@@ -5031,6 +5043,7 @@ Return:
                     handle.project_root.as_deref(),
                     handle.continuity_id.as_deref(),
                 );
+                self.ecs.persist_metadata(&handle)?;
                 Ok(vec![FocusaEvent::ArtifactRegistered {
                     handle: handle.clone(),
                     storage_uri: format!("ecs://{}", handle.sha256),
