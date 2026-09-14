@@ -215,6 +215,7 @@ Required components:
    - every automatic fallback/recovery transition records a bounded `ResourceModeTransitionRecord` before applying the new mode; `active_session_id=null` is valid.
    - hysteresis to prevent mode flapping.
 2. `LowMemBudget` policy:
+   - one resolved RSS budget owns ResourceMode, `/v1/status`, telemetry, and tests; `FOCUSA_LOWMEM_RSS_SOFT_MB` / `FOCUSA_LOWMEM_RSS_HARD_MB` are canonical and deprecated `FOCUSA_MEMORY_BUDGET_MB` is a hard-limit fallback only.
    - hot/warm/cold timeout budgets.
    - default/hard item caps.
    - byte/token caps.
