@@ -1,0 +1,477 @@
+schema: focusa.transition_task_graph.v1
+transition_id: FOCUSA-TRANSITION-001
+spec: 158
+status: proposed
+updated_at: 2026-08-04T19:19:00Z
+coordination_issue: https://github.com/Startempire-Wire/focusa/issues/125
+authority:
+  - docs/158-workstream-rooted-cognitive-runtime-foundation-migration-spec.md
+  - docs/spec158/01-identity-ownership-and-reducer.md
+  - docs/spec158/02-persistence-migration-and-quarantine.md
+  - docs/spec158/03-client-runtime-and-desktop-contracts.md
+  - docs/spec158/04-implementation-task-graph-and-closure.md
+  - docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md
+invariants:
+  - no_canonical_cognition_outside_exact_scope_and_workstream
+  - workstream_id_is_not_continuity_id
+  - thread_is_legacy_only
+  - visual_focus_is_not_authority
+  - reducer_is_sole_canonical_mutation_boundary
+  - no_permanent_dual_canonical_writes
+  - preserve_before_cleanup
+  - gui_cli_agent_share_one_semantic_graph
+  - pi_rich_canvas_is_compatibility_not_primary
+  - desktop_does_not_own_canonical_domain_state
+
+nodes:
+  - id: T000
+    title: Publish transition authority and agent stop lines
+    phase: preservation
+    status: in_progress
+    depends_on: []
+    paths:
+      - docs/agent/00-p0-transition-bootstrap.md
+      - AGENTS.md
+      - apps/pi-extension/AGENTS.md
+      - docs/agent/01-focusa-agent-docs-index.md
+      - .pi/skills/focusa-mission-canvas/SKILL.md
+      - apps/pi-extension/skills/focusa-mission-canvas/SKILL.md
+    outputs:
+      - every agent entry point requires Spec 158 and transition review
+      - old Mission Canvas branches contain a stop notice
+    proof:
+      - search all listed entry points for FOCUSA-TRANSITION-001
+      - byte-compare packaged and root Mission Canvas skill copies
+
+  - id: T010
+    title: Preserve current MacBook Mission Canvas worktree
+    phase: preservation
+    status: ready
+    depends_on: [T000]
+    outputs:
+      - exact worktree report
+      - checkpoint branch or tag
+      - sanitized archive for noncommittable artifacts
+      - current test baseline
+    proof:
+      - all local commits reachable from checkpoint
+      - untracked mission files committed or archived
+      - no force-push
+
+  - id: T011
+    title: Inventory divergent Mission Canvas branches and local-only work
+    phase: preservation
+    status: ready
+    depends_on: [T010]
+    branches:
+      - feature/spec-135-mission-canvas
+      - feature/spec-135-mission-canvas-completion-p0
+      - feature/spec-135-mission-canvas-uiai-evals
+    outputs:
+      - unique commit ledger
+      - file-level migration ledger
+      - branch/local/main provenance
+    proof:
+      - every Mission Canvas file and test has a disposition
+
+  - id: T012
+    title: Freeze expansion of rich Pi Mission Canvas
+    phase: preservation
+    status: ready
+    depends_on: [T000]
+    outputs:
+      - no new desktop-class Pi panels
+      - only coherence, tests, preservation, identity correction, compatibility work allowed
+    proof:
+      - PR review confirms no new rich Pi-only surface ownership
+
+  - id: T020
+    title: Inventory daemon-global cognitive authority
+    phase: foundation
+    status: ready
+    depends_on: [T000]
+    search_terms:
+      - FocusaState
+      - current_thread_id
+      - current_instance_id
+      - active_workpoint_id
+      - active_trajectory_id
+      - snapshots(name = 'focusa')
+      - default_workstream
+      - unscoped_project_root
+      - last active
+      - latest trajectory
+    outputs:
+      - field and surface authority ledger
+      - read/write/fallback/cache inventory
+    proof:
+      - every match has classification, owner, migration, test and removal gate
+
+  - id: T021
+    title: Introduce stable Workstream identity types
+    phase: foundation
+    status: blocked
+    depends_on: [T020]
+    outputs:
+      - WorkstreamId
+      - WorkstreamKey
+      - ScopeRef and ProjectRootKey normalization
+      - ContinuityId explicitly subordinate
+      - legacy Thread mapping schema
+    proof:
+      - no new canonical schema uses continuity as Workstream identity
+
+  - id: T022
+    title: Introduce AttachmentKey and WorkspaceBindingId
+    phase: foundation
+    status: blocked
+    depends_on: [T021]
+    outputs:
+      - Workstream-rooted AttachmentKey
+      - host/worktree/workspace binding identity
+      - exact Session and Instance binding
+    proof:
+      - identical paths on different hosts/worktrees remain distinct
+
+  - id: T023
+    title: Add WorkstreamContext extractor and ScopeRouter
+    phase: foundation
+    status: blocked
+    depends_on: [T021, T022]
+    outputs:
+      - one canonical request context extractor
+      - fail-closed ambiguity response
+      - no global-current fallback
+    proof:
+      - explicit, Attachment and stable object resolution tests
+      - ambiguity returns zero foreign cognition
+
+  - id: T024
+    title: Partition reducer event envelope
+    phase: foundation
+    status: blocked
+    depends_on: [T023]
+    outputs:
+      - WorkstreamEvent envelope
+      - per-Workstream revision and idempotency
+      - cross-Workstream invariant rejection
+    proof:
+      - deterministic reducer tests for two concurrent Workstreams
+
+  - id: T030
+    title: Add Workstream-scoped persistence and replay substrate
+    phase: persistence
+    status: blocked
+    depends_on: [T021, T024]
+    outputs:
+      - Workstream event stream
+      - Workstream snapshot/projection
+      - event head and projection version
+      - independent replay
+    proof:
+      - one Workstream replays without another Workstream or global active state
+
+  - id: T031
+    title: Add migration mapping and quarantine stores
+    phase: persistence
+    status: blocked
+    depends_on: [T030]
+    outputs:
+      - evidence-backed Workstream mapping
+      - ambiguity quarantine
+      - operator repair flow
+    proof:
+      - ambiguous legacy records never mutate or augment canonical context
+
+  - id: T032
+    title: Add backup, shadow parity and rollback harness
+    phase: persistence
+    status: blocked
+    depends_on: [T030, T031]
+    outputs:
+      - backup manifest and checksum
+      - shadow materialization report
+      - rollback rehearsal
+    proof:
+      - compatible full-set restore succeeds
+      - no permanent dual canonical write path
+
+  - id: T040
+    title: Cut over Workpoint and tactical Trajectory
+    phase: cognitive_cutover
+    status: blocked
+    depends_on: [T032]
+    outputs:
+      - Workstream-owned Workpoints and active pointer
+      - project HLT separated from tactical Workstream Trajectory
+      - exact Workstream resume and supersession
+    proof:
+      - no cross-Workstream resume, supersession or trajectory fallback
+
+  - id: T041
+    title: Cut over Focus Stack and Focus State
+    phase: cognitive_cutover
+    status: blocked
+    depends_on: [T040]
+    outputs:
+      - Workstream-owned Focus Stack and Focus State
+      - one-active-frame per Workstream
+    proof:
+      - concurrent active frames in different Workstreams
+      - cross-Workstream parent rejection
+
+  - id: T042
+    title: Cut over Work Loop, leases and temporal state
+    phase: cognitive_cutover
+    status: blocked
+    depends_on: [T041]
+    outputs:
+      - Workstream-owned Work Loop
+      - Workstream-prefixed leases, budgets, retries and pause state
+    proof:
+      - one Workstream cannot pause, retry, select or complete another
+
+  - id: T043
+    title: Cut over Silent Sessions and runner attachments
+    phase: cognitive_cutover
+    status: blocked
+    depends_on: [T022, T042]
+    outputs:
+      - Workstream-rooted Silent Session controls, runs, generations and approvals
+      - restart/resume exact identity
+    proof:
+      - independent simultaneous runs and restart recovery
+
+  - id: T044
+    title: Cut over Context, memory and ontology
+    phase: cognitive_cutover
+    status: blocked
+    depends_on: [T041]
+    outputs:
+      - explicit project-shared versus Workstream-owned placement
+      - Workstream-aware retrieval and indexes
+    proof:
+      - no foreign prompt-visible Context or ontology working set
+
+  - id: T045
+    title: Cut over Evidence, claims and references
+    phase: cognitive_cutover
+    status: blocked
+    depends_on: [T040, T044]
+    outputs:
+      - Workstream-scoped visibility and authority
+      - explicit cross-Workstream provenance links
+    proof:
+      - cross-Workstream share never transfers authority implicitly
+
+  - id: T050
+    title: Align API, CLI, MCP, Pi tools and schemas
+    phase: client_cutover
+    status: blocked
+    depends_on: [T023, T040, T041, T042, T043, T044, T045]
+    outputs:
+      - Workstream-aware OpenAPI and generated clients
+      - one capability and command registry
+      - compatibility routes with deprecation and no fallback
+    proof:
+      - exact Workstream echoed in every canonical Result and Receipt
+
+  - id: T060
+    title: Correct Mission Canvas Work Surface identity
+    phase: canvas_extraction
+    status: blocked
+    depends_on: [T011, T021, T022]
+    source_paths:
+      - apps/pi-extension/src/mission-canvas-model.ts
+      - apps/pi-extension/src/mission-canvas-session-inventory.ts
+    outputs:
+      - WorkSurfaceProjection includes WorkstreamKey
+      - inventory rows include WorkstreamKey and exact Attachment
+      - migration tests
+    proof:
+      - project root or continuity alone cannot bind a Work Surface
+
+  - id: T061
+    title: Extract Pi-independent Mission Canvas semantic core
+    phase: canvas_extraction
+    status: blocked
+    depends_on: [T060, T050]
+    outputs:
+      - shared semantic projection package
+      - generated DTO inputs
+      - Pi compatibility adapter
+      - Desktop consumer fixture
+    proof:
+      - Pi and Desktop consume identical semantic model
+
+  - id: T062
+    title: Bound Pi rich Mission Canvas as compatibility projection
+    phase: canvas_extraction
+    status: blocked
+    depends_on: [T011, T061]
+    outputs:
+      - terminal/SSH recovery view
+      - no new desktop-only feature ownership
+      - explicit Desktop present fallback behavior
+    proof:
+      - terminal-only tests remain green
+
+  - id: T063
+    title: Remove accidental full Mission Canvas from menubar
+    phase: canvas_extraction
+    status: blocked
+    depends_on: [T011, T061]
+    outputs:
+      - compact menubar status and handoff only
+      - useful projections migrated
+    proof:
+      - no full Mission Canvas route/component remains in menubar
+
+  - id: T070
+    title: Extract or version product-neutral Desktop shell
+    phase: desktop
+    status: ready
+    depends_on: [T000]
+    reference:
+      repository: WPUIAI/uiai-engine
+      branch: feat/cockpit-ota-updates
+    outputs:
+      - shell/navigation/command/context/activity contracts
+      - explicit temporary-duplication removal issues if extraction is deferred
+    proof:
+      - no UIAI domain authority leaks into Focusa
+
+  - id: T071
+    title: Build Workstream-aware Focusa Desktop vertical slice
+    phase: desktop
+    status: blocked
+    depends_on: [T023, T061, T070]
+    outputs:
+      - Tauri/SvelteKit shell
+      - Mission Deck
+      - Mission Canvas current work
+      - Work Rail
+      - truthful Evidence projection
+      - semantic Desktop state
+    proof:
+      - presents one canonical Workstream without duplicating state
+
+  - id: T072
+    title: Implement Desktop semantic control plane
+    phase: desktop
+    status: blocked
+    depends_on: [T050, T071]
+    outputs:
+      - manifest/status/state/events/present routes
+      - Work Surface commands
+      - operation Receipts
+    proof:
+      - visual focus cannot alter authority
+      - agent verifies semantic arrival without screenshot parsing
+
+  - id: T073
+    title: Implement focusa desktop CLI and agent parity
+    phase: desktop
+    status: blocked
+    depends_on: [T072]
+    outputs:
+      - focusa desktop command family
+      - agent tool projection
+      - GUI/CLI/agent parity matrix
+    proof:
+      - every implemented command has GUI, CLI and agent path
+
+  - id: T080
+    title: Implement authentic embedded Pi PTY Work Surface
+    phase: pi_surface
+    status: blocked
+    depends_on: [T022, T071, T072]
+    outputs:
+      - cross-platform PTY adapter
+      - persistent Pi process
+      - Workstream Attachment binding
+      - split/detach/restore
+    proof:
+      - Pi survives hidden view and Desktop restart presentation recovery
+
+  - id: T081
+    title: Pin and package compatible Pi runtime
+    phase: pi_surface
+    status: blocked
+    depends_on: [T080]
+    outputs:
+      - signed Pi binary sidecar or bundled compatible Node/Pi set
+      - compatibility matrix
+      - rollback
+    proof:
+      - one-installer path requires no arbitrary user-managed runtime
+
+  - id: T090
+    title: Migrate full Mission Canvas capabilities to Desktop
+    phase: desktop_migration
+    status: blocked
+    depends_on: [T071, T073, T080]
+    outputs:
+      - CRIST, Context, Role, Trajectory, Sessions, Evidence, Research, Documents, contention, approvals, history
+    proof:
+      - primary rich use no longer requires Pi terminal GUI
+
+  - id: T091
+    title: Implement Focusa.work environment adapters
+    phase: web
+    status: blocked
+    depends_on: [T072, T090]
+    outputs:
+      - hosted runtime
+      - connected-local bridge
+      - self-hosted mode
+      - remote PTY
+    proof:
+      - same Workstream and command identities across Desktop and web
+
+  - id: T100
+    title: Disable global cognitive writes
+    phase: removal
+    status: blocked
+    depends_on: [T040, T041, T042, T043, T044, T045, T050]
+    outputs:
+      - global snapshot no longer receives canonical cognition
+    proof:
+      - static and runtime write-path audit
+
+  - id: T101
+    title: Remove global cognitive reads and fallbacks
+    phase: removal
+    status: blocked
+    depends_on: [T100, T060, T071]
+    outputs:
+      - no global active/current/latest canonical fallback
+    proof:
+      - adversarial stale-state and cross-Workstream tests
+
+  - id: T102
+    title: Remove singleton fields and retire Thread authority
+    phase: removal
+    status: blocked
+    depends_on: [T101]
+    outputs:
+      - no daemon-global cognitive aggregate
+      - no current_thread_id authority
+      - compatibility mappings bounded and deprecated
+    proof:
+      - static closure inventory contains zero unresolved canonical matches
+
+  - id: T110
+    title: Run end-to-end closure and public claim audit
+    phase: closure
+    status: blocked
+    depends_on: [T081, T090, T091, T102]
+    outputs:
+      - closure report
+      - backup/rollback rehearsal
+      - isolation proof
+      - parity matrix
+      - documentation and release updates
+    proof:
+      - Spec 158 closure gates all pass
+      - no public singleton-elimination claim precedes proof

@@ -1,0 +1,137 @@
+schema: focusa.desktop_milestone_contract.v1
+transition_id: FOCUSA-TRANSITION-001
+status: proposed
+updated_at: 2026-08-04T19:19:00Z
+parent: docs/transitions/FOCUSA-TRANSITION-001-preview-build-and-release-milestones.md
+execution:
+  primary_worktree: macbook_current_mission_canvas_worktree
+  local_commit_policy: dedicated_local_transition_branch
+  direct_upstream_main_push: forbidden
+  shared_mission_canvas_branch_push: forbidden
+  local_release_build: forbidden
+  release_host: approved_knownhost_private_reference
+  release_host_access:
+    - tailscale
+    - approved_direct_ssh
+  browser_preview: continuous
+  browser_evaluation_authority: uiai_engine
+  native_shell_gates: [5, 25, 50, 75, 100]
+  rust_toolchain_policy: one_pinned_toolchain
+  canonical_release_command: scripts/create-dev-release-tag.sh --base 0.9 --push
+  canonical_release_chain:
+    - CI
+    - Release
+    - Deploy Live Daemon
+    - audit_self_heal_watchdog
+
+milestones:
+  - percentage: 5
+    id: desktop_m05_native_shell
+    title: Native Focusa Desktop shell proof
+    required:
+      - real Focusa Desktop app identity
+      - Tauri configuration
+      - SvelteKit shell launches inside Tauri
+      - baseline application frame and navigation
+      - truthful daemon unavailable or read-only state
+      - current browser preview
+      - UIAI Engine proof
+      - native shell screenshots
+      - no canonical state duplication
+    release_allowed: false
+
+  - percentage: 25
+    id: desktop_m25_workstream_skeleton
+    title: Workstream-aware vertical skeleton
+    required:
+      - Workstream-aware Context Control contract
+      - Mission Deck skeleton
+      - Mission Canvas skeleton
+      - workspace manifest
+      - command manifest
+      - semantic Desktop state skeleton
+      - browser and native proof
+      - no global-current assumptions
+    release_allowed: false
+
+  - percentage: 50
+    id: desktop_m50_interactive_local_app
+    title: Interactive local application
+    required:
+      - daemon discovery and read path
+      - exact Workstream presentation
+      - first GUI CLI agent parity slice
+      - truthful Workpoint projection
+      - truthful tactical Trajectory projection
+      - truthful Evidence projection
+      - Desktop presenter/control operations
+      - continuous UIAI Engine proof
+      - full native shell proof
+    release_allowed: false
+
+  - percentage: 75
+    id: desktop_m75_release_candidate
+    title: Development release candidate integration gate
+    required:
+      - stable native shell and navigation
+      - Workstream-aware semantic control plane
+      - major implemented workspaces integrated
+      - Pi Work Surface bounded and testable or explicit blocker
+      - migration and compatibility matrix
+      - installer update and recovery posture
+      - focused and broad gates green enough for development release
+      - explicit operator approval
+      - approved dedicated review branch or commit
+    release_allowed: true
+    release_initiation:
+      source_host: approved_knownhost_release_host
+      macbook_release_initiation: forbidden
+      steps:
+        - connect using private approved Tailscale or direct SSH path
+        - fetch remote and verify approved commit
+        - ensure reviewed canonical release ref
+        - run canonical release command
+        - verify complete canonical workflow chain
+        - verify GitHub development Release
+        - record tag commit workflows artifacts evidence and rollback
+
+  - percentage: 100
+    id: desktop_m100_closure_candidate
+    title: Complete agreed Desktop closure candidate
+    required:
+      - complete agreed Desktop scope
+      - Pi PTY requirements
+      - agent-control parity
+      - migration and cleanup gates complete or explicit release blockers
+      - full browser and native Evidence
+      - packaging update and rollback proof
+      - accurate Spec 158 status
+      - accurate transition closure status
+    release_allowed: true
+
+milestone_evidence:
+  every_gate:
+    - percentage
+    - local_branch
+    - commit
+    - implemented_scope
+    - incomplete_scope
+    - browser_preview_status
+    - uiai_engine_evidence_refs
+    - tauri_shell_screenshots
+    - diagnostics_summary
+    - focused_tests
+    - broader_gates
+    - rust_node_tauri_versions
+    - workstream_authority_audit
+    - blockers
+    - next_milestone_plan
+    - rollback_recovery_notes
+  release_gates:
+    - approved_release_commit
+    - release_host_verification_without_private_details
+    - canonical_tag
+    - github_release_reference
+    - workflow_run_references
+    - artifact_checksums_and_signing
+    - update_and_rollback_proof
