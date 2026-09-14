@@ -4200,6 +4200,134 @@ mod trajectory_ladder_ledger_tests {
     }
 
     #[test]
+    fn legacy_events_schema_migrates_additively_and_remains_old_reader_compatible() {
+        let root = std::env::temp_dir().join(format!("focusa-legacy-db-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&root).expect("create legacy database root");
+        let database = root.join("focusa.sqlite");
+        let legacy_payload = r#"{"MemoryDecayTick":{"decay_factor":0.98,"rules_affected":3}}"#;
+        {
+            let connection = rusqlite::Connection::open(&database).expect("open legacy database");
+            connection
+                .execute_batch(
+                    r#"
+                    CREATE TABLE events (
+                      event_id TEXT PRIMARY KEY,
+                      ts TEXT NOT NULL,
+                      origin TEXT NOT NULL,
+                      correlation_id TEXT,
+                      payload_json TEXT NOT NULL
+                    );
+                    CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                    INSERT INTO meta(key, value) VALUES ('legacy-version', '0.9.177');
+                    "#,
+                )
+                .expect("create pre-scoped-runtime schema");
+            connection
+                .execute(
+                    "INSERT INTO events(event_id, ts, origin, correlation_id, payload_json) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    rusqlite::params![
+                        "legacy-event-1",
+                        "2026-08-01T00:00:00Z",
+                        "daemon",
+                        "legacy-correlation",
+                        legacy_payload,
+                    ],
+                )
+                .expect("insert legacy event");
+        }
+
+        let config = FocusaConfig {
+            data_dir: root.display().to_string(),
+            ..FocusaConfig::default()
+        };
+        let persistence = SqlitePersistence::new(&config).expect("migrate legacy database");
+        persistence
+            .with_connection_mut(|connection| {
+                let columns = connection
+                    .prepare("SELECT name FROM pragma_table_info('events') ORDER BY cid")?
+                    .query_map([], |row| row.get::<_, String>(0))?
+                    .collect::<rusqlite::Result<Vec<_>>>()?;
+                assert_eq!(
+                    columns,
+                    vec![
+                        "event_id",
+                        "ts",
+                        "origin",
+                        "correlation_id",
+                        "payload_json",
+                        "machine_id",
+                        "instance_id",
+                        "session_id",
+                        "thread_id",
+                        "is_observation",
+                    ]
+                );
+                let row = connection.query_row(
+                    "SELECT event_id, ts, origin, correlation_id, payload_json, machine_id, instance_id, session_id, thread_id, is_observation FROM events WHERE event_id='legacy-event-1'",
+                    [],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, Option<String>>(3)?,
+                            row.get::<_, String>(4)?,
+                            row.get::<_, Option<String>>(5)?,
+                            row.get::<_, Option<String>>(6)?,
+                            row.get::<_, Option<String>>(7)?,
+                            row.get::<_, Option<String>>(8)?,
+                            row.get::<_, i64>(9)?,
+                        ))
+                    },
+                )?;
+                assert_eq!(row.0, "legacy-event-1");
+                assert_eq!(row.1, "2026-08-01T00:00:00Z");
+                assert_eq!(row.2, "daemon");
+                assert_eq!(row.3.as_deref(), Some("legacy-correlation"));
+                assert_eq!(row.4, legacy_payload);
+                assert_eq!((row.5, row.6, row.7, row.8), (None, None, None, None));
+                assert_eq!(row.9, 0);
+                Ok(())
+            })
+            .expect("verify additive migration");
+        drop(persistence);
+
+        let reopened = SqlitePersistence::new(&config).expect("repeat migration idempotently");
+        drop(reopened);
+        let legacy_reader = rusqlite::Connection::open(&database).expect("reopen as legacy reader");
+        let legacy_row = legacy_reader
+            .query_row(
+                "SELECT event_id, ts, origin, correlation_id, payload_json FROM events WHERE event_id='legacy-event-1'",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, Option<String>>(3)?,
+                        row.get::<_, String>(4)?,
+                    ))
+                },
+            )
+            .expect("legacy projection remains readable");
+        assert_eq!(legacy_row.0, "legacy-event-1");
+        assert_eq!(legacy_row.1, "2026-08-01T00:00:00Z");
+        assert_eq!(legacy_row.2, "daemon");
+        assert_eq!(legacy_row.3.as_deref(), Some("legacy-correlation"));
+        assert_eq!(legacy_row.4, legacy_payload);
+        let legacy_version: String = legacy_reader
+            .query_row(
+                "SELECT value FROM meta WHERE key='legacy-version'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("legacy metadata remains exact");
+        assert_eq!(legacy_version, "0.9.177");
+        drop(legacy_reader);
+        std::fs::remove_dir_all(root).expect("clean compatibility fixture");
+    }
+
+    #[test]
     fn state_snapshot_retains_only_the_bounded_hot_ecs_projection() {
         let (persistence, root) = test_persistence();
         const PRODUCTION_HANDLE_COUNT: usize = 17_469;
