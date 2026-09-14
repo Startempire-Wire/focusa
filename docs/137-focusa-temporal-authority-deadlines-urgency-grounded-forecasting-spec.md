@@ -2338,3 +2338,11 @@ Spec 137 is complete only when Focusa can prove that:
 The governing watchword remains:
 
 > **THE CALENDAR AND THE CLOCK NEVER WAIT. TO BE EARLY IS TO BE ON TIME; TO BE ON TIME IS TO BE LATE.**
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:mandatory-spec137a-companion -->
+## Mandatory companion: Spec 137A
+
+Spec 137A is a mandatory companion to Spec 137. Combined Spec 137 + Spec 137A
+conformance remains open until the zero-deferral applicability, omission, runtime,
+and receipt requirements are verified together; implemented temporal slices alone
+do not establish combined full conformance.
