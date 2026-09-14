@@ -71,6 +71,7 @@ function safeErrorText(value: unknown): string {
 }
 import { registerAgentRuntimeTools } from "./agent-runtime-tools.js";
 import { registerSmsTools } from "./sms-tools.js";
+import { silentPreflightResult } from "./silent-preflight.js";
 import {
   SPEC138_OPERATIONS,
   bindSpec138OperationPath,
@@ -4570,8 +4571,10 @@ pi.registerTool({
       } else if (action === "preflight") {
         result = await focusaFetchDetailed("/silent-sessions/preflight", {
           method: "POST",
-          body: JSON.stringify(p.config || {}),
+          headers: p.idempotency_key ? { "Idempotency-Key": p.idempotency_key } : {},
+          body: JSON.stringify({ config: p.config || {} }),
         });
+        return silentPreflightResult(result, p.config);
       } else if (["reopen", "health"].includes(action)) {
         result = await focusaFetchDetailed(`/silent-sessions/${requireSession()}`, { method: "GET" });
       } else if (["tail", "watch"].includes(action)) {
