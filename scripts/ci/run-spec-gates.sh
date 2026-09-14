@@ -146,6 +146,7 @@ run_gate python3 ./tests/compatibility_canary_authority_fixture_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_task_materialization_e2e_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_work_rail_e2e_test.py
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh
+run_gate python3 ./tests/spec135_public_artifact_privacy_test.py
 run_gate python3 ./tests/spec135_m1_workspace_shell_test.py
 run_gate python3 ./tests/spec135_m2_pi_work_rail_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_mission_canvas_surfaces_e2e_test.py
