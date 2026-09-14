@@ -116,8 +116,10 @@ const sourceManifestPath = join(
   "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json",
 );
 const sourceManifest = readJson(sourceManifestPath);
+const explicitInstallRoot = process.env.FOCUSA_INSTALL_ROOT || null;
 const installedManifestPath =
   process.env.FOCUSA_DISTRIBUTION_MANIFEST ||
+  (explicitInstallRoot ? join(explicitInstallRoot, "distribution-manifest.json") : null) ||
   [
     "/usr/local/lib/focusa/distribution-manifest.json",
     join(process.env.HOME || "", ".focusa/distribution-manifest.json"),
@@ -160,12 +162,19 @@ function binaryVersion(path, fallback = null) {
 }
 
 const runtimeContract = sourceManifest?.components?.runtime_contract ?? {};
-const binaryPaths = runtimeContract.binary_paths ?? {
-  cli: "/usr/local/bin/focusa",
-  daemon: "/usr/local/bin/focusa-daemon",
-  tui: "/usr/local/bin/focusa-tui",
-  session_runner: "/usr/local/bin/focusa-session-runner",
-};
+const binaryPaths = explicitInstallRoot
+  ? {
+      cli: join(explicitInstallRoot, "bin/focusa"),
+      daemon: join(explicitInstallRoot, "bin/focusa-daemon"),
+      tui: join(explicitInstallRoot, "bin/focusa-tui"),
+      session_runner: join(explicitInstallRoot, "bin/focusa-session-runner"),
+    }
+  : runtimeContract.binary_paths ?? {
+      cli: "/usr/local/bin/focusa",
+      daemon: "/usr/local/bin/focusa-daemon",
+      tui: "/usr/local/bin/focusa-tui",
+      session_runner: "/usr/local/bin/focusa-session-runner",
+    };
 const binaryVersions = {};
 const binaryDigests = {};
 for (const [surface, path] of Object.entries(binaryPaths)) {
@@ -223,8 +232,9 @@ const installed = {
 };
 
 let live = { daemon_ok: null, daemon_version: null };
+const daemonHealthUrl = process.env.FOCUSA_DAEMON_HEALTH_URL || "http://127.0.0.1:8787/v1/health";
 try {
-  const response = await fetch("http://127.0.0.1:8787/v1/health", {
+  const response = await fetch(daemonHealthUrl, {
     signal: AbortSignal.timeout(4000),
   });
   if (response.ok) {

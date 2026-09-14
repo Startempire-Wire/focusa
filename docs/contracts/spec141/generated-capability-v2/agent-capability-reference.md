@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:78e4a214223840b95637a62e869e73fd8d99115cfaba007145d5035cc924878b`
+Registry digest: `sha256:ec9775458f22ba12fee89dbc180ded2497e9e7fa5ca2ebf6c2c545e8352c8d5a`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -335,7 +335,7 @@ Verify a Call Stack Design against bounded implementation surfaces and report dr
 
 ## focusa_callgraph_observe
 
-Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.callgraph.observe`
 - Family: `callgraph`
@@ -379,7 +379,7 @@ Record an operator-originated canonical instruction amendment proposal without a
 
 ## focusa_cockpit_projection
 
-Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation. Use it when Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.cockpit.projection`
 - Family: `cockpit`
@@ -478,7 +478,7 @@ Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menub
 
 ## focusa_credentials_verify
 
-Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.credentials.verify`
 - Family: `credential`
@@ -632,7 +632,7 @@ Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DX
 
 ## focusa_epistemic_operation
 
-Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.epistemic.operation`
 - Family: `metacognition`
@@ -665,7 +665,7 @@ Record a specific failure with diagnosis in Focus State. Must identify WHAT fail
 
 ## focusa_fast_forward
 
-Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.fast.forward`
 - Family: `session_fanout`
@@ -1435,7 +1435,7 @@ Cold-load one complete runtime Focusa tool definition after search. Returns stri
 
 ## focusa_tool_doctor
 
-Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.tool.doctor`
 - Family: `diagnostics_hygiene`
@@ -1732,7 +1732,7 @@ Fetch the active Focusa WorkpointResumePacket after compaction, resume, context 
 
 ## focusa_workset_projection
 
-Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.workset.projection`
 - Family: `workset`

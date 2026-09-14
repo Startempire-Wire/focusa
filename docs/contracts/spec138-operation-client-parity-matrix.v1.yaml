@@ -558,6 +558,6 @@
       "test_ref": "tests/spec138_full_conformance_gate.py"
     }
   ],
-  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
   "full_conformance_status": "verified_complete"
 }

@@ -5,6 +5,8 @@ import argparse, hashlib, json, re
 from pathlib import Path
 import yaml
 
+from structured_contract_loader import load_contract_mapping
+
 ROOT = Path(__file__).resolve().parents[1]
 RECEIPT = ROOT / "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
 EVIDENCE = [
@@ -101,7 +103,7 @@ def s150_family(section: int) -> str:
 
 def activate_spec144(apply: bool) -> int:
     path = ROOT / "docs/contracts/spec144-complete-feature-ledger.v1.yaml"
-    ledger = yaml.safe_load(path.read_text())
+    ledger = load_contract_mapping(path)
     sections = section_lines(ROOT / ledger["requirements"][0]["source_path"])
     for row in ledger["requirements"]:
         implementations, tests = S144[s144_family(section_for(row["source_line"], sections))]
@@ -122,7 +124,7 @@ def activate_spec144(apply: bool) -> int:
 
 def activate_spec150(apply: bool) -> int:
     path = ROOT / "docs/contracts/spec150-complete-feature-ledger.v1.yaml"
-    ledger = yaml.safe_load(path.read_text())
+    ledger = load_contract_mapping(path)
     for row in ledger["requirements"]:
         section_match = re.match(r"^(\d+)", str(row["spec_section"]))
         section = int(section_match.group(1)) if section_match else 0
@@ -148,7 +150,7 @@ def activate_matrices(apply: bool) -> int:
     if apply:
         for name in names:
             path = ROOT / "docs/contracts" / name
-            data = yaml.safe_load(path.read_text())
+            data = load_contract_mapping(path)
             data["runtime_claim"] = "activated"
             data["runtime_status"] = "verified_complete"
             if "status" in data:

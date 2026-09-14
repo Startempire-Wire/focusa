@@ -1,0 +1,9 @@
+{
+  "schema": "focusa.spec143_completion_evidence_transport.v1",
+  "receipt_ref": "docs/contracts/spec143-completion-receipt.v1.json",
+  "receipt_sha256": "sha256:01c0e88482dcfba6f09e112b600fc4b55b0b7274bcf4fb1ba3624fefeb8146e2",
+  "source_commit": "70095bc5002b77d1d8375d574c0c4a893425c0b6",
+  "immutable_blob_root": "docs/evidence/spec143-completion/70095bc5002b77d1d8375d574c0c4a893425c0b6",
+  "current_gate_owner": "scripts/ci/run-spec-gates.sh",
+  "verification_policy": "historical receipt hashes bind immutable transported blobs; current gate files execute independently and may evolve"
+}

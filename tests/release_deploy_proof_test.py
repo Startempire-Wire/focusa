@@ -46,6 +46,23 @@ def main() -> int:
                     "schema": "focusa.release_manifest.v1",
                     "tag": tag,
                     "commit": commit,
+                    "compatibility_canary": {
+                        "schema": "focusa.compatibility_canary_authorization.v1",
+                        "status": "authorized",
+                        "environment": "isolated_preproduction",
+                        "allowed_install_scope": "non_root_ephemeral_home",
+                        "required_previous_tag": "v0.9.177",
+                        "required_sequence": [
+                            "prior_release",
+                            "candidate_manifest_bound_apply",
+                            "prior_release_full_rollback",
+                            "candidate_manifest_bound_reapply",
+                        ],
+                        "production_apply_authorized": False,
+                        "system_install_authorized": False,
+                        "service_mutation_authorized": False,
+                        "automatic_apply_authorized": False,
+                    },
                     "trust": {
                         "key_id": "test-key",
                         "signing_algorithm": "ed25519",
@@ -133,6 +150,17 @@ def main() -> int:
         assert promoted_manifest["gates"]["release_success"] is True
         assert promoted_manifest["gates"]["deploy_success"] is True
         assert "ota_success" not in promoted_manifest["gates"]
+        assert (
+            promoted_manifest["compatibility_canary"]["status"]
+            == "superseded_by_production_deploy"
+        )
+        for field in (
+            "production_apply_authorized",
+            "system_install_authorized",
+            "service_mutation_authorized",
+            "automatic_apply_authorized",
+        ):
+            assert promoted_manifest["compatibility_canary"][field] is False
         assert promoted_manifest["gates"]["release_run_url"].endswith("/runs/9")
         assert promoted_manifest["assets"][asset.name]["url"].endswith(
             f"/releases/download/{tag}/{asset.name}"

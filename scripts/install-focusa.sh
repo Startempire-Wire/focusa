@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Safe version surface: `--version` prints the installer version and exits 0.
 # Never derived from remote/admin state.
-FOCUSA_INSTALLER_VERSION="0.9.187"
+FOCUSA_INSTALLER_VERSION="0.9.194-dev"
 
 GITHUB_REPO="${FOCUSA_GITHUB_REPO:-Startempire-Wire/focusa}"
 RELEASE_BASE_URL="${FOCUSA_RELEASE_BASE_URL:-}"
@@ -239,7 +239,10 @@ verify_cosign_manifest() {
   curl_resilient -fsSL "$(release_asset_url SHA256SUMS.txt.cosign.sig)" -o "$TMP/SHA256SUMS.txt.cosign.sig" || return 1
   curl_resilient -fsSL "$(release_asset_url SHA256SUMS.txt.cosign.pem)" -o "$TMP/SHA256SUMS.txt.cosign.pem" || return 1
   cosign verify-blob --certificate "$TMP/SHA256SUMS.txt.cosign.pem" \
-    --signature "$TMP/SHA256SUMS.txt.cosign.sig" "$CHECKSUM_MANIFEST" >/dev/null
+    --signature "$TMP/SHA256SUMS.txt.cosign.sig" \
+    --certificate-identity-regexp "^https://github\\.com/Startempire-Wire/focusa/\\.github/workflows/release\\.yml@refs/tags/" \
+    --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+    "$CHECKSUM_MANIFEST" >/dev/null
 }
 if verify_cosign_manifest; then
   log "cosign verification succeeded"

@@ -17,6 +17,12 @@ Focusa packaging is local-first by default: the product is not a cloud memory se
 
 “Community source” must not be used as shorthand for a perpetual runnable free edition. The BSL and Additional Use Grant define source-use rights; Spec 152 defines official product activation and Evaluation issuance.
 
+## Operator software usage
+
+A verified Operator License Type is not Evaluation: its ordinary software usage has no Evaluation Workpoint, Mission, Evidence, automation-run, or update-run quota. The shared entitlement resolver must preserve the authority-signed offer code and posture; an `active` lease alone does not establish Operator rights. Missing software-use counters must not be interpreted as exhausted Operator allowances.
+
+License Type inclusion does not waive signature/revocation checks, product scope, role permissions, confirmation, seats/nodes, hosted-resource rights, or operational resource safeguards. Hosted mode, embedding, and telemetry are not granted merely by enabling commercial workloads. A future premium License Type remains undecided; this repair creates none. Source verification is not proof of installed customer operation.
+
 ## Package artifacts
 
 Depending on signed product/features, packaging may include:

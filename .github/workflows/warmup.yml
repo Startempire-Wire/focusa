@@ -1,19 +1,10 @@
-# Continuous release-profile warm builder (quality-neutral speed win).
-#
-# On every push to main, rebuild the EXACT canonical release profile for the
-# three Linux targets (thin-LTO, cross containers, pinned toolchain, trust
-# root env) on the dedicated OVH warm-builder runner. At tag time the release
-# legs run in the same workspace/target-dir: cargo fingerprints guarantee the
-# shipped binaries are compiled from the exact tag sources with the exact
-# canonical profile — a stale cache can only cost time, never alter output.
+# Optional, manually dispatched release-profile cache warmup.
+# Shares the OVH build runner with required CI; ordinary pushes must not queue
+# speculative release builds ahead of issue verification. Canonical profiles
+# and exact-source release checks remain unchanged.
 name: Release Warm Builder
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
   workflow_dispatch: {}
 
 concurrency:
@@ -26,7 +17,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 75
     env:
-      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
+      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
@@ -42,6 +33,7 @@ jobs:
           CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-gnu
         run: cargo build --release --target x86_64-unknown-linux-gnu
       - name: Warm musl release build (canonical cross path)
+        id: cross_musl
         env:
           CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-musl
         run: |
@@ -52,10 +44,17 @@ jobs:
           export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
           scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl
           rm -f Cross.toml
+      - name: Finalize exact-owned musl cross containers
+        if: ${{ always() && steps.cross_musl.outcome != 'skipped' && steps.cross_musl.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target x86_64-unknown-linux-musl
       - name: Warm arm64 release build (canonical cross path)
+        id: cross_arm64
         env:
           CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/aarch64-unknown-linux-gnu
         run: scripts/ci/run-cancellation-safe-cross.sh build --release --target aarch64-unknown-linux-gnu
+      - name: Finalize exact-owned arm64 cross containers
+        if: ${{ always() && steps.cross_arm64.outcome != 'skipped' && steps.cross_arm64.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target aarch64-unknown-linux-gnu
       - name: Smoke release binaries (musl runs on host, gnu daemon boots)
         run: |
           /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-musl/x86_64-unknown-linux-musl/release/focusa --version

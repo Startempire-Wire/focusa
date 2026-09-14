@@ -20,11 +20,24 @@ No variants, no shortcuts, no `--no-verify`, no hand-editing `distribution-manif
   full temporary provider map and one-change-set GitHub restoration protocol
   are in `docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md`.
   Remove this exception when GitHub-hosted macOS proves the same contract green.
+- **Temporary Windows build delegation:** AppVeyor's one-job public lane admits
+  only exact stable/`-dev` release tags or the explicit immutable recovery
+  controller. It locates the gated GitHub draft by enumerating the authenticated
+  release collection; the draft-blind `/releases/tags/{tag}` endpoint is banned.
+  Ordinary branches, pull requests, and Nightlies must not consume this serial
+  release lane.
 - **Tag ≠ Release.** `git push --tags` only enqueues CI. `Latest` flips only after `Release 14/14 green`. Say "tag pushed, CI queued" vs "Release published as Latest". Never "pushed full release" when only tag exists.
+- **Proof, not ticket closure, gates delivery.** Open issues remain open until their
+  actual acceptance criteria are proven. They do not prevent building the signed
+  candidate needed to collect installed evidence. Exact-source checks, scoped PR
+  inclusion, signed artifacts, compatibility canary, installed distribution parity,
+  OTA/rollback proof, and final promotion checks remain mandatory. Deferred work is
+  not silently declared complete or added to the current release.
+
 - **No partial releases.** No OS-only, surface-only, or docs-only ship without explicit operator written approval.
 - **Production authority is artifact-bound.** Every Linux, Windows, and macOS Rust release provider receives the public `FOCUSA_AUTHORITY_ROOT_KEYS_JSON` at compile time (including `cross` container passthrough). Before upload, `scripts/verify-embedded-authority-root.py` must prove each authority-verifying CLI and daemon binary contains every configured production key ID and public key. TUI presence remains mandatory, but it does not link the license verifier and must not be given a decorative trust root. Liveness, a runtime environment drop-in, or an existing lease never substitutes for this binary proof.
 - **Distribution parity is manifest-bound.** `distribution-manifest.json` carries full SHA-256 tree contracts for Rust runtime source, Pi extension, agent skills, current documentation, generated clients, installers, capability registries, and canonical installed paths. Every `v0.9.188+` release lane publishes and signs that manifest as a required asset and embeds the same bytes in the checksummed agent-context archive; only stable Release may proceed through full deployment and `Latest` promotion. Rust install promotes it to `/usr/local/lib/focusa/distribution-manifest.json` inside the same rollback boundary as all four binaries, systemd, health, and CallGraph acceptance. Releases before `v0.9.188` remain installable but cannot claim this manifest parity.
-- **Containerized cross builds have one cancellation owner.** Every workflow invokes `scripts/ci/run-cancellation-safe-cross.sh`, which labels containers with the exact GitHub run ID, run attempt, job, and target; traps exit and cancellation; and removes only containers whose inspected labels match all four values. Broad process kills, global container cleanup, run-attempt-only matching, and manual cleanup before the exact provider run is terminal are forbidden.
+- **Containerized cross builds have one cancellation owner.** Every workflow invokes `scripts/ci/run-cancellation-safe-cross.sh`, which labels containers with the exact GitHub run ID, run attempt, job, and target; traps exit and cancellation; and removes only containers whose inspected labels match all four values. Each cross-bearing step also has an `always()` finalizer invoking the same owner as `cleanup-owned --target <exact-target>` when that build step actually ran: parent-shell cancellation may prevent the launcher's trap from running. Cleanup-only mode never starts a compiler, requires no cross installation, and remains identity-checked and idempotent. Finalizer errors are blocking. Broad process kills, global container cleanup, run-attempt-only matching, and manual cleanup before the exact provider run is terminal are forbidden. Force-kill/host-outage residue still requires verified recovery; unit/finalizer wiring tests are not a substitute for a real provider cancellation receipt with unrelated work preserved.
 
 ### What is deterministic and agent-removed (fewer failure points = less agent)
 
@@ -38,7 +51,7 @@ Every step below is code, not human memory. The agent never manually runs it; `g
 | **Commit message** | `scripts/validate-commit-messages.sh` + `commit-msg` hook | Agent crafting `fix:` vs `spec104:` | Enforces Conventional Commits `^(feat|fix|docs|test|refactor|perf|build|ci|chore|revert|proof|merge)(\(.+\))?!: .{4,}$` ≤100 chars, rejects `Beads:*`, ID-only, `WIP`. `spec104:` is rejected; use `fix:` (Spec104 inventory is `fix(release):`). |
 | **CI gate** | `.github/workflows/ci.yml` | Manual `cargo test` polling | 5 jobs deterministic: `Menubar`, `Meaningful`, `Rust`, `Spec Gates (strict)`, `Release Automation`. Apt mirror resilient (`rm apt-mirrors.txt`, `sed azure→archive`, `timeout 45`, fallback `rg` binary). |
 | **Spec132 wait** | `.github/workflows/release.yml` `require_success_with_wait` | Agent `gh api /rerun-failed-jobs` polling | When terminal paths changed, Release now **waits up to 20m** for `Spec 132 terminal matrix 11/11` (`windows-conpty` + `aarch64-pc-windows-msvc`) on same `headSha` instead of immediate `Missing successful Spec 132 terminal matrix candidate gate` FAIL. No agent rerun. |
-| **Tag → Release** | `.github/workflows/release.yml` canonical DAG | Agent waiting on provider pages | Candidate contract and exact-SHA CI → release gate → package Pi/agent docs/generated clients → build every OS/surface → require `distribution-manifest.json` → generate checksums, candidate release manifest, provenance, and signatures → immutable prerelease publication (`Latest=false`) → deploy exact assets → installed parity + OTA gates → re-sign settled manifest → stable/Latest promotion. |
+| **Tag → Release** | `.github/workflows/release.yml` canonical DAG | Agent waiting on provider pages | Candidate contract and exact-SHA CI → release gate → package Pi/agent docs/generated clients → build every OS/surface → require `distribution-manifest.json` → generate checksums, candidate release manifest, provenance, and signatures → immutable prerelease publication (`Latest=false`) → signed isolated `v0.9.177 → interrupted-install recovery → candidate → rollback → candidate` compatibility and full distribution-parity canary → independently verify its exact-SHA receipt before any production mutation → deploy exact assets → installed parity + OTA gates → re-sign settled manifest → stable/Latest promotion. |
 | **Verification** | `scripts/verify-version-surfaces.py` tail in `create-dev-release-tag.sh`; `scripts/verify-embedded-authority-root.py` in every Rust packaging provider | Agent `gh release view` eyes and runtime-root injection | Scripts verify production authority roots inside binaries before upload, then `isLatest true` + asset count before exiting 0. |
 | **Journal** | `journal_client` in `create-dev-release-tag.sh` | Agent forgetting optimization | Every Release failure is cataloged in `docs/current/RELEASE_FAILURE_MODE_CATALOG` H and `release-proof/audit/` — next run's `run-release-learning-guards.py` replays guards. Kept continually for optimizations. |
 
@@ -72,12 +85,12 @@ For **Dev release**: same, but tag is `vX.Y.Z-dev` and Release shows `isPrerelea
 - **FAST** (`PREFLIGHT_FAST=1`, used by `pre-push`): `source_commit` may be any ancestor of `HEAD` (`git merge-base --is-ancestor`). Allows `docs/ci` commits without churning `distribution-manifest.json` on every push. Still checks `release_version==Cargo`, `sha256` match, `generated_at<24h`.
 - **STRICT** (used by `create-dev-release-tag.sh --push` before tag): `source_commit` must be `HEAD` or `HEAD~1` with `distribution-manifest.json` touched in `HEAD`. Ensures the Release tag's manifest is at most one commit old and reflects the stamped SHA. Prints `FAIL stale source_commit X != HEAD Y nor parent Z (touched=False)` with hint `run stamp-menubar-version.py`.
 
-**Nothing is ever allowed to be stale.** If `local-release-preflight.sh` says `FAIL stale …`, that failure is real and blocks `git push` / tag push. Fix is always `bash scripts/stamp-menubar-version.py v$(cat docs/current/.release-version-stamp)` then rerun preflight.
+**Nothing is ever allowed to be stale.** If `local-release-preflight.sh` says `FAIL stale …`, that failure is real and blocks `git push` / tag push. Fix is always `python3 scripts/stamp-menubar-version.py v$(cat docs/current/.release-version-stamp)` then rerun preflight.
 
 ### If Release fails (deterministic recovery, no agent guessing)
 
 - `Missing successful Spec 132 terminal matrix candidate gate` → **no longer happens**; Release now waits 20m for it. If it still timeouts, fix Spec132 code, rerun preflight `--strict`, re-push tag (same SHA).
-- `Exact tag CI proof: failure` → CI failed on stamped SHA. Read `gh run view --log-failed`, fix code, rerun preflight `--strict`, then `git tag -f` moves tag to fixed SHA.
+- `Exact tag CI proof: failure` → CI failed on stamped SHA. Read `gh run view --log-failed`, fix code and rerun preflight `--strict`. Never move an existing release tag: controller-only repairs use the immutable recovery inputs; candidate-code changes require a new release version.
 - `distribution parity drift blocks this release` → stamp was missed. `bash scripts/stamp-menubar-version.py vX.Y.Z` then preflight.
 - Any other job failure → `gh run view <id> --log`, fix, preflight `--strict`, continue at failed step. Never skip preflight.
 

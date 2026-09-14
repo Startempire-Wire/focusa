@@ -233,6 +233,24 @@ enum Commands {
     #[command(subcommand, name = "work-loop")]
     WorkLoop(commands::work_loop::WorkLoopCmd),
 
+    /// Spec 149 Workset membership, event, and replay projection operations.
+    Workset(commands::workset::WorksetArgs),
+
+    /// Workstream-rooted migration operations.
+    Workstream(commands::workstream::WorkstreamArgs),
+
+    /// Remote workspace binding lifecycle operations.
+    Remote(commands::remote::RemoteArgs),
+
+    /// Infrastructure inventory operations.
+    Infra(commands::infra::InfraArgs),
+
+    /// Rebuild daemon projection state from durable ledgers.
+    RebuildState(commands::rebuild_state::RebuildStateArgs),
+
+    /// CallGraph export projections.
+    Callgraph(commands::callgraph::CallgraphArgs),
+
     /// Launch the focusa-tui dashboard or run a headless self-test snapshot.
     Tui(commands::tui::TuiArgs),
 
@@ -1142,6 +1160,12 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
         Commands::WorkLoop(cmd) => commands::work_loop::run(cmd, cli.json).await,
+        Commands::Workset(args) => commands::workset::run(args.cmd, cli.json).await,
+        Commands::Workstream(args) => commands::workstream::run(args.cmd, cli.json).await,
+        Commands::Remote(args) => commands::remote::run(args.cmd, cli.json).await,
+        Commands::Infra(args) => commands::infra::run(args.cmd, cli.json).await,
+        Commands::RebuildState(args) => commands::rebuild_state::run(args, cli.json).await,
+        Commands::Callgraph(args) => commands::callgraph::run(args.cmd, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Init(args) => commands::init::run(args, cli.json).await,
         Commands::Walkthrough(args) => {

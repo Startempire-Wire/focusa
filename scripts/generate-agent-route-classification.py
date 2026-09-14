@@ -15,6 +15,66 @@ OUTPUT = (
 API_REFERENCE = ROOT / "docs/current/API_REFERENCE_CURRENT.md"
 
 
+def without_inline_test_modules(body: str) -> str:
+    """Exclude explicit cfg(test) modules without truncating later production code.
+
+    Mask Rust strings/chars/comments only for delimiter discovery. Route literals
+    outside test modules remain intact for this inventory's existing parser.
+    Unterminated literal/comment boundaries fail closed; lifetimes stay code.
+    This is not a general Rust cfg evaluator or proof of HTTP registration.
+    """
+    tokens = re.compile(
+        r'(?:br|r)(?P<hashes>\#{0,255})".*?"(?P=hashes)'
+        r'|b?"(?:\\.|[^"\\])*"'
+        r"|b?'(?:\\(?:u\{[0-9a-fA-F_]+\}|x[0-9a-fA-F]{2}|.)|[^'\\\n])'"
+        r'|//[^\n]*|/\*'
+        r'|(?P<unterminated>(?:br|r)\#{0,255}"|b?"|b\')'
+        r"|(?P<apostrophe>')", re.S,
+    )
+    masked = list(body)
+    delimiters = re.compile(r'/\*|\*/')
+    cursor = 0
+    while match := tokens.search(body, cursor):
+        end = match.end()
+        if match.group('unterminated') is not None:
+            raise ValueError("unterminated Rust string or character literal")
+        if match.group('apostrophe') is not None:
+            # A complete character was consumed above. An identifier after an
+            # apostrophe can instead begin a lifetime or loop label.
+            if end < len(body) and body[end].isidentifier():
+                cursor = end
+                continue
+            raise ValueError("unterminated Rust character literal")
+        if match.group() == "/*":
+            depth = 1
+            while depth:
+                delimiter = delimiters.search(body, end)
+                if delimiter is None:
+                    raise ValueError("unterminated Rust block comment")
+                depth += 1 if delimiter.group() == "/*" else -1
+                end = delimiter.end()
+        masked[match.start():end] = ["\n" if c == "\n" else " " for c in body[match.start():end]]
+        cursor = end
+    lexical = "".join(masked)
+    module = re.compile(
+        r'#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]\s*'
+        r'(?:#\[[^\]]*\]\s*)*(?:pub(?:\([^)]*\))?\s+)?'
+        r'mod\s+(?:r#)?\w+\s*\{'
+    )
+    result = list(body)
+    cursor = 0
+    while match := module.search(lexical, cursor):
+        depth, end = 1, match.end()
+        while depth and end < len(lexical):
+            depth += (lexical[end] == "{") - (lexical[end] == "}")
+            end += 1
+        if depth:
+            raise ValueError("unterminated cfg(test) module")
+        result[match.start():end] = ["\n" if c == "\n" else " " for c in body[match.start():end]]
+        cursor = end
+    return "".join(result)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -24,7 +84,7 @@ def main() -> int:
     paths: dict[str, set[str]] = {}
     methods: dict[str, set[str]] = {}
     for source in source_files:
-        body = source.read_text(errors="replace")
+        body = without_inline_test_modules(source.read_text(encoding="utf-8", errors="strict"))
         relative_source = str(source.relative_to(ROOT))
         string_constants = dict(
             re.findall(
@@ -64,7 +124,7 @@ def main() -> int:
         (
             ROOT
             / "docs/contracts/spec135/generated-contract-v1/operation-registry.json"
-        ).read_text()
+        ).read_text(encoding="utf-8")
     )
     agent_paths = {item["path"] for item in registry["operations"]}
     for operation in registry["operations"]:
@@ -160,7 +220,7 @@ def main() -> int:
     api_lines = [
         "# Current API Route Inventory",
         "",
-        "Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.",
+        "Generated from current Axum route declarations plus the Spec135/Spec141 operation registry. Explicit inline cfg(test) modules are excluded. This source inventory does not prove HTTP mounting, permissions, or installed availability. It is release-gated; do not edit route rows manually.",
         "",
         f"- Classified paths: `{len(classifications)}`",
         f"- Agent eligible: `{counts.get('agent_eligible', 0)}`",
@@ -196,18 +256,18 @@ def main() -> int:
     api_body = "\n".join(api_lines).rstrip() + "\n"
     if args.check:
         drift = []
-        if not OUTPUT.exists() or OUTPUT.read_text() != body:
+        if not OUTPUT.exists() or OUTPUT.read_text(encoding="utf-8") != body:
             drift.append(str(OUTPUT.relative_to(ROOT)))
-        if not API_REFERENCE.exists() or API_REFERENCE.read_text() != api_body:
+        if not API_REFERENCE.exists() or API_REFERENCE.read_text(encoding="utf-8") != api_body:
             drift.append(str(API_REFERENCE.relative_to(ROOT)))
         if drift:
             print(f"Spec141 route/API reference drift: {', '.join(drift)}", flush=True)
             return 1
     else:
         OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-        OUTPUT.write_text(body)
+        OUTPUT.write_text(body, encoding="utf-8")
         API_REFERENCE.parent.mkdir(parents=True, exist_ok=True)
-        API_REFERENCE.write_text(api_body)
+        API_REFERENCE.write_text(api_body, encoding="utf-8")
     print(
         json.dumps(
             {

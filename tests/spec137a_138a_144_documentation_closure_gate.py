@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import json
 import re
+
+from structured_contract_loader import load_contract_mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 required = [
@@ -48,7 +49,7 @@ for rel in required:
     assert path.is_file(), rel
     text = path.read_text()
     assert len(text) > 200, f"empty/shell artifact: {rel}"
-    data = json.loads(text)
+    data = load_contract_mapping(path)
     claim = data.get("runtime_claim")
     status = data.get("runtime_status")
     assert (claim, status) in {
@@ -58,7 +59,12 @@ for rel in required:
         ("full_spec138_conformance", "verified_complete"),
     }, rel
     if claim in {"activated", "full_spec138_conformance"}:
-        assert data.get("activation_receipt_ref") == "release-proof/audit/spec144-spec150-double-e2e-receipt.json", rel
+        expected_receipt = (
+            "release-proof/audit/spec138-runtime-receipt.json"
+            if Path(rel).name.startswith("spec138")
+            else "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
+        )
+        assert data.get("activation_receipt_ref") == expected_receipt, rel
 
 s137 = (ROOT / "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md").read_text()
 s138 = (ROOT / "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md").read_text()
@@ -72,8 +78,9 @@ ledger137 = (ROOT / "docs/contracts/spec137-complete-feature-ledger.v1.yaml").re
 assert "combined_normative_source_v2" in ledger137 and "spec137a_requirement_rows" in ledger137
 
 alignment = (ROOT / "docs/evidence/141-focusa-latest-spec-public-doc-alignment.md").read_text()
-assert alignment.count("combined full conformance verified") >= 2
-assert "runtime implementation verified by `release-proof/audit/spec144-spec150-double-e2e-receipt.json`" in alignment
+assert "verified runtime slices; combined full conformance open" in alignment
+assert "combined full conformance verified by `release-proof/audit/spec138-runtime-receipt.json`; stable release pending" in alignment
+assert "runtime implementation verified by `release-proof/audit/spec144-spec150-double-e2e-receipt.json`; stable release pending" in alignment
 
 ci = (ROOT / "scripts/ci/run-spec-gates.sh").read_text()
 assert "spec137a_138a_144_documentation_closure_gate.py" in ci
@@ -86,7 +93,7 @@ for rel in (
     "docs/contracts/spec138a-normative-source-coverage.v1.yaml",
     "docs/contracts/spec144-normative-source-coverage.v1.yaml",
 ):
-    data = json.loads((ROOT / rel).read_text())
+    data = load_contract_mapping(ROOT / rel)
     assert data["source_atom_count"] == len(data["source_atoms"]), rel
     assert not data["unmapped_source_atom_refs"], rel
     for src in data["sources"]:

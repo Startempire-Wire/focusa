@@ -118,6 +118,7 @@ jobs:
         with:
           tool: cross
       - name: Build release binaries for spec132 musl proof
+        id: cross_build
         shell: bash
         run: |
           set -euo pipefail
@@ -130,6 +131,9 @@ jobs:
           trap 'rm -f Cross.toml' EXIT
           scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl --package focusa-cli --bin focusa
           scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl --package focusa-tui --bin focusa-tui
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target x86_64-unknown-linux-musl
       - name: Package release artifact and compute hash
         id: bundle
         shell: bash
@@ -232,6 +236,7 @@ jobs:
         with:
           tool: cross
       - name: Build all release binaries without publishing
+        id: cross_build
         shell: bash
         run: |
           set -euo pipefail
@@ -246,6 +251,10 @@ jobs:
           else
             cargo build --release --target "${{ matrix.target }}" --bins
           fi
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && contains(matrix.target, 'linux') && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        shell: bash
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target "${{ matrix.target }}"
       - name: Execute linux-musl runtime proof
         if: ${{ matrix.musl == true }}
         env:
