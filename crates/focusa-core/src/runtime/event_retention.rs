@@ -418,7 +418,15 @@ mod tests {
     fn retention_cutoff_is_lexicographically_comparable() {
         let cutoff = retention_cutoff(30);
         assert_eq!(cutoff.len(), "2026-08-15T00:00:00+00:00".len());
-        assert!(cutoff.as_str() < "2026-08-15T00:00:00+00:00");
+        // The cutoff must stay lexicographically before the current day floor,
+        // regardless of the wall-clock date this test runs on.
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or_default() as i64;
+        let (year, month, day) = civil_from_days(now_secs / 86_400);
+        let now_floor = format!("{year:04}-{month:02}-{day:02}T00:00:00+00:00");
+        assert!(cutoff.as_str() < now_floor.as_str());
     }
 
     #[test]
