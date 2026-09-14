@@ -40,7 +40,7 @@ jobs:
         shell: pwsh
         run: |
           cargo build --release --target "${{ matrix.target }}"
-          @("focusa", "focusa-daemon", "focusa-tui") | ForEach-Object {
+          @("focusa", "focusa-daemon", "focusa-tui", "focusa-session-runner") | ForEach-Object {
             $path = "target/${{ matrix.target }}/release/$_.exe"
             if (-not (Test-Path $path -PathType Leaf)) { throw "missing $path" }
           }

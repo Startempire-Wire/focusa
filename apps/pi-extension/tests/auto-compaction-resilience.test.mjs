@@ -37,12 +37,11 @@ test("session replacement or reload clears only a stale global owner", () => {
   assert.match(source, /extensionApi: pi/);
 });
 
-test("session reload preserves, rebinds, and proves the compaction coordinator", () => {
+test("session reload releases stale ownership and rebinds the coordinator", () => {
   const shutdown = handlerBody("session_shutdown");
   const start = handlerBody("session_start");
-  assert.doesNotMatch(shutdown, /processLease\.request = undefined/);
-  assert.doesNotMatch(shutdown, /processLease\.owner = undefined/);
-  assert.match(shutdown, /processLease\.owner\.nativeSession = undefined/);
+  assert.match(shutdown, /processLease\.request = undefined/);
+  assert.match(shutdown, /processLease\.owner = undefined/);
   assert.match(start, /processLease\.request = maybeCompact/);
   assert.match(start, /reduceCompactionAuthorityEvents\(persistedEvents\)/);
   assert.match(start, /runtime_registration_verified/);
@@ -197,15 +196,18 @@ test("compaction exposes elapsed heartbeat and bounded no-retry resume outcomes"
   assert.doesNotMatch(compactionSource, /Retrying automatically/);
 });
 
-test("one process-wide coordinator suppresses active duplicates but rebinds stale owners", () => {
+test("session replacement rebinds while active duplicate module loads stay suppressed", () => {
   assert.match(source, /Symbol\.for\("focusa\.compaction\.coordinator\.v1"\)/);
-  assert.match(source, /if \(processLease\.owner\)/);
+  assert.match(source, /processLease\.owner\.moduleLoadId === MODULE_LOAD_ID/);
+  assert.match(source, /processLease\.owner\.moduleIdentity === MODULE_IDENTITY/);
   assert.match(source, /registrationApiIsActive\(processLease\.owner\)/);
-  assert.match(source, /duplicate compaction coordinator registration suppressed/);
+  assert.match(source, /transfer the lease/);
+  assert.match(source, /duplicate extension suppressed/);
+  assert.match(source, /Remove the duplicate Focusa installation and reload Pi/);
   assert.match(source, /compaction coordinator rebound after session replacement or reload/);
-  assert.match(source, /processLease\.owner = undefined;/);
   assert.match(source, /processLease\.request = undefined;/);
-  assert.match(source, /return false;[\s\S]{0,400}const previousSource/);
+  assert.match(source, /return false;/);
+  assert.match(source, /const maxTransientRetries/);
   assert.match(indexSource, /if \(!ownsCompactionCoordinator\) return/);
   assert.match(source, /nativeCompactionCallCount >= 1/);
   assert.match(source, /nativeCompactionCallCount \+= 1/);

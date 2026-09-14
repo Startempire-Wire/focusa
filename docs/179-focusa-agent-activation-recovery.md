@@ -49,7 +49,7 @@ single authority path and avoids a second activation implementation.
 - Static CLI contract test verifies agent fast-path dispatch.
 - Existing authority E2E verifies raw UUID binding, idempotent retry, active
   lifetime bundle entitlement, and zero synthetic fixture residue.
-- Barry's public HTTPS poll verified raw UUID lease sequence 18; historical
+- A customer-side public HTTPS poll verified raw UUID lease sequence 18; historical
   signed lease rows remained byte-identical.
 - Release acceptance still requires canonical v0.9.185 artifacts with embedded
   production trust roots before customer-side closure.

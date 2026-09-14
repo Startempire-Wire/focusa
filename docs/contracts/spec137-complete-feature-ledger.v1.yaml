@@ -1,6 +1,6 @@
 schema: focusa.spec137_complete_feature_ledger.v1
 spec_ref: docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md
-source_spec_sha256: b3f3aceb1b534a07f18bb0b265d9013d493cafed091114159bce95cfc4c0078d
+source_spec_sha256: e1a4d958ac75c5aa6f8ef68d6dd0d924f765250d0219cf8f721913a3b6c13271
 generated_at: '2026-07-30T09:09:32.365590+00:00'
 status: implementation_open
 invalidation_reason: audited_runtime_conformance_missing_github_436
@@ -16277,3 +16277,4 @@ spec137a_requirement_rows:
 exhaustive_source_atom_coverage_ref: docs/contracts/spec137a-normative-source-coverage.v1.yaml
 exhaustive_source_atom_count: 2401
 exhaustive_normative_requirement_count: 1173
+exhaustive_combined_source_sha256: 2e8e463632fcfc92318ff0d3ed2d3f12470be3d05e94dbbf24f4d80ad850ad4a

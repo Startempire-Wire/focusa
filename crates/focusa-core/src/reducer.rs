@@ -23,6 +23,7 @@
 
 use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
+use crate::reference::{DEFAULT_HOT_HANDLE_LIMIT, retain_hot_handles};
 use crate::scoped_state::WorkstreamKey;
 use crate::types::*;
 
@@ -482,6 +483,19 @@ fn upsert_trajectory_record(
 
 use chrono::Utc;
 use uuid::Uuid;
+
+const MAX_TEMPORAL_SIGNAL_MARKERS: usize = 1000;
+
+fn push_bounded_unique<T: Copy + PartialEq>(items: &mut Vec<T>, item: T) {
+    if items.contains(&item) {
+        return;
+    }
+    items.push(item);
+    if items.len() > MAX_TEMPORAL_SIGNAL_MARKERS {
+        let remove = items.len() - MAX_TEMPORAL_SIGNAL_MARKERS;
+        items.drain(..remove);
+    }
+}
 
 /// Core reducer: apply an event to state, producing new state + emitted events.
 ///
@@ -1817,6 +1831,16 @@ pub fn reduce_with_meta(
             adapter_id,
             raw_user_input,
         } => {
+            // A new turn begins a new inactivity episode. Its temporal signal may
+            // fire once if this turn later exceeds the inactivity threshold.
+            if let Some(active_id) = state.focus_stack.active_id {
+                state
+                    .focus_gate
+                    .inactivity_signal_frames
+                    .retain(|frame_id| *frame_id != active_id);
+            } else {
+                state.focus_gate.inactivity_signal_without_frame = false;
+            }
             // Store turn in active_turn for correlation.
             state.active_turn = Some(ActiveTurn {
                 turn_id,
@@ -2637,6 +2661,10 @@ pub fn reduce_with_meta(
         }
 
         // ─── Intuition → Gate ────────────────────────────────────────────
+        FocusaEvent::FocusGatePipelineCommitted { focus_gate } => {
+            state.focus_gate = focus_gate;
+        }
+
         FocusaEvent::IntuitionSignalObserved {
             signal_id,
             signal_type,
@@ -2645,6 +2673,24 @@ pub fn reduce_with_meta(
             related_frame_id,
         } => {
             let now = Utc::now();
+            match signal_type {
+                SignalKind::InactivityTick => match related_frame_id {
+                    Some(frame_id) => push_bounded_unique(
+                        &mut state.focus_gate.inactivity_signal_frames,
+                        frame_id,
+                    ),
+                    None => state.focus_gate.inactivity_signal_without_frame = true,
+                },
+                SignalKind::LongRunningFrame => {
+                    if let Some(frame_id) = related_frame_id {
+                        push_bounded_unique(
+                            &mut state.focus_gate.long_running_signal_frames,
+                            frame_id,
+                        );
+                    }
+                }
+                _ => {}
+            }
             state.focus_gate.signals.push(Signal {
                 id: signal_id,
                 ts: now,
@@ -2752,6 +2798,16 @@ pub fn reduce_with_meta(
             }
 
             state.reference_index.handles.push(handle);
+            let active_session_id = state
+                .session
+                .as_ref()
+                .filter(|session| session.status == SessionStatus::Active)
+                .map(|session| session.session_id);
+            retain_hot_handles(
+                &mut state.reference_index,
+                active_session_id,
+                DEFAULT_HOT_HANDLE_LIMIT,
+            );
         }
 
         FocusaEvent::ArtifactPinned { artifact_id } => {
@@ -5027,8 +5083,8 @@ pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
     // focus_gate.candidates, never focus_stack.
 
     // INVARIANT 6: Artifacts are immutable once registered.
-    // Enforced at registration time: ArtifactRegistered rejects duplicate IDs.
-    // No handles in reference_index share the same ID.
+    // The reducer rejects duplicate hot IDs; ReferenceStore atomically rejects reuse
+    // of durable cold IDs that are intentionally absent from this bounded projection.
     let handle_count = state.reference_index.handles.len();
     let unique_count = {
         let mut ids: Vec<_> = state.reference_index.handles.iter().map(|h| h.id).collect();
@@ -5812,6 +5868,58 @@ mod tests {
     }
 
     // ─── Focus Gate ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_temporal_signal_marker_is_unique_and_durable() {
+        let (state, frame_id) = push_frame(fresh_state(), "Long task");
+        let event = FocusaEvent::IntuitionSignalObserved {
+            signal_id: Uuid::now_v7(),
+            signal_type: SignalKind::LongRunningFrame,
+            severity: "0.4".into(),
+            summary: "Frame long-running".into(),
+            related_frame_id: Some(frame_id),
+        };
+        let state = reduce(state, event).unwrap().new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::IntuitionSignalObserved {
+                signal_id: Uuid::now_v7(),
+                signal_type: SignalKind::LongRunningFrame,
+                severity: "0.4".into(),
+                summary: "Frame long-running".into(),
+                related_frame_id: Some(frame_id),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert_eq!(state.focus_gate.long_running_signal_frames, vec![frame_id]);
+        let encoded = serde_json::to_vec(&state).unwrap();
+        let restored: FocusaState = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(
+            restored.focus_gate.long_running_signal_frames,
+            vec![frame_id]
+        );
+    }
+
+    #[test]
+    fn test_new_turn_resets_inactivity_episode_marker() {
+        let (mut state, frame_id) = push_frame(fresh_state(), "Active task");
+        state.focus_gate.inactivity_signal_frames.push(frame_id);
+        let state = reduce(
+            state,
+            FocusaEvent::TurnStarted {
+                turn_id: "turn-next".into(),
+                harness_name: "test".into(),
+                adapter_id: "test".into(),
+                raw_user_input: Some("continue".into()),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert!(state.focus_gate.inactivity_signal_frames.is_empty());
+    }
 
     #[test]
     fn test_candidate_surfaced() {

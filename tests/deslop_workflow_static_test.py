@@ -8,7 +8,7 @@ required = [
     "DESLOP_ARCHIVE_SHA256:",
     "DESLOP_CONTAINER:",
     "sha256sum -c -",
-    "runs-on: [self-hosted, Linux, X64, ovh-build]",
+    "runs-on: [self-hosted, Linux, X64, ovh-build-2]",
     "podman run --rm",
     "--memory 4g",
     "--memory-swap 4g",
@@ -20,12 +20,13 @@ required = [
     'test -s "${reports}/deslop-report.html"',
     'exit "${scan_status}"',
     "deslop-exit-code.txt",
-    "if: always()",
+    "if: failure()",
     "if-no-files-found: error",
 ]
 for marker in required:
     assert marker in workflow, f"missing fail-closed Deslop workflow marker: {marker}"
 
+assert "if: always()" not in workflow, "successful scans must not consume artifact quota"
 assert "continue-on-error" not in workflow, "Deslop failures must not be masked"
 assert "if-no-files-found: ignore" not in workflow, "missing reports must fail closed"
 assert "Nimblesite/Deslop@v0.30.0" not in workflow, "glibc-incompatible action remains active"

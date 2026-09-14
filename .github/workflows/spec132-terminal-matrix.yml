@@ -118,6 +118,7 @@ jobs:
         with:
           tool: cross
       - name: Build release binaries for spec132 musl proof
+        id: cross_build
         shell: bash
         run: |
           set -euo pipefail
@@ -128,8 +129,11 @@ jobs:
           EOF
           export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
           trap 'rm -f Cross.toml' EXIT
-          cross build --release --target x86_64-unknown-linux-musl --package focusa-cli --bin focusa
-          cross build --release --target x86_64-unknown-linux-musl --package focusa-tui --bin focusa-tui
+          scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl --package focusa-cli --bin focusa
+          scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl --package focusa-tui --bin focusa-tui
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target x86_64-unknown-linux-musl
       - name: Package release artifact and compute hash
         id: bundle
         shell: bash
@@ -232,6 +236,7 @@ jobs:
         with:
           tool: cross
       - name: Build all release binaries without publishing
+        id: cross_build
         shell: bash
         run: |
           set -euo pipefail
@@ -242,10 +247,14 @@ jobs:
           EOF
             export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
             trap 'rm -f Cross.toml' EXIT
-            cross build --release --target "${{ matrix.target }}" --bins
+            scripts/ci/run-cancellation-safe-cross.sh build --release --target "${{ matrix.target }}" --bins
           else
             cargo build --release --target "${{ matrix.target }}" --bins
           fi
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && contains(matrix.target, 'linux') && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        shell: bash
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target "${{ matrix.target }}"
       - name: Execute linux-musl runtime proof
         if: ${{ matrix.musl == true }}
         env:

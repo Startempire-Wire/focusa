@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:78e4a214223840b95637a62e869e73fd8d99115cfaba007145d5035cc924878b",
+  "registry_digest": "sha256:ec9775458f22ba12fee89dbc180ded2497e9e7fa5ca2ebf6c2c545e8352c8d5a",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -2453,7 +2453,7 @@
     {
       "command": "focusa predict operation --operation <operation-id>",
       "capability_id": "focusa.epistemic.operation",
-      "summary": "Invoke one exact generated Spec 138/138A operation through durable typed API authority.",
+      "summary": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
       "input_schema": {
         "type": "object",
         "required": [
@@ -2596,7 +2596,7 @@
       ],
       "examples": [
         {
-          "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority.",
+          "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
           "arguments": {
             "operation_id": "prediction.question.create"
           },

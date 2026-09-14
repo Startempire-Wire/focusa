@@ -1202,11 +1202,11 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_workset_projection",
     label: "Workset Projection",
     purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger.",
     family: "workset",
     ontology_action: "workset.projection",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
-    api_routes: ["/v1/worksets"],
+    api_routes: ["/v1/worksets/{workset_id}/projection"],
     cli_commands: [],
     core_surface: "workset_ledger/replay_projection",
     doc_path: "docs/focusa-tools/tools/focusa_workset_projection.md",
@@ -1244,7 +1244,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_callgraph_observe",
     label: "CallGraph Observe",
     purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation.",
     family: "callgraph",
     ontology_action: "callgraph.observe",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
@@ -1265,7 +1265,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_credentials_verify",
     label: "Credentials Verify",
     purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization.",
     family: "credential",
     ontology_action: "credential.verify",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
@@ -1286,7 +1286,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_cockpit_projection",
     label: "Cockpit Projection",
     purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work.",
     family: "cockpit",
     ontology_action: "cockpit.projection",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
@@ -1370,7 +1370,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_fast_forward",
     label: "Fast Forward",
     purpose:
-      "Write working notes to /tmp/pi-scratch/ \u2014 agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+      "Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes.",
     family: "session_fanout",
     ontology_action: "session.fanout",
     ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
@@ -1821,7 +1821,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     name: "focusa_tool_doctor",
     label: "Focusa Tool Doctor",
     purpose:
-      "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
+      "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
     family: "diagnostics_hygiene",
     ontology_action: "diagnostics_hygiene.tool_doctor",
     ontology_objects: ["ToolContract"],
@@ -3045,7 +3045,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   {
     name: "focusa_epistemic_operation",
     label: "Epistemic Operation",
-    purpose: "Invoke one exact generated Spec 138/138A operation through durable typed API authority.",
+    purpose: "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
     family: "metacognition",
     ontology_action: "epistemic.operation.invoke",
     ontology_objects: ["Spec138OperationDescriptor", "ScopedAuthorityEvent"],

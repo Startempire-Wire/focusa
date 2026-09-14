@@ -157,6 +157,32 @@ Agents can **observe cognition**, not control it.
 
 ---
 
+### 5.4 Device pairing compatibility
+
+The verified token record, not request-supplied permission labels, bounds a
+paired device's access. The authentication layer checks token expiry and binds
+the existing permission header before downstream consumers inspect it. Explicit
+requests exceeding the grant fail with 403, including mixed allowed/denied lists.
+Missing headers retain only granted legacy read defaults; explicit empty headers
+mean no permissions. Duplicate or invalid permission headers are rejected.
+
+The existing coarse pairing grants have bounded compatibility meanings:
+
+- `read`: `read:*` and `silent_sessions:stream`.
+- `write`: the explicit ordinary scopes in
+  `routes/permissions.rs::DEVICE_WRITE_SCOPES`. This fixed list is the single
+  implementation owner; it does not include administrative or future scopes.
+- Exact stored capability scopes retain their original meaning; restart recovery
+  uses the full stored grant, never a read/write placeholder. Both SQLite token
+  lookups share one strict decoder: missing/malformed grants or timestamps are
+  errors, not new permissions or a fabricated credential lifetime.
+
+Neither coarse grant confers `admin:*` or `sync:admin`. Owner-token and configured
+local-first behavior remain separate. Permissions remain necessary but not
+sufficient: entitlement, action policy and verified project/workstream scope
+checks still apply. This is not proof that every route's scope classification is
+correct; route-family and installed acceptance remain independent gates.
+
 ## 6. Policy Interaction
 
 Permissions are necessary but not sufficient.

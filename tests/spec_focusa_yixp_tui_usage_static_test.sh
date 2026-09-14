@@ -56,7 +56,7 @@ pass "headless snapshot payload schema fields present"
 # Functional proof: redirected stdout must fail cleanly with an actionable stderr message.
 TUI_RUNTIME_BIN="${FOCUSA_TUI_BIN_PATH:-$ROOT_DIR/target/debug/focusa-tui}"
 if [ ! -x "$TUI_RUNTIME_BIN" ]; then
-  cargo build -q -p focusa-tui --bin focusa-tui
+  cargo build --locked -q -p focusa-tui --bin focusa-tui
 fi
 set +e
 non_tty_output="$("$TUI_RUNTIME_BIN" --no-intro </dev/null 2>&1)"

@@ -303,6 +303,8 @@ pub struct ReleaseManifest {
     pub commit: String,
     pub channel: ReleaseChannel,
     #[serde(default)]
+    pub publication_status: Option<String>,
+    #[serde(default)]
     pub published_at: Option<String>,
     #[serde(default)]
     pub yanked: bool,
@@ -312,6 +314,8 @@ pub struct ReleaseManifest {
     pub superseded_by: Option<String>,
     #[serde(default)]
     pub gates: ReleaseGates,
+    #[serde(default)]
+    pub compatibility_canary: Option<CompatibilityCanaryAuthorization>,
     pub trust: ReleaseTrust,
     #[serde(default)]
     pub provenance: Option<ReleaseProvenance>,
@@ -324,6 +328,81 @@ pub struct ReleaseManifest {
     pub dev_mode_features: Vec<String>,
     #[serde(default)]
     pub rollback_supported: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompatibilityCanaryAuthorization {
+    pub schema: String,
+    pub status: String,
+    pub environment: String,
+    pub allowed_install_scope: String,
+    pub required_previous_tag: String,
+    /// Historical bytes reauthorized only by this current signed candidate.
+    #[serde(default)]
+    pub baseline_release: Option<CompatibilityBaselineInput>,
+    #[serde(default)]
+    pub required_sequence: Vec<String>,
+    #[serde(default)]
+    pub production_apply_authorized: bool,
+    #[serde(default)]
+    pub system_install_authorized: bool,
+    #[serde(default)]
+    pub service_mutation_authorized: bool,
+    #[serde(default)]
+    pub automatic_apply_authorized: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompatibilityBaselineInput {
+    pub schema: String,
+    pub tag: String,
+    pub source_commit: String,
+    pub provider_release_id: u64,
+    pub checksums_sha256: String,
+    pub assets: BTreeMap<String, String>,
+}
+
+impl CompatibilityBaselineInput {
+    /// Structural validation only; callers must first verify the enclosing
+    /// candidate manifest with a currently valid pinned release key.
+    pub fn validate_for_tag(&self, tag: &str) -> Result<(), String> {
+        if self.schema != "focusa.compatibility_baseline_input.v1"
+            || self.tag != tag
+            || self.provider_release_id == 0
+            || self.source_commit.len() != 40
+            || !self.source_commit.bytes().all(|b| b.is_ascii_hexdigit())
+            || self.source_commit != self.source_commit.to_ascii_lowercase()
+            || !is_sha256_hex(&self.checksums_sha256)
+            || self.checksums_sha256 != self.checksums_sha256.to_ascii_lowercase()
+        {
+            return Err("compatibility baseline identity or checksum binding is invalid".into());
+        }
+        for (name, digest) in &self.assets {
+            if !name
+                .as_bytes()
+                .first()
+                .is_some_and(u8::is_ascii_alphanumeric)
+                || !name
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b"._+-".contains(&b))
+                || !is_sha256_hex(digest)
+                || *digest != digest.to_ascii_lowercase()
+            {
+                return Err("compatibility baseline asset binding is invalid".into());
+            }
+        }
+        let mut required = ["focusa", "focusa-daemon", "focusa-tui"]
+            .map(|binary| format!("{binary}-{tag}-x86_64-unknown-linux-musl"))
+            .to_vec();
+        required.extend([
+            format!("focusa-pi-extension-{tag}.tar.gz"),
+            format!("focusa-agent-context-{tag}.tar.gz"),
+        ]);
+        if required.iter().any(|name| !self.assets.contains_key(name)) {
+            return Err("compatibility baseline lacks a complete canary distribution".into());
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -922,6 +1001,35 @@ fn is_sha256_hex(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compatibility_baseline_binding_rejects_incomplete_or_malformed_inputs() {
+        let baseline: CompatibilityBaselineInput = serde_json::from_str(include_str!(
+            "../../../config/compatibility-canary-baselines/v0.9.177.json"
+        ))
+        .expect("reviewed baseline fixture");
+        assert!(baseline.validate_for_tag("v0.9.177").is_ok());
+        assert!(baseline.validate_for_tag("v0.9.178").is_err());
+        let mut broken = baseline.clone();
+        broken
+            .assets
+            .remove("focusa-daemon-v0.9.177-x86_64-unknown-linux-musl");
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+        let mut broken = baseline.clone();
+        broken
+            .assets
+            .insert("../escape-v0.9.177".into(), "a".repeat(64));
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+        let mut broken = baseline.clone();
+        broken.checksums_sha256 = "invalid".into();
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+        let mut broken = baseline.clone();
+        broken.provider_release_id = 0;
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+        let mut broken = baseline;
+        broken.source_commit = "main".into();
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+    }
     use ed25519_dalek::{Signer, SigningKey};
 
     fn trusted_key() -> TrustedReleaseKey {
@@ -959,6 +1067,7 @@ mod tests {
             tag: "v0.9.80-dev".into(),
             commit: "8fa6452d".into(),
             channel: ReleaseChannel::Dev,
+            publication_status: Some("published".into()),
             published_at: Some("2026-07-10T00:00:00Z".into()),
             yanked: false,
             revoked: false,
@@ -979,6 +1088,7 @@ mod tests {
                     "https://github.com/Startempire-Wire/focusa/actions/runs/3".into(),
                 ),
             },
+            compatibility_canary: None,
             trust: ReleaseTrust {
                 signing_algorithm: "ed25519".into(),
                 key_id: "focusa-dev-2026".into(),

@@ -1,5 +1,6 @@
 use focusa_core::background_jobs::{
-    BackgroundJobFailureClass, BackgroundJobStatus, bounded_output_tail,
+    BackgroundJobFailureClass, BackgroundJobStatus, ProcessIdentityStatus, bounded_output_tail,
+    process_identity_status, process_start_token,
 };
 use focusa_core::scoped_state::{AttachmentKey, ScopeKind};
 use serde_json::{Value, json};
@@ -25,59 +26,6 @@ fn parse_published_attachment(raw: Option<&str>) -> anyhow::Result<Option<Attach
 
 pub(super) fn published_attachment() -> anyhow::Result<Option<AttachmentKey>> {
     parse_published_attachment(std::env::var(FOCUSA_ATTACHMENT_KEY_ENV_V1).ok().as_deref())
-}
-
-#[cfg(target_os = "linux")]
-fn pid_alive(pid: u32) -> bool {
-    std::path::Path::new(&format!("/proc/{pid}")).exists()
-}
-
-#[cfg(all(unix, not(target_os = "linux")))]
-fn pid_alive(pid: u32) -> bool {
-    unsafe extern "C" {
-        fn kill(pid: i32, signal: i32) -> i32;
-    }
-    // SAFETY: signal zero performs existence/permission probing only.
-    let result = unsafe { kill(pid as i32, 0) };
-    result == 0 || std::io::Error::last_os_error().raw_os_error() == Some(1)
-}
-
-#[cfg(windows)]
-fn pid_alive(pid: u32) -> bool {
-    use std::ffi::c_void;
-
-    const SYNCHRONIZE: u32 = 0x0010_0000;
-    const WAIT_OBJECT_0: u32 = 0;
-    const WAIT_TIMEOUT: u32 = 0x0000_0102;
-
-    #[link(name = "kernel32")]
-    unsafe extern "system" {
-        fn OpenProcess(access: u32, inherit_handle: i32, process_id: u32) -> *mut c_void;
-        fn WaitForSingleObject(handle: *mut c_void, milliseconds: u32) -> u32;
-        fn CloseHandle(handle: *mut c_void) -> i32;
-    }
-
-    // SAFETY: the returned handle is checked and closed exactly once.
-    let handle = unsafe { OpenProcess(SYNCHRONIZE, 0, pid) };
-    if handle.is_null() {
-        // Access denied is ambiguous; fail closed by treating the process as alive.
-        return std::io::Error::last_os_error().raw_os_error() != Some(87);
-    }
-    // SAFETY: handle is valid until CloseHandle below.
-    let result = unsafe { WaitForSingleObject(handle, 0) };
-    unsafe {
-        CloseHandle(handle);
-    }
-    match result {
-        WAIT_OBJECT_0 => false,
-        WAIT_TIMEOUT => true,
-        _ => true,
-    }
-}
-
-#[cfg(not(any(unix, windows)))]
-fn pid_alive(_pid: u32) -> bool {
-    true
 }
 
 pub(super) fn response_has_job_status(response: &Value, job_id: &str, expected: &str) -> bool {
@@ -138,7 +86,11 @@ fn queued_job_lapsed(job: &Value, now: chrono::DateTime<chrono::Utc>) -> bool {
         return false;
     }
     if let Some(pid) = job.get("pid").and_then(Value::as_u64) {
-        return !pid_alive(pid as u32);
+        let token = job.get("process_start_token").and_then(Value::as_str);
+        return matches!(
+            process_identity_status(pid as u32, token),
+            ProcessIdentityStatus::Missing | ProcessIdentityStatus::Mismatch
+        );
     }
     job.get("started_at")
         .and_then(Value::as_str)
@@ -169,7 +121,11 @@ pub(super) async fn reconcile_lapsed_job(
     }
     if job.get("status").and_then(Value::as_str) == Some("running") {
         if let Some(pid) = job.get("pid").and_then(Value::as_u64) {
-            if !pid_alive(pid as u32) {
+            let token = job.get("process_start_token").and_then(Value::as_str);
+            if matches!(
+                process_identity_status(pid as u32, token),
+                ProcessIdentityStatus::Missing | ProcessIdentityStatus::Mismatch
+            ) {
                 let updated: Value = api
                     .post(
                         &format!("/v1/background-jobs/{job_id}"),
@@ -200,7 +156,10 @@ pub(super) async fn bind_detached_monitor(
     let response = api
         .post(
             &format!("/v1/background-jobs/{job_id}"),
-            &json!({ "pid": monitor_pid }),
+            &json!({
+                "pid": monitor_pid,
+                "process_start_token": process_start_token(monitor_pid),
+            }),
         )
         .await?;
     anyhow::ensure!(

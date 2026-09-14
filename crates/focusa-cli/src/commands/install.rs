@@ -64,6 +64,7 @@ const CANONICAL_RELEASE_BINARIES: [&str; 4] = [
     "focusa-tui",
     "focusa-session-runner",
 ];
+const LEGACY_RELEASE_BINARIES: [&str; 3] = ["focusa", "focusa-daemon", "focusa-tui"];
 
 struct UiChannel {
     sender: mpsc::Sender<InstallEvent>,
@@ -177,6 +178,37 @@ impl Drop for InstallerUi {
     }
 }
 
+/// Request-local digest authority produced only after release-metadata verification.
+/// No CLI, environment, or deserialization surface can supply this value.
+#[derive(Debug, Clone)]
+pub(crate) struct VerifiedInstallDigests {
+    release_tag: String,
+    assets: std::collections::BTreeMap<String, String>,
+}
+
+impl VerifiedInstallDigests {
+    pub(super) fn from_verified_release(
+        release_tag: String,
+        assets: std::collections::BTreeMap<String, String>,
+    ) -> Self {
+        Self {
+            release_tag,
+            assets,
+        }
+    }
+
+    fn expected_checksum(&self, asset: &InstalledAsset) -> Result<&str> {
+        anyhow::ensure!(
+            self.release_tag == asset.version,
+            "verified install release tag mismatch"
+        );
+        self.assets
+            .get(&asset.name)
+            .map(String::as_str)
+            .with_context(|| format!("signed digest binding missing for {}", asset.name))
+    }
+}
+
 #[derive(Args, Debug)]
 pub struct InstallArgs {
     /// Platform target (auto-detected by default).
@@ -243,8 +275,22 @@ pub struct InstallArgs {
     #[arg(skip)]
     pub release_tag_override: Option<String>,
 
-    /// Internal upgrade path: preserve an existing authoritative system surface.
+    /// Internal manifest-bound rollback path. Not exposed as an install CLI flag.
     #[arg(skip)]
+    pub allow_verified_rollback: bool,
+
+    /// Internal signed compatibility-canary transaction marker. This gates
+    /// deterministic recovery injection and is never exposed as a CLI flag.
+    #[arg(skip)]
+    pub compatibility_canary: bool,
+
+    /// Internal immutable digest authority; never accepted from a CLI flag.
+    #[arg(skip)]
+    pub(crate) verified_asset_digests: Option<VerifiedInstallDigests>,
+
+    /// Promote verified assets to the authoritative `/usr/local/bin` system surface.
+    /// Used explicitly by the verified bootstrap when bridging an older system install.
+    #[arg(long)]
     pub system_install: bool,
 
     /// Persist PATH addition to shell rc file when interactive.
@@ -1961,6 +2007,20 @@ pub async fn run(args: InstallArgs) -> Result<()> {
     let target = resolve_target(args.target)?;
     let channel = args.channel;
     let dry_run = args.dry_run;
+    if let Some(binding) = &args.verified_asset_digests {
+        anyhow::ensure!(
+            args.release_tag_override.as_deref() == Some(binding.release_tag.as_str()),
+            "verified install digest authority must match the exact requested release"
+        );
+    }
+    anyhow::ensure!(
+        !args.compatibility_canary || args.verified_asset_digests.is_some(),
+        "compatibility canary install requires current-signer frozen asset digests"
+    );
+    anyhow::ensure!(
+        !args.system_install || (target == InstallTarget::Linux && cfg!(target_os = "linux")),
+        "--system-install is supported only by the native Linux authoritative /usr/local/bin surface"
+    );
     let install_root = std::env::var_os("HOME")
         .map(|h| std::path::PathBuf::from(h).join(".focusa"))
         .unwrap_or_else(|| std::path::PathBuf::from("/opt/focusa"));
@@ -2024,6 +2084,19 @@ pub async fn run(args: InstallArgs) -> Result<()> {
         }
         return Ok(());
     }
+
+    // A system install owns the deployment lock and proves operator/process
+    // safety before dependency, Pi, local-install, or system mutation begins.
+    #[cfg(target_os = "linux")]
+    let _system_deploy_lock = if args.system_install {
+        let lock = crate::commands::system_service::acquire_system_deploy_lock(
+            std::path::Path::new("/usr/local/bin"),
+        )?;
+        crate::commands::system_service::preflight_system_install()?;
+        Some(lock)
+    } else {
+        None
+    };
 
     // Install/verify workflow prerequisites before touching the existing Focusa
     // installation. These are customer-owned tools and are intentionally outside
@@ -2227,9 +2300,14 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             .first()
             .map(|asset| asset.version.as_str())
             .ok_or_else(|| anyhow!("verified Focusa CLI asset identity is missing"))?;
+        let distribution_manifest = install_root.join("distribution-manifest.json");
+        let distribution_manifest = distribution_manifest
+            .is_file()
+            .then_some(distribution_manifest.as_path());
         match promote_system_links(
             &bin_dir,
             std::path::Path::new("/usr/local/bin"),
+            distribution_manifest,
             expected_tag,
             !args.no_service && matches!(target, InstallTarget::Linux | InstallTarget::Auto),
         ) {
@@ -2888,8 +2966,7 @@ async fn resolve_release(
 async fn phase_asset_download(
     target: InstallTarget,
     channel: Channel,
-    github_repo: Option<&str>,
-    release_tag_override: Option<&str>,
+    args: &InstallArgs,
     install_root: &std::path::Path,
     sink: &dyn InstallEventSink,
     cancellation: &CancellationToken,
@@ -2898,12 +2975,15 @@ async fn phase_asset_download(
         phase: InstallPhase::DownloadAssets,
         message: "streaming assets to staged files".into(),
     });
-    let repo = github_repo.unwrap_or("Startempire-Wire/focusa");
-    let release = resolve_release(channel, repo, release_tag_override).await?;
+    let repo = args
+        .github_repo
+        .as_deref()
+        .unwrap_or("Startempire-Wire/focusa");
+    let release = resolve_release(channel, repo, args.release_tag_override.as_deref()).await?;
     let tag_name = release.tag;
     let client = release.client;
     let triple = triple_for(target);
-    let assets = CANONICAL_RELEASE_BINARIES;
+    let assets = release_binaries_for_tag(&tag_name);
     let mut out = Vec::new();
     let executable_suffix = release_executable_suffix(target);
     for asset_name in assets {
@@ -2912,7 +2992,7 @@ async fn phase_asset_download(
             .join("bin")
             .join(installed_binary_name(target, asset_name));
         std::fs::create_dir_all(install_path.parent().expect("bin parent"))?;
-        reject_release_rollback(install_root, &tag_name)?;
+        reject_release_rollback(install_root, &tag_name, args.allow_verified_rollback)?;
         let staged = install_path.with_extension("download");
         let asset_url = release_asset_url(repo, &tag_name, &expected);
         let existing_mode = std::fs::metadata(&install_path)
@@ -3003,7 +3083,14 @@ fn release_number(tag: &str) -> Option<Vec<u64>> {
         .collect()
 }
 
-fn reject_release_rollback(install_root: &std::path::Path, target: &str) -> Result<()> {
+fn reject_release_rollback(
+    install_root: &std::path::Path,
+    target: &str,
+    allow_verified_rollback: bool,
+) -> Result<()> {
+    if allow_verified_rollback {
+        return Ok(());
+    }
     let marker = install_root.join(".focusa-version");
     let Some(current) = std::fs::read_to_string(&marker).ok() else {
         return Ok(());
@@ -3490,6 +3577,7 @@ fn install_agent_context_archive(
         .map_err(|error| anyhow!("agent context archive listing is not UTF-8: {error}"))?;
     let mut has_agents = false;
     let mut has_skill = false;
+    let mut has_distribution_manifest = false;
     for entry in listing.lines().filter(|line| !line.trim().is_empty()) {
         let entry = entry.trim_end_matches('/');
         if entry.starts_with('/')
@@ -3501,9 +3589,15 @@ fn install_agent_context_archive(
         has_agents |= entry == "focusa-agent-context/AGENTS.md";
         has_skill |=
             entry.starts_with("focusa-agent-context/skills/") && entry.ends_with("/SKILL.md");
+        has_distribution_manifest |= entry == "focusa-agent-context/distribution-manifest.json";
     }
-    if !has_agents || !has_skill {
-        bail!("agent context archive must contain AGENTS.md and at least one skills/*/SKILL.md");
+    if !has_agents
+        || !has_skill
+        || (release_requires_distribution_manifest(&asset.version) && !has_distribution_manifest)
+    {
+        bail!(
+            "agent context archive must contain AGENTS.md, the release-required distribution manifest, and at least one skills/*/SKILL.md"
+        );
     }
 
     let stage_parent = install_root.join(format!(".agent-context-stage-{}", uuid::Uuid::now_v7()));
@@ -3520,7 +3614,11 @@ fn install_agent_context_archive(
         bail!("agent context archive extraction failed");
     }
     let staged = stage_parent.join("focusa-agent-context");
-    if !staged.join("AGENTS.md").is_file() || !staged.join("skills").is_dir() {
+    if !staged.join("AGENTS.md").is_file()
+        || !staged.join("skills").is_dir()
+        || (release_requires_distribution_manifest(&asset.version)
+            && !staged.join("distribution-manifest.json").is_file())
+    {
         let _ = std::fs::remove_dir_all(&stage_parent);
         bail!("agent context extraction missing required files");
     }
@@ -3540,6 +3638,58 @@ fn install_agent_context_archive(
     let _ = std::fs::remove_dir_all(&backup);
     let _ = std::fs::remove_dir_all(&stage_parent);
     Ok(destination)
+}
+
+fn release_binaries_for_tag(tag: &str) -> &'static [&'static str] {
+    if release_requires_distribution_manifest(tag) {
+        &CANONICAL_RELEASE_BINARIES
+    } else {
+        &LEGACY_RELEASE_BINARIES
+    }
+}
+
+pub(crate) fn release_requires_distribution_manifest(tag: &str) -> bool {
+    let core = tag
+        .trim_start_matches('v')
+        .split(['-', '+'])
+        .next()
+        .unwrap_or_default();
+    let parts = core
+        .split('.')
+        .map(str::parse::<u64>)
+        .collect::<Result<Vec<_>, _>>();
+    matches!(parts.as_deref(), Ok([major, minor, patch]) if (*major, *minor, *patch) >= (0, 9, 188))
+}
+
+fn install_distribution_manifest(
+    agent_context_root: &std::path::Path,
+    install_root: &std::path::Path,
+    expected_tag: &str,
+) -> Result<Option<std::path::PathBuf>> {
+    let source = agent_context_root.join("distribution-manifest.json");
+    if !source.is_file() {
+        anyhow::ensure!(
+            !release_requires_distribution_manifest(expected_tag),
+            "release {expected_tag} requires distribution-manifest.json"
+        );
+        return Ok(None);
+    }
+    let bytes = crate::commands::distribution_manifest::validate_distribution_manifest(
+        &source,
+        expected_tag,
+    )?;
+    let destination = install_root.join("distribution-manifest.json");
+    let staged = install_root.join(format!(
+        ".distribution-manifest.staged-{}",
+        uuid::Uuid::now_v7()
+    ));
+    let mut file =
+        std::fs::File::create(&staged).with_context(|| format!("create {}", staged.display()))?;
+    file.write_all(&bytes)?;
+    file.sync_all()?;
+    focusa_core::durable_fs::atomic_replace(&staged, &destination)?;
+    focusa_core::durable_fs::sync_directory(install_root)?;
+    Ok(Some(destination))
 }
 
 fn remove_path_if_present(path: &std::path::Path) -> Result<()> {
@@ -3712,32 +3862,37 @@ fn install_root_for(target: InstallTarget) -> std::path::PathBuf {
 }
 
 // ----- Phase 3: Checksum verify (focusa-112-checksum) -----
-async fn verify_checksum(asset: &InstalledAsset) -> Result<()> {
-    // Per Spec 112 §5.1: download SHA256SUMS, parse, verify asset.
-    // When the GitHub release doesn't have SHA256SUMS (some previews don't),
-    // we surface a recovery_hint but don't fail.
-    let sha256sums_url =
-        release_asset_url("Startempire-Wire/focusa", &asset.version, "SHA256SUMS.txt");
-    let client = reqwest::Client::builder()
-        .user_agent("focusa-install/0.9.54-dev")
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| anyhow!("checksum client build failed: {e}"))?;
-    let resp = client.get(&sha256sums_url).send().await;
-    let body = match resp {
-        Ok(r) if r.status().is_success() => {
-            r.text().await.context("read SHA256SUMS response body")?
+async fn verify_checksum(
+    asset: &InstalledAsset,
+    verified: Option<&VerifiedInstallDigests>,
+) -> Result<()> {
+    // A signed binding is authoritative and never falls back to mutable metadata.
+    let body = if let Some(binding) = verified {
+        format!("{}  {}", binding.expected_checksum(asset)?, asset.name)
+    } else {
+        let sha256sums_url =
+            release_asset_url("Startempire-Wire/focusa", &asset.version, "SHA256SUMS.txt");
+        let client = reqwest::Client::builder()
+            .user_agent("focusa-install/0.9.54-dev")
+            .timeout(std::time::Duration::from_secs(10))
+            .build()
+            .map_err(|e| anyhow!("checksum client build failed: {e}"))?;
+        let resp = client.get(&sha256sums_url).send().await;
+        match resp {
+            Ok(r) if r.status().is_success() => {
+                r.text().await.context("read SHA256SUMS response body")?
+            }
+            Ok(r) => bail!(
+                "SHA256SUMS.txt unavailable for {}: HTTP {}; refusing unverified install",
+                asset.version,
+                r.status()
+            ),
+            Err(error) => bail!(
+                "SHA256SUMS.txt request failed for {}: {}; refusing unverified install",
+                asset.version,
+                error
+            ),
         }
-        Ok(r) => bail!(
-            "SHA256SUMS.txt unavailable for {}: HTTP {}; refusing unverified install",
-            asset.version,
-            r.status()
-        ),
-        Err(error) => bail!(
-            "SHA256SUMS.txt request failed for {}: {}; refusing unverified install",
-            asset.version,
-            error
-        ),
     };
     let expected_line = body
         .lines()
@@ -3775,6 +3930,7 @@ fn place_symlinks(
     target: InstallTarget,
     bin_dir: &std::path::Path,
     _install_root: &std::path::Path,
+    expected_tag: &str,
 ) -> Result<()> {
     if matches!(
         target,
@@ -3787,7 +3943,27 @@ fn place_symlinks(
         .map(std::path::PathBuf::from)
         .ok_or_else(|| anyhow!("HOME not set"))?;
     let local_bin = home.join(".local/bin");
-    for bin in CANONICAL_RELEASE_BINARIES {
+    let release_binaries = release_binaries_for_tag(expected_tag);
+    for obsolete in CANONICAL_RELEASE_BINARIES
+        .iter()
+        .filter(|name| !release_binaries.contains(name))
+    {
+        let link = local_bin.join(obsolete);
+        if std::fs::read_link(&link).is_ok_and(|target| target.starts_with(bin_dir)) {
+            std::fs::remove_file(&link)
+                .with_context(|| format!("remove obsolete release link {}", link.display()))?;
+        }
+        let binary = bin_dir.join(obsolete);
+        if binary.is_file() {
+            std::fs::remove_file(&binary).with_context(|| {
+                format!(
+                    "remove binary absent from historical release {}",
+                    binary.display()
+                )
+            })?;
+        }
+    }
+    for bin in release_binaries {
         let target = bin_dir.join(bin);
         let link = local_bin.join(bin);
         if let Some(parent) = link.parent() {
@@ -3817,7 +3993,7 @@ fn create_symlink(_target: &std::path::Path, _link: &std::path::Path) -> Result<
     bail!("symlink install is unsupported on this platform")
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 struct SystemLinkEntry {
     system_path: std::path::PathBuf,
     system_backup: std::path::PathBuf,
@@ -3827,7 +4003,7 @@ struct SystemLinkEntry {
     local_swapped: bool,
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 fn rollback_system_links(entries: &[SystemLinkEntry]) -> Result<()> {
     let mut failures = Vec::new();
     for entry in entries.iter().rev() {
@@ -3866,7 +4042,7 @@ fn rollback_system_links(entries: &[SystemLinkEntry]) -> Result<()> {
     Ok(())
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 fn error_after_system_rollback(error: anyhow::Error, entries: &[SystemLinkEntry]) -> anyhow::Error {
     match rollback_system_links(entries) {
         Ok(()) => error,
@@ -3874,72 +4050,74 @@ fn error_after_system_rollback(error: anyhow::Error, entries: &[SystemLinkEntry]
     }
 }
 
-#[cfg(unix)]
-fn system_daemon_active() -> Result<bool> {
-    let output = std::process::Command::new("systemctl")
-        .args(["is-active", "--quiet", "focusa-daemon.service"])
-        .output()
-        .context("inspect authoritative system daemon state")?;
-    match output.status.code() {
-        Some(0) => Ok(true),
-        Some(3 | 4) => Ok(false),
-        _ => {
-            let detail = String::from_utf8_lossy(&output.stderr)
-                .chars()
-                .take(240)
-                .collect::<String>();
-            bail!(
-                "inspect authoritative system daemon failed: exit={}{}",
-                output.status.code().unwrap_or(-1),
-                if detail.trim().is_empty() {
-                    String::new()
-                } else {
-                    format!(" ({})", detail.trim())
-                }
-            )
+#[cfg(target_os = "linux")]
+fn restore_obsolete_system_binaries(
+    entries: &[(std::path::PathBuf, std::path::PathBuf)],
+) -> Result<()> {
+    let mut failures = Vec::new();
+    for (path, backup) in entries.iter().rev() {
+        if path.exists()
+            && let Err(error) = std::fs::remove_file(path)
+        {
+            failures.push(format!("remove unexpected {}: {error}", path.display()));
+            continue;
+        }
+        if let Err(error) = std::fs::rename(backup, path) {
+            failures.push(format!(
+                "restore obsolete binary {} from {}: {error}",
+                path.display(),
+                backup.display()
+            ));
         }
     }
-}
-
-#[cfg(unix)]
-fn restart_system_daemon() -> Result<()> {
-    let output = std::process::Command::new("systemctl")
-        .args(["restart", "focusa-daemon.service"])
-        .output()
-        .context("restart authoritative system daemon")?;
-    if !output.status.success() {
-        let detail = String::from_utf8_lossy(&output.stderr)
-            .chars()
-            .take(240)
-            .collect::<String>();
+    if !failures.is_empty() {
         bail!(
-            "restart authoritative system daemon failed: exit={}{}",
-            output.status.code().unwrap_or(-1),
-            if detail.trim().is_empty() {
-                String::new()
-            } else {
-                format!(" ({})", detail.trim())
-            }
+            "obsolete system binary rollback failed: {}",
+            failures.join("; ")
         );
-    }
-    if !system_daemon_active()? {
-        bail!("authoritative system daemon is not active after restart");
     }
     Ok(())
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
+fn error_after_full_system_rollback(
+    error: anyhow::Error,
+    entries: &[SystemLinkEntry],
+    obsolete: &[(std::path::PathBuf, std::path::PathBuf)],
+) -> anyhow::Error {
+    let mut failures = Vec::new();
+    if let Err(rollback_error) = restore_obsolete_system_binaries(obsolete) {
+        failures.push(rollback_error.to_string());
+    }
+    if let Err(rollback_error) = rollback_system_links(entries) {
+        failures.push(rollback_error.to_string());
+    }
+    if failures.is_empty() {
+        error
+    } else {
+        error.context(failures.join("; "))
+    }
+}
+
+#[cfg(target_os = "linux")]
 fn promote_system_links(
     bin_dir: &std::path::Path,
     system_bin: &std::path::Path,
+    distribution_manifest: Option<&std::path::Path>,
     expected_tag: &str,
     restart_service: bool,
 ) -> Result<bool> {
+    let mut service_transaction = if restart_service {
+        Some(crate::commands::system_service::prepare_system_service()?)
+    } else {
+        None
+    };
     std::fs::create_dir_all(system_bin)
         .with_context(|| format!("create authoritative system path {}", system_bin.display()))?;
     let transaction = format!("{}", std::process::id());
     let mut entries: Vec<SystemLinkEntry> = Vec::new();
-    for name in CANONICAL_RELEASE_BINARIES {
+    let release_binaries = release_binaries_for_tag(expected_tag);
+    for name in release_binaries.iter().copied() {
         let local_path = bin_dir.join(name);
         if !local_path.is_file() {
             return Err(error_after_system_rollback(
@@ -4005,7 +4183,7 @@ fn promote_system_links(
         }
     }
     let expected_version = expected_tag.strip_prefix('v').unwrap_or(expected_tag);
-    for name in CANONICAL_RELEASE_BINARIES {
+    for name in release_binaries.iter().copied() {
         let smoke = std::process::Command::new(system_bin.join(name))
             .arg("--version")
             .output();
@@ -4022,30 +4200,85 @@ fn promote_system_links(
             ));
         }
     }
-    let service_restarted = if restart_service {
-        match system_daemon_active() {
-            Ok(true) => {
-                if let Err(restart_error) = restart_system_daemon() {
-                    let rollback_error = rollback_system_links(&entries).err();
-                    let restore_error = restart_system_daemon().err();
-                    return Err(restart_error).context(format!(
-                        "new daemon restart failed; system rollback={}; prior daemon restart={}",
-                        rollback_error
-                            .map(|error| error.to_string())
-                            .unwrap_or_else(|| "ok".into()),
-                        restore_error
-                            .map(|error| error.to_string())
-                            .unwrap_or_else(|| "ok".into())
-                    ));
-                }
-                true
-            }
-            Ok(false) => false,
-            Err(error) => return Err(error_after_system_rollback(error, &entries)),
+    let mut obsolete_entries = Vec::new();
+    for name in CANONICAL_RELEASE_BINARIES
+        .iter()
+        .filter(|name| !release_binaries.contains(name))
+        .copied()
+    {
+        let path = system_bin.join(name);
+        if std::fs::symlink_metadata(&path).is_err() {
+            continue;
         }
+        let backup = system_bin.join(format!(".focusa-{name}.obsolete-{transaction}"));
+        if backup.exists() {
+            return Err(error_after_full_system_rollback(
+                anyhow!("stale obsolete-binary transaction exists for {name}"),
+                &entries,
+                &obsolete_entries,
+            ));
+        }
+        if let Err(error) = std::fs::rename(&path, &backup) {
+            return Err(error_after_full_system_rollback(
+                anyhow!(error).context(format!("stash obsolete system binary {}", path.display())),
+                &entries,
+                &obsolete_entries,
+            ));
+        }
+        obsolete_entries.push((path, backup));
+    }
+    let manifest_state_dir = if system_bin == std::path::Path::new("/usr/local/bin") {
+        std::path::PathBuf::from(crate::commands::system_service::SYSTEM_STATE_DIR)
+    } else {
+        system_bin
+            .parent()
+            .unwrap_or(system_bin)
+            .join("focusa-system-state")
+    };
+    let manifest_transaction = match crate::commands::system_service::prepare_distribution_manifest(
+        &manifest_state_dir,
+        distribution_manifest,
+        expected_tag,
+    ) {
+        Ok(transaction) => transaction,
+        Err(error) => {
+            return Err(error_after_full_system_rollback(
+                error,
+                &entries,
+                &obsolete_entries,
+            ));
+        }
+    };
+    let service_restarted = if let Some(transaction) = service_transaction.as_mut() {
+        if let Err(error) = transaction.activate_and_verify(expected_version) {
+            return Err(error_after_full_system_rollback(
+                error,
+                &entries,
+                &obsolete_entries,
+            ));
+        }
+        true
     } else {
         false
     };
+    if let Err(error) = manifest_transaction.commit() {
+        return Err(error_after_full_system_rollback(
+            error,
+            &entries,
+            &obsolete_entries,
+        ));
+    }
+    if let Some(transaction) = service_transaction.take() {
+        transaction.commit();
+    }
+    for (_, backup) in &obsolete_entries {
+        if let Err(error) = std::fs::remove_file(backup) {
+            eprintln!(
+                "warning: committed system promotion retained obsolete binary rollback {}: {error}",
+                backup.display()
+            );
+        }
+    }
     for entry in &entries {
         if entry.had_system_original
             && let Err(error) = std::fs::remove_file(&entry.system_backup)
@@ -4065,10 +4298,11 @@ fn promote_system_links(
     Ok(service_restarted)
 }
 
-#[cfg(not(unix))]
+#[cfg(not(target_os = "linux"))]
 fn promote_system_links(
     _bin_dir: &std::path::Path,
     _system_bin: &std::path::Path,
+    _distribution_manifest: Option<&std::path::Path>,
     _expected_tag: &str,
     _restart_service: bool,
 ) -> Result<bool> {
@@ -4391,6 +4625,7 @@ fn installer_managed_entry(name: &str) -> bool {
             | ".focusa-version"
             | "install-manifest.json"
             | "install-metadata.json"
+            | "distribution-manifest.json"
     ) || name.starts_with(".pi-extension-stage-")
         || name.starts_with(".agent-context-stage-")
         || name.starts_with(".agent-context-backup-")
@@ -4485,7 +4720,7 @@ async fn phase_smoke_test(
     expected_tag: &str,
 ) -> Result<()> {
     let expected_version = expected_tag.strip_prefix('v').unwrap_or(expected_tag);
-    for name in CANONICAL_RELEASE_BINARIES {
+    for name in release_binaries_for_tag(expected_tag) {
         let binary = bin_dir.join(installed_binary_name(target, name));
         if !binary.exists() {
             return Err(anyhow!(
@@ -4612,16 +4847,14 @@ async fn execute_real_install(
         detail: Some("Release manifest resolved by staged asset downloader".into()),
     });
     ensure_not_cancelled(cancellation)?;
-    let mut assets = phase_asset_download(
-        target,
-        channel,
-        args.github_repo.as_deref(),
-        args.release_tag_override.as_deref(),
-        install_root,
-        sink,
-        cancellation,
-    )
-    .await?;
+    let mut assets =
+        phase_asset_download(target, channel, args, install_root, sink, cancellation).await?;
+    if args.compatibility_canary
+        && std::env::var("FOCUSA_COMPATIBILITY_CANARY_FAULT")
+            .is_ok_and(|value| value == "after_asset_download")
+    {
+        bail!("injected compatibility canary interruption after asset download");
+    }
     sink.emit(InstallEvent::PhaseStarted {
         phase: InstallPhase::IntegratePi,
         message: "Checking optional Pi integration".into(),
@@ -4661,8 +4894,12 @@ async fn execute_real_install(
         phase: InstallPhase::VerifyIntegrity,
         message: "Verifying checksums and trust metadata".into(),
     });
+    anyhow::ensure!(
+        args.verified_asset_digests.is_none() || pi_extension.is_some(),
+        "signed distribution requires the Pi extension asset"
+    );
     if let Some(pi_asset) = pi_extension {
-        match verify_checksum(&pi_asset).await {
+        match verify_checksum(&pi_asset, args.verified_asset_digests.as_ref()).await {
             Ok(()) => match integrate_pi_extension(&pi_asset, install_root, None, None) {
                 Ok(path) => {
                     sink.emit(InstallEvent::PhaseSucceeded {
@@ -4670,12 +4907,18 @@ async fn execute_real_install(
                         detail: Some(format!("verified at {}", redact_url(&path))),
                     });
                 }
+                Err(error) if args.verified_asset_digests.is_some() => {
+                    return Err(error).context("signed distribution Pi integration failed");
+                }
                 Err(error) => sink.emit(InstallEvent::PhaseWarning {
                     phase: InstallPhase::IntegratePi,
                     message: "Pi integration could not be completed".into(),
                     recovery_hint: Some(redact_url(&error.to_string())),
                 }),
             },
+            Err(error) if args.verified_asset_digests.is_some() => {
+                return Err(error).context("signed distribution Pi checksum failed");
+            }
             Err(error) => sink.emit(InstallEvent::PhaseWarning {
                 phase: InstallPhase::IntegratePi,
                 message: "Pi extension verification unavailable".into(),
@@ -4691,7 +4934,7 @@ async fn execute_real_install(
     let bin_dir = install_root.join("bin");
     ensure_not_cancelled(cancellation)?;
     for asset in &assets {
-        verify_checksum(asset).await?;
+        verify_checksum(asset, args.verified_asset_digests.as_ref()).await?;
         sink.emit(InstallEvent::VerificationScan {
             asset: asset.name.clone(),
             outcome: focusa_terminal_ui::VerificationScanOutcome::Succeeded,
@@ -4721,10 +4964,11 @@ async fn execute_real_install(
         .first()
         .map(|asset| asset.version.as_str())
         .ok_or_else(|| anyhow!("verified release identity is missing"))?;
+    install_distribution_manifest(&agent_context_root, install_root, expected_tag)?;
     phase_smoke_test(target, &bin_dir, expected_tag)
         .await
         .context("pre-commit binary smoke test failed")?;
-    place_symlinks(target, &bin_dir, install_root)?;
+    place_symlinks(target, &bin_dir, install_root, expected_tag)?;
     sink.emit(InstallEvent::PhaseSucceeded {
         phase: InstallPhase::InstallBinaries,
         detail: Some("Staged binaries promoted".into()),
@@ -4921,17 +5165,26 @@ fn build_plan(
         channel: args.channel,
         install_root: root.display().to_string(),
         assets_planned,
-        symlink_planned: format!(
-            "{}/.local/bin/focusa",
-            std::env::var("HOME").unwrap_or_default()
-        ),
-        service_manager_planned: match target {
-            InstallTarget::Linux => "systemd --user".to_string(),
-            InstallTarget::Darwin => "launchd user agent".to_string(),
-            InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => {
-                "Windows service warning".to_string()
+        symlink_planned: if args.system_install {
+            "/usr/local/bin/{focusa,focusa-daemon,focusa-tui,focusa-session-runner} (transactional promotion; user links retained)".to_string()
+        } else {
+            format!(
+                "{}/.local/bin/focusa",
+                std::env::var("HOME").unwrap_or_default()
+            )
+        },
+        service_manager_planned: if args.system_install {
+            "canonical systemd focusa-daemon.service (operator-halt and exact-process gated)"
+                .to_string()
+        } else {
+            match target {
+                InstallTarget::Linux => "systemd --user".to_string(),
+                InstallTarget::Darwin => "launchd user agent".to_string(),
+                InstallTarget::WindowsX64 | InstallTarget::WindowsArm64 => {
+                    "Windows service warning".to_string()
+                }
+                InstallTarget::Auto => "auto".to_string(),
             }
-            InstallTarget::Auto => "auto".to_string(),
         },
         shell_rc_plan: vec![
             "~/.bashrc".to_string(),
@@ -4995,8 +5248,15 @@ fn release_executable_suffix(target: InstallTarget) -> &'static str {
 
 fn triple_for(target: InstallTarget) -> String {
     match target {
-        // Static musl is the portable default for older production glibc hosts.
-        InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string(),
+        // Static musl is the portable x64 default for older production glibc
+        // hosts; the canonical ARM64 release surface is GNU Linux.
+        InstallTarget::Linux => {
+            if cfg!(target_arch = "aarch64") {
+                "aarch64-unknown-linux-gnu".to_string()
+            } else {
+                "x86_64-unknown-linux-musl".to_string()
+            }
+        }
         InstallTarget::Darwin => {
             if cfg!(target_arch = "x86_64") {
                 "x86_64-apple-darwin".to_string()
@@ -5018,11 +5278,86 @@ mod install_e6_failure_matrix_tests;
 mod tests {
     use super::*;
 
+    #[tokio::test]
+    async fn signed_install_digests_bind_bytes_tag_and_asset_without_fallback() {
+        let root =
+            std::env::temp_dir().join(format!("focusa-signed-digests-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("asset");
+        std::fs::write(&path, b"approved baseline bytes").unwrap();
+        let mut asset = InstalledAsset {
+            name: "focusa-v0.9.177-x86_64-unknown-linux-musl".into(),
+            version: "v0.9.177".into(),
+            triple: "x86_64-unknown-linux-musl".into(),
+            sha256: String::new(),
+            install_path: path.display().to_string(),
+        };
+        let binding = VerifiedInstallDigests::from_verified_release(
+            asset.version.clone(),
+            [(
+                asset.name.clone(),
+                hex::encode(Sha256::digest(b"approved baseline bytes")),
+            )]
+            .into(),
+        );
+        verify_checksum(&asset, Some(&binding)).await.unwrap();
+        asset.version = "v0.9.188".into();
+        assert!(
+            verify_checksum(&asset, Some(&binding))
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("tag mismatch")
+        );
+        asset.version = "v0.9.177".into();
+        let original_name = asset.name.clone();
+        asset.name = "unbound-asset".into();
+        assert!(
+            verify_checksum(&asset, Some(&binding))
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("binding missing")
+        );
+        asset.name = original_name;
+        std::fs::write(&path, b"tampered baseline bytes").unwrap();
+        assert!(
+            verify_checksum(&asset, Some(&binding))
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("checksum mismatch")
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn signed_install_digests_cannot_be_supplied_as_cli_authority() {
+        let command = InstallArgs::augment_args(clap::Command::new("install"));
+        assert!(
+            command
+                .try_get_matches_from(["install", "--verified-asset-digests", "{}"])
+                .is_err()
+        );
+    }
+
     #[cfg(unix)]
     fn write_executable(path: &std::path::Path, body: &str) {
         use std::os::unix::fs::PermissionsExt;
         std::fs::write(path, body).unwrap();
         std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[test]
+    fn distribution_manifest_requirement_is_additive_from_v0_9_188() {
+        assert!(!release_requires_distribution_manifest("v0.9.177"));
+        assert!(!release_requires_distribution_manifest("0.9.187"));
+        assert!(release_requires_distribution_manifest("v0.9.188"));
+        assert!(release_requires_distribution_manifest(
+            "v0.9.188-nightly.20260904"
+        ));
+        assert!(release_requires_distribution_manifest("v1.0.0"));
+        assert!(!release_requires_distribution_manifest("invalid"));
     }
 
     #[test]
@@ -5049,7 +5384,7 @@ mod tests {
         );
     }
 
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     #[test]
     fn system_promotion_is_atomic_and_rollback_safe() {
         let fixture =
@@ -5059,10 +5394,10 @@ mod tests {
         std::fs::create_dir_all(&bin).unwrap();
         std::fs::create_dir_all(&system).unwrap();
         for name in CANONICAL_RELEASE_BINARIES {
-            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
+            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.188\\n'\n");
             std::fs::write(system.join(name), format!("old-{name}")).unwrap();
         }
-        assert!(!promote_system_links(&bin, &system, "v0.9.187", false).unwrap());
+        assert!(!promote_system_links(&bin, &system, None, "v0.9.188", false).unwrap());
         for name in CANONICAL_RELEASE_BINARIES {
             assert!(system.join(name).is_file());
             assert!(
@@ -5079,15 +5414,15 @@ mod tests {
 
         for name in CANONICAL_RELEASE_BINARIES {
             std::fs::remove_file(bin.join(name)).unwrap();
-            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.187\\n'\n");
+            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.188\\n'\n");
             std::fs::remove_file(system.join(name)).unwrap();
             std::fs::write(system.join(name), format!("restored-{name}")).unwrap();
         }
         write_executable(
             &bin.join("focusa-daemon"),
-            "#!/bin/sh\nprintf 'focusa-daemon 0.9.186\\n'\n",
+            "#!/bin/sh\nprintf 'focusa-daemon 0.9.187\\n'\n",
         );
-        assert!(promote_system_links(&bin, &system, "v0.9.187", false).is_err());
+        assert!(promote_system_links(&bin, &system, None, "v0.9.188", false).is_err());
         for name in CANONICAL_RELEASE_BINARIES {
             assert_eq!(
                 std::fs::read_to_string(system.join(name)).unwrap(),
@@ -5101,6 +5436,37 @@ mod tests {
                     .is_symlink()
             );
         }
+        std::fs::remove_dir_all(fixture).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn historical_system_rollback_removes_unpublished_session_runner() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-historical-system-promotion-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let bin = fixture.join("verified/bin");
+        let system = fixture.join("usr-local-bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        std::fs::create_dir_all(&system).unwrap();
+        for name in LEGACY_RELEASE_BINARIES {
+            write_executable(&bin.join(name), "#!/bin/sh\nprintf 'focusa 0.9.177\\n'\n");
+        }
+        for name in CANONICAL_RELEASE_BINARIES {
+            std::fs::write(system.join(name), format!("candidate-{name}")).unwrap();
+        }
+
+        assert!(!promote_system_links(&bin, &system, None, "v0.9.177", false).unwrap());
+        for name in LEGACY_RELEASE_BINARIES {
+            assert!(system.join(name).is_file());
+            assert_eq!(
+                std::fs::read_link(bin.join(name)).unwrap(),
+                system.join(name)
+            );
+        }
+        assert!(!system.join("focusa-session-runner").exists());
+        assert!(!bin.join("focusa-session-runner").exists());
         std::fs::remove_dir_all(fixture).unwrap();
     }
 
@@ -5136,6 +5502,26 @@ mod tests {
                 | InstallTarget::WindowsX64
                 | InstallTarget::WindowsArm64
         ));
+    }
+
+    #[test]
+    fn legacy_rollback_uses_only_historically_published_binaries() {
+        assert_eq!(
+            release_binaries_for_tag("v0.9.177"),
+            &LEGACY_RELEASE_BINARIES
+        );
+        assert_eq!(
+            release_binaries_for_tag("v0.9.188"),
+            &CANONICAL_RELEASE_BINARIES
+        );
+
+        let root =
+            std::env::temp_dir().join(format!("focusa-verified-rollback-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join(".focusa-version"), "v0.9.188\n").unwrap();
+        assert!(reject_release_rollback(&root, "v0.9.177", false).is_err());
+        assert!(reject_release_rollback(&root, "v0.9.177", true).is_ok());
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -5179,6 +5565,7 @@ mod tests {
     #[test]
     fn dry_run_plan_lists_four_binaries_and_context() {
         let args = InstallArgs {
+            verified_asset_digests: None,
             target: InstallTarget::Linux,
             channel: Channel::Stable,
             dry_run: true,
@@ -5194,6 +5581,8 @@ mod tests {
             reuse_existing_license: false,
             suppress_completion_output: false,
             release_tag_override: None,
+            allow_verified_rollback: false,
+            compatibility_canary: false,
             system_install: false,
             persist_path: false,
             no_persist_path: false,
@@ -5217,11 +5606,29 @@ mod tests {
                 .any(|asset| asset.name == "focusa-agent-context" && asset.triple == "all")
         );
         assert_eq!(plan.license_mode, "authority_existing_or_limited_access");
+
+        let mut system_args = args;
+        system_args.system_install = true;
+        let system_plan = build_plan(
+            &system_args,
+            InstallTarget::Linux,
+            std::path::Path::new("/tmp/.focusa"),
+        )
+        .unwrap();
+        assert_eq!(
+            system_plan.symlink_planned,
+            "/usr/local/bin/{focusa,focusa-daemon,focusa-tui,focusa-session-runner} (transactional promotion; user links retained)"
+        );
+        assert_eq!(
+            system_plan.service_manager_planned,
+            "canonical systemd focusa-daemon.service (operator-halt and exact-process gated)"
+        );
     }
 
     #[test]
     fn dry_run_plan_with_eval_flag_marks_limited_access_license() {
         let args = InstallArgs {
+            verified_asset_digests: None,
             target: InstallTarget::Darwin,
             channel: Channel::Stable,
             dry_run: true,
@@ -5237,6 +5644,8 @@ mod tests {
             reuse_existing_license: false,
             suppress_completion_output: false,
             release_tag_override: None,
+            allow_verified_rollback: false,
+            compatibility_canary: false,
             system_install: false,
             persist_path: false,
             no_persist_path: false,
@@ -5461,6 +5870,71 @@ mod tests {
     }
 
     #[test]
+    fn v0_9_188_agent_context_requires_and_installs_distribution_manifest() {
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-agent-context-manifest-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let package = fixture.join("package/focusa-agent-context");
+        std::fs::create_dir_all(package.join("skills/focusa")).unwrap();
+        std::fs::write(package.join("AGENTS.md"), "# Focusa agents\n").unwrap();
+        std::fs::write(
+            package.join("skills/focusa/SKILL.md"),
+            "---\nname: focusa\n---\n",
+        )
+        .unwrap();
+        let manifest = serde_json::json!({
+            "schema": "focusa.distribution_manifest.v1",
+            "release_version": "0.9.188",
+            "digest_contract": "sha256-tree-v1",
+            "components": {"runtime_contract": {
+                "installed_manifest_path": "/usr/local/lib/focusa/distribution-manifest.json",
+                "manifest_required_from": "0.9.188",
+                "binary_paths": {
+                    "cli": "/usr/local/bin/focusa",
+                    "daemon": "/usr/local/bin/focusa-daemon",
+                    "tui": "/usr/local/bin/focusa-tui",
+                    "session_runner": "/usr/local/bin/focusa-session-runner"
+                }
+            }}
+        });
+        std::fs::write(
+            package.join("distribution-manifest.json"),
+            serde_json::to_vec(&manifest).unwrap(),
+        )
+        .unwrap();
+        let archive = fixture.join("focusa-agent-context-v0.9.188.tar.gz");
+        assert!(
+            tar_command()
+                .args(["-czf"])
+                .arg(&archive)
+                .arg("-C")
+                .arg(fixture.join("package"))
+                .arg("focusa-agent-context")
+                .status()
+                .unwrap()
+                .success()
+        );
+        let asset = InstalledAsset {
+            name: "focusa-agent-context-v0.9.188.tar.gz".to_string(),
+            version: "v0.9.188".to_string(),
+            triple: "all".to_string(),
+            sha256: String::new(),
+            install_path: archive.display().to_string(),
+        };
+        let install_root = fixture.join("install");
+        let installed = install_agent_context_archive(&asset, &install_root).unwrap();
+        let active = install_distribution_manifest(&installed, &install_root, "v0.9.188")
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&std::fs::read(active).unwrap()).unwrap(),
+            manifest
+        );
+        std::fs::remove_dir_all(fixture).unwrap();
+    }
+
+    #[test]
     fn agent_context_archive_rejects_missing_skills() {
         let fixture = std::env::temp_dir().join(format!(
             "focusa-agent-context-invalid-{}",
@@ -5587,6 +6061,7 @@ mod tests {
     #[test]
     fn dry_run_plan_with_license_key_marks_commercial() {
         let args = InstallArgs {
+            verified_asset_digests: None,
             target: InstallTarget::Linux,
             channel: Channel::Stable,
             dry_run: true,
@@ -5602,6 +6077,8 @@ mod tests {
             reuse_existing_license: false,
             suppress_completion_output: false,
             release_tag_override: None,
+            allow_verified_rollback: false,
+            compatibility_canary: false,
             system_install: false,
             persist_path: false,
             no_persist_path: false,

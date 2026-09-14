@@ -1276,7 +1276,37 @@ mod tests {
         cfg
     }
 
-    async fn setup_app() -> axum::Router {
+    /// Client-side fixture: send valid headers through the unchanged middleware.
+    #[derive(Clone)]
+    struct TestClient(axum::Router);
+
+    impl TestClient {
+        async fn oneshot(
+            self,
+            request: Request<Body>,
+        ) -> Result<axum::response::Response, std::convert::Infallible> {
+            let (mut parts, body) = request.into_parts();
+            let bytes = to_bytes(body, 64 * 1024).await.expect("fixture body");
+            if parts.method == axum::http::Method::POST
+                && !parts.headers.contains_key("Idempotency-Key")
+            {
+                let value: Value = serde_json::from_slice(&bytes).expect("fixture JSON");
+                let key = value["idempotency_key"]
+                    .as_str()
+                    .map(str::to_owned)
+                    .unwrap_or_else(|| Uuid::now_v7().to_string());
+                parts.headers.insert(
+                    "Idempotency-Key",
+                    key.parse().expect("fixture idempotency header"),
+                );
+            }
+            self.0
+                .oneshot(Request::from_parts(parts, Body::from(bytes)))
+                .await
+        }
+    }
+
+    async fn setup_app() -> TestClient {
         let cfg = temp_config();
         let persistence = SqlitePersistence::new(&cfg).expect("persistence");
         let (tx, _rx) = mpsc::channel::<Action>(16);
@@ -1299,6 +1329,7 @@ mod tests {
                 entitlement.lease_id = Some("test-lease".to_string());
                 entitlement.sequence = Some(1);
                 entitlement.lease_digest = Some("sha256:test-lease-digest".to_string());
+                entitlement.limits.insert("missions".to_string(), 8);
                 entitlement.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
                 focusa_license::LicenseGuard::from_entitlement(entitlement)
             },
@@ -1343,7 +1374,7 @@ mod tests {
             shutdown_accepted: Arc::new(Mutex::new(false)),
         });
 
-        build_router(state)
+        TestClient(build_router(state))
     }
 
     #[tokio::test]

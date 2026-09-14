@@ -5,10 +5,10 @@ claim: activated_runtime_conformance
 scope:
   parent_spec: docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md
   addendum_spec: docs/138a-focusa-epistemic-zero-deferral-profile-completeness-and-omission-firewall-addendum.md
-combined_source_sha256: f18381a223be15f1d5253f35d3d63c787d74877df8e9dfdca506b8fe27c8ace8
-normative_requirement_count: 542
-verified_requirement_count: 542
-parent_requirement_count: 273
+combined_source_sha256: 9dc5356c065c5802254fceed47a91604bf08ccf69a32e48874d0a821e4bfc44f
+normative_requirement_count: 540
+verified_requirement_count: 540
+parent_requirement_count: 271
 addendum_requirement_count: 269
 profile_status: verified_complete
 scorer_registry_count: 31
