@@ -127,7 +127,7 @@ console.info = originalInfo;
 assert.equal(duplicate.handlers.size, 0, "duplicate extension must not register any handlers");
 assert.equal(third.handlers.size, 0, "every additional extension must register no handlers");
 assert.equal(duplicateWarnings.length, 1, "duplicates must emit one bounded diagnostic");
-assert.match(duplicateWarnings[0], /compaction coordinator retained across session replacement/);
+assert.match(duplicateWarnings[0], /duplicate extension suppressed/);
 await Promise.all([
   completed.handlers.get("agent_settled")({ type: "agent_settled" }, completed.ctx),
   completed.handlers.get("agent_settled")({ type: "agent_settled" }, completed.ctx),

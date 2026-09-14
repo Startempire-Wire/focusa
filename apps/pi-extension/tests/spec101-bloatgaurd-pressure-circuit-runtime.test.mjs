@@ -169,7 +169,40 @@ try {
   );
   writeFileSync(join(outDir, "package.json"), '{"type":"module"}\n');
 
-  const autoCompaction = await import(pathToFileURL(join(outDir, "auto-compaction.js")).href);
+  const autoCompactionUrl = pathToFileURL(join(outDir, "auto-compaction.js")).href;
+  const autoCompaction = await import(autoCompactionUrl);
+  const registrationHandlers = () => {
+    const handlers = new Map();
+    return {
+      handlers,
+      pi: {
+        on(name, handler) {
+          handlers.set(name, handler);
+        },
+        appendEntry() {},
+      },
+    };
+  };
+  autoCompaction.resetCompactionLeaseForTest();
+  const initialRegistration = registrationHandlers();
+  assert.equal(autoCompaction.registerAutoCompaction(initialRegistration.pi), true);
+  const replacementRegistration = registrationHandlers();
+  assert.equal(
+    autoCompaction.registerAutoCompaction(replacementRegistration.pi),
+    true,
+    "cached-module session replacement must register a fresh coordinator"
+  );
+  assert(replacementRegistration.handlers.has("session_start"));
+  assert(replacementRegistration.handlers.has("session_shutdown"));
+  const duplicateModule = await import(`${autoCompactionUrl}?duplicate-install`);
+  const duplicateRegistration = registrationHandlers();
+  assert.equal(
+    duplicateModule.registerAutoCompaction(duplicateRegistration.pi),
+    false,
+    "a second module load from the same install must remain suppressed"
+  );
+  assert.equal(duplicateRegistration.handlers.size, 0);
+
   const compaction = await import(pathToFileURL(join(outDir, "compaction.js")).href);
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);
   const scopedState = await import(pathToFileURL(join(outDir, "scoped-state.js")).href);
