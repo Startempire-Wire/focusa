@@ -287,8 +287,22 @@ async fn wait_for_os_shutdown() -> std::io::Result<()> {
     }
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+// The daemon serializes and persists full FocusaState projections on Tokio workers.
+// Those projections can exceed Tokio's default worker-stack budget; keep the
+// production runtime aligned with the bounded 8 MiB stack proved by the command
+// checkpoint contract instead of requiring callers to set RUST_MIN_STACK.
+const TOKIO_WORKER_STACK_BYTES: usize = 8 * 1024 * 1024;
+
+fn main() -> anyhow::Result<()> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(TOKIO_WORKER_STACK_BYTES)
+        .build()
+        .map_err(|error| anyhow!("build Focusa Tokio runtime: {error}"))?
+        .block_on(daemon_main())
+}
+
+async fn daemon_main() -> anyhow::Result<()> {
     match detect_cli_action(std::env::args()) {
         Some(CliAction::Version) => {
             println!("focusa-daemon {}", env!("CARGO_PKG_VERSION"));
