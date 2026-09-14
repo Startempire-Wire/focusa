@@ -201,7 +201,7 @@ test("session replacement rebinds while active duplicate module loads stay suppr
   assert.match(source, /processLease\.owner\.moduleLoadId === MODULE_LOAD_ID/);
   assert.match(source, /processLease\.owner\.moduleIdentity === MODULE_IDENTITY/);
   assert.match(source, /registrationApiIsActive\(processLease\.owner\)/);
-  assert.match(source, /transfer the lease/);
+  assert.match(source, /ownerIsActive/);
   assert.match(source, /duplicate extension suppressed/);
   assert.match(source, /Remove the duplicate Focusa installation and reload Pi/);
   assert.match(source, /compaction coordinator rebound after session replacement or reload/);

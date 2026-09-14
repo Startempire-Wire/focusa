@@ -531,15 +531,11 @@ export function registerAutoCompaction(
   }
   if (processLease.owner) {
     const previousSource = processLease.owner.registrationSource;
-    if (processLease.owner.moduleLoadId === MODULE_LOAD_ID) {
-      // Pi re-invokes the cached extension module for in-process session
-      // replacement. Its old runtime handlers are gone, so transfer the lease
-      // to the replacement registration instead of suppressing every Focusa
-      // tool and hook in the new session.
-      processLease.owner = undefined;
-    } else if (
-      processLease.owner.moduleIdentity === MODULE_IDENTITY &&
-      registrationApiIsActive(processLease.owner)
+    const ownerIsActive = registrationApiIsActive(processLease.owner);
+    if (
+      ownerIsActive &&
+      (processLease.owner.moduleLoadId === MODULE_LOAD_ID ||
+        processLease.owner.moduleIdentity === MODULE_IDENTITY)
     ) {
       if (!processLease.duplicateDiagnosticEmitted) {
         processLease.duplicateDiagnosticEmitted = true;
