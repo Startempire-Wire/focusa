@@ -66,7 +66,7 @@ from pathlib import Path
 import sys
 text = Path(sys.argv[1]).read_text()
 stamp = text.index('scripts/stamp-menubar-version.py "$tag"')
-build = text.index('cross build --release')
+build = text.index('scripts/ci/run-cancellation-safe-cross.sh build --release')
 publish = text.index('gh release create "$TAG"')
 if not stamp < build < publish:
     raise SystemExit('nightly must stamp before build and publish only after build')

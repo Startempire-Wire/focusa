@@ -50,12 +50,12 @@ jobs:
           passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
           EOF
           export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
-          cross build --release --target x86_64-unknown-linux-musl
+          scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl
           rm -f Cross.toml
       - name: Warm arm64 release build (canonical cross path)
         env:
           CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-release-target/aarch64-unknown-linux-gnu
-        run: cross build --release --target aarch64-unknown-linux-gnu
+        run: scripts/ci/run-cancellation-safe-cross.sh build --release --target aarch64-unknown-linux-gnu
       - name: Smoke release binaries (musl runs on host, gnu daemon boots)
         run: |
           /home/wirebot/.cache/focusa-release-target/x86_64-unknown-linux-musl/x86_64-unknown-linux-musl/release/focusa --version

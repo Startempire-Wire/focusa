@@ -106,7 +106,7 @@ jobs:
           trap 'rm -f Cross.toml' EXIT
           export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
           cargo clean -p focusa-license --target x86_64-unknown-linux-musl
-          cross build --release --target x86_64-unknown-linux-musl \
+          scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl \
             -p focusa-cli \
             -p focusa-api \
             -p focusa-tui \

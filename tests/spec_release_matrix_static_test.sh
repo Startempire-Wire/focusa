@@ -56,8 +56,8 @@ grep -q 'target: x86_64-unknown-linux-musl' "$WF" \
   || fail "Missing x86_64-unknown-linux-musl release matrix target"
 grep -q 'musl: true' "$WF" \
   || fail "Musl release matrix target must set musl: true"
-grep -q 'cross build --release --target' "$WF" \
-  || fail "Musl release path must use cross build"
+grep -q 'scripts/ci/run-cancellation-safe-cross.sh build --release --target' "$WF" \
+  || fail "Musl release path must use the cancellation-safe cross owner"
 pass "musl/static Linux release asset target present and cross-built"
 
 # Packaging stays .exe-aware (Windows binaries still exist, built externally).

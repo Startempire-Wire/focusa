@@ -70,7 +70,11 @@ for target, runner in PLATFORM_TARGETS.items():
     require_in(CANDIDATE_WF, runner, f"candidate native runner missing for {target}")
 
 require_in(CANDIDATE_WF, "musl: true", "Linux musl cross build is not enabled")
-require_in(CANDIDATE_WF, "cross build --release --target", "musl cross build not wired")
+require_in(
+    CANDIDATE_WF,
+    "scripts/ci/run-cancellation-safe-cross.sh build --release --target",
+    "cancellation-safe musl cross build not wired",
+)
 require_in(
     CANDIDATE_WF,
     'test "$(grep -m1 \'^version = \' Cargo.toml | cut -d \'"\' -f2)" = 0.9.144',
