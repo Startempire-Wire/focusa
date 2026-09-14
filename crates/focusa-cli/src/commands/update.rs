@@ -34,6 +34,9 @@ pub enum UpdateCmd {
     Plan(UpdateStatusArgs),
     /// Guarded update apply. Mutates only with explicit consent and complete signed-release trust.
     Apply(UpdateApplyArgs),
+    /// Bootstrap the signed historical baseline into an empty isolated canary root.
+    /// Uses the current candidate's authority and the canonical install transaction.
+    CompatibilityBootstrap(UpdateApplyArgs),
     /// Read-only update history/observability view.
     History(UpdateHistoryArgs),
     /// Guarded rollback. Defaults to dry-run and restores only SHA-verified backups with consent.
@@ -183,6 +186,11 @@ pub struct UpdateStatusArgs {
     /// Daemon health URL used for safe daemon version probing.
     #[arg(long, default_value = "http://127.0.0.1:8787/v1/health")]
     pub daemon_health_url: String,
+
+    /// Explicit isolated preproduction root allowed to consume a signed
+    /// compatibility-canary candidate. Never authorizes production apply.
+    #[arg(long, value_name = "ABSOLUTE_PATH", requires = "latest_version")]
+    pub compatibility_canary_root: Option<PathBuf>,
 }
 
 #[derive(Debug, Serialize)]
@@ -540,8 +548,16 @@ struct ReleaseTrustSummary {
     manifest_signature_verified: bool,
     provenance_verified: bool,
     deploy_proof_verified: bool,
+    compatibility_canary_proof_verified: bool,
+    compatibility_canary_root: Option<String>,
+    required_previous_tag: Option<String>,
+    production_apply_authorized: bool,
     trusted_key_id: Option<String>,
     trusted_key_fingerprint: Option<String>,
+    #[serde(skip)]
+    candidate_asset_digests: Option<crate::commands::install::VerifiedInstallDigests>,
+    #[serde(skip)]
+    baseline_asset_digests: Option<crate::commands::install::VerifiedInstallDigests>,
     key_revoked: bool,
     ci_proof_required: bool,
     signature_required: bool,
@@ -639,15 +655,26 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
                 print_plan_human(&plan);
             }
         }
+        UpdateCmd::CompatibilityBootstrap(args) => {
+            run_compatibility_bootstrap(args, json_mode).await?;
+        }
         UpdateCmd::Apply(args) => {
             let dry_run = args.dry_run;
             let yes = args.yes;
             let allow_apply = args.allow_apply;
             let automatic = args.automatic || std::env::var_os("INVOCATION_ID").is_some();
+            let compatibility_canary_requested = args.status.compatibility_canary_root.is_some();
             let envelope = build_inventory("apply", args.status).await?;
             let plan = build_update_plan(envelope);
             let mut apply = build_apply_envelope(plan, dry_run, yes, allow_apply);
-            if automatic && !apply.plan.policy.auto_apply_allowed {
+            if automatic && compatibility_canary_requested {
+                apply.consent.effective = false;
+                apply.plan.apply_allowed = false;
+                apply
+                    .blocked_reason
+                    .push("compatibility_canary_automatic_apply_forbidden".into());
+                apply.recovery_hint = "Compatibility canary apply is explicit and manual-only; no scheduler or service invocation may use it.".into();
+            } else if automatic && !apply.plan.policy.auto_apply_allowed {
                 apply.consent.effective = false;
                 apply.plan.apply_allowed = false;
                 apply
@@ -769,12 +796,81 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn run_compatibility_bootstrap(args: UpdateApplyArgs, json_mode: bool) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        !args.automatic && std::env::var_os("INVOCATION_ID").is_none(),
+        "compatibility bootstrap is explicit and manual-only"
+    );
+    let configured_root = args
+        .status
+        .compatibility_canary_root
+        .as_deref()
+        .context("compatibility bootstrap requires an isolated canary root")?;
+    let candidate_tag = args
+        .status
+        .latest_version
+        .as_deref()
+        .context("compatibility bootstrap requires an exact current candidate tag")?;
+    let latest = resolve_latest("stable", Some(candidate_tag), Some(configured_root)).await;
+    let root = validate_compatibility_canary_root_binding(&latest)?;
+    let previous_tag = latest
+        .trust
+        .required_previous_tag
+        .as_deref()
+        .context("signed baseline tag is missing")?;
+    let digests = latest
+        .trust
+        .baseline_asset_digests
+        .clone()
+        .context("current-signer baseline asset digests are missing")?;
+    validate_canary_mutation_target(&root, &root.join(".focusa"))?;
+    anyhow::ensure!(
+        !root.join(".focusa/bin/focusa").exists(),
+        "compatibility bootstrap requires an empty installation; use the guarded rollback path for an installed candidate"
+    );
+    if !args.dry_run {
+        anyhow::ensure!(
+            args.yes && args.allow_apply,
+            "compatibility bootstrap requires --yes --allow-apply with --dry-run=false"
+        );
+        let mut install =
+            exact_release_install_args(previous_tag, &latest.github_repo, false, true, true);
+        install.verified_asset_digests = Some(digests);
+        crate::commands::install::run(install)
+            .await
+            .context("current-authorized compatibility baseline installation failed")?;
+    }
+    let result = serde_json::json!({
+        "schema": "focusa.compatibility_baseline_bootstrap.v1",
+        "status": if args.dry_run { "planned" } else { "completed" },
+        "candidate_tag": latest.tag,
+        "baseline_tag": previous_tag,
+        "read_only": args.dry_run,
+        "mutations_performed": !args.dry_run,
+        "production_apply_authorized": false,
+    });
+    if json_mode {
+        println!("{}", serde_json::to_string_pretty(&result)?);
+    } else {
+        println!(
+            "Compatibility baseline {}: {}",
+            previous_tag, result["status"]
+        );
+    }
+    Ok(())
+}
+
 async fn build_inventory(
     command_name: &'static str,
     args: UpdateStatusArgs,
 ) -> anyhow::Result<UpdateInventoryEnvelope> {
     let channel = args.channel.clone().unwrap_or_else(effective_channel);
-    let latest = resolve_latest(&channel, args.latest_version.as_deref()).await;
+    let latest = resolve_latest(
+        &channel,
+        args.latest_version.as_deref(),
+        args.compatibility_canary_root.as_deref(),
+    )
+    .await;
     let daemon_health = probe_daemon_health(&args.daemon_health_url).await;
     let mut parts = vec![
         inspect_cli(&latest.version).await?,
@@ -836,8 +932,224 @@ async fn build_inventory(
     })
 }
 
+fn validate_isolated_canary_root_binding(
+    configured_root: &str,
+    release_tag: &str,
+    required_previous_tag: Option<&str>,
+) -> anyhow::Result<PathBuf> {
+    anyhow::ensure!(
+        !is_root(),
+        "compatibility canary must run as a non-root user"
+    );
+
+    let root = std::fs::canonicalize(configured_root)
+        .with_context(|| format!("canonicalize compatibility canary root {configured_root}"))?;
+    anyhow::ensure!(
+        root.file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with("focusa-compatibility-canary-")),
+        "compatibility canary root name is not isolated"
+    );
+    let parent = std::env::var_os("FOCUSA_COMPATIBILITY_CANARY_PARENT")
+        .map(PathBuf::from)
+        .context("FOCUSA_COMPATIBILITY_CANARY_PARENT is required")?;
+    let parent = std::fs::canonicalize(&parent)
+        .with_context(|| format!("canonicalize canary parent {}", parent.display()))?;
+    anyhow::ensure!(
+        root != parent && root.starts_with(&parent),
+        "canary root escapes its parent"
+    );
+
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .context("HOME is required for compatibility canary")?;
+    let home = std::fs::canonicalize(&home)
+        .with_context(|| format!("canonicalize canary HOME {}", home.display()))?;
+    anyhow::ensure!(home == root, "compatibility canary root must equal HOME");
+
+    for variable in [
+        "XDG_CONFIG_HOME",
+        "XDG_DATA_HOME",
+        "XDG_STATE_HOME",
+        "XDG_CACHE_HOME",
+        "FOCUSA_DATA_DIR",
+        "FOCUSA_PI_EXT_DIR",
+        "PI_CODING_AGENT_DIR",
+    ] {
+        let path = std::env::var_os(variable)
+            .map(PathBuf::from)
+            .with_context(|| format!("{variable} is required for compatibility canary"))?;
+        let path = std::fs::canonicalize(&path)
+            .with_context(|| format!("canonicalize {variable} path {}", path.display()))?;
+        anyhow::ensure!(
+            path != root && path.starts_with(&root),
+            "{variable} escapes compatibility canary root"
+        );
+    }
+
+    let marker_path = root.join(".focusa-compatibility-canary-scope.json");
+    let marker: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(&marker_path)
+            .with_context(|| format!("read canary marker {}", marker_path.display()))?,
+    )
+    .context("parse compatibility canary marker")?;
+    anyhow::ensure!(
+        marker["schema"].as_str() == Some("focusa.compatibility_canary_scope.v1")
+            && marker["release_tag"].as_str() == Some(release_tag)
+            && marker["root"].as_str() == Some(root.to_string_lossy().as_ref())
+            && marker["production"].as_bool() == Some(false)
+            && required_previous_tag
+                .map(|tag| marker["required_previous_tag"].as_str() == Some(tag))
+                .unwrap_or(true),
+        "compatibility canary marker identity mismatch"
+    );
+
+    let current_exe = std::fs::canonicalize(std::env::current_exe()?)?;
+    anyhow::ensure!(
+        current_exe.starts_with(&root),
+        "compatibility canary updater executable is outside isolated root"
+    );
+    let config_home = std::fs::canonicalize(
+        std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .context("XDG_CONFIG_HOME is required")?,
+    )?;
+    anyhow::ensure!(
+        config_home.join("focusa/license.json").is_file(),
+        "compatibility canary signed lease fixture is missing"
+    );
+    let data_root = std::fs::canonicalize(
+        std::env::var_os("FOCUSA_DATA_DIR")
+            .map(PathBuf::from)
+            .context("FOCUSA_DATA_DIR is required")?,
+    )?;
+    anyhow::ensure!(
+        data_root.join("focusa.sqlite").is_file(),
+        "compatibility canary legacy database fixture is missing"
+    );
+    let pi_package = std::env::var_os("FOCUSA_PI_EXTENSION_PACKAGE_JSON")
+        .map(PathBuf::from)
+        .context("FOCUSA_PI_EXTENSION_PACKAGE_JSON is required")?;
+    let pi_package = std::fs::canonicalize(&pi_package).with_context(|| {
+        format!(
+            "canonicalize FOCUSA_PI_EXTENSION_PACKAGE_JSON {}",
+            pi_package.display()
+        )
+    })?;
+    anyhow::ensure!(
+        pi_package.starts_with(&root) && pi_package.is_file(),
+        "FOCUSA_PI_EXTENSION_PACKAGE_JSON escapes compatibility canary root"
+    );
+    anyhow::ensure!(
+        root.join("user-sentinel.txt").is_file(),
+        "compatibility canary user sentinel is missing"
+    );
+    Ok(root)
+}
+
+fn validate_compatibility_canary_root_binding(latest: &LatestVersion) -> anyhow::Result<PathBuf> {
+    let configured_root = latest
+        .trust
+        .compatibility_canary_root
+        .as_deref()
+        .context("explicit compatibility canary root is missing")?;
+    anyhow::ensure!(
+        latest.trust.compatibility_canary_proof_verified,
+        "signed compatibility canary authorization is not verified"
+    );
+    anyhow::ensure!(
+        !latest.trust.production_apply_authorized,
+        "compatibility canary proof must never authorize production apply"
+    );
+    validate_isolated_canary_root_binding(
+        configured_root,
+        &latest.tag,
+        latest.trust.required_previous_tag.as_deref(),
+    )
+}
+
+fn validate_canary_mutation_target(root: &Path, target: &Path) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        target.is_absolute()
+            && !target
+                .components()
+                .any(|component| matches!(component, std::path::Component::ParentDir)),
+        "compatibility canary mutation target is not a normalized absolute path: {}",
+        target.display()
+    );
+    let target_exists = target.exists();
+    let resolved = if target_exists {
+        std::fs::canonicalize(target)
+            .with_context(|| format!("canonicalize canary mutation target {}", target.display()))?
+    } else {
+        let mut ancestor = target.parent();
+        loop {
+            let candidate = ancestor.context("canary mutation target has no existing ancestor")?;
+            if candidate.exists() {
+                break std::fs::canonicalize(candidate).with_context(|| {
+                    format!(
+                        "canonicalize canary mutation target ancestor {}",
+                        candidate.display()
+                    )
+                })?;
+            }
+            ancestor = candidate.parent();
+        }
+    };
+    anyhow::ensure!(
+        target != root && resolved.starts_with(root) && (!target_exists || resolved != root),
+        "compatibility canary mutation target escapes isolated root: {}",
+        target.display()
+    );
+    Ok(())
+}
+
+fn validate_compatibility_canary_environment(
+    latest: &LatestVersion,
+    parts: &[InstalledPart],
+) -> anyhow::Result<PathBuf> {
+    let root = validate_compatibility_canary_root_binding(latest)?;
+    let required_previous = normalize_version(
+        latest
+            .trust
+            .required_previous_tag
+            .as_deref()
+            .context("compatibility canary prior release is missing")?,
+    );
+    for required_part in ["cli", "tui", "daemon"] {
+        let part = parts
+            .iter()
+            .find(|part| part.part == required_part)
+            .with_context(|| format!("compatibility canary {required_part} inventory missing"))?;
+        anyhow::ensure!(
+            part.version
+                .as_deref()
+                .is_some_and(|version| normalize_version(version) == required_previous),
+            "compatibility canary {required_part} is not exact prior release {required_previous}"
+        );
+        let path = part
+            .resolved_path
+            .as_deref()
+            .with_context(|| format!("compatibility canary {required_part} path missing"))?;
+        let path = std::fs::canonicalize(path)
+            .with_context(|| format!("canonicalize compatibility canary {required_part}"))?;
+        anyhow::ensure!(
+            path.starts_with(root.join(".focusa/bin")),
+            "compatibility canary {required_part} resolves outside isolated install"
+        );
+    }
+    Ok(root)
+}
+
 fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
     let mut blockers = inventory.latest.trust.blockers.clone();
+    if inventory.latest.trust.compatibility_canary_root.is_some() {
+        if let Err(error) =
+            validate_compatibility_canary_environment(&inventory.latest, &inventory.parts)
+        {
+            blockers.push(format!("compatibility_canary_scope_invalid:{error}"));
+        }
+    }
     if read_update_admin_state()
         .map(|state| state.paused)
         .unwrap_or(false)
@@ -1348,6 +1660,9 @@ struct RollbackManifest {
     release_tag: Option<String>,
     system_install: Option<bool>,
     github_repo: Option<String>,
+    compatibility_canary_root: Option<String>,
+    compatibility_canary_tag: Option<String>,
+    compatibility_canary_previous_tag: Option<String>,
 }
 
 async fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> {
@@ -1370,14 +1685,53 @@ async fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<Str
             .release_tag
             .as_deref()
             .context("manifest-bound rollback release tag is missing")?;
-        let args = exact_release_install_args(
+        let compatibility_canary = manifest.compatibility_canary_root.is_some();
+        let mut verified_asset_digests = None;
+        if let Some(root) = manifest.compatibility_canary_root.as_deref() {
+            anyhow::ensure!(
+                !manifest.system_install.unwrap_or(false),
+                "compatibility canary rollback cannot target a system install"
+            );
+            let candidate_tag = manifest
+                .compatibility_canary_tag
+                .as_deref()
+                .context("compatibility canary rollback candidate tag is missing")?;
+            let previous_tag = manifest
+                .compatibility_canary_previous_tag
+                .as_deref()
+                .context("compatibility canary rollback prior tag is missing")?;
+            anyhow::ensure!(
+                previous_tag == tag,
+                "compatibility canary rollback target differs from signed prior tag"
+            );
+            validate_isolated_canary_root_binding(root, candidate_tag, Some(previous_tag))?;
+            // A local rollback journal is routing information, not signing authority.
+            // Reverify the current candidate before accepting any historical digest.
+            let latest = resolve_latest("stable", Some(candidate_tag), Some(Path::new(root))).await;
+            validate_compatibility_canary_root_binding(&latest)?;
+            anyhow::ensure!(
+                latest.trust.required_previous_tag.as_deref() == Some(tag),
+                "rollback baseline differs from current signed authorization"
+            );
+            verified_asset_digests = Some(
+                latest
+                    .trust
+                    .baseline_asset_digests
+                    .clone()
+                    .context("signed rollback baseline asset binding is missing")?,
+            );
+        }
+        let mut args = exact_release_install_args(
             tag,
             manifest
                 .github_repo
                 .as_deref()
                 .unwrap_or("Startempire-Wire/focusa"),
             manifest.system_install.unwrap_or(false),
+            compatibility_canary,
+            true,
         );
+        args.verified_asset_digests = verified_asset_digests;
         crate::commands::install::run(args)
             .await
             .context("exact prior-release reinstall failed")?;
@@ -1892,6 +2246,8 @@ fn exact_release_install_args(
     tag: &str,
     github_repo: &str,
     system_install: bool,
+    compatibility_canary: bool,
+    allow_verified_rollback: bool,
 ) -> crate::commands::install::InstallArgs {
     let channel = if tag.contains("-nightly.") {
         crate::commands::install::Channel::Nightly
@@ -1912,10 +2268,13 @@ fn exact_release_install_args(
         license_key: None,
         eval: false,
         accept_license: true,
-        no_service: false,
+        no_service: compatibility_canary,
         reuse_existing_license: true,
         suppress_completion_output: true,
         release_tag_override: Some(tag.to_string()),
+        allow_verified_rollback,
+        compatibility_canary,
+        verified_asset_digests: None,
         system_install,
         persist_path: false,
         no_persist_path: true,
@@ -1944,13 +2303,51 @@ async fn execute_manifest_bound_apply(
     if mutable_parts.is_empty() {
         return Ok(Vec::new());
     }
-    let system_install = plan.parts.iter().any(|part| {
-        part.target_path
-            .as_deref()
-            .is_some_and(|path| path.starts_with("/usr/local/"))
-    });
-    let args =
-        exact_release_install_args(&plan.latest.tag, &plan.latest.github_repo, system_install);
+    let compatibility_canary_root = plan.latest.trust.compatibility_canary_root.as_deref();
+    if compatibility_canary_root.is_some() {
+        let root = validate_compatibility_canary_root_binding(&plan.latest)?;
+        for part in plan.parts.iter().filter(|part| {
+            matches!(
+                part.action,
+                "would_update" | "would_install" | "would_update_package" | "would_install_package"
+            )
+        }) {
+            let target = part.target_path.as_deref().with_context(|| {
+                format!(
+                    "compatibility canary mutation target is missing for {}",
+                    part.part
+                )
+            })?;
+            validate_canary_mutation_target(&root, Path::new(target))?;
+        }
+    }
+    // Issue #593: the install mode must follow the running executable's
+    // actual surface, not any-part target paths. Auxiliary plan parts
+    // (session_runner, installer) carry canonical /usr/local fallback paths
+    // even on per-user installs, which promoted every macOS user update to
+    // system-install mode and failed the transaction at install.rs.
+    let system_install = compatibility_canary_root.is_none()
+        && std::env::current_exe()
+            .ok()
+            .map(|exe| {
+                let exe = std::fs::canonicalize(&exe).unwrap_or(exe);
+                running_surface_is_system(&exe)
+            })
+            .unwrap_or(false);
+    let mut args = exact_release_install_args(
+        &plan.latest.tag,
+        &plan.latest.github_repo,
+        system_install,
+        compatibility_canary_root.is_some(),
+        false,
+    );
+    args.verified_asset_digests = Some(
+        plan.latest
+            .trust
+            .candidate_asset_digests
+            .clone()
+            .context("manifest-bound install lacks authenticated asset digests")?,
+    );
     let journal = state.join("update-journal.json");
     match crate::commands::install::run(args).await {
         Ok(()) => {
@@ -1975,6 +2372,9 @@ async fn execute_manifest_bound_apply(
                         "release_tag": release_tag_for_version(previous_version),
                         "system_install": system_install,
                         "github_repo": plan.latest.github_repo,
+                        "compatibility_canary_root": compatibility_canary_root,
+                        "compatibility_canary_tag": compatibility_canary_root.map(|_| plan.latest.tag.as_str()),
+                        "compatibility_canary_previous_tag": plan.latest.trust.required_previous_tag.as_deref(),
                         "entries": [],
                     }))?,
                 )?;
@@ -2790,7 +3190,11 @@ fn print_plan_human(plan: &UpdatePlanEnvelope) {
     }
 }
 
-async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVersion {
+async fn resolve_latest(
+    channel: &str,
+    override_value: Option<&str>,
+    compatibility_canary_root: Option<&Path>,
+) -> LatestVersion {
     let explicit_version = override_value
         .filter(|value| !value.trim().is_empty())
         .map(normalize_version)
@@ -2812,7 +3216,14 @@ async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVe
     } else {
         (admin.pinned_version, admin.skipped_versions)
     };
-    match resolve_latest_github(channel, pinned.as_deref(), &skipped).await {
+    match resolve_latest_github(
+        channel,
+        pinned.as_deref(),
+        &skipped,
+        compatibility_canary_root,
+    )
+    .await
+    {
         Ok(latest) => latest,
         Err(error) => {
             let fallback_version =
@@ -2852,8 +3263,14 @@ fn unresolved_latest(version: String, source: &str) -> LatestVersion {
             manifest_signature_verified: false,
             provenance_verified: false,
             deploy_proof_verified: false,
+            compatibility_canary_proof_verified: false,
+            compatibility_canary_root: None,
+            required_previous_tag: None,
+            production_apply_authorized: false,
             trusted_key_id: None,
             trusted_key_fingerprint: None,
+            candidate_asset_digests: None,
+            baseline_asset_digests: None,
             key_revoked: false,
             ci_proof_required: true,
             signature_required: true,
@@ -2867,6 +3284,7 @@ async fn resolve_latest_github(
     channel: &str,
     pinned_version: Option<&str>,
     skipped_versions: &[String],
+    compatibility_canary_root: Option<&Path>,
 ) -> anyhow::Result<LatestVersion> {
     let repo = github_repo();
     let triple = target_triple();
@@ -2916,7 +3334,12 @@ async fn resolve_latest_github(
         {
             continue;
         }
-        if let Some(latest) = build_latest_from_release(repo.clone(), triple.clone(), release) {
+        if let Some(latest) = build_latest_from_release(
+            repo.clone(),
+            triple.clone(),
+            release,
+            compatibility_canary_root,
+        ) {
             return Ok(latest);
         }
     }
@@ -2941,6 +3364,7 @@ fn build_latest_from_release(
     repo: String,
     triple: String,
     release: GithubRelease,
+    compatibility_canary_root: Option<&Path>,
 ) -> Option<LatestVersion> {
     let tag = release.tag_name.clone();
     let mut assets = Vec::new();
@@ -3012,7 +3436,20 @@ fn build_latest_from_release(
         .iter()
         .any(|asset| asset.name == "SHA256SUMS.txt");
     let mut blockers = Vec::new();
-    let trust_result = update_trust::verify_release_metadata(&release, &mut assets);
+    let trust_mode = if compatibility_canary_root.is_some() {
+        update_trust::ReleaseMetadataMode::CompatibilityCanary
+    } else {
+        update_trust::ReleaseMetadataMode::Production
+    };
+    let trust_result = update_trust::verify_release_metadata(&release, &mut assets, trust_mode);
+    let candidate_asset_digests = trust_result
+        .as_ref()
+        .ok()
+        .map(|verified| verified.candidate_asset_digests.clone());
+    let baseline_asset_digests = trust_result
+        .as_ref()
+        .ok()
+        .and_then(|verified| verified.baseline_asset_digests.clone());
     let checksums_resolved =
         trust_result.is_ok() && assets.iter().all(|asset| asset.sha256.is_some());
     let signature_verified = trust_result.is_ok();
@@ -3028,6 +3465,8 @@ fn build_latest_from_release(
         manifest_signature_verified,
         provenance_verified,
         deploy_proof_verified,
+        compatibility_canary_proof_verified,
+        required_previous_tag,
         trusted_key_id,
         trusted_key_fingerprint,
     ) = match trust_result {
@@ -3035,10 +3474,12 @@ fn build_latest_from_release(
             verified.manifest_signature_verified,
             verified.provenance_verified,
             verified.deploy_proof_verified,
+            verified.compatibility_canary_proof_verified,
+            verified.required_previous_tag,
             Some(verified.trusted_key_id),
             Some(verified.trusted_key_fingerprint),
         ),
-        Err(_) => (false, false, false, None, None),
+        Err(_) => (false, false, false, false, None, None, None),
     };
     if !manifest_signature_verified {
         blockers.push("release_manifest_signature_not_verified".into());
@@ -3046,8 +3487,11 @@ fn build_latest_from_release(
     if !provenance_verified {
         blockers.push("release_provenance_not_verified".into());
     }
-    if !deploy_proof_verified {
+    if !deploy_proof_verified && compatibility_canary_root.is_none() {
         blockers.push("release_deploy_proof_not_verified".into());
+    }
+    if compatibility_canary_root.is_some() && !compatibility_canary_proof_verified {
+        blockers.push("release_compatibility_canary_proof_not_verified".into());
     }
     Some(LatestVersion {
         version: normalize_version(&tag),
@@ -3060,9 +3504,13 @@ fn build_latest_from_release(
             && signature_verified
             && manifest_signature_verified
             && provenance_verified
-            && deploy_proof_verified
+            && (deploy_proof_verified || compatibility_canary_proof_verified)
         {
-            "eligible_signed_manifest"
+            if compatibility_canary_proof_verified {
+                "eligible_signed_compatibility_canary"
+            } else {
+                "eligible_signed_manifest"
+            }
         } else {
             "blocked_untrusted_release"
         },
@@ -3076,8 +3524,15 @@ fn build_latest_from_release(
             manifest_signature_verified,
             provenance_verified,
             deploy_proof_verified,
+            compatibility_canary_proof_verified,
+            compatibility_canary_root: compatibility_canary_root
+                .map(|root| root.display().to_string()),
+            required_previous_tag,
+            production_apply_authorized: deploy_proof_verified,
             trusted_key_id,
             trusted_key_fingerprint,
+            candidate_asset_digests,
+            baseline_asset_digests,
             key_revoked,
             ci_proof_required: true,
             signature_required: true,
@@ -3893,6 +4348,10 @@ async fn inspect_executable_part(
     })
 }
 
+fn running_surface_is_system(exe: &std::path::Path) -> bool {
+    exe.starts_with("/usr/local/bin/") || exe.starts_with("/usr/local/lib/focusa/")
+}
+
 fn resolve_path(command: &str, canonical: &str) -> Option<String> {
     let override_key = format!(
         "FOCUSA_{}_PATH",
@@ -4107,6 +4566,7 @@ mod tests {
         inspect_package_part, normalize_version, path_is_git_managed,
         pi_extension_package_from_agent_dir, pi_extension_package_from_settings,
         release_binary_asset_name, release_tag_for_version, rollback_promoted_parts,
+        running_surface_is_system, validate_canary_mutation_target,
     };
     #[cfg(target_os = "macos")]
     use super::{restart_daemon_service, stop_daemon_service};
@@ -4125,15 +4585,52 @@ mod tests {
     }
 
     #[test]
+    fn compatibility_canary_mutation_targets_cannot_escape_root() {
+        let parent =
+            std::env::temp_dir().join(format!("focusa-canary-targets-{}", uuid::Uuid::now_v7()));
+        let root = parent.join("root");
+        let outside = parent.join("outside");
+        std::fs::create_dir_all(root.join("existing")).unwrap();
+        std::fs::create_dir_all(&outside).unwrap();
+        assert!(validate_canary_mutation_target(&root, &root.join("existing")).is_ok());
+        assert!(validate_canary_mutation_target(&root, &root.join("new/path")).is_ok());
+        assert!(validate_canary_mutation_target(&root, &root).is_err());
+        assert!(validate_canary_mutation_target(&root, &outside).is_err());
+        assert!(
+            validate_canary_mutation_target(&root, &root.join("existing/../../outside")).is_err()
+        );
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(&outside, root.join("escape-link")).unwrap();
+            assert!(validate_canary_mutation_target(&root, &root.join("escape-link")).is_err());
+        }
+        std::fs::remove_dir_all(parent).unwrap();
+    }
+
+    #[test]
     fn manifest_bound_update_and_rollback_reuse_exact_install_lifecycle() {
-        let stable = exact_release_install_args("v0.9.188", "Startempire-Wire/focusa", true);
+        let stable =
+            exact_release_install_args("v0.9.188", "Startempire-Wire/focusa", true, false, false);
         assert_eq!(stable.release_tag_override.as_deref(), Some("v0.9.188"));
         assert_eq!(stable.channel, crate::commands::install::Channel::Stable);
         assert!(stable.system_install && stable.reuse_existing_license);
+        assert!(!stable.allow_verified_rollback);
+        assert!(!stable.compatibility_canary);
+        assert!(!stable.no_service);
         assert!(stable.suppress_completion_output);
 
-        let legacy = exact_release_install_args("v0.9.177", "Startempire-Wire/focusa", true);
+        let legacy =
+            exact_release_install_args("v0.9.177", "Startempire-Wire/focusa", true, false, true);
         assert_eq!(legacy.release_tag_override.as_deref(), Some("v0.9.177"));
+        assert!(legacy.allow_verified_rollback);
+        assert!(!legacy.compatibility_canary);
+
+        let canary =
+            exact_release_install_args("v0.9.188", "Startempire-Wire/focusa", false, true, false);
+        assert!(!canary.system_install);
+        assert!(canary.no_service);
+        assert!(!canary.allow_verified_rollback);
+        assert!(canary.compatibility_canary);
     }
 
     #[test]
@@ -4461,5 +4958,30 @@ mod version_staleness_tests {
         assert!(version_is_stale("current", "0.9.152"));
         assert!(version_is_stale("0.9.152", "current"));
         assert!(!version_is_stale("current", "current"));
+    }
+
+    #[test]
+    fn running_surface_distinguishes_system_from_user_install() {
+        // Issue #593 regression: user-installed update binaries (~/.focusa,
+        // ~/.local/bin) must never promote to system-install mode, while the
+        // canonical /usr/local surfaces must.
+        assert!(running_surface_is_system(std::path::Path::new(
+            "/usr/local/bin/focusa"
+        )));
+        assert!(running_surface_is_system(std::path::Path::new(
+            "/usr/local/lib/focusa/bin/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "/Users/barry/.focusa/bin/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "/home/lucy/.local/bin/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "/home/dev/target/debug/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "C:\\Users\\lucy\\AppData\\Local\\focusa\\focusa.exe"
+        )));
     }
 }

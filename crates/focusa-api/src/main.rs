@@ -271,8 +271,38 @@ fn print_daemon_usage() {
     );
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn wait_for_os_shutdown() -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+        tokio::select! {
+            result = tokio::signal::ctrl_c() => result,
+            _ = terminate.recv() => Ok(()),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await
+    }
+}
+
+// The daemon serializes and persists full FocusaState projections on Tokio workers.
+// Those projections can exceed Tokio's default worker-stack budget; keep the
+// production runtime aligned with the bounded 8 MiB stack proved by the command
+// checkpoint contract instead of requiring callers to set RUST_MIN_STACK.
+const TOKIO_WORKER_STACK_BYTES: usize = 8 * 1024 * 1024;
+
+fn main() -> anyhow::Result<()> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(TOKIO_WORKER_STACK_BYTES)
+        .build()
+        .map_err(|error| anyhow!("build Focusa Tokio runtime: {error}"))?
+        .block_on(daemon_main())
+}
+
+async fn daemon_main() -> anyhow::Result<()> {
     match detect_cli_action(std::env::args()) {
         Some(CliAction::Version) => {
             println!("focusa-daemon {}", env!("CARGO_PKG_VERSION"));
@@ -414,6 +444,7 @@ async fn main() -> anyhow::Result<()> {
     let external_mutation_epoch = Arc::new(AtomicU64::new(0));
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let shutdown_tx_for_supervisor = shutdown_tx.clone();
+    let shutdown_tx_for_os = shutdown_tx.clone();
     let daemon_shutdown_rx = shutdown_rx.clone();
     let api_shutdown_rx = shutdown_rx;
 
@@ -447,6 +478,18 @@ async fn main() -> anyhow::Result<()> {
         .next()
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(8787);
+
+    // SIGTERM is systemd's normal stop path. Convert OS termination into the
+    // same governed shutdown signal used by the API so the daemon's bounded
+    // state checkpoint and durable event cursor complete before process exit.
+    tokio::spawn(async move {
+        match wait_for_os_shutdown().await {
+            Ok(()) => {
+                let _ = shutdown_tx_for_os.send(true);
+            }
+            Err(error) => tracing::error!(error = %error, "OS shutdown signal listener failed"),
+        }
+    });
 
     // Spawn daemon event loop.
     let mut daemon_handle = tokio::spawn(async move {

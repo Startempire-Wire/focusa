@@ -1,9 +1,8 @@
 //! Workset SQLite persistence — #269 slice 2. Definitions, append-only
 //! events, and replay. No execution state (authority separation: #267).
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use rusqlite::{Connection, OptionalExtension, params};
-use serde_json::Value;
 
 use crate::workset_ledger::{WorksetDefinition, WorksetEvent};
 
@@ -53,7 +52,8 @@ pub fn load_definition(
             |row| row.get(0),
         )
         .optional()?;
-    Ok(raw.and_then(|text: String| serde_json::from_str(&text).ok()))
+    raw.map(|text| serde_json::from_str(&text).context("invalid stored Workset definition"))
+        .transpose()
 }
 
 pub fn append_event(conn: &Connection, workset_id: &str, event: &WorksetEvent) -> Result<i64> {
@@ -72,18 +72,9 @@ pub fn append_event(conn: &Connection, workset_id: &str, event: &WorksetEvent) -
 pub fn list_events(conn: &Connection, workset_id: &str) -> Result<Vec<WorksetEvent>> {
     let mut stmt =
         conn.prepare("SELECT event_json FROM workset_events WHERE workset_id = ?1 ORDER BY seq")?;
-    let rows = stmt.query_map(params![workset_id], |row| {
-        let raw: String = row.get(0)?;
-        Ok(
-            serde_json::from_str::<WorksetEvent>(&raw).unwrap_or_else(|_| {
-                WorksetEvent::CompletionContracted {
-                    contract_digest: "unparsable".to_string(),
-                }
-            }),
-        )
-    })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(Into::into)
+    let rows = stmt.query_map(params![workset_id], |row| row.get::<_, String>(0))?;
+    rows.map(|raw| serde_json::from_str(&raw?).context("invalid stored Workset event"))
+        .collect()
 }
 
 #[cfg(test)]
@@ -105,6 +96,74 @@ mod tests {
                 release_gate_ref: None,
             },
         }
+    }
+
+    #[test]
+    fn missing_definition_is_distinct_from_corrupt_storage() {
+        let conn = Connection::open_in_memory().unwrap();
+        ensure_schema(&conn).unwrap();
+        assert!(load_definition(&conn, "ws-1", 1).unwrap().is_none());
+        for corrupt in ["{bad-json", "{}"] {
+            conn.execute(
+                "INSERT INTO worksets VALUES ('ws-1', 1, ?1)
+                 ON CONFLICT(workset_id, revision) DO UPDATE SET definition_json = excluded.definition_json",
+                params![corrupt],
+            ).unwrap();
+            let error = load_definition(&conn, "ws-1", 1).unwrap_err();
+            assert_eq!(error.to_string(), "invalid stored Workset definition");
+            let preserved: String = conn.query_row(
+                "SELECT definition_json FROM worksets WHERE workset_id = 'ws-1' AND revision = 1",
+                [], |row| row.get(0),
+            ).unwrap();
+            assert_eq!(preserved, corrupt);
+        }
+    }
+
+    #[test]
+    fn corrupt_events_fail_without_inventing_authority_or_repairing_rows() {
+        let conn = Connection::open_in_memory().unwrap();
+        ensure_schema(&conn).unwrap();
+        upsert_definition(&conn, &definition()).unwrap();
+        assert!(list_events(&conn, "ws-1").unwrap().is_empty());
+        append_event(
+            &conn,
+            "ws-1",
+            &WorksetEvent::RequirementAdmitted {
+                requirement_id: "r1".to_string(),
+                provider_ref: "test-provider:r1".to_string(),
+                evidence_ref: None,
+            },
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO workset_events (workset_id, event_json, recorded_at)
+             VALUES ('ws-1', '{bad-json', 'test-fixture')",
+            [],
+        )
+        .unwrap();
+        let corrupt_sequence = conn.last_insert_rowid();
+        append_event(
+            &conn,
+            "ws-1",
+            &WorksetEvent::CompletionContracted {
+                contract_digest: "valid-test-digest".to_string(),
+            },
+        )
+        .unwrap();
+        let error = list_events(&conn, "ws-1").unwrap_err();
+        assert_eq!(error.to_string(), "invalid stored Workset event");
+        let (count, raw): (i64, String) = conn
+            .query_row(
+                "SELECT (SELECT count(*) FROM workset_events), event_json
+             FROM workset_events WHERE seq = ?1",
+                params![corrupt_sequence],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(count, 3);
+        assert_eq!(raw, "{bad-json");
+        conn.execute("DROP TABLE workset_events", []).unwrap();
+        assert!(list_events(&conn, "ws-1").is_err());
     }
 
     #[test]
@@ -158,20 +217,4 @@ mod tests {
         let projection = crate::workset_ledger::replay_projection(&definition, &events).unwrap();
         assert!(projection.settled);
     }
-
-    #[test]
-    fn unparsable_event_does_not_poison_the_ledger() {
-        let conn = Connection::open_in_memory().unwrap();
-        ensure_schema(&conn).unwrap();
-        conn.execute(
-            "INSERT INTO workset_events (workset_id, event_json, recorded_at) VALUES ('ws-1', 'garbage', 't')",
-            [],
-        )
-        .unwrap();
-        let events = list_events(&conn, "ws-1").unwrap();
-        assert_eq!(events.len(), 1); // survived as a placeholder, never panics
-    }
-
-    #[allow(dead_code)]
-    fn _value_marker(_v: Value) {}
 }

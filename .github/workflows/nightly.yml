@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 20
     env:
       CARGO_TARGET_DIR: /home/wirebot/.cache/focusa-nightly-target/x86_64-unknown-linux-musl
-      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
+      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -95,6 +95,7 @@ jobs:
           tool: cross
 
       - name: Build complete installable Linux runtime
+        id: cross_build
         if: steps.changes.outputs.skip != 'true'
         shell: bash
         run: |
@@ -106,12 +107,15 @@ jobs:
           trap 'rm -f Cross.toml' EXIT
           export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
           cargo clean -p focusa-license --target x86_64-unknown-linux-musl
-          cross build --release --target x86_64-unknown-linux-musl \
+          scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl \
             -p focusa-cli \
             -p focusa-api \
             -p focusa-tui \
             -p focusa-session-runner
 
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target x86_64-unknown-linux-musl
       - name: Install canonical release signing tools
         if: steps.changes.outputs.skip != 'true'
         uses: sigstore/cosign-installer@v3.10.0

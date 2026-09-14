@@ -29,6 +29,10 @@ export function canInjectCompactionMission(packet: unknown, currentScope: Compac
     scope.scope_status === "verified" &&
     exact(scope.project_root) === expectedRoot &&
     exact(scope.continuity_id) === expectedContinuity &&
+    exact(trajectory.project_root) === expectedRoot &&
+    exact(trajectory.continuity_id) === expectedContinuity &&
+    exact(workpoint.project_root) === expectedRoot &&
+    exact(workpoint.continuity_id) === expectedContinuity &&
     Boolean(expectedRoot) &&
     Boolean(expectedContinuity) &&
     trajectory.action_authority_from_trajectory === true &&

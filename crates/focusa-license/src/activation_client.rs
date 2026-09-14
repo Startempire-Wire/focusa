@@ -29,7 +29,7 @@ fn is_home_dev_bypass() -> bool {
     // binary. Only debug/test builds honor them.
     #[cfg(not(debug_assertions))]
     {
-        return false;
+        false
     }
     #[cfg(debug_assertions)]
     {

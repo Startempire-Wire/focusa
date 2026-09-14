@@ -6,12 +6,24 @@ if [[ -z "${CARGO_TARGET_DIR:-}" ]]; then
   export CARGO_TARGET_DIR="/tmp/focusa-ci-local-$$-1"
 fi
 export FOCUSA_CARGO_TARGET_DIR="${FOCUSA_CARGO_TARGET_DIR:-$CARGO_TARGET_DIR}"
+unset TEST_GIT_DIR
+cleanup_test_git() {
+  if [[ -n "${TEST_GIT_DIR:-}" ]]; then
+    unset GIT_DIR GIT_WORK_TREE
+    rm -rf -- "$TEST_GIT_DIR"
+    TEST_GIT_DIR=""
+  fi
+}
 cleanup_ephemeral_builds() {
+  cleanup_test_git
   "$ROOT_DIR/scripts/ci/cleanup-ephemeral-build-target.sh" "$CARGO_TARGET_DIR"
 }
 trap cleanup_ephemeral_builds EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+# Fail cheap on fixture regressions before compiling the isolated daemon.
+python3 "$ROOT_DIR/tests/spec_gate_git_fixture_test.py"
 
 EXPECTED_OWNER="$(stat -c %U "$ROOT_DIR")"
 find_owner_drift() {
@@ -50,12 +62,18 @@ if [[ "$FOCUSA_TEST_MODE" == "1" ]] && ! git -C "$ROOT_DIR" rev-parse --git-dir 
   # OVH source sync intentionally excludes the worktree's .git metadata.
   # Provide a disposable two-commit graph for read-only evidence gates;
   # never copy or mutate repository history on the build host.
-  TEST_GIT_DIR="$(mktemp -d "$ROOT_DIR/../gate-git-meta.XXXXXX")"
-  git init -q "$TEST_GIT_DIR"
-  git -C "$TEST_GIT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate base'
-  git -C "$TEST_GIT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate head'
-  export GIT_DIR="$TEST_GIT_DIR"
-  export GIT_WORK_TREE="$ROOT_DIR"
+  # Claim only absent metadata in this isolated workspace; never replace an
+  # existing repository or give the fixture a different canonical root.
+  mkdir "$ROOT_DIR/.git"
+  TEST_GIT_DIR="$ROOT_DIR/.git"
+  # Do not export Git overrides: the daemon resolves independent workspaces.
+  git init -q "$ROOT_DIR"
+  git -C "$ROOT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate base'
+  git -C "$ROOT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate head'
+  [[ "$(git rev-list --count HEAD)" == "2" ]] || {
+    echo "synthetic gate history must contain exactly two commits" >&2
+    exit 1
+  }
 fi
 if [[ "$FOCUSA_TEST_MODE" == "1" && ! -s "$ROOT_DIR/.beads/issues.jsonl" ]]; then
   # OVH source sync intentionally excludes repository Beads history. Supply
@@ -91,9 +109,6 @@ cleanup() {
   if [[ -n "$TEST_BEADS_FIXTURE" ]]; then
     rm -f "$TEST_BEADS_FIXTURE" >/dev/null 2>&1 || true
   fi
-  if [[ -n "$TEST_GIT_DIR" ]]; then
-    rm -rf "$TEST_GIT_DIR" >/dev/null 2>&1 || true
-  fi
   cleanup_ephemeral_builds
 }
 trap cleanup EXIT
@@ -127,6 +142,7 @@ run_gate ./tests/command_write_contract_test.sh
 run_gate ./tests/trace_dimensions_test.sh
 run_gate ./tests/pi_extension_contract_test.sh
 run_gate bash ./tests/spec142_workflow_dependency_onboarding_static_test.sh
+run_gate python3 ./tests/compatibility_canary_authority_fixture_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_task_materialization_e2e_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_work_rail_e2e_test.py
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh
@@ -209,6 +225,26 @@ done
 for fixture_mode in harness subprocess child-leak prompt-wait output-flood model-mismatch retry-failure isolated-git entitlement runner-disconnect; do
   run_gate python3 ./tests/spec133_fault_fixture.py "$fixture_mode" --lines 32
 done
+mapfile -t SPEC143_GATES < <(python3 - "$ROOT_DIR" <<'PY'
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+receipt = json.loads(
+    (root / "docs/contracts/spec143-completion-receipt.v1.json").read_text(encoding="utf-8")
+)
+for gate in receipt["gate_evidence"]:
+    path = pathlib.PurePosixPath(gate["path"])
+    if path.is_absolute() or ".." in path.parts or not path.name.startswith("spec143_"):
+        raise SystemExit(f"unsafe Spec143 gate path: {path}")
+    print(path.as_posix())
+PY
+)
+for gate in "${SPEC143_GATES[@]}"; do
+  run_gate python3 "$ROOT_DIR/$gate"
+done
+run_gate python3 "$ROOT_DIR/tests/spec144_semantic_artifacts_gate.py"
 python3 ./tests/run_spec137_138_full_conformance_gates.py
 run_gate python3 ./tests/spec137a_138a_144_documentation_closure_gate.py
 run_gate python3 ./tests/bead_closure_evidence_gate.py

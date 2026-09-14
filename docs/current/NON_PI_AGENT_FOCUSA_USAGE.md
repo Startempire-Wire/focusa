@@ -2,6 +2,8 @@
 
 Focusa awareness must include OpenClaw/Wirebot, Claude Code, OpenCode, Letta, and any other agent harness that can read prompts, call HTTP APIs, or use CLI wrappers.
 
+**This parity requirement does not demote Pi.** Pi + the Focusa Pi extension remains Focusa's default/reference harness integration and is fundamental to the reference Focusa agent experience. Non-Pi support exists so canonical Focusa cognition/state stays portable rather than becoming Pi-private.
+
 This document is governed by [`AGENT_ADAPTER_CONTRACT.md`](AGENT_ADAPTER_CONTRACT.md): adapters stay thin, and Focusa daemon/core remains cognitive authority.
 
 ## Scope
@@ -22,6 +24,8 @@ Included explicitly:
 Every non-Pi agent entrypoint must receive a compact Focusa Utility Card or equivalent startup instruction before reasoning when Focusa is available.
 
 Every adapter must also support the minimum Agent Adapter Contract: read awareness card, verify project identity, resume/checkpoint Workpoint, capture/link evidence, run Context Authority preflight, render compact Context Cognition, surface `tool_result_v1`, and respect canonical/advisory/degraded states.
+
+The parity target is the **Focusa outcome/authority contract**, not a requirement that every harness imitate Pi's UI, session tree, commands or extension packaging exactly.
 
 Minimum card content:
 
@@ -138,6 +142,7 @@ Wirebot must treat Focusa as the cognition/governance layer, not as the hidden d
 - Focusa stores current bounded focus, Workpoints, evidence refs, predictions, and recovery state.
 - OpenClaw/Wirebot fallback when Focusa is down must clearly mark `cognition_degraded=true` and continue only with direct model + Wiki/Mem0/Letta context.
 - Every Wirebot turn should be attributable to a Focusa session/workspace id when Focusa is available.
+- Wirebot/non-Pi integration must not introduce a second Focusa ontology, Workpoint, grant, evidence or metacognition authority merely to reach parity with Pi.
 
 Suggested scope identifiers:
 
@@ -158,6 +163,7 @@ Suggested scope identifiers:
 - Evidence from Wirebot actions can be linked to the active Workpoint.
 - Predictions can be recorded/evaluated for risky Wirebot choices.
 - If Focusa is unavailable, Wirebot reports degraded cognition rather than silently pretending continuity is intact.
+- Non-Pi parity does not require or permit demoting the Pi reference integration or creating harness-local canonical Focusa state.
 
 ## Validation target
 
@@ -167,8 +173,7 @@ Future guard:
 node scripts/validate-non-pi-agent-awareness.mjs
 ```
 
-The guard should verify that public docs and integration snippets mention OpenClaw/Wirebot, Workpoint resume/checkpoint, doctor, evidence, prediction, degraded fallback, and operator steering.
-
+The guard should verify that public docs and integration snippets mention OpenClaw/Wirebot, Workpoint resume/checkpoint, doctor, evidence, prediction, degraded fallback, operator steering, and the Pi-reference/non-Pi-parity boundary.
 
 ## OpenClaw plugin implementation
 
@@ -205,7 +210,6 @@ Activation requires an OpenClaw gateway restart/reload. Because that restarts th
 ```bash
 systemctl restart openclaw-gateway
 ```
-
 
 ## Systemd startup note
 

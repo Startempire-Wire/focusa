@@ -58,7 +58,10 @@ def menubar_exact(tag: str) -> list[str]:
 def menubar_patterns() -> list[str]:
     return [
         "Focusa_*aarch64*.dmg",
+        "Focusa-*aarch64*.dmg",
         "Focusa_*x64*.dmg",
+        "Focusa-*x64*.dmg",
+        "Focusa_*x86_64*.dmg",
         "Focusa_*x64*setup.exe",
         "Focusa_*x64*setup.exe.sig",
         "Focusa_*arm64*setup.exe",

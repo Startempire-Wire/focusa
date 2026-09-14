@@ -8,6 +8,7 @@ Use --strict to fail while release-gating findings remain.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import subprocess
@@ -16,10 +17,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+ROUTE_SPEC = importlib.util.spec_from_file_location(
+    "route_classification", ROOT / "scripts/generate-agent-route-classification.py"
+)
+ROUTE_CLASSIFIER = importlib.util.module_from_spec(ROUTE_SPEC)
+ROUTE_SPEC.loader.exec_module(ROUTE_CLASSIFIER)
 
 
-def text(path: str) -> str:
-    return (ROOT / path).read_text()
+def text(path: str | Path) -> str:
+    return (ROOT / path).read_text(encoding="utf-8", errors="strict")
 
 
 def finding(
@@ -48,36 +54,36 @@ def main() -> int:
     args = parser.parse_args()
 
     contracts_path = ROOT / "docs/current/focusa-tool-contracts.json"
-    contracts_doc = json.loads(contracts_path.read_text())
+    contracts_doc = json.loads(text(contracts_path))
     contracts = contracts_doc["contracts"]
     contract_names = {item["name"] for item in contracts}
     capability_dir = ROOT / "docs/contracts/spec141/generated-capability-v2"
     capability_path = capability_dir / "agent-capability-descriptors.json"
     capability_registry = (
-        json.loads(capability_path.read_text())
+        json.loads(text(capability_path))
         if capability_path.exists()
         else {"descriptors": []}
     )
     capability_descriptors = capability_registry.get("descriptors", [])
     agent_card_path = capability_dir / "agent-card.json"
     agent_card = (
-        json.loads(agent_card_path.read_text()) if agent_card_path.exists() else None
+        json.loads(text(agent_card_path)) if agent_card_path.exists() else None
     )
     mcp_projection_path = capability_dir / "mcp-tools.json"
     mcp_projection = (
-        json.loads(mcp_projection_path.read_text())
+        json.loads(text(mcp_projection_path))
         if mcp_projection_path.exists()
         else {"tools": []}
     )
     cli_projection_path = capability_dir / "cli-commands.json"
     cli_projection = (
-        json.loads(cli_projection_path.read_text())
+        json.loads(text(cli_projection_path))
         if cli_projection_path.exists()
         else {"commands": []}
     )
     skill_coverage_path = ROOT / "docs/evidence/141-focusa-skill-runbook-coverage.json"
     skill_coverage = (
-        json.loads(skill_coverage_path.read_text())
+        json.loads(text(skill_coverage_path))
         if skill_coverage_path.exists()
         else {}
     )
@@ -85,13 +91,13 @@ def main() -> int:
         ROOT / "docs/evidence/141-focusa-latest-spec-public-doc-alignment.json"
     )
     public_alignment = (
-        json.loads(public_alignment_path.read_text())
+        json.loads(text(public_alignment_path))
         if public_alignment_path.exists()
         else {}
     )
     conformance_path = ROOT / "docs/evidence/141-focusa-agent-conformance-result.json"
     conformance = (
-        json.loads(conformance_path.read_text()) if conformance_path.exists() else {}
+        json.loads(text(conformance_path)) if conformance_path.exists() else {}
     )
     tool_docs = list((ROOT / "docs/focusa-tools/tools").glob("*.md"))
     tools_src = text("apps/pi-extension/src/tools.ts")
@@ -111,7 +117,7 @@ def main() -> int:
 
     route_paths = set()
     for source in rust_api_sources:
-        body = source.read_text(errors="replace")
+        body = ROUTE_CLASSIFIER.without_inline_test_modules(text(source))
         string_constants = dict(
             re.findall(
                 r'^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+([A-Z][A-Z0-9_]*)\s*:\s*&str\s*=\s*"([^"]+)"\s*;',
@@ -133,7 +139,7 @@ def main() -> int:
 
     route_classification_path = capability_dir / "route-classification.json"
     route_classification = (
-        json.loads(route_classification_path.read_text())
+        json.loads(text(route_classification_path))
         if route_classification_path.exists()
         else {"routes": []}
     )
@@ -161,17 +167,17 @@ def main() -> int:
 
     generic_when = sum(
         "when its specific Focusa state or workflow surface is the narrowest tool"
-        in p.read_text()
+        in text(p)
         for p in tool_docs
     )
     docs_with_examples = sum(
-        bool(re.search(r"^## Example(?: usage)?$", p.read_text(), re.M | re.I))
+        bool(re.search(r"^## Example(?: usage)?$", text(p), re.M | re.I))
         for p in tool_docs
     )
     docs_with_input = sum(
         bool(
             re.search(
-                r"Input schema|Parameters|Required arguments", p.read_text(), re.I
+                r"Input schema|Parameters|Required arguments", text(p), re.I
             )
         )
         for p in tool_docs
@@ -180,7 +186,7 @@ def main() -> int:
         bool(
             re.search(
                 r"^## (Dependencies?|Prerequisites?|Sequence|Workflow)",
-                p.read_text(),
+                text(p),
                 re.M | re.I,
             )
         )
@@ -191,6 +197,7 @@ def main() -> int:
         ["node", "scripts/validate-focusa-tool-contracts.mjs"],
         cwd=ROOT,
         text=True,
+        encoding="utf-8",
         capture_output=True,
         check=False,
     )
@@ -198,6 +205,7 @@ def main() -> int:
         ["bun", "scripts/generate-agent-capability-descriptors.ts", "--check"],
         cwd=ROOT,
         text=True,
+        encoding="utf-8",
         capture_output=True,
         check=False,
     )
@@ -611,7 +619,7 @@ def main() -> int:
                 "Generate complete skill/runbook inventory, every-Pi-tool counts/routes, and exact root/package parity proof.",
             )
         )
-    if public_alignment.get("spec_count") != 15 or not public_alignment.get(
+    if public_alignment.get("spec_count", 0) < 15 or not public_alignment.get(
         "integrity", {}
     ).get("spec_paths_resolve"):
         findings.append(
@@ -656,7 +664,7 @@ def main() -> int:
 
     rendered = json.dumps(report, indent=2) + "\n"
     if args.json_path:
-        Path(args.json_path).write_text(rendered)
+        Path(args.json_path).write_text(rendered, encoding="utf-8")
     else:
         print(rendered, end="")
 
@@ -691,7 +699,7 @@ def main() -> int:
             )
         lines.extend(["## External benchmark sources", ""])
         lines.extend(f"- {ref}" for ref in report["external_benchmark_refs"])
-        Path(args.markdown_path).write_text("\n".join(lines) + "\n")
+        Path(args.markdown_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     if args.strict and report["release_gate"] == "fail":
         return 1

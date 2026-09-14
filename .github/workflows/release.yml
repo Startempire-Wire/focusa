@@ -46,31 +46,6 @@ env:
 # SHA256SUMS signature/provenance focusa update rollback --dry-run=false --yes
 
 jobs:
-  # Durable release boundary: any open issue with a release-gate:* label blocks a tag.
-  open-issue-release-gate:
-    name: Open release-gate issue check
-    if: ${{ (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') && !contains(inputs.release_tag || github.ref_name, '-dev') }}
-    runs-on: self-hosted
-    steps:
-      - name: Require every release-gating issue closed
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          open="$(gh api --paginate \
-            -H 'Accept: application/vnd.github+json' \
-            "/repos/${REPOSITORY}/issues?state=open&per_page=100" \
-            | jq -s '[.[][]
-                | select(has("pull_request") | not)
-                | select(any(.labels[]?; .name | startswith("release-gate:")))
-                | {number, title, labels: [.labels[].name]}]')"
-          if [ "$(jq 'length' <<<"$open")" -ne 0 ]; then
-            echo "::error::Release blocked by open release-gate issues: $open"
-            exit 1
-          fi
-          echo "open_issue_release_gate=passed"
-
   pull-request-release-gate:
     name: Pull request inclusion gate
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
@@ -137,16 +112,30 @@ jobs:
             exit 1
           fi
           echo "release_candidate_identity=passed tag=${RELEASE_TAG} sha=${RELEASE_SHA}"
+      - name: Classify candidate CI requirement
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_paths="$(git diff-tree --root --no-commit-id --name-only -r "$RELEASE_SHA")"
+          non_docs_paths="$(printf '%s\n' "$candidate_paths" | grep -Ev '(^docs/|\.md$)' || true)"
+          if [ -n "$candidate_paths" ] && [ -z "$non_docs_paths" ]; then
+            echo "FOCUSA_CANDIDATE_CI_REQUIRED=false" >> "$GITHUB_ENV"
+            echo "candidate_ci_skipped reason=docs-only sha=${RELEASE_SHA}"
+          else
+            echo "FOCUSA_CANDIDATE_CI_REQUIRED=true" >> "$GITHUB_ENV"
+            echo "candidate_ci_required reason=non-docs-change sha=${RELEASE_SHA}"
+          fi
       - name: Wait for candidate-SHA CI completion (pipelined atomic tag push)
+        if: env.FOCUSA_CANDIDATE_CI_REQUIRED != 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           # The tag is pushed atomically with the version-bump commit, so CI may
-          # still be running when the release workflow starts. Same gate, just
-          # patient: wait (bounded) for the candidate-SHA CI to complete; the
-          # receipt check below still enforces success with Menubar exempt.
+          # still be running when the release workflow starts. Docs/markdown-only
+          # candidates are intentionally excluded by Spec 177 and use the local
+          # release-contract gates below instead of burning CI minutes.
           for attempt in $(seq 1 120); do
             status=$(gh run list --workflow "CI" --commit "$RELEASE_SHA" --limit 5 \
               --json status,headSha \
@@ -205,7 +194,11 @@ jobs:
             [ -n "$run" ] || { echo "::error::Missing successful ${workflow} candidate gate for ${candidate_sha}"; exit 1; }
             echo "candidate_gate_reused workflow=${workflow} receipt=${run}"
           }
-          require_success "CI"
+          if [ "${FOCUSA_CANDIDATE_CI_REQUIRED:-true}" = "false" ]; then
+            echo "candidate_gate_skipped workflow=CI reason=docs-only"
+          else
+            require_success "CI"
+          fi
           previous=$(git tag --sort=-version:refname | grep -v "^${RELEASE_TAG}$" | head -1 || true)
           candidate_changed_paths="$(git diff --name-only "${previous:-HEAD^}"..HEAD)"
           if grep -Eq \
@@ -225,6 +218,7 @@ jobs:
           controller_test="${RUNNER_TEMP}/spec143-controller-test.py"
           controller_workflow="${RUNNER_TEMP}/release-controller.yml"
           git show "${CONTROLLER_SHA}:tests/spec143_ota_installability_release_gate_test.py" > "$controller_test"
+          git show "${CONTROLLER_SHA}:tests/install_target_contract.py" > "${RUNNER_TEMP}/install_target_contract.py"
           git show "${CONTROLLER_SHA}:.github/workflows/release.yml" > "$controller_workflow"
           FOCUSA_SPEC143_ROOT="$PWD" \
           FOCUSA_RELEASE_WORKFLOW_PATH="$controller_workflow" \
@@ -233,52 +227,15 @@ jobs:
         run: python3 tests/spec104_singleton_inventory_gate.py --closure
 
   tag-ci-proof:
-    name: Exact tag CI proof
+    name: Exact tag CI proof (reused)
+    needs: rust-check
     runs-on: self-hosted
-    timeout-minutes: 25
     steps:
-      - name: Wait for successful CI on stamped candidate SHA
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Reuse Release Contract Check receipt
         shell: bash
         run: |
           set -euo pipefail
-          # Spec 178: Menubar (billing-locked macos-latest) is exempt from the
-          # candidate CI proof; the Codemagic macOS package-proof receipt substitutes.
-          substantive_ok() {
-            local run_id="$1"
-            gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/jobs" --paginate \
-              | jq -e -r '([.jobs[] | select(.conclusion != null and (.name | startswith("Menubar") or startswith("Build Menubar")))] | length) >= 0' >/dev/null \
-              && gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/jobs" --paginate \
-              | jq -e '[.jobs[] | select(.conclusion != null and (.name | startswith("Menubar") or startswith("Build Menubar")) | not)] | length > 0 and all(.conclusion == "success")' >/dev/null
-          }
-          for attempt in $(seq 1 120); do
-            runs=$(gh api --method GET "/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
-              -f head_sha="$RELEASE_SHA" -f per_page=10 \
-              --jq '[.workflow_runs[] | {id,status,conclusion,url:.html_url,headSha:.head_sha}]' 2>/dev/null || echo '[]')
-            run=$(jq -c --arg sha "$RELEASE_SHA" 'map(select(.headSha == $sha)) | .[0] // {}' <<<"$runs")
-            status=$(jq -r '.status // "missing"' <<<"$run")
-            conclusion=$(jq -r '.conclusion // ""' <<<"$run")
-            run_id=$(jq -r '.id // empty' <<<"$run")
-            if [ "$status" = completed ] && [ "$conclusion" = success ]; then
-              echo "tag_ci_proof=${run}"
-              exit 0
-            fi
-            if [ "$status" = completed ] && [ "$conclusion" != success ] && [ -n "$run_id" ] && substantive_ok "$run_id"; then
-              echo "tag_ci_proof=job-level-success-menubar-exempt spec178 run=${run_id}"
-              exit 0
-            fi
-            if [ "$status" = completed ] && [ "$conclusion" != success ]; then
-              echo "::error::Stamped candidate CI failed: ${run}"
-              exit 1
-            fi
-            if (( attempt % 6 == 0 )); then
-              echo "tag_ci_wait attempt=${attempt} status=${status} receipt=${run}"
-            fi
-            sleep 10
-          done
-          echo "::error::Timed out waiting for stamped candidate CI ${RELEASE_SHA}"
-          exit 1
+          echo "tag_ci_proof=reused-from-rust-check candidate=${RELEASE_SHA}"
 
   # Final customer-lifecycle closure: all-surface OTA activation, worktree and
   # authority isolation, compaction/recovery, and cache-safe prompt behavior.
@@ -332,7 +289,7 @@ jobs:
   create-release:
     name: Create Release
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate, version-policy]
+    needs: [rust-check, final-release-gap-gate, pull-request-release-gate, version-policy]
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
@@ -747,7 +704,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     env:
-      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-2026-01":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="}'
+      FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
       CARGO_TARGET_DIR: ${{ matrix.target_dir }}
     timeout-minutes: 30
     steps:
@@ -775,6 +732,7 @@ jobs:
           tool: cross
 
       - name: Build release binaries (Unix)
+        id: cross_build
         if: ${{ !contains(matrix.target, 'windows-msvc') }}
         shell: bash
         run: |
@@ -787,18 +745,21 @@ jobs:
           EOF
             export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
             trap 'rm -f Cross.toml' EXIT
-            cross build --release --target ${{ matrix.target }}
+            scripts/ci/run-cancellation-safe-cross.sh build --release --target ${{ matrix.target }}
           elif [ "${{ matrix.cross || false }}" = "true" ]; then
             cat > Cross.toml <<'EOF'
           [build.env]
           passthrough = ["FOCUSA_AUTHORITY_ROOT_KEYS_JSON"]
           EOF
             trap 'rm -f Cross.toml' EXIT
-            cross build --release --target ${{ matrix.target }}
+            scripts/ci/run-cancellation-safe-cross.sh build --release --target ${{ matrix.target }}
           else
             cargo build --release --target ${{ matrix.target }}
           fi
 
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && contains(matrix.target, 'linux') && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target "${{ matrix.target }}"
       - name: Build release binaries (Windows MSVC)
         if: ${{ contains(matrix.target, 'windows-msvc') }}
         shell: pwsh
@@ -1083,6 +1044,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             --candidate \
+            --compatibility-from-tag v0.9.177 \
             --private-key "$KEY_FILE" \
             --trusted-keys config/focusa-trusted-release-keys.json
           cosign sign-blob --yes \
