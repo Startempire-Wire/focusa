@@ -594,16 +594,6 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("evidence_records"),
     },
     RouteEntitlementRequirement {
-        template: "/v1/compaction/controller-epoch",
-        feature: "focusa.core.evidence",
-        limit_bucket: Some("evidence_records"),
-    },
-    RouteEntitlementRequirement {
-        template: "/v1/compaction/controller-status",
-        feature: "focusa.core.evidence",
-        limit_bucket: Some("evidence_records"),
-    },
-    RouteEntitlementRequirement {
         template: "/v1/compaction/diff",
         feature: "focusa.core.evidence",
         limit_bucket: Some("evidence_records"),

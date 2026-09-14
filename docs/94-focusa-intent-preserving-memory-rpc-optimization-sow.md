@@ -123,7 +123,7 @@ Any bounded, summary, slice, cursor, cache, or streaming change must preserve th
   - `crates/focusa-api/src/routes/metacognition.rs:156-201`
   - `crates/focusa-api/src/routes/metacognition.rs:227-230`
   - `crates/focusa-api/src/routes/metacognition.rs:354-407`
-- ECS handle route supports optional bounded mode, but no-limit path clones all handles.
+- ECS handle responses are bounded, and the state/snapshot projection now has a strict hot-record cap with exact-ID durable fallback.
   - `crates/focusa-api/src/routes/ecs.rs:90-103`
   - `crates/focusa-api/src/routes/ecs.rs:121-130`
 - Ontology world route builds a full combined projection, full action catalog, and all working sets in one response.
@@ -226,24 +226,29 @@ SOW:
 
 ### C1. Make ECS handles summary-first by default
 
-Current behavior:
+Delivered behavior:
 
-- optional `summary_only` and `limit` exist;
-- no-limit path clones/returns all handles.
-
-SOW:
-
-1. Default `/v1/ecs/handles` to summary-only + recent limit.
-2. Add `include_full_payload=true` for full handle records.
-3. Add cursor pagination for large handle lists.
-4. Add response-size tests for handle growth.
+1. `/v1/ecs/handles` defaults to a summary-only recent limit.
+2. `include_full_payload=true` permits bounded full records.
+3. Cursor pagination is bounded by configured response ceilings.
+4. Responses distinguish total, hot, and cold handle counts and identify exact-ID
+   resolve as the cold rehydration path.
+5. Complete state/snapshot handle retention is strictly capped at 2,048 records;
+   full immutable metadata and blobs remain in the existing ECS store.
+6. Duplicate explicit IDs fail before metadata replacement, and trajectory-bound
+   metadata is atomically published before hot-state registration.
+7. Persistence metrics separately expose state payload, SQLite database, and WAL
+   byte counts.
 
 **Intent preservation:** ECS still stores and rehydrates artifacts; default listing no longer dumps all handle metadata.
 
 **Evidence:**
 - `/v1/ecs/handles`: 8,585 handles, 2.51 MB.
 - `/v1/ecs/handles?summary_only=true&limit=25`: 3.9 KB.
-- `routes/ecs.rs:90-130`.
+- `routes/ecs.rs` bounded listing and exact-ID disk fallback.
+- `reference/mod.rs` deterministic hot-index retention.
+- `reference/store.rs` durable immutable metadata publication.
+- `runtime/persistence_sqlite.rs` bounded snapshot and payload-byte measurement.
 
 ---
 
@@ -508,6 +513,16 @@ Every PR under this SOW must prove:
 8. Ontology domain worlds remain intact: code, work, mission, and execution objects keep stable identity, provenance, freshness, bounded links, and working-set usability.
 9. Bounded ontology responses preserve category counts and rehydrate/continue paths for omitted objects, links, actions, working sets, provenance, and verification records.
 10. Reducer-only canonical write authority remains unchanged; model-derived ontology outputs remain proposals unless reducer-promoted.
+
+### K4. Release/runtime lifecycle gate
+
+Memory acceptance is not complete against an unmanaged or mixed-version daemon.
+The canonical Rust system installer must bind the full signed release to one
+`/usr/local/lib/focusa` state/data root, preserve SQLite and signed authority,
+reject unmanaged or duplicate daemon processes without killing by name, and
+settle the systemd unit plus exact health/CallGraph acceptance in the same
+rollback boundary. An operator `RefuseManualStart=yes` halt remains absolute.
+Source tests do not authorize lifting that halt.
 
 ---
 

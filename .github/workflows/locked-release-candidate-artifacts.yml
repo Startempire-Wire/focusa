@@ -47,6 +47,7 @@ jobs:
         with:
           tool: cross
       - name: Build candidate binaries
+        id: cross_build
         shell: bash
         run: |
           set -euo pipefail
@@ -57,7 +58,7 @@ jobs:
           passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
           EOF
             export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
-            cross build --release --target "${{ matrix.target }}"
+            scripts/ci/run-cancellation-safe-cross.sh build --release --target "${{ matrix.target }}"
           else
             cargo build --release --target "${{ matrix.target }}"
           fi
@@ -67,6 +68,10 @@ jobs:
             test -s "$src"
             cp "$src" "dist/${bin}-v0.9.144-${{ matrix.target }}${{ matrix.exe || '' }}"
           done
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && matrix.musl == true && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        shell: bash
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target "${{ matrix.target }}"
       - uses: actions/upload-artifact@v4
         with:
           name: rel4-rust-${{ matrix.target }}

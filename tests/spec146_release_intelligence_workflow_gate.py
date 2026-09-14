@@ -22,9 +22,11 @@ def main() -> None:
         "--publishable",
         "dist/release-intelligence.json",
         "dist/release-intelligence.md",
-        "Publish evidence-backed release page",
+        "Publish immutable candidate prerelease",
         "gh release edit",
         "--draft=false",
+        "--prerelease",
+        "--latest=false",
     ]
     for token in required_workflow_tokens:
         assert token in WORKFLOW, token
@@ -32,7 +34,7 @@ def main() -> None:
         "Generate detached signatures, manifest, provenance, and trust metadata"
     )
     assert WORKFLOW.index("Upload trusted OTA metadata and detached signatures") < WORKFLOW.index(
-        "Publish evidence-backed release page"
+        "Publish immutable candidate prerelease"
     )
 
     with tempfile.TemporaryDirectory() as raw:

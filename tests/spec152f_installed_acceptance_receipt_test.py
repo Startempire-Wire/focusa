@@ -28,6 +28,8 @@ import re
 import sys
 from pathlib import Path
 
+from install_target_contract import assert_linux_install_target_contract
+
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATE_WF = (ROOT / ".github/workflows/locked-release-candidate-artifacts.yml").read_text()
 OTA_WF = (ROOT / ".github/workflows/windows-ota-e2e.yml").read_text()
@@ -70,7 +72,11 @@ for target, runner in PLATFORM_TARGETS.items():
     require_in(CANDIDATE_WF, runner, f"candidate native runner missing for {target}")
 
 require_in(CANDIDATE_WF, "musl: true", "Linux musl cross build is not enabled")
-require_in(CANDIDATE_WF, "cross build --release --target", "musl cross build not wired")
+require_in(
+    CANDIDATE_WF,
+    "scripts/ci/run-cancellation-safe-cross.sh build --release --target",
+    "cancellation-safe musl cross build not wired",
+)
 require_in(
     CANDIDATE_WF,
     'test "$(grep -m1 \'^version = \' Cargo.toml | cut -d \'"\' -f2)" = 0.9.144',
@@ -167,8 +173,7 @@ require_in(INSTALL_RS, "PersistedAuthorityState::from_verified_envelopes",
            "issued lease not verified before persistence")
 require_in(INSTALL_RS, "rotate_refresh_credential", "refresh credential rotation missing")
 require_in(INSTALL_RS, "KeyringCredentialStore", "native protected credential store missing")
-require_in(INSTALL_RS, 'InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string()',
-           "Linux installed target does not use the musl triple")
+assert_linux_install_target_contract(INSTALL_RS)
 
 # The portable installer maps macOS arm64/x64 and Linux GNU/musl installed
 # flows to the exact cross-platform triples.
@@ -227,10 +232,17 @@ require_in(RELEASE_WF, "Require exact candidate-SHA preflight receipts",
 require_in(RELEASE_WF, "headSha == $sha", "candidate gate reuse not bound to exact SHA")
 require_in(RELEASE_WF, "Lock exact release candidate", "exact release candidate lock missing")
 require_in(RELEASE_WF, "exact_sha: $exact_sha", "release candidate manifest lacks exact_sha")
-require_in(RELEASE_WF, ".exact_sha == env.GITHUB_SHA", "release candidate not bound to exact SHA")
+require_in(
+    RELEASE_WF,
+    "RELEASE_SHA: ${{ inputs.release_sha || github.sha }}",
+    "release authority is not bound to dispatch input or triggering SHA",
+)
+require_in(RELEASE_WF, ".exact_sha == env.RELEASE_SHA", "release candidate not bound to exact SHA")
+require_in(RELEASE_WF, 'tag_sha" != "$RELEASE_SHA"', "candidate tag not bound to release SHA")
+require_in(RELEASE_WF, 'head_sha" != "$RELEASE_SHA"', "checked-out head not bound to release SHA")
 
-# The candidate artifact manifest and trust metadata bind to the exact
-# pipeline SHA (GITHUB_SHA), not to a floating head.
+# The separate locked-candidate artifact workflow has no recovery-dispatch
+# override, so its trust metadata remains bound to the triggering GITHUB_SHA.
 require_in(CANDIDATE_WF, '--commit "$GITHUB_SHA"', "trust metadata not bound to exact pipeline SHA")
 require_in(CANDIDATE_WF, '--sha "$GITHUB_SHA"', "release intelligence not bound to exact pipeline SHA")
 

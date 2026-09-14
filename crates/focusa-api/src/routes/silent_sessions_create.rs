@@ -432,6 +432,29 @@ mod tests {
     }
 
     #[test]
+    fn preflight_body_requires_config_envelope() {
+        let config = serde_json::to_value(config()).unwrap();
+        assert!(serde_json::from_value::<PreflightBody>(config.clone()).is_err());
+        let body = serde_json::from_value::<PreflightBody>(json!({"config": config})).unwrap();
+        assert!(body.layers.is_empty());
+        assert!(serde_json::from_value::<PreflightBody>(json!({"config": {}})).is_err());
+    }
+
+    #[test]
+    fn preflight_authorization_is_scoped_without_inventing_start_approval() {
+        let allowed = principal([SilentSessionRouteScope::Create].into_iter().collect());
+        assert!(
+            authorize_config(&allowed, SilentSessionAction::Preflight, &config(), "hash").is_ok()
+        );
+        let denied = principal([SilentSessionRouteScope::Read].into_iter().collect());
+        assert!(
+            authorize_config(&denied, SilentSessionAction::Preflight, &config(), "hash").is_err()
+        );
+        assert!(!SilentSessionAction::Preflight.requires_approval());
+        assert!(SilentSessionAction::Start.requires_approval());
+    }
+
+    #[test]
     fn create_authorization_requires_exact_create_scope() {
         let allowed = principal([SilentSessionRouteScope::Create].into_iter().collect());
         assert!(authorize_config(&allowed, SilentSessionAction::Create, &config(), "hash").is_ok());

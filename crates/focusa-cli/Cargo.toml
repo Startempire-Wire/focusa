@@ -34,6 +34,10 @@ urlencoding = "2.1.3"
 qrcode = "0.14"
 sha2 = { workspace = true }
 hex = { workspace = true }
+rusqlite = { version = "0.32", features = ["bundled", "chrono", "uuid"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nix = { version = "0.29", features = ["fs"] }
 
 [lints]
 workspace = true

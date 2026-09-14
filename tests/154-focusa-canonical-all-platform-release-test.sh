@@ -12,6 +12,8 @@ APPVEYOR="$ROOT/.appveyor.yml"
 CODEMAGIC="$ROOT/codemagic.yaml"
 WINDOWS_WORKFLOW="$ROOT/.github/workflows/windows-ota-e2e.yml"
 INSTALLER="$ROOT/scripts/install-focusa.ps1"
+RUST_INSTALLER="$ROOT/crates/focusa-cli/src/commands/install.rs"
+RUST_UPDATER="$ROOT/crates/focusa-cli/src/commands/update.rs"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -24,10 +26,13 @@ pass "all four external Rust targets (win x64/arm64 + mac x64/arm64) in receipt 
 
 # AppVeyor builds the full Windows surface; Codemagic builds the full macOS surface.
 grep -q 'focusa-daemon' "$APPVEYOR" || fail "AppVeyor must build the daemon (full Windows surface)"
+grep -q 'focusa-session-runner' "$APPVEYOR" || fail "AppVeyor must build the session runner"
 grep -q 'aarch64-pc-windows-msvc' "$APPVEYOR" || fail "AppVeyor must build Windows ARM64"
 grep -q 'rust-macos-release-binaries' "$CODEMAGIC" || fail "Codemagic must define the rust-macos-release-binaries workflow"
 grep -q 'aarch64-apple-darwin' "$CODEMAGIC" || fail "Codemagic must build macOS ARM64"
 grep -q 'x86_64-apple-darwin' "$CODEMAGIC" || fail "Codemagic must build macOS x86_64"
+grep -q 'focusa-session-runner' "$CODEMAGIC" || fail "Codemagic must build the session runner"
+grep -q 'focusa-session-runner' "$WAIT" || fail "external receipt gate must require the session runner"
 
 # Installer still resolves every Windows target.
 for target in x86_64-pc-windows-msvc aarch64-pc-windows-msvc; do
@@ -45,5 +50,8 @@ grep -q 'Windows native dependency preflight' "$WINDOWS_WORKFLOW" || fail "Windo
 grep -q 'windows_dependency_preflight_native_resolves_path_semver_and_health' "$WINDOWS_WORKFLOW" || fail "Windows PATH/semver/health diagnostic is not executed"
 grep -q 'needs: \[windows-dependency-preflight\]' "$WINDOWS_WORKFLOW" || fail "Windows OTA does not wait for dependency preflight"
 grep -q 'UIAI_ENGINE_URL.*127.0.0.1:17456' "$WINDOWS_WORKFLOW" || fail "Windows OTA lacks a responsive UIAI health fixture"
+grep -q 'focusa-session-runner' "$WINDOWS_WORKFLOW" || fail "Windows OTA matrix omits the fourth canonical binary"
+grep -q 'aarch64-unknown-linux-gnu' "$RUST_INSTALLER" || fail "Rust installer cannot resolve the published Linux ARM64 target"
+grep -q 'aarch64-unknown-linux-gnu' "$RUST_UPDATER" || fail "Rust updater cannot resolve the published Linux ARM64 target"
 
-echo "canonical_all_platform_release=pass windows=x64,arm64 macos=x64,arm64 surfaces=cli,daemon,tui,desktop"
+echo "canonical_all_platform_release=pass windows=x64,arm64 macos=x64,arm64 surfaces=cli,daemon,tui,session-runner,desktop"

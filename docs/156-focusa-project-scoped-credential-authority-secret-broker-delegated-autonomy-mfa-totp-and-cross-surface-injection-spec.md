@@ -34,6 +34,10 @@ This specification is normative design authority. It does not by itself activate
 
 `MUST`, `MUST NOT`, `SHALL`, `SHALL NOT`, `REQUIRED`, `SHOULD`, `SHOULD NOT`, `MAY`, and `OPTIONAL` are normative. Example YAML and operation names define required semantics; exact generated language bindings may differ only when their schema mapping is deterministic and lossless.
 
+### Binding nonrenewable-resource prohibition
+
+Recovery codes and finite break-glass assets are operator-only and permanently excluded from automation. Agents, brokers, adapters, subprocesses and delegated workflows MUST NOT retrieve, inspect, enumerate, reveal, copy, inject, test, consume, request or rotate them, or ask an operator to spend one. Unknown renewability MUST fail closed before custodian access. No grant, approval, broad-access preset or delegation overrides this prohibition. Renewable authentication mechanisms remain subject to their separate exact grants and mandatory provider-auth preflight. This correction does not promote this draft or establish implementation readiness.
+
 ## 0.2 Traceability
 
 Parent program: #252
@@ -219,7 +223,7 @@ database credential
 SSH private key/certificate/passphrase
 TLS/private signing key
 TOTP seed
-HOTP seed/recovery code
+HOTP seed
 session cookie/browser storage/auth-state capsule
 provider service-account credential
 dynamic leased credential
@@ -241,8 +245,8 @@ biometric/native OS approval
 OAuth user consent
 OAuth device authorization
 CAPTCHA/anti-bot challenge
-recovery code
-account recovery
+recovery code (prohibited automation class; deny before material access)
+account recovery (renewable routes only)
 legal/terms consent
 ```
 
@@ -437,7 +441,7 @@ origin_account_assertion_ref: typed_ref
 challenge_kind: enum
 observed_challenge_ref: redacted_evidence_ref
 eligible_resolver_refs: []
-selected_resolution: blind_secret|totp|device_authorization|operator_takeover|push_wait|security_key|recovery_code|unsupported
+selected_resolution: blind_secret|totp|device_authorization|operator_takeover|push_wait|security_key|unsupported
 required_grant_ref: optional
 expires_at: optional
 attempts_remaining: optional
@@ -489,7 +493,7 @@ secret_material_in_receipt: false
 
 ### CredentialIncident
 
-Covers suspected transcript/log/screenshot/diagnostics/clipboard/env/process-list/file/export exposure, wrong target/account/origin, reused OTP/recovery code, stale lease, unexpected provider access, brute-force/lockout risk, leaked session state, provider compromise, and failed cleanup. It triggers freeze, scope impact analysis, revocation, rotation/re-authentication, evidence quarantine, and recovery proof.
+Covers suspected transcript/log/screenshot/diagnostics/clipboard/env/process-list/file/export exposure, wrong target/account/origin, reused OTP or prohibited nonrenewable-resource access, stale lease, unexpected provider access, brute-force/lockout risk, leaked session state, provider compromise, and failed cleanup. It triggers freeze, scope impact analysis, evidence quarantine, and recovery proof; revocation, rotation and re-authentication apply only to independently authorized renewable credentials. Suspected recovery-code exposure requires operator-only handling, never automated material access, inventory, testing or rotation.
 
 ## Credential readiness and autonomous flow
 
@@ -548,7 +552,7 @@ Prefer delegated scopes, machine identity, service account, OAuth device flow, o
 
 ### Recovery codes/account recovery
 
-Single-use, high-consequence credential consumption. Require dedicated grant, use count, immediate provider reconciliation, remaining-code state, and rotation/replenishment guidance. Account recovery cannot be inferred as routine login.
+Recovery codes and finite break-glass assets are permanently automation-forbidden, not approval-gated credentials. Deny requests before custodian access; never inspect material, enumerate or reconcile remaining codes, consume or rotate them, or ask the operator to spend one. Account recovery MUST use an independently authorized renewable route; unknown renewability fails closed. Operator-only break-glass handling is outside this automation contract.
 
 ### Authenticated browser/session state
 
@@ -816,7 +820,7 @@ auth_challenge_unsupported
 authentication_handoff_required
 passkey_or_user_presence_required
 account_lockout_risk
-recovery_code_consumption_requires_approval
+nonrenewable_resource_forbidden
 auth_session_stale_or_revoked
 credential_rotation_required
 credential_cleanup_unverified
@@ -915,7 +919,7 @@ A schema, Skill, configured env var, unlocked provider, generated OTP, UI card, 
 - **FCA-CRED-TEST-014:** Push/Duo waits for observed approval and does not infer success.
 - **FCA-CRED-TEST-015:** Passkey/security-key/biometric requires verified supported device/user-presence path.
 - **FCA-CRED-TEST-016:** OAuth device flow grants only reviewed scopes/account and stores resulting token as leased secret.
-- **FCA-CRED-TEST-017:** Recovery code use is single-use, receipted, reconciled, and updates remaining posture.
+- **FCA-CRED-TEST-017:** Recovery-code and finite break-glass requests are denied before custodian access, regardless of grants, approvals or delegation. Unknown renewability is denied. Tests use synthetic classification metadata only, never recovery-code material or remaining-code inventories.
 - **FCA-CRED-TEST-018:** UIAI screenshot/snapshot/diagnostics/FPV/recording/network packet contains no password/TOTP/cookie/token.
 - **FCA-CRED-TEST-019:** API/CLI/SSH consumers use controlled injection and outputs/process list/files/core dumps pass secret scan.
 - **FCA-CRED-TEST-020:** Browser auth capsule restart/reopen preserves correct account/origin and remains opaque/revocable.

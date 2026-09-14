@@ -107,6 +107,13 @@ Enforcement is layered:
 5. **Human lane** — `--force-release` in `scripts/create-dev-release-tag.sh`
    requires a plain-language reason and is for real emergencies only.
 
+Release-cache warming (`.github/workflows/warmup.yml`) is manual-only and does
+not grant release authority. It shares the OVH build runner with required CI;
+ordinary pushes do not start speculative release builds. The release-automation
+check also runs on that build runner because its existing TUI proof compiles Rust.
+Runner provisioning supplies ripgrep; CI verifies it rather than installing
+packages or rewriting host package sources.
+
 ## 5. Cutting a release
 
 Both lanes use the canonical pipeline only:

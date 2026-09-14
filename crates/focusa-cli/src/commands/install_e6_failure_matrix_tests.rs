@@ -359,7 +359,7 @@ async fn verify_checksum_rejects_mismatched_hash_from_local_http_fixture() {
         sha256: String::new(),
         install_path: asset_path.display().to_string(),
     };
-    let error = verify_checksum(&asset)
+    let error = verify_checksum(&asset, None)
         .await
         .expect_err("mismatched checksum must be rejected");
     let mismatch_detected = error.to_string().contains("checksum mismatch");

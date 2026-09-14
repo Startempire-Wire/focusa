@@ -196,3 +196,9 @@ Every requirement remains in the machine-readable closure graph.
 ## 2026-08-24 release routing addition
 
 - docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md — active temporary Linux/GitHub-self-hosted, Windows/AppVeyor, macOS/Codemagic release path and one-change-set return to GitHub.
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-closure-audit -->
+## Documentation architecture closure evidence
+
+- [`Specs 137A/138A/144 documentation architecture closure audit`](evidence/spec137a-138a-144-documentation-architecture-closure-audit-2026-07-26.md)
+- [`Machine-readable closure manifest`](contracts/spec137a-138a-144-documentation-architecture-closure-manifest.v1.yaml)

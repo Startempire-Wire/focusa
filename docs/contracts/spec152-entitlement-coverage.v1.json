@@ -7976,34 +7976,6 @@
       "product": "focusa",
       "recovery_allowance": false,
       "source": [
-        "crates/focusa-api/src/routes/compaction_controller.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/compaction/controller-epoch"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "read",
-      "pre_side_effect_test": "not_applicable",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
-        "crates/focusa-api/src/routes/compaction_controller.rs"
-      ],
-      "surface": "rest",
-      "symbol_or_route": "/v1/compaction/controller-status"
-    },
-    {
-      "feature": "focusa.core.workpoint",
-      "gate_location": "route entitlement middleware",
-      "limit_bucket": null,
-      "mutation_class": "mutation",
-      "pre_side_effect_test": "required",
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": [
         "crates/focusa-api/src/routes/compaction.rs"
       ],
       "surface": "rest",

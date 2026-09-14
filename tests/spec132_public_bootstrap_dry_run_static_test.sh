@@ -17,6 +17,14 @@ dry_run_end = text.index('exit 0\nfi', dry_run_start)
 dry_run_block = text[dry_run_start:dry_run_end]
 assert 'mutations: none' in dry_run_block, "dry-run plan is not truthful about mutations"
 assert 'entitlement: signed authority lease' in dry_run_block
+assert 'system install: %s' in dry_run_block
+
+# System promotion is explicit, Linux-only, and delegated to Rust. The shell
+# bootstrap never mutates /usr/local/bin itself.
+assert '--system-install) SYSTEM_INSTALL=1' in text
+assert '[ "$SYSTEM_INSTALL" = 0 ] || ARGS+=(--system-install)' in text
+assert 'RUST_TARGET" != linux' in text
+assert 'cp ' not in text and 'ln -s' not in text
 
 # The delegation call must be constructed only after the dry-run guard.
 delegate_index = text.index('ARGS=(install ')

@@ -39,6 +39,11 @@ with tempfile.TemporaryDirectory(prefix="focusa-release-notes-preview-") as tmp:
     )
     fake_gh.chmod(0o755)
     env = os.environ.copy()
+    # The strict source-only harness supplies an outer synthetic Git graph.
+    # This test owns a separate repository; let Git name every local override
+    # rather than inheriting the harness's worktree/index/object database.
+    for key in run("git", "rev-parse", "--local-env-vars", cwd=root).stdout.splitlines():
+        env.pop(key, None)
     env["PATH"] = f"{fake_bin}:/usr/bin:/bin"
     env["GITHUB_REPOSITORY"] = "example/focusa"
 

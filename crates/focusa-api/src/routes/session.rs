@@ -209,21 +209,18 @@ async fn status_payload(state: &Arc<AppState>, include_deep: bool) -> Value {
 
     let current_pid = std::process::id();
     let supervisor_perf = &state.supervisor_perf;
-    let memory_budget_mb = std::env::var("FOCUSA_MEMORY_BUDGET_MB")
-        .ok()
-        .and_then(|v| v.parse::<u64>().ok())
-        .unwrap_or(2200);
-    let rss_kb = current_rss_kb();
-    let host_mem_available_kb = host_mem_available_kb();
-    let degraded = rss_kb
-        .map(|kb| kb > memory_budget_mb.saturating_mul(1024))
-        .unwrap_or(false);
+    let resource_mode = resource_mode_status();
+    let rss_kb = resource_mode.rss_kb;
+    let host_mem_available_kb = resource_mode.host_mem_available_kb;
+    let rss_soft_mb = resource_mode.budget.rss_soft_mb;
+    let rss_hard_mb = resource_mode.budget.rss_hard_mb;
+    let degraded = resource_mode.mode != "normal";
 
     let mut payload = json!({
         "status": "ok",
         "route_tier": if include_deep { "cold" } else { "hot" },
         "summary_only": !include_deep,
-        "resource_mode": resource_mode_status(),
+        "resource_mode": resource_mode,
         "deep_status_route": "/v1/status/deep",
         "cold_omitted": if include_deep { Vec::<&str>::new() } else { vec!["last_event_ts", "persisted_event_count", "runtime_process.daemon_pids"] },
         "session": session,
@@ -245,7 +242,10 @@ async fn status_payload(state: &Arc<AppState>, include_deep: bool) -> Value {
         },
         "runtime_memory": {
             "rss_kb": rss_kb,
-            "memory_budget_mb": memory_budget_mb,
+            "memory_budget_mb": rss_hard_mb,
+            "rss_soft_mb": rss_soft_mb,
+            "rss_hard_mb": rss_hard_mb,
+            "budget_authority": "resource_mode",
             "host_mem_available_kb": host_mem_available_kb,
             "degraded": degraded,
         },
@@ -297,28 +297,6 @@ async fn status_payload(state: &Arc<AppState>, include_deep: bool) -> Value {
     }
 
     payload
-}
-
-fn current_rss_kb() -> Option<u64> {
-    let status = fs::read_to_string("/proc/self/status").ok()?;
-    for line in status.lines() {
-        if let Some(rest) = line.strip_prefix("VmRSS:") {
-            let kb = rest.split_whitespace().next()?.parse::<u64>().ok()?;
-            return Some(kb);
-        }
-    }
-    None
-}
-
-fn host_mem_available_kb() -> Option<u64> {
-    let meminfo = fs::read_to_string("/proc/meminfo").ok()?;
-    for line in meminfo.lines() {
-        if let Some(rest) = line.strip_prefix("MemAvailable:") {
-            let kb = rest.split_whitespace().next()?.parse::<u64>().ok()?;
-            return Some(kb);
-        }
-    }
-    None
 }
 
 fn focusa_daemon_pids() -> Vec<u32> {

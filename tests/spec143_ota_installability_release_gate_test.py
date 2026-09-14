@@ -4,6 +4,8 @@ import os
 import tomllib
 from pathlib import Path
 
+from install_target_contract import assert_linux_install_target_contract
+
 ROOT = Path(os.environ.get("FOCUSA_SPEC143_ROOT", Path(__file__).resolve().parents[1]))
 release_path = Path(
     os.environ.get("FOCUSA_RELEASE_WORKFLOW_PATH", ROOT / ".github/workflows/release.yml")
@@ -18,11 +20,12 @@ trust = (ROOT / "crates/focusa-cli/src/commands/update_trust.rs").read_text()
 stamper = (ROOT / "scripts/stamp-menubar-version.py").read_text()
 version_verifier = (ROOT / "scripts/verify-version-surfaces.py").read_text()
 
+assert 'git show "${CONTROLLER_SHA}:tests/install_target_contract.py" > "${RUNNER_TEMP}/install_target_contract.py"' in release
 assert "target: x86_64-unknown-linux-musl" in release
 assert "musl: true" in release
 assert '-f asset_suffix="x86_64-unknown-linux-musl"' in release
 assert '-f asset_suffix="x86_64-unknown-linux-gnu"' not in release
-assert "cross build --release --target ${{ matrix.target }}" in release
+assert "scripts/ci/run-cancellation-safe-cross.sh build --release --target ${{ matrix.target }}" in release
 assert "target: aarch64-unknown-linux-gnu" in release
 assert "matrix.musl == true || matrix.cross == true" in release
 assert "startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'" in release
@@ -61,7 +64,7 @@ assert 'export FOCUSA_RELEASE_BASE_URL="$RELEASE_BASE_URL"' in installer
 assert 'return "focusa-$Tag-$Triple.exe"' in installer_ps1
 assert '$AssetName = "focusa-$Triple.exe"' not in installer_ps1
 assert '$env:FOCUSA_RELEASE_TAG = $Tag' in installer_ps1
-assert 'InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string()' in install_rs
+assert_linux_install_target_contract(install_rs)
 assert '"deploy-success.json"' in trust
 assert '"deploy-success.json.sig"' in trust
 assert "verify_deploy_proof" in trust

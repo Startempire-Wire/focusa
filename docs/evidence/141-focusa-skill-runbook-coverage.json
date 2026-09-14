@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_skill_runbook_coverage.v1",
   "registry_version": "2.0.0",
-  "generated_skill_count": 29,
-  "installed_root_skill_count": 30,
-  "packaged_skill_count": 30,
-  "runbook_count": 32,
+  "generated_skill_count": 31,
+  "installed_root_skill_count": 31,
+  "packaged_skill_count": 31,
+  "runbook_count": 33,
   "runbook_coverage_complete": true,
   "runbook_coverage_gaps": [],
   "root_packaged_parity": true,
@@ -371,6 +371,29 @@
       ],
       "runbook": ".pi/skills/predictive-power/references/01-predictive-power-runbook.md",
       "sha256": "84a616dff35cac28c5368a3efe6b8e298cf2e4086b6ae803c198348ea9009660"
+    },
+    {
+      "name": "focusa-deslop",
+      "tools": [
+        "focusa_tool_search",
+        "focusa_tool_describe",
+        "focusa_evidence_capture"
+      ],
+      "runbook": ".pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md",
+      "sha256": "da9355f5cbf7778e8a3775adbbd39985d22291833d676aa69b87eac13d0d2d87"
+    },
+    {
+      "name": "focusa-roadmap-to-workpoint",
+      "tools": [
+        "focusa_agent_prompt",
+        "focusa_utility_card",
+        "focusa_agent_card",
+        "focusa_tool_search",
+        "focusa_trajectory_view",
+        "focusa_workpoint_checkpoint"
+      ],
+      "runbook": ".pi/skills/focusa-roadmap-to-workpoint/references/01-focusa-roadmap-to-workpoint-runbook.md",
+      "sha256": "de5be6e76601010dd5639207c2e3c9468e09b0591e9a29b6bcc53ec0642aec8b"
     }
   ],
   "installed_skill_inventory": [
@@ -472,8 +495,12 @@
       "runbooks": [
         ".pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md"
       ],
-      "declared_tools": [],
-      "generated": false
+      "declared_tools": [
+        "focusa_tool_search",
+        "focusa_tool_describe",
+        "focusa_evidence_capture"
+      ],
+      "generated": true
     },
     {
       "name": "focusa-device-pairing",
@@ -690,6 +717,23 @@
         "focusa_bloatgaurd_tokenbloat_report",
         "focusa_traverse",
         "focusa_tool_bundle"
+      ],
+      "generated": true
+    },
+    {
+      "name": "focusa-roadmap-to-workpoint",
+      "manifest": ".pi/skills/focusa-roadmap-to-workpoint/SKILL.md",
+      "packaged_manifest": "apps/pi-extension/skills/focusa-roadmap-to-workpoint/SKILL.md",
+      "runbooks": [
+        ".pi/skills/focusa-roadmap-to-workpoint/references/01-focusa-roadmap-to-workpoint-runbook.md"
+      ],
+      "declared_tools": [
+        "focusa_agent_prompt",
+        "focusa_utility_card",
+        "focusa_agent_card",
+        "focusa_tool_search",
+        "focusa_trajectory_view",
+        "focusa_workpoint_checkpoint"
       ],
       "generated": true
     },
