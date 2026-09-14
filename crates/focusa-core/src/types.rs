@@ -4734,6 +4734,11 @@ pub struct EventLogEntry {
     pub instance_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_id: Option<SessionId>,
+    /// Request-local project/workstream scope for durable attribution.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_root: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub continuity_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thread_id: Option<Uuid>,
 
@@ -4770,6 +4775,8 @@ impl EventLogEntry {
             machine_id: None,
             instance_id: None,
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             thread_id: None,
             is_observation: false,
         }

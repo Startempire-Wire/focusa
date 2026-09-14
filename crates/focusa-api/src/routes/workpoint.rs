@@ -1494,8 +1494,110 @@ fn workpoint_no_active_to_link() -> (StatusCode, Json<Value>) {
     )
 }
 
+fn workpoint_event_record<'a>(
+    event: &FocusaEvent,
+    current: &'a focusa_core::types::FocusaState,
+) -> Option<&'a WorkpointRecord> {
+    let workpoint_id = match event {
+        FocusaEvent::WorkpointCheckpointProposed { workpoint } => workpoint.workpoint_id,
+        FocusaEvent::WorkpointCheckpointPromoted { workpoint_id, .. }
+        | FocusaEvent::WorkpointCheckpointRejected { workpoint_id, .. }
+        | FocusaEvent::WorkpointEvidenceLinked { workpoint_id, .. }
+        | FocusaEvent::WorkpointDegradedFallbackRecorded { workpoint_id, .. }
+        | FocusaEvent::OntologyActionIntentBound { workpoint_id, .. }
+        | FocusaEvent::OntologyVerificationLinked { workpoint_id, .. } => *workpoint_id,
+        FocusaEvent::WorkpointSuperseded {
+            new_workpoint_id, ..
+        } => *new_workpoint_id,
+        FocusaEvent::WorkpointResumeRendered {
+            workpoint_id: Some(workpoint_id),
+            ..
+        }
+        | FocusaEvent::WorkpointDriftDetected {
+            workpoint_id: Some(workpoint_id),
+            ..
+        } => *workpoint_id,
+        _ => return None,
+    };
+    current
+        .workpoint
+        .records
+        .iter()
+        .find(|record| record.workpoint_id == workpoint_id)
+}
+
+fn workpoint_event_envelope_session(
+    scope: &ScopeContext,
+    event: &FocusaEvent,
+    current: &focusa_core::types::FocusaState,
+) -> Result<Option<Uuid>, String> {
+    let record = workpoint_event_record(event, current);
+    if let Some(record) = record {
+        if let (Some(request), Some(inner)) = (
+            scope.project_root.as_deref(),
+            record.project_root.as_deref(),
+        ) {
+            if request != inner {
+                return Err(format!(
+                    "workpoint project_root {inner:?} conflicts with request scope {request:?}"
+                ));
+            }
+        }
+        if let (Some(request), Some(inner)) = (
+            scope.continuity_id.as_deref(),
+            record.continuity_id.as_deref(),
+        ) {
+            if request != inner {
+                return Err(format!(
+                    "workpoint continuity_id {inner:?} conflicts with request scope {request:?}"
+                ));
+            }
+        }
+    }
+
+    let identity_session = record
+        .and_then(|record| record.session_identity.as_ref())
+        .and_then(|identity| identity.pi_session_id.as_deref());
+    let record_session = record.and_then(|record| record.session_id.as_deref());
+    if let (Some(identity), Some(direct)) = (identity_session, record_session) {
+        if identity != direct {
+            return Err(format!(
+                "workpoint session identity {identity:?} conflicts with record session {direct:?}"
+            ));
+        }
+    }
+    let inner_session = identity_session.or(record_session);
+    if let (Some(request), Some(inner)) = (scope.session_id.as_deref(), inner_session) {
+        if request != inner {
+            return Err(format!(
+                "workpoint session {inner:?} conflicts with request session {request:?}"
+            ));
+        }
+    }
+
+    inner_session
+        .or(scope.session_id.as_deref())
+        .map(|session| {
+            Uuid::parse_str(session)
+                .map_err(|_| format!("workpoint session_id is not a UUID: {session:?}"))
+        })
+        .transpose()
+}
+
+fn workpoint_scope_conflict(error: String) -> (StatusCode, Json<Value>) {
+    workpoint_failure(
+        StatusCode::CONFLICT,
+        error,
+        "scope_mismatch",
+        "The Workpoint event and request-local scope contradict each other.",
+        "Retry with the exact Workpoint project, continuity, and Pi session scope.",
+        "No event or state checkpoint was persisted.",
+        vec!["focusa_project_identity", "focusa_workpoint_resume"],
+    )
+}
+
 pub(crate) async fn materialize_workpoint_events(
-    _scope: ScopeContext,
+    scope: ScopeContext,
     state: &Arc<AppState>,
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
@@ -1519,7 +1621,15 @@ pub(crate) async fn materialize_workpoint_events(
                 Some(correlation_id.to_string()),
                 temporal.clone(),
             );
-            entry.session_id = current.session.as_ref().map(|session| session.session_id);
+            entry.session_id = workpoint_event_envelope_session(&scope, &entry.event, &current)
+                .map_err(workpoint_scope_conflict)?;
+            let record = workpoint_event_record(&entry.event, &current);
+            entry.project_root = record
+                .and_then(|record| record.project_root.clone())
+                .or_else(|| scope.project_root.clone());
+            entry.continuity_id = record
+                .and_then(|record| record.continuity_id.clone())
+                .or_else(|| scope.continuity_id.clone());
             entries.push(entry);
         }
     }
@@ -3702,6 +3812,69 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn workpoint_event_envelope_uses_request_record_session_not_global_session() {
+        let expected_session = Uuid::now_v7();
+        let foreign_session = Uuid::now_v7();
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            project_root: Some("/repo/homepage".to_string()),
+            continuity_id: Some("homepage-main".to_string()),
+            session_id: Some(expected_session.to_string()),
+            canonical: true,
+            ..WorkpointRecord::default()
+        };
+        let mut current = focusa_core::types::FocusaState::default();
+        current.session = Some(focusa_core::types::SessionState {
+            session_id: foreign_session,
+            created_at: Utc::now(),
+            adapter_id: None,
+            workspace_id: Some("/repo/foreign".to_string()),
+            project_root: Some("/repo/foreign".to_string()),
+            continuity_id: Some("foreign-main".to_string()),
+            status: focusa_core::types::SessionStatus::Active,
+        });
+        current.workpoint.records.push(record.clone());
+        let scope = ScopeContext {
+            project_root: record.project_root.clone(),
+            continuity_id: record.continuity_id.clone(),
+            session_id: record.session_id.clone(),
+            ..ScopeContext::default()
+        };
+        let event = FocusaEvent::WorkpointCheckpointProposed { workpoint: record };
+
+        assert_eq!(
+            workpoint_event_envelope_session(&scope, &event, &current).unwrap(),
+            Some(expected_session)
+        );
+        assert_ne!(expected_session, foreign_session);
+    }
+
+    #[test]
+    fn workpoint_event_envelope_rejects_inner_outer_scope_conflict() {
+        let session_id = Uuid::now_v7();
+        let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            project_root: Some("/repo/homepage".to_string()),
+            continuity_id: Some("homepage-main".to_string()),
+            session_id: Some(session_id.to_string()),
+            canonical: true,
+            ..WorkpointRecord::default()
+        };
+        let mut current = focusa_core::types::FocusaState::default();
+        current.workpoint.records.push(record.clone());
+        let event = FocusaEvent::WorkpointCheckpointProposed { workpoint: record };
+        let scope = ScopeContext {
+            project_root: Some("/repo/foreign".to_string()),
+            continuity_id: Some("foreign-main".to_string()),
+            session_id: Some(Uuid::now_v7().to_string()),
+            ..ScopeContext::default()
+        };
+
+        let error = workpoint_event_envelope_session(&scope, &event, &current).unwrap_err();
+        assert!(error.contains("project_root"));
+    }
 
     #[test]
     fn idempotency_cache_is_eliminated_in_favor_of_scope_matched_reducer_records() {
