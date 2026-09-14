@@ -1,38 +1,50 @@
-# Deslop runbook — Focusa
+# Focusa Deslop Runbook
 
-## Taxonomy (7 sins, compressed)
+## Preconditions
 
-1. Context stuffing — paste files where a ref would do.
-2. Bloat — defensive checks on trusted paths, speculative wrappers.
-3. Silent rewrites — behavior changes while "cleaning".
-4. Context smashing — compacted context as authority (packet outranks
-   transcript tail).
-5. Diffusion debugging — diffs without evidence (diagnostics first).
-6. Stale docs — comments contradicting code.
-7. Opaque decisions — magic values, unexplained invariants.
+- Verify project root plus continuity scope when project-bound.
+- Resume or checkpoint the canonical Workpoint before long/risky work.
+- Confirm current operator steering and mutation approval boundaries.
+- Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
+- Treat cwd and missing markers as weak evidence; inspect legacy project signals before suggesting creation or binding.
+- Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
+- Use targeted local gates during development; CI requires explicit release authorization.
 
-Focusa additions: envelope drift (re-typed error/tool envelopes),
-false greens (pipes masking exit codes — pipefail or explicit EXIT).
+## Dependency graph
 
-## Diff-scrub recipe
+```text
+focusa_tool_search -> focusa_tool_describe
+focusa_tool_describe -> focusa_evidence_capture
+```
 
-Against the branch base, remove: comments a human wouldn't add,
-defensive guards on trusted paths, `as any` escapes, style drift.
-Never change behavior. Re-run the gates. Summarize in 1-3 sentences.
+## Minimal path
 
-## Three-lens review
+1. Call `focusa_tool_search` with only required bounded inputs.
+2. Call `focusa_tool_describe` with only required bounded inputs.
+3. Call `focusa_evidence_capture` with only required bounded inputs.
 
-- core (types/reducers/stores/replay) · api (routes/envelopes/boundaries)
-  · cli/extension (schemas/parity). One agent per lens, one output shape.
+## Current domain procedure
 
-## Checks (all must pass)
+1. Load the local deslop skill instructions before any cleanup work (canonical helpers, no renamed duplication).
+2. Review diffs and existing similar code before writing new code; reject copy-paste variants.
+3. Record cleanup evidence through focusa_evidence_capture with stable handles.
 
-envelope-parity · skill-ownership · tool-taxonomy · distribution-parity
-· doc-coverage · e2e-matrix (21/21) · workspace-gate · deslop ceiling
-· bg-notification contract (every dispatched job completes through
-  focusa bg; no raw-shell dispatch, no tail polling).
+## Branches
 
-## Close the loop
+- Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
+- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
+- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
+- Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
+- Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.
 
-deslop → three-lens → fix (behavior-preserving) → all checks →
-summary with evidence refs.
+## Evidence and closure
+
+- Capture stable file/test/API/browser/receipt refs.
+- Link proof to the active Workpoint.
+- Evaluate relevant predictions and reusable learning only after outcome is known.
+- Done: Skill file present with runbook; admitted via config/agent-skills-v2.json registry v2.
+
+## Cross-harness mapping
+
+Resolve equivalent Pi, MCP, OpenAI, CLI, and REST bindings through Agent Capability Descriptor V2; semantics and authority must remain identical.

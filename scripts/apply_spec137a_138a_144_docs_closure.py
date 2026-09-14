@@ -187,6 +187,20 @@ def requirement_rows(clauses: list[dict[str, Any]], owner: str) -> list[dict[str
 # 1. Parent and umbrella specification amendments
 # ---------------------------------------------------------------------------
 
+# This script owns the one-time pre-activation baseline migration. Once Spec 144
+# is activated, rerunning it would overwrite evidence-bound runtime ledgers with
+# implementation-open templates. The maintained hardener/activation workflow is
+# the only valid post-activation reconciliation path.
+activation_path = CONTRACTS / "spec144-activation.v1.json"
+if activation_path.exists():
+    activation = json.loads(activation_path.read_text(encoding="utf-8"))
+    if activation.get("status") == "activated":
+        print(
+            "Spec closure baseline already activated; "
+            "use harden_spec137a_138a_144_docs_closure.py and evidence-gated activation scripts"
+        )
+        raise SystemExit(0)
+
 replace_once(
     "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
     "Canonical label: **Spec 137 — Temporal Authority, Deadlines, Urgency, and Grounded Forecasting**",
@@ -934,8 +948,9 @@ write_contract("spec137a-138a-144-documentation-architecture-closure-manifest.v1
 
 gate = r'''#!/usr/bin/env python3
 from pathlib import Path
-import json
 import re
+
+from structured_contract_loader import load_contract_mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 required = [
@@ -982,7 +997,7 @@ for rel in required:
     assert path.is_file(), rel
     text = path.read_text()
     assert len(text) > 200, f"empty/shell artifact: {rel}"
-    data = json.loads(text)
+    data = load_contract_mapping(path)
     assert data.get("runtime_claim") == "none", rel
     assert data.get("runtime_status") in {"implementation_open", "not_activated"}, rel
 

@@ -7,6 +7,7 @@
 //! ECS objects remain filesystem-backed (see reference::store).
 
 use crate::clt::retain_hot_window;
+use crate::reference::{DEFAULT_HOT_HANDLE_LIMIT, retain_hot_handles};
 use crate::semantic_migration::{MigrationPlan, MigrationReceipt};
 use crate::semantic_replay::{SemanticEventEnvelope, replay as replay_semantic_events};
 use crate::silent_session::{
@@ -42,6 +43,19 @@ fn hot_clt_snapshot_max_nodes() -> usize {
 
 fn trim_hot_clt_snapshot(state: &mut FocusaState) -> usize {
     retain_hot_window(&mut state.clt, hot_clt_snapshot_max_nodes())
+}
+
+fn trim_hot_reference_snapshot(state: &mut FocusaState) -> usize {
+    let active_session_id = state
+        .session
+        .as_ref()
+        .filter(|session| session.status == crate::types::SessionStatus::Active)
+        .map(|session| session.session_id);
+    retain_hot_handles(
+        &mut state.reference_index,
+        active_session_id,
+        DEFAULT_HOT_HANDLE_LIMIT,
+    )
 }
 
 /// Stable replay record joined to the append-only event hash-chain sequence.
@@ -333,6 +347,23 @@ impl SqlitePersistence {
         self.data_dir.join("focusa.sqlite")
     }
 
+    /// Serialized byte length of the canonical materialized state, excluding
+    /// SQLite pages, indexes, free space, and WAL bytes.
+    pub fn snapshot_payload_bytes(&self) -> anyhow::Result<u64> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let bytes: Option<i64> = conn
+            .query_row(
+                "SELECT length(CAST(state_json AS BLOB)) FROM snapshots WHERE name='focusa'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(bytes.unwrap_or(0).max(0) as u64)
+    }
+
     pub(crate) fn with_connection_mut<T>(
         &self,
         operation: impl FnOnce(&mut Connection) -> anyhow::Result<T>,
@@ -619,7 +650,29 @@ impl SqlitePersistence {
               ts TEXT NOT NULL,
               state_json TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS snapshot_event_cursors (
+              name TEXT PRIMARY KEY,
+              event_sequence INTEGER NOT NULL,
+              snapshot_version INTEGER NOT NULL,
+              updated_at TEXT NOT NULL
+            );
             "#,
+        )?;
+        // Existing databases wrote a complete snapshot for every event. Bind
+        // their first additive cursor to the current durable ledger tail so an
+        // upgrade never replays events already represented by that snapshot.
+        conn.execute(
+            r#"
+            INSERT OR IGNORE INTO snapshot_event_cursors
+              (name, event_sequence, snapshot_version, updated_at)
+            SELECT s.name,
+                   COALESCE((SELECT MAX(chain_index) + 1 FROM event_hash_chain), 0),
+                   s.version,
+                   s.ts
+            FROM snapshots s
+            WHERE s.name = 'focusa'
+            "#,
+            [],
         )?;
 
         // V5 briefly used canonical Spec133 table names for a separate runtime
@@ -1178,22 +1231,26 @@ impl SqlitePersistence {
 
     fn scope_keys_for_event(entry: &EventLogEntry) -> (String, String) {
         let project_root_key = entry
-            .correlation_id
+            .project_root
             .as_deref()
-            .and_then(|value| {
-                value
-                    .split('|')
-                    .find_map(|part| part.strip_prefix("project_root="))
+            .or_else(|| {
+                entry.correlation_id.as_deref().and_then(|value| {
+                    value
+                        .split('|')
+                        .find_map(|part| part.strip_prefix("project_root="))
+                })
             })
             .unwrap_or("unscoped_project_root")
             .to_string();
         let workstream_key = entry
-            .correlation_id
+            .continuity_id
             .as_deref()
-            .and_then(|value| {
-                value
-                    .split('|')
-                    .find_map(|part| part.strip_prefix("continuity_id="))
+            .or_else(|| {
+                entry.correlation_id.as_deref().and_then(|value| {
+                    value
+                        .split('|')
+                        .find_map(|part| part.strip_prefix("continuity_id="))
+                })
             })
             .unwrap_or("default_workstream")
             .to_string();
@@ -1329,19 +1386,28 @@ impl SqlitePersistence {
         Ok(imported)
     }
 
-    pub fn save_state(&self, state: &FocusaState) -> anyhow::Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+    fn save_state_on_connection(
+        conn: &Connection,
+        state: &FocusaState,
+        event_sequence: i64,
+    ) -> anyhow::Result<()> {
         let ts = Utc::now();
         let mut snapshot_state = state.clone();
-        let trimmed = trim_hot_clt_snapshot(&mut snapshot_state);
-        if trimmed > 0 {
+        let trimmed_clt = trim_hot_clt_snapshot(&mut snapshot_state);
+        if trimmed_clt > 0 {
             debug!(
-                trimmed,
+                trimmed = trimmed_clt,
                 remaining = snapshot_state.clt.nodes.len(),
                 "trimmed hot CLT snapshot before SQLite save"
+            );
+        }
+        let trimmed_handles = trim_hot_reference_snapshot(&mut snapshot_state);
+        if trimmed_handles > 0 {
+            debug!(
+                trimmed = trimmed_handles,
+                remaining = snapshot_state.reference_index.handles.len(),
+                cold = snapshot_state.reference_index.cold_handle_count,
+                "trimmed hot ECS handle snapshot before SQLite save"
             );
         }
         let state_json = serde_json::to_string(&snapshot_state)?;
@@ -1356,35 +1422,102 @@ impl SqlitePersistence {
             "#,
             params![state.version as i64, ts.to_rfc3339(), state_json],
         )?;
+        conn.execute(
+            r#"
+            INSERT INTO snapshot_event_cursors
+              (name, event_sequence, snapshot_version, updated_at)
+            VALUES('focusa', ?1, ?2, ?3)
+            ON CONFLICT(name) DO UPDATE SET
+              event_sequence=excluded.event_sequence,
+              snapshot_version=excluded.snapshot_version,
+              updated_at=excluded.updated_at
+            "#,
+            params![event_sequence, state.version as i64, ts.to_rfc3339()],
+        )?;
         Ok(())
     }
 
-    pub fn load_state(&self) -> anyhow::Result<Option<FocusaState>> {
+    /// Atomically append a reducer event batch and advance its materialized snapshot.
+    /// The cursor identifies exactly which durable prefix the snapshot contains.
+    pub fn persist_event_batch_and_state(
+        &self,
+        entries: &[EventLogEntry],
+        state: &FocusaState,
+    ) -> anyhow::Result<()> {
+        let mut conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let transaction = conn.transaction()?;
+        for entry in entries {
+            Self::append_event_on_connection(&transaction, entry)?;
+        }
+        let event_sequence: i64 = transaction.query_row(
+            "SELECT COALESCE(MAX(chain_index) + 1, 0) FROM event_hash_chain",
+            [],
+            |row| row.get(0),
+        )?;
+        Self::save_state_on_connection(&transaction, state, event_sequence)?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn save_state(&self, state: &FocusaState) -> anyhow::Result<()> {
+        let mut conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let transaction = conn.transaction()?;
+        let event_sequence: i64 = transaction.query_row(
+            "SELECT COALESCE(MAX(chain_index) + 1, 0) FROM event_hash_chain",
+            [],
+            |row| row.get(0),
+        )?;
+        Self::save_state_on_connection(&transaction, state, event_sequence)?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn load_state_with_event_sequence(&self) -> anyhow::Result<Option<(FocusaState, u64)>> {
         let conn = self
             .conn
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let row: Option<String> = conn
+        let row: Option<(String, i64)> = conn
             .query_row(
-                "SELECT state_json FROM snapshots WHERE name='focusa'",
+                r#"
+                SELECT s.state_json, COALESCE(c.event_sequence, 0)
+                FROM snapshots s
+                LEFT JOIN snapshot_event_cursors c ON c.name = s.name
+                WHERE s.name='focusa'
+                "#,
                 [],
-                |r| r.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()?;
 
         match row {
             None => Ok(None),
-            Some(json) => match serde_json::from_str::<FocusaState>(&json) {
-                Ok(mut s) => {
-                    let trimmed = trim_hot_clt_snapshot(&mut s);
-                    if trimmed > 0 {
+            Some((json, event_sequence)) => match serde_json::from_str::<FocusaState>(&json) {
+                Ok(mut state) => {
+                    let trimmed_clt = trim_hot_clt_snapshot(&mut state);
+                    if trimmed_clt > 0 {
                         debug!(
-                            trimmed,
-                            remaining = s.clt.nodes.len(),
+                            trimmed = trimmed_clt,
+                            remaining = state.clt.nodes.len(),
                             "trimmed hot CLT snapshot after SQLite load"
                         );
                     }
-                    Ok(Some(s))
+                    let trimmed_handles = trim_hot_reference_snapshot(&mut state);
+                    if trimmed_handles > 0 {
+                        debug!(
+                            trimmed = trimmed_handles,
+                            remaining = state.reference_index.handles.len(),
+                            cold = state.reference_index.cold_handle_count,
+                            "trimmed hot ECS handle snapshot after SQLite load"
+                        );
+                    }
+                    Ok(Some((state, u64::try_from(event_sequence)?)))
                 }
                 Err(_) => {
                     // Backward compatibility: older snapshots won't have newer fields.
@@ -1393,6 +1526,11 @@ impl SqlitePersistence {
                 }
             },
         }
+    }
+
+    pub fn load_state(&self) -> anyhow::Result<Option<FocusaState>> {
+        self.load_state_with_event_sequence()
+            .map(|loaded| loaded.map(|(state, _)| state))
     }
 
     pub fn machine_id(&self) -> anyhow::Result<String> {
@@ -1535,17 +1673,11 @@ impl SqlitePersistence {
             .map_err(Into::into)
     }
 
-    pub fn append_event(&self, entry: &EventLogEntry) -> anyhow::Result<()> {
+    fn append_event_on_connection(conn: &Connection, entry: &EventLogEntry) -> anyhow::Result<()> {
         let payload_json = serde_json::to_string(entry)?;
         let event_id = entry.id.to_string();
         let timestamp = entry.timestamp.to_rfc3339();
         let payload_sha256 = sha256_hex(payload_json.as_bytes());
-
-        // Avoid re-locking the same mutex (machine_id() also locks conn).
-        let conn = self
-            .conn
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let machine_id = entry
             .machine_id
             .clone()
@@ -1583,7 +1715,7 @@ impl SqlitePersistence {
             ],
         )?;
 
-        let (chain_index, previous_hash) = latest_event_hash_checkpoint(&conn)?
+        let (chain_index, previous_hash) = latest_event_hash_checkpoint(conn)?
             .map(|(index, hash)| (index + 1, hash))
             .unwrap_or_else(|| (0, "GENESIS".to_string()));
         let event_hash = event_chain_hash(&previous_hash, &event_id, &timestamp, &payload_sha256);
@@ -1605,6 +1737,28 @@ impl SqlitePersistence {
         )?;
 
         Ok(())
+    }
+
+    pub fn append_event_batch(&self, entries: &[EventLogEntry]) -> anyhow::Result<()> {
+        let mut conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let transaction = conn.transaction()?;
+        for entry in entries {
+            Self::append_event_on_connection(&transaction, entry)?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn append_event(&self, entry: &EventLogEntry) -> anyhow::Result<()> {
+        // Avoid re-locking the same mutex (machine_id() also locks conn).
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        Self::append_event_on_connection(&conn, entry)
     }
     /// Ensure confidence calibration table exists.
     pub fn ensure_calibration_table(&self) -> anyhow::Result<()> {
@@ -1705,6 +1859,35 @@ pub struct PersistedDeviceToken {
     pub issued_at: chrono::DateTime<chrono::Utc>,
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub issued_to: String,
+}
+
+impl PersistedDeviceToken {
+    // Both token lookups select scopes, issued_at, expires_at and issued_to
+    // at columns 1..=4. Corruption cannot manufacture grants or a new lifetime.
+    fn decode(row: &rusqlite::Row<'_>, device_id: String) -> anyhow::Result<Self> {
+        use anyhow::Context;
+        let scopes_json: Option<String> = row.get(1)?;
+        let scopes = serde_json::from_str(
+            scopes_json
+                .as_deref()
+                .context("missing stored device grants")?,
+        )
+        .context("invalid stored device grants")?;
+        let issued_at: String = row.get(2)?;
+        let expires_at: String = row.get(3)?;
+        let issued_to: Option<String> = row.get(4)?;
+        Ok(Self {
+            device_id,
+            scopes,
+            issued_at: chrono::DateTime::parse_from_rfc3339(&issued_at)
+                .context("invalid stored device issuance time")?
+                .with_timezone(&chrono::Utc),
+            expires_at: chrono::DateTime::parse_from_rfc3339(&expires_at)
+                .context("invalid stored device expiry")?
+                .with_timezone(&chrono::Utc),
+            issued_to: issued_to.unwrap_or_else(|| "ledger".to_string()),
+        })
+    }
 }
 
 /// V2: SQL row shape for the device_tokens table, used by
@@ -2228,28 +2411,15 @@ impl SqlitePersistence {
         let mut rows = stmt.query(params![device_id])?;
         if let Some(row) = rows.next()? {
             let token: String = row.get(0)?;
-            let scopes_json: Option<String> = row.get(1).ok();
-            let issued_at: String = row.get(2)?;
-            let expires_at: String = row.get(3)?;
-            let issued_to: Option<String> = row.get(4).ok();
-            let scopes: Vec<String> = scopes_json
-                .as_deref()
-                .and_then(|j| serde_json::from_str(j).ok())
-                .unwrap_or_default();
-            let issued_at_dt = chrono::DateTime::parse_from_rfc3339(&issued_at)
-                .map(|t| t.with_timezone(&chrono::Utc))
-                .unwrap_or_else(|_| chrono::Utc::now());
-            let expires_at_dt = chrono::DateTime::parse_from_rfc3339(&expires_at)
-                .map(|t| t.with_timezone(&chrono::Utc))
-                .unwrap_or_else(|_| chrono::Utc::now() + chrono::Duration::days(30));
+            let stored = PersistedDeviceToken::decode(row, device_id.to_string())?;
             return Ok(Some(DeviceToken {
                 device_id: device_id.to_string(),
                 token,
-                scopes,
-                issued_at: issued_at_dt,
-                expires_at: expires_at_dt,
+                scopes: stored.scopes,
+                issued_at: stored.issued_at,
+                expires_at: stored.expires_at,
                 last_used_at: None,
-                issued_to: issued_to.unwrap_or_else(|| "ledger".to_string()),
+                issued_to: stored.issued_to,
             }));
         }
         Ok(None)
@@ -2429,27 +2599,7 @@ impl SqlitePersistence {
         let mut rows = stmt.query(params![token, now])?;
         if let Some(row) = rows.next()? {
             let device_id: String = row.get(0)?;
-            let scopes_json: Option<String> = row.get(1).ok();
-            let issued_at: String = row.get(2)?;
-            let expires_at: String = row.get(3)?;
-            let issued_to: Option<String> = row.get(4).ok();
-            let scopes: Vec<String> = scopes_json
-                .as_deref()
-                .and_then(|j| serde_json::from_str(j).ok())
-                .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
-            let issued_at_dt = chrono::DateTime::parse_from_rfc3339(&issued_at)
-                .map(|t| t.with_timezone(&chrono::Utc))
-                .unwrap_or_else(|_| chrono::Utc::now());
-            let expires_at_dt = chrono::DateTime::parse_from_rfc3339(&expires_at)
-                .map(|t| t.with_timezone(&chrono::Utc))
-                .unwrap_or_else(|_| chrono::Utc::now() + chrono::Duration::seconds(86400 * 30));
-            Ok(Some(PersistedDeviceToken {
-                device_id,
-                scopes,
-                issued_at: issued_at_dt,
-                expires_at: expires_at_dt,
-                issued_to: issued_to.unwrap_or_else(|| "ledger".to_string()),
-            }))
+            Ok(Some(PersistedDeviceToken::decode(row, device_id)?))
         } else {
             Ok(None)
         }
@@ -4060,7 +4210,11 @@ fn _exists(path: &Path) -> bool {
 #[cfg(test)]
 mod trajectory_ladder_ledger_tests {
     use super::*;
-    use crate::types::{TrajectoryConfidence, TrajectoryLadderEventKind, TrajectoryLadderLevel};
+    use crate::runtime::events::create_entry;
+    use crate::types::{
+        FocusaEvent, HandleKind, HandleRef, SignalOrigin, TrajectoryConfidence,
+        TrajectoryLadderContext, TrajectoryLadderEventKind, TrajectoryLadderLevel,
+    };
 
     fn test_persistence() -> (SqlitePersistence, PathBuf) {
         let root = std::env::temp_dir().join(format!("focusa-ladder-ledger-{}", Uuid::now_v7()));
@@ -4104,6 +4258,252 @@ mod trajectory_ladder_ledger_tests {
             lamport_ts,
             timestamp: Utc::now(),
         }
+    }
+
+    #[test]
+    fn legacy_events_schema_migrates_additively_and_remains_old_reader_compatible() {
+        let root = std::env::temp_dir().join(format!("focusa-legacy-db-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&root).expect("create legacy database root");
+        let database = root.join("focusa.sqlite");
+        let legacy_payload = r#"{"MemoryDecayTick":{"decay_factor":0.98,"rules_affected":3}}"#;
+        {
+            let connection = rusqlite::Connection::open(&database).expect("open legacy database");
+            connection
+                .execute_batch(
+                    r#"
+                    CREATE TABLE events (
+                      event_id TEXT PRIMARY KEY,
+                      ts TEXT NOT NULL,
+                      origin TEXT NOT NULL,
+                      correlation_id TEXT,
+                      payload_json TEXT NOT NULL
+                    );
+                    CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                    INSERT INTO meta(key, value) VALUES ('legacy-version', '0.9.177');
+                    "#,
+                )
+                .expect("create pre-scoped-runtime schema");
+            connection
+                .execute(
+                    "INSERT INTO events(event_id, ts, origin, correlation_id, payload_json) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    rusqlite::params![
+                        "legacy-event-1",
+                        "2026-08-01T00:00:00Z",
+                        "daemon",
+                        "legacy-correlation",
+                        legacy_payload,
+                    ],
+                )
+                .expect("insert legacy event");
+        }
+
+        let config = FocusaConfig {
+            data_dir: root.display().to_string(),
+            ..FocusaConfig::default()
+        };
+        let persistence = SqlitePersistence::new(&config).expect("migrate legacy database");
+        persistence
+            .with_connection_mut(|connection| {
+                let columns = connection
+                    .prepare("SELECT name FROM pragma_table_info('events') ORDER BY cid")?
+                    .query_map([], |row| row.get::<_, String>(0))?
+                    .collect::<rusqlite::Result<Vec<_>>>()?;
+                assert_eq!(
+                    columns,
+                    vec![
+                        "event_id",
+                        "ts",
+                        "origin",
+                        "correlation_id",
+                        "payload_json",
+                        "machine_id",
+                        "instance_id",
+                        "session_id",
+                        "thread_id",
+                        "is_observation",
+                    ]
+                );
+                let row = connection.query_row(
+                    "SELECT event_id, ts, origin, correlation_id, payload_json, machine_id, instance_id, session_id, thread_id, is_observation FROM events WHERE event_id='legacy-event-1'",
+                    [],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, Option<String>>(3)?,
+                            row.get::<_, String>(4)?,
+                            row.get::<_, Option<String>>(5)?,
+                            row.get::<_, Option<String>>(6)?,
+                            row.get::<_, Option<String>>(7)?,
+                            row.get::<_, Option<String>>(8)?,
+                            row.get::<_, i64>(9)?,
+                        ))
+                    },
+                )?;
+                assert_eq!(row.0, "legacy-event-1");
+                assert_eq!(row.1, "2026-08-01T00:00:00Z");
+                assert_eq!(row.2, "daemon");
+                assert_eq!(row.3.as_deref(), Some("legacy-correlation"));
+                assert_eq!(row.4, legacy_payload);
+                assert_eq!((row.5, row.6, row.7, row.8), (None, None, None, None));
+                assert_eq!(row.9, 0);
+                Ok(())
+            })
+            .expect("verify additive migration");
+        drop(persistence);
+
+        let reopened = SqlitePersistence::new(&config).expect("repeat migration idempotently");
+        drop(reopened);
+        let legacy_reader = rusqlite::Connection::open(&database).expect("reopen as legacy reader");
+        let legacy_row = legacy_reader
+            .query_row(
+                "SELECT event_id, ts, origin, correlation_id, payload_json FROM events WHERE event_id='legacy-event-1'",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, Option<String>>(3)?,
+                        row.get::<_, String>(4)?,
+                    ))
+                },
+            )
+            .expect("legacy projection remains readable");
+        assert_eq!(legacy_row.0, "legacy-event-1");
+        assert_eq!(legacy_row.1, "2026-08-01T00:00:00Z");
+        assert_eq!(legacy_row.2, "daemon");
+        assert_eq!(legacy_row.3.as_deref(), Some("legacy-correlation"));
+        assert_eq!(legacy_row.4, legacy_payload);
+        let legacy_version: String = legacy_reader
+            .query_row(
+                "SELECT value FROM meta WHERE key='legacy-version'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("legacy metadata remains exact");
+        assert_eq!(legacy_version, "0.9.177");
+        drop(legacy_reader);
+        std::fs::remove_dir_all(root).expect("clean compatibility fixture");
+    }
+
+    #[test]
+    fn state_snapshot_retains_only_the_bounded_hot_ecs_projection() {
+        let (persistence, root) = test_persistence();
+        const PRODUCTION_HANDLE_COUNT: usize = 17_469;
+        let trajectory = TrajectoryLadderContext {
+            trajectory_id: Some("trajectory:production-shaped".to_string()),
+            project_root: Some("/tmp/project".to_string()),
+            continuity_id: Some("cont-a".to_string()),
+            hlt: Some("H".repeat(243)),
+            mlg: Some("M".repeat(360)),
+            stg: Some("S".repeat(240)),
+            waypoints: (0..8).map(|index| format!("waypoint-{index}")).collect(),
+            ..TrajectoryLadderContext::default()
+        };
+        let mut state = FocusaState::default();
+        for index in 0..PRODUCTION_HANDLE_COUNT {
+            state.reference_index.handles.push(HandleRef {
+                id: Uuid::now_v7(),
+                kind: HandleKind::Text,
+                label: format!("artifact-{index}"),
+                size: index as u64,
+                sha256: format!("{index:064x}"),
+                created_at: Utc::now(),
+                session_id: None,
+                project_root: Some("/tmp/project".to_string()),
+                continuity_id: Some("cont-a".to_string()),
+                pinned: false,
+                trajectory: Some(trajectory.clone()),
+            });
+        }
+        let unbounded_bytes = serde_json::to_vec(&state).unwrap().len() as u64;
+
+        persistence
+            .save_state(&state)
+            .expect("save bounded snapshot");
+        let loaded = persistence
+            .load_state()
+            .expect("load bounded snapshot")
+            .expect("snapshot exists");
+        assert_eq!(
+            loaded.reference_index.handles.len(),
+            DEFAULT_HOT_HANDLE_LIMIT
+        );
+        assert_eq!(
+            loaded.reference_index.cold_handle_count,
+            (PRODUCTION_HANDLE_COUNT - DEFAULT_HOT_HANDLE_LIMIT) as u64
+        );
+        let snapshot_bytes = persistence.snapshot_payload_bytes().unwrap();
+        assert!(snapshot_bytes > 0);
+        assert!(
+            snapshot_bytes * 100 < unbounded_bytes * 35,
+            "production-shaped hot snapshot must be at least 65% smaller: hot={snapshot_bytes} unbounded={unbounded_bytes}"
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn event_batch_and_snapshot_rollback_together() {
+        let (persistence, root) = test_persistence();
+        let baseline = FocusaState {
+            version: 7,
+            ..FocusaState::default()
+        };
+        persistence.save_state(&baseline).expect("save baseline");
+        {
+            let conn = persistence
+                .conn
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            conn.execute_batch(
+                r#"
+                CREATE TRIGGER reject_focusa_snapshot_update
+                BEFORE UPDATE ON snapshots
+                WHEN NEW.name = 'focusa'
+                BEGIN
+                    SELECT RAISE(ABORT, 'injected snapshot failure');
+                END;
+                "#,
+            )
+            .expect("install snapshot failure trigger");
+        }
+
+        let entry = create_entry(
+            FocusaEvent::MemoryDecayTick {
+                decay_factor: 0.98,
+                rules_affected: 0,
+            },
+            SignalOrigin::Daemon,
+            None,
+        );
+        let next = FocusaState {
+            version: 8,
+            ..FocusaState::default()
+        };
+        let error = persistence
+            .persist_event_batch_and_state(&[entry], &next)
+            .expect_err("snapshot failure must reject the complete transaction");
+        assert!(error.to_string().contains("injected snapshot failure"));
+        assert!(
+            persistence
+                .events_since(None, None, 10)
+                .expect("read events")
+                .is_empty(),
+            "event append must roll back when its matching snapshot fails"
+        );
+        assert_eq!(
+            persistence
+                .load_state()
+                .expect("load baseline")
+                .expect("baseline exists")
+                .version,
+            7,
+            "failed batch must preserve the previous snapshot"
+        );
+        drop(persistence);
+        std::fs::remove_dir_all(root).expect("clean test data");
     }
 
     #[test]

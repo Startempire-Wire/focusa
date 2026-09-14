@@ -212,7 +212,7 @@
       "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt"
     }
   ],
-  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
   "full_conformance_status": "verified_complete",
   "required_scorer_count": 31,
   "durable_append_only_history": true,

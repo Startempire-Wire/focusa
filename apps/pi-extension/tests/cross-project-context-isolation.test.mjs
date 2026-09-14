@@ -327,6 +327,7 @@ test("explicit Workpoint resume adopts only the operator-supplied exact typed sc
   assert.match(adoption, /normalizeProjectRoot\(expectedScope\.projectRoot\) === packetProjectRoot/);
   assert.match(adoption, /expectedScope\.continuityId.*=== packetContinuityId/s);
   assert.match(adoption, /currentContinuityId !== packetContinuityId && !explicitScopeMatch/);
+  assert.match(adoption, /sessionIdentity\?\.session_frame_key/);
 
   const resume = block(tools, 'name: "focusa_workpoint_resume"', 'name: "focusa_tree_head"');
   assert.match(resume, /projectRoot: params\.project_root/);

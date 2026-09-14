@@ -16,7 +16,7 @@ Focusa installers and updates must be explicit, reversible, and guarded by Conte
 | Transition | Required behavior | Required proof |
 | --- | --- | --- |
 | inspect | `scripts/install-focusa.sh --dry-run` performs no mutation | bounded install plan |
-| install | signed/checksummed release assets, atomic activation, daemon/Pi integration | health + version + first Workpoint |
+| install | signed/checksummed release assets, atomic activation, daemon/Pi integration | health + version + installed distribution-manifest parity + first Workpoint |
 | repair/rerun | rerunning the same channel is idempotent; `--force` is explicit for downgrade/overwrite | prior state backup + repaired health |
 | OTA/update | trusted release metadata, anti-rollback, atomic replacement, extension reload/rollback | artifact checksum/signature + activated version + rollback receipt |
 | uninstall | public `--uninstall` removes managed software and preserves user data by default | managed artifacts absent + data-preservation evidence |
@@ -27,10 +27,65 @@ Public examples:
 ```bash
 bash scripts/install-focusa.sh --dry-run
 curl -fsS https://install.focusa.dev/focusa | bash
+# After verifying the exact Nightly release bundle, bridge an existing Linux system installation:
+bash focusa-installer-<exact-nightly-tag>.sh --channel=nightly --release-tag=<exact-nightly-tag> --system-install
 curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall
 # Explicit destructive removal only:
 curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall --purge-data
 ```
+
+`--system-install` is an explicit Linux-only bridge for an existing authoritative `/usr/local/bin` installation. The verified bootstrap delegates it to the Rust install transaction, which promotes all canonical binaries and owns rollback; the shell must never copy or relink product binaries itself.
+
+From `v0.9.188`, the checksummed agent-context archive must carry the exact
+`focusa.distribution_manifest.v1` bytes published and signed by the same Release.
+The Rust installer uses the platform-independent `commands::distribution_manifest`
+validator for release identity and canonical paths; Linux transaction code reuses
+that same validator rather than owning it. The installer installs the local copy, and promotes `/usr/local/lib/focusa/distribution-manifest.json` inside
+the binary/service rollback boundary. A failed health or CallGraph probe restores
+the prior manifest with the prior runtime. For `v0.9.188+`, `focusa update apply`
+reuses this exact install lifecycle rather than maintaining a second binary/package
+promotion engine; its signed plan must include CLI, daemon, TUI, session runner,
+distribution manifest, Pi extension, and agent-context receipts. Older releases
+remain installable for rollback through their historically published three-binary
+matrix and report manifest parity as unavailable, never inferred.
+
+Before production deployment, the signed candidate manifest may authorize one
+explicit compatibility canary only when it names the exact prior stable tag and
+sets production, system-install, service-mutation, and automatic-apply authority
+to false. The candidate updater additionally requires `--compatibility-canary-root`
+plus a non-root ephemeral `HOME`, isolated XDG/data/Pi roots, a matching scope
+marker, a signed lease fixture, a nonempty Focusa legacy database, and a user
+sentinel. `FOCUSA_COMPATIBILITY_CANARY_AUTHORITY_PROFILE` must name an explicitly
+approved, independently provider-enrolled canary profile containing
+`authority-lease.json` and its existing canonical `node-identity.json` (the
+`focusa.node_identity.v1` enrollment record); the legacy `LICENSE_SOURCE`
+file is not signed authority. Production identities, IDs derived from a lease,
+test roots, and fabricated enrollments are not valid substitutes. The current
+verified CLI must report active, node-matching signed authority before bootstrap,
+each apply/rollback, and each verification phase. Both authority files remain
+hash-identical throughout; failed CLI verification is fatal even during the
+interruption test's non-errexit section. The official prior CLI bootstrap must pass SHA-256 and detached Ed25519
+verification under current pinned authority before execution. Revoked keys remain
+blocked: an old signed timestamp or rotation note cannot authorize historical assets;
+a separately authorized current-root digest binding is required. The candidate's
+signed `compatibility_canary.baseline_release` binds the prior tag, source commit,
+provider release identity, checksum-document digest, and complete baseline asset
+map. Reviewed inputs live in `config/compatibility-canary-baselines/`; those files
+alone grant no authority. Missing or malformed bindings fail closed. Bootstrap and
+rollback must enforce the verified digests through the canonical Rust installer
+before executable probes; reauthorizing only an old installer does not authorize
+unbound files it may download. Until that installer binding is available, baseline
+execution remains blocked even if manifest generation passes.
+
+The canary must prove deterministic recovery from an interrupted candidate install, then perform full-release apply, full rollback,
+and reapply through the canonical installer transaction. Every phase verifies binary
+and Pi versions, daemon health, lease/sentinel preservation, SQLite integrity, additive
+schema/row-count evidence, and—on candidate phases—the complete installed
+Pi/skills/docs/generated-client distribution parity contract. Production deployment
+independently verifies the signed exact-tag/exact-commit canary receipt before any
+production cleanup, bootstrap sync, install, service, or data mutation. It then
+supersedes this canary authority; normal update mode continues to require signed
+`deploy-success.json`.
 
 After install, repair, or update, verify daemon health/version, all-Pi-tool discovery, Mission Canvas, and canonical Workpoint resume. Uninstall must remain idempotent when binaries are already absent.
 
@@ -89,6 +144,8 @@ On a live build host, prefer local repo build/restart over release asset replace
 ## Rollback checklist
 
 - Restore previous binary or app bundle.
+- A manifest-bound update records the exact prior immutable tag; `--part all` reuses the canonical checksummed installer transaction, while part-only rollback is rejected because it would recreate version skew.
+- Restore the prior distribution manifest with the prior binaries and service unit.
 - Restore previous service unit/config when changed.
 - Restart daemon only after operator-safe preflight.
 - Run health, version, and smoke checks.
@@ -128,6 +185,11 @@ On a live build host, prefer local repo build/restart over release asset replace
 - `-ne`/`--no-extensions` **never satisfies acceptance**: a fresh Pi process
   must start with zero extension-load, duplicate-tool, and duplicate-flag
   errors.
+- Session replacement and `/reload` invalidate the old Pi `ExtensionAPI`. A
+  process-global coordinator must yield its lease to that stale owner and
+  register the complete tool/hook surface on the replacement API; only a
+  simultaneously active duplicate may be suppressed. Acceptance compares the
+  native `focusa_*` manifest before and after replacement, not merely first load.
 
 ## Proof
 

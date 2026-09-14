@@ -1,18 +1,148 @@
 {
+  "schema": "focusa.distribution_manifest.v1",
+  "release_version": "0.9.194-dev",
+  "source_commit": "3850a7f9",
+  "generated_at": "2026-09-14T02:26:56.601838Z",
+  "digest_contract": "sha256-tree-v1",
   "artifacts": {
-    "Cargo.toml": "sha256:09fae7cb4562855ac4cf88d5e64d2d22f7b81d16fcc732e383f0b4e366a0eb9d",
-    "apps/pi-extension/package.json": "sha256:6e2ddea1f700084e4f04106bb051bb5c4e111d446dae47286c606d543a09e61a",
-    "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:9d2e3d2b85f69376ba18840f2c2242fd8e6aea6d0acdb81daf3ade070e9aa90f",
-    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:647a21291e6303cc8fe0aa62bdc6c93b54d3a5ee4bcf5f5814990fdf28d95534",
-    "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:a66526810da63c379fad60c80c71884c556b6d297ca81d9dfcdd7ec7874f9991",
-    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:0969b4eb0662422a8dbbf524f2db281dd86286c6427b45f9a16140416a72109c",
-    "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59"
+    "Cargo.toml": "sha256:70e6386f275b488f2359fda068614fd2497bbf0e25d9a9bfbafea5b1f94c9f86",
+    "apps/pi-extension/package.json": "sha256:f13ad15328dec57698bdb04dc72472ff5e5a5eb7ccd6ff49af75776642d3dbde",
+    "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:2155f36bc42db7be22d2a2895e3cfa8e9fafcaa1744ffb5e84be669bfe175ba8",
+    "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59",
+    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:f8a91f77aa6a02e90b572e8668b4ac78e0d0520d1cfe6ddc2535367f54988bdd",
+    "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:cc63089651e05819ae7777ce7eceba2f033c121778313b506bccb43aa3af9048",
+    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:f20b67bcfe3bc106d82543e1879de4e232fc0951700798169aaa2bd56d04ab4d"
+  },
+  "components": {
+    "rust_runtime": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:1579974b429fbc371840cb50bb7427b0f9a4f317399c75701fbffee139c74597",
+      "file_count": 835,
+      "source_paths": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates"
+      ]
+    },
+    "pi_extension": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:e6e983da2c27a38087d3f2345f7a098e4e836c1fe1f070c23e3e07be80f05ac8",
+      "file_count": 201,
+      "source_paths": [
+        "apps/pi-extension"
+      ]
+    },
+    "agent_skills": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:964b163f8a0e4b663a6ac524c52f2be85c3367b8c6de214c37e923f8971c5bd9",
+      "file_count": 66,
+      "source_paths": [
+        ".pi/skills",
+        "scripts/focusa-skill-doctor"
+      ]
+    },
+    "documentation": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:f78952f56e64fe525db073a6c369c6d7441382d1a2f85e52cbc726ffad2bae3d",
+      "file_count": 159,
+      "source_paths": [
+        "AGENTS.md",
+        "README.md",
+        "docs/current",
+        "docs/contracts/spec141/generated-capability-v2",
+        "docs/07-reference-store.md",
+        "docs/82-focusa-memory-optimization-spec.md",
+        "docs/94-focusa-intent-preserving-memory-rpc-optimization-sow.md",
+        "docs/canonical-live-release-pipeline.md"
+      ]
+    },
+    "generated_clients": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:4875bdfc81bdb6ced086449702ffeca8ebdbd17f2291f54f7746810d7550f73d",
+      "file_count": 159,
+      "source_paths": [
+        "packages/generated/spec135",
+        "docs/contracts/spec135/generated-contract-v1"
+      ]
+    },
+    "installers": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:1230b91a9f571ee181f835da689ec918d460a203e5e494c0c3e49099d8ea6b58",
+      "file_count": 3,
+      "source_paths": [
+        "scripts/install-focusa.sh",
+        "scripts/install-focusa.ps1",
+        "scripts/install-daemon.sh"
+      ]
+    },
+    "release_tooling": {
+      "algorithm": "sha256-tree-v1",
+      "sha256": "sha256:3484a91f93f63ade4b077d4cea9b76ffc6cdaefa2c294f098fd05f77b85eb59f",
+      "file_count": 35,
+      "source_paths": [
+        ".appveyor.yml",
+        "codemagic.yaml",
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        ".github/workflows/nightly.yml",
+        ".github/workflows/deploy-live-daemon.yml",
+        ".github/workflows/windows-ota-e2e.yml",
+        "scripts/distribution_manifest.py",
+        "scripts/audit-distribution-parity.mjs",
+        "scripts/stamp-menubar-version.py",
+        "scripts/local-release-preflight.sh",
+        "scripts/verify-canonical-release-assets.py",
+        "scripts/wait-for-external-release-assets.py",
+        "scripts/release-trust-metadata.py",
+        "config/compatibility-canary-baselines/v0.9.177.json",
+        "scripts/release-deploy-proof.py",
+        "scripts/verify-release-bootstrap-asset.py",
+        "scripts/run-predeployment-compatibility-canary.sh",
+        "scripts/compatibility-canary-receipt.py",
+        "scripts/compatibility-canary-database-inventory.py",
+        "scripts/generate-release-intelligence-packet.py",
+        "tests/154-focusa-canonical-all-platform-release-test.sh",
+        "tests/154_focusa_canonical_release_assets_test.py",
+        "tests/distribution_manifest_contract_test.py",
+        "tests/release_deploy_automation_static_test.sh",
+        "tests/release_authority_root_embedding_test.py",
+        "tests/release_deploy_proof_test.py",
+        "tests/verify_release_bootstrap_asset_test.py",
+        "tests/sign_compatibility_canary_receipt_test.py",
+        "tests/predeployment_compatibility_canary_static_test.py",
+        "tests/compatibility_canary_authority_fixture_test.py",
+        "tests/compatibility_canary_database_inventory_test.py",
+        "tests/release_trust_metadata_static_test.sh",
+        "tests/spec177-nightly-contract-static-test.sh",
+        "tests/spec146_release_intelligence_workflow_gate.py"
+      ]
+    },
+    "capability_surfaces": {
+      "contract_count": 157,
+      "registry_sha256": "sha256:8311a54f0458862e8e10aaf93cf8c8782f131e271590074c936a4a899da40997",
+      "agent_card_sha256": "sha256:f8a91f77aa6a02e90b572e8668b4ac78e0d0520d1cfe6ddc2535367f54988bdd",
+      "pi_tools_sha256": "sha256:f20b67bcfe3bc106d82543e1879de4e232fc0951700798169aaa2bd56d04ab4d",
+      "mcp_tools_sha256": "sha256:cc63089651e05819ae7777ce7eceba2f033c121778313b506bccb43aa3af9048",
+      "openai_tools_sha256": "sha256:518b3439618f6fd46174bccc289edb861c5f0888e9199f0d35b876180dcc4c15",
+      "openapi_sha256": "sha256:32f0db3c47ca2cd1817d62c103a60439cd0dfe88e6f3507e978c113b0a7aaab7"
+    },
+    "runtime_contract": {
+      "system_state_root": "/usr/local/lib/focusa",
+      "installed_manifest_path": "/usr/local/lib/focusa/distribution-manifest.json",
+      "manifest_required_from": "0.9.188",
+      "binary_paths": {
+        "cli": "/usr/local/bin/focusa",
+        "daemon": "/usr/local/bin/focusa-daemon",
+        "tui": "/usr/local/bin/focusa-tui",
+        "session_runner": "/usr/local/bin/focusa-session-runner"
+      },
+      "daemon_health_path": "/v1/health",
+      "callgraph_validation_path": "/v1/callgraphs/validate",
+      "pi_extension_package": "focusa-pi-bridge",
+      "capability_registry_schema": "focusa.tool_contracts.v1"
+    }
   },
   "compatibility_status": "compatible",
   "drift_findings": [],
-  "evidence_ref": "scripts/verify-version-surfaces.py",
-  "generated_at": "2026-09-01T23:10:04.908611Z",
-  "release_version": "0.9.187",
-  "schema": "focusa.distribution_manifest.v1",
-  "source_commit": "fa67761df"
+  "evidence_ref": "scripts/distribution_manifest.py --check"
 }

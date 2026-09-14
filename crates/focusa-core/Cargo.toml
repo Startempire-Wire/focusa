@@ -25,13 +25,13 @@ base64 = { workspace = true }
 hex = { workspace = true }
 reqwest = { workspace = true }
 oauth2 = { workspace = true }
-keyring = { workspace = true }
 rand_core = { version = "0.6", features = ["getrandom"] }
 libc = "0.2"
 chrono-tz = "0.10"
 petgraph = { workspace = true }
 tree-sitter = { workspace = true }
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.32", features = ["bundled", "backup"] }
+zstd = "0.13"
 sqlite-vec = "=0.1.7"
 fastembed = { version = "=4.9.1", optional = true, default-features = false, features = ["hf-hub-rustls-tls", "ort-download-binaries"] }
 mdns-sd = "0.11"
@@ -41,6 +41,16 @@ toml = "0.8"
 focusa-license = { workspace = true }
 parking_lot = "0.12"
 
+
+# Issue #598: platform backends must be enabled per target (see focusa-license).
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { workspace = true, features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { workspace = true, features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { workspace = true, features = ["linux-native"] }
 
 [dev-dependencies]
 serde_path_to_error = "0.1"

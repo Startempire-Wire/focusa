@@ -114,65 +114,38 @@ Do not run ad-hoc background daemon instances in parallel with systemd-managed p
 Four self-heal layers exist:
 
 1. **Runner layer** — systemd `MemoryMax=2G Restart=always` (`scripts/install-self-hosted-runner.sh`)
-2. **Script layer** — `install-daemon.sh` `watchdog_check` + auto-rollback on health failure
-3. **Workflow layer** — `auto-retry-deploy.yml` re-dispatches once on `workflow_run` failure
+2. **Rust lifecycle layer** — exact process ownership, atomic full-release/unit promotion, bounded acceptance, and rollback
+3. **Workflow layer** — `auto-retry-deploy.yml` is quarantined pending exact failure/rollback evidence
 4. **Audit layer** — `auto-heal-audit.py` synthesizes `self_heal` rows for every failure missing one
 
 See [`docs/self-heal-chain.md`](self-heal-chain.md) for the layered diagram.
 
 When the chain does not resolve the incident, follow [`docs/deploy-runbook.md`](deploy-runbook.md).
 
-Manual rollback recipe:
+Rollback uses the signed, full-release journal:
 
 ```bash
-ls -lat /usr/local/lib/focusa/backups/*.bak | head -1
-sudo install -m 0755 /usr/local/lib/focusa/backups/focusa-daemon.<timestamp>.bak /usr/local/bin/focusa-daemon
-sudo systemctl restart focusa-daemon.service
+focusa update rollback --dry-run=false --yes
 ```
+
+Hand-copying one daemon binary is forbidden because it creates mixed-version
+surfaces and bypasses unit/process/health settlement.
 
 ## 6) First-install from a clean VPS
 
 If the VPS has never run the Focusa daemon:
 
-```bash
-# 1. Install daemon binary
-sudo install -m 0755 <built-or-downloaded-binary> /usr/local/bin/focusa-daemon
-sudo mkdir -p /usr/local/lib/focusa/backups /var/log/focusa
-sudo chown github-runner:github-runner /usr/local/lib/focusa /var/log/focusa
+1. Install the self-hosted deployment runner through
+   `scripts/install-self-hosted-runner.sh`.
+2. Configure the repository deployment variables, including the musl target and
+   loopback health URL.
+3. Trigger the full release/deploy pipeline.
+4. Let `focusa install --system-install` create the state root, promote all four
+   signed binaries, render systemd, activate exactly one daemon, and verify
+   health plus CallGraph capability.
 
-# 2. Write a fresh systemd unit (install-daemon.sh will auto-patch this on first deploy)
-sudo tee /etc/systemd/system/focusa-daemon.service >/dev/null <<'EOF'
-[Unit]
-Description=Focusa Metacognition Daemon (Rust)
-After=network.target
-Wants=network.target
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/focusa-daemon
-WorkingDirectory=/usr/local/lib/focusa
-Restart=on-failure
-RestartSec=5
-Environment=FOCUSA_BIND=127.0.0.1:8787
-Environment=FOCUSA_HOME=/usr/local/lib/focusa
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now focusa-daemon.service
-sleep 30
-curl -fsS --max-time 5 http://127.0.0.1:8787/v1/health
-
-# 3. Install self-hosted runner
-sudo bash scripts/install-self-hosted-runner.sh
-
-# 4. Configure GH repo variables (optional, defaults shown):
-#    FOCUSA_DEPLOY_ASSET_SUFFIX=x86_64-unknown-linux-musl
-#    FOCUSA_DEPLOY_HEALTH_URL=http://127.0.0.1:8787/v1/health
-
-# 5. Trigger the first full release/deploy through the canonical pipeline
-scripts/create-dev-release-tag.sh --base 0.9 --push
-```
+Do not preinstall a checkout binary or hand-write the unit; doing so creates a
+second lifecycle authority before the canonical transaction runs.
 
 ## 7) Menubar releases
 

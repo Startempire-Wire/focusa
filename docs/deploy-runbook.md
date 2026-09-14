@@ -15,8 +15,8 @@ This runbook is the canonical reference when the self-heal chain does not resolv
 Before reading further, confirm the four self-heal layers are not the fix:
 
 1. **Runner** — systemd `MemoryMax=2G Restart=always` (see `scripts/install-self-hosted-runner.sh`).
-2. **Script** — `install-daemon.sh` `watchdog_check`, `binary_version`, `patch_service_unit_execstart`.
-3. **Workflow** — `auto-retry-deploy.yml` re-dispatches once on failure.
+2. **Rust lifecycle** — deployment lock, operator halt, exact process, full release/unit transaction, bounded acceptance, and rollback.
+3. **Workflow** — `auto-retry-deploy.yml` remains quarantined until an exact failure and rollback state are known.
 4. **Audit** — `auto-heal-audit.py` synthesizes `self_heal` rows.
 
 See [`docs/self-heal-chain.md`](self-heal-chain.md) for the layered diagram.
@@ -25,18 +25,11 @@ See [`docs/self-heal-chain.md`](self-heal-chain.md) for the layered diagram.
 
 ### Deploy Live Daemon is failing every run
 
-1. **Tail the deploy run log** for the actual error.
-2. If the error is `health verification failed for http://127.0.0.1:8787/v1/health`:
-   - **Wait 30s** — musl cold start takes ~10–30s to seed Mem0.
-   - If still hung after 30s: `systemctl restart focusa-daemon.service && sleep 30 && curl -fsS --max-time 5 http://127.0.0.1:8787/v1/health`.
-   - If still hung: file a daemon-side bug; the deploy automation's behavior is correct.
-3. If the error is `binary version mismatch`:
-   - `binary_version` should parse the version from filename. If it returns empty for a valid asset, file a bug.
-4. If the error is `service ExecStart mismatch`:
-   - This should auto-patch in `install-daemon.sh` via `patch_service_unit_execstart`. If it doesn't, run `validate_service_execstart` manually:
-     ```bash
-     sudo -u github-runner bash scripts/install-daemon.sh --no-restart --no-verify ...
-     ```
+1. **Tail the deploy run log** for the exact Rust transaction error.
+2. If health or CallGraph acceptance fails, confirm the receipt says that prior binaries and unit were restored; do not manually restart the rejected candidate.
+3. If release version identity fails, verify the immutable tag and all signed release assets; do not substitute a checkout build.
+4. If process identity fails, inspect `systemctl show focusa-daemon.service -p MainPID -p ExecStart` and `/proc/<MainPID>/exe`. Do not kill by process name; resolve the exact unmanaged process owner and authority first.
+5. If `RefuseManualStart=yes` is reported, the operator halt is working. Do not remove or bypass it without explicit operator approval.
 
 ### GitHub Actions is down / 502 / 5xx
 
@@ -113,18 +106,8 @@ systemctl restart actions.runner.Startempire-Wire-focusa.host-focusa-deploy.serv
    ```bash
    journalctl -u focusa-daemon.service -n 50 --no-pager
    ```
-4. **Restart:**
-   ```bash
-   systemctl restart focusa-daemon.service
-   sleep 30  # wait for mem0 seed
-   curl -fsS --max-time 5 http://127.0.0.1:8787/v1/health
-   ```
-5. **If still hung after restart:** the upstream daemon has a bug. Roll back:
-   ```bash
-   ls -lat /usr/local/lib/focusa/backups/*.bak | head -1
-   sudo install -m 0755 /usr/local/lib/focusa/backups/focusa-daemon.<timestamp>.bak /usr/local/bin/focusa-daemon
-   systemctl restart focusa-daemon.service
-   ```
+4. **Do not manually restart through an active operator halt.** If start authority exists, rerun the exact immutable deployment so the Rust lifecycle performs bounded health verification and keeps rollback atomic.
+5. **If the accepted runtime later regresses:** inspect the rollback plan, then use `focusa update rollback --dry-run=false --yes`. Never restore only the daemon binary from a mixed-version backup.
 
 ### Triage recent self-heal audit failures
 

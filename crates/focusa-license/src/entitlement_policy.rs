@@ -1779,6 +1779,147 @@ impl PremiumFamilyDecision {
     }
 }
 
+fn software_lease_current(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    now: DateTime<Utc>,
+) -> bool {
+    use crate::authority::EntitlementState;
+    let valid_until = match snapshot.state {
+        EntitlementState::Active => snapshot.expires_at,
+        EntitlementState::OfflineGrace => snapshot.offline_grace_until,
+        _ => None,
+    };
+    let Some(valid_until) = valid_until else {
+        return false;
+    };
+    !(now > valid_until
+        || snapshot.sequence.is_none_or(|sequence| sequence == 0)
+        || snapshot.lease_id.as_deref().is_none_or(str::is_empty)
+        || snapshot.lease_digest.as_deref().is_none_or(str::is_empty))
+}
+
+enum FullSoftwareGrant {
+    Operator(LicenseTypeGrant),
+    DeveloperFocusa,
+}
+
+/// Classify full-software grants from verified issuer metadata, never from a
+/// local flag or discovery result. Evaluation/Active alone is not a grant.
+fn full_software_grant(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    now: DateTime<Utc>,
+) -> Option<FullSoftwareGrant> {
+    if !software_lease_current(snapshot, now) {
+        return None;
+    }
+    match (
+        snapshot.product.as_str(),
+        snapshot.product_code.as_deref()?,
+        snapshot.posture.as_deref()?,
+    ) {
+        ("focusa", "focusa_operator_lifetime_v1", "paid")
+        | ("focusa", "focusa_uiai_operator_bundle_lifetime_v1", "bundle") => Some(
+            FullSoftwareGrant::Operator(LicenseTypeGrant::focusa_operator_v1()),
+        ),
+        ("uiai-engine", "uiai_operator_lifetime_v1", "paid")
+        | ("uiai-engine", "focusa_uiai_operator_bundle_lifetime_v1", "bundle") => Some(
+            FullSoftwareGrant::Operator(LicenseTypeGrant::uiai_operator_v1()),
+        ),
+        ("focusa", "focusa_developer", "developer") => Some(FullSoftwareGrant::DeveloperFocusa),
+        _ => None,
+    }
+}
+
+/// Existing Operator classification remains exact; developer access is not a sale.
+pub fn operator_license_type_grant(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    now: DateTime<Utc>,
+) -> Option<LicenseTypeGrant> {
+    match full_software_grant(snapshot, now)? {
+        FullSoftwareGrant::Operator(grant) => Some(grant),
+        FullSoftwareGrant::DeveloperFocusa => None,
+    }
+}
+
+pub fn developer_license_active(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    now: DateTime<Utc>,
+) -> bool {
+    matches!(
+        full_software_grant(snapshot, now),
+        Some(FullSoftwareGrant::DeveloperFocusa)
+    )
+}
+
+pub fn full_software_product(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    now: DateTime<Utc>,
+) -> Option<ProductCode> {
+    Some(match full_software_grant(snapshot, now)? {
+        FullSoftwareGrant::Operator(grant) => grant.product,
+        FullSoftwareGrant::DeveloperFocusa => ProductCode::Focusa,
+    })
+}
+
+/// Existing non-premium CLI/UI software gates, alongside the canonical family IDs.
+const LEGACY_SOFTWARE_FEATURE_IDS: &[&str] =
+    &["packaged_installer", "qr_pwa_handoff", "public_stream"];
+
+pub fn registered_software_feature_ids() -> impl Iterator<Item = &'static str> {
+    [
+        AUTOMATION_PREMIUM_FEATURE_IDS,
+        TEAM_REMOTE_PREMIUM_FEATURE_IDS,
+        RELEASE_PROOF_PREMIUM_FEATURE_IDS,
+        PREMIUM_UPDATES_PREMIUM_FEATURE_IDS,
+        CUSTOMER_DATA_EXPORT_PREMIUM_FEATURE_IDS,
+        LEGACY_SOFTWARE_FEATURE_IDS,
+    ]
+    .into_iter()
+    .flatten()
+    .copied()
+}
+
+/// Explicit signed denials win. Missing registered software claims are included
+/// by full-software licensing; unknown names and hosted/identity rights are not.
+pub fn software_feature_enabled(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    feature: &str,
+    now: DateTime<Utc>,
+) -> bool {
+    if !software_lease_current(snapshot, now) {
+        return false;
+    }
+    snapshot.features.get(feature).copied().unwrap_or_else(|| {
+        full_software_product(snapshot, now) == Some(ProductCode::Focusa)
+            && registered_software_feature_ids().any(|registered| registered == feature)
+    })
+}
+
+/// Software-use counters belong to restricted access, not full-software licensing.
+/// Seats, nodes, hosted resources and unknown buckets retain their own enforcement.
+pub fn software_license_includes_usage(
+    snapshot: &crate::authority::EntitlementSnapshot,
+    bucket: &str,
+    now: DateTime<Utc>,
+) -> bool {
+    full_software_product(snapshot, now) == Some(ProductCode::Focusa)
+        && matches!(
+            bucket,
+            "workpoints"
+                | "missions"
+                | "evidence_records"
+                | "parallel_agents"
+                | "silent_session_runs"
+                | "export_jobs"
+                | "release_proof_runs"
+                | "update_runs"
+                | "unattended_update_runs"
+        )
+}
+
+// Source compatibility; both names use the same software-counter policy.
+pub use software_license_includes_usage as operator_includes_software_usage;
+
 pub fn authority_policy_state(
     snapshot: &crate::authority::EntitlementSnapshot,
 ) -> PolicyEntitlementState {
@@ -1863,12 +2004,7 @@ where
         return PremiumFamilyDecision::Denied(PremiumFamilyDenial::ActiveLeaseExpired);
     }
 
-    if !snapshot
-        .features
-        .get(feature.as_str())
-        .copied()
-        .unwrap_or(false)
-    {
+    if !software_feature_enabled(snapshot, feature.as_str(), now) {
         return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingFeature {
             family,
             feature,
@@ -1961,12 +2097,7 @@ where
         return PremiumFamilyDecision::Denied(PremiumFamilyDenial::ActiveLeaseExpired);
     }
 
-    if !snapshot
-        .features
-        .get(feature.as_str())
-        .copied()
-        .unwrap_or(false)
-    {
+    if !software_feature_enabled(snapshot, feature.as_str(), now) {
         return PremiumFamilyDecision::Denied(PremiumFamilyDenial::MissingFeature {
             family,
             feature,

@@ -90,6 +90,9 @@ if [[ $? -ne 0 ]]; then echo "FAIL distribution-manifest freshness (stale)"; exi
 echo "distribution-manifest: FRESH (continually)"
 
 if [[ "$STRICT" -eq 1 ]]; then
+  echo "=== local preflight: distribution component parity ==="
+  python3 scripts/distribution_manifest.py --check \
+    || { echo "FAIL distribution-manifest component parity"; exit 1; }
   echo "=== local preflight: gap gate ==="
   bash tests/final_release_gap_gate.sh || { echo "FAIL final_release_gap_gate"; exit 1; }
   echo "gap gate: PASS"

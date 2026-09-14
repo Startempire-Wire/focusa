@@ -5,7 +5,7 @@ use crate::routes::permissions::{forbid, permission_context};
 use crate::scope::ScopeContext;
 use crate::server::{AppState, WriterLease};
 use axum::extract::{FromRequestParts, Query, State};
-use axum::http::{HeaderMap, StatusCode, request::Parts};
+use axum::http::{HeaderMap, Method, StatusCode, request::Parts};
 use axum::response::{IntoResponse, Response};
 use axum::{
     Json, Router,
@@ -122,6 +122,18 @@ fn canonical_workpoint_exists_for_scope(focusa: &FocusaState, key: &WorkstreamKe
     canonical_workpoint_id_for_scope_and_item(focusa, key, None).is_some()
 }
 
+fn read_only_scope_inspection_allowed(method: &Method, path: &str) -> bool {
+    method == Method::GET
+        && matches!(
+            path,
+            "/v1/work-loop"
+                | "/v1/work-loop/health"
+                | "/v1/work-loop/status"
+                | "/v1/work-loop/status/deep"
+                | "/v1/work-loop/checkpoints"
+        )
+}
+
 impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
     type Rejection = WorkLoopScopeRejection;
 
@@ -189,7 +201,9 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
                     focusa.work_loop.current_task.is_some(),
                     active_scope_orphaned,
                 );
-            if stale_enable_rebind {
+            if stale_enable_rebind
+                || read_only_scope_inspection_allowed(&parts.method, parts.uri.path())
+            {
                 return Ok(Self(key));
             }
             return Err(WorkLoopScopeRejection {
@@ -4574,6 +4588,24 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::*;
     use focusa_core::scoped_state::ScopeRef;
+
+    #[test]
+    fn read_only_status_can_inspect_a_different_active_execution_scope() {
+        for path in [
+            "/v1/work-loop",
+            "/v1/work-loop/health",
+            "/v1/work-loop/status",
+            "/v1/work-loop/status/deep",
+            "/v1/work-loop/checkpoints",
+        ] {
+            assert!(read_only_scope_inspection_allowed(&Method::GET, path));
+            assert!(!read_only_scope_inspection_allowed(&Method::POST, path));
+        }
+        assert!(!read_only_scope_inspection_allowed(
+            &Method::GET,
+            "/v1/work-loop/enable"
+        ));
+    }
 
     #[test]
     fn work_loop_temporal_context_is_exact_scope_and_never_infers_urgency() {

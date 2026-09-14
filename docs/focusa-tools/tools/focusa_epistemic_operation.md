@@ -1,10 +1,10 @@
 # `focusa_epistemic_operation`
 
-Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Invoke one exact generated Spec 138/138A operation through durable typed API authority.
+- Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.
 - Capability family: `metacognition`; namespace: `focusa.metacognition`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -80,4 +80,4 @@ Likely next: `focusa_prediction_authority`, `focusa_metacog_retrieve`, `focusa_t
 - CLI: `focusa predict operation --operation <operation-id>`.
 - REST: `POST /v1/prediction-questions`, `POST /v1/information-sets`, `POST /v1/predictions/commit`, `POST /v1/predictions/{id}/supersede`, `GET /v1/predictions/{id}`, `GET /v1/predictions/recent`, `POST /v1/outcomes/claim`, `POST /v1/outcomes/{id}/dispute`, `POST /v1/outcomes/resolve`, `POST /v1/outcomes/{id}/correct`, `POST /v1/evaluations/predictions`, `GET /v1/calibration/reports`, `POST /v1/metacognition/signals`, `POST /v1/metacognition/reflections`, `POST /v1/metacognition/adjustments`, `POST /v1/metacognition/evaluations`, `POST /v1/learning/candidates/{id}/decide`, `POST /v1/learning/{id}/apply`, `POST /v1/learning/transfers/resolve`, `GET /v1/learning/retrieve`, `GET /v1/learning/conflicts`, `POST /v1/learning/{id}/expire`, `POST /v1/learning/{id}/supersede`, `POST /v1/learning/{id}/revoke`, `POST /v1/learning/{id}/rollback`, `POST /v1/learning/consolidate`, `GET /v1/self-model`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9c437df8999f4fe3b515a0fc9b60a9c9de2af66c23dc893ec1a3bf0a0ad4ddb4`.
+- Descriptor digest: `sha256:f71ac153c87380821e3d5709db8b213b56c00dd0232a5738a4639ad23ccd5ea2`.

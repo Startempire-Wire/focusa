@@ -24,6 +24,9 @@ fn active_snapshot() -> EntitlementSnapshot {
     snapshot.lease_id = Some("lease-obs".to_string());
     snapshot.sequence = Some(7);
     snapshot.lease_digest = Some("sha256:obs".to_string());
+    // A realistic Active lease is time-bounded: strict expiry (Spec 152F)
+    // denies Active snapshots without a future expires_at.
+    snapshot.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
     snapshot
         .features
         .insert("focusa.agent.parallelism".to_string(), true);

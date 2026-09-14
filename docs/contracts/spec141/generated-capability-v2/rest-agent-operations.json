@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:78e4a214223840b95637a62e869e73fd8d99115cfaba007145d5035cc924878b",
+  "registry_digest": "sha256:ec9775458f22ba12fee89dbc180ded2497e9e7fa5ca2ebf6c2c545e8352c8d5a",
   "operations": [
     {
       "method": "POST",
@@ -15804,11 +15804,17 @@
             "type": "object",
             "required": [
               "schema",
+              "requirement_id",
+              "project_scope_ref",
+              "workstream_ref",
+              "callgraph_frame_ref",
+              "attempt_generation",
               "credential_role_ref",
               "required_operation",
               "required_exposure_mode",
               "exact_consumer_ref",
               "exact_target_refs",
+              "validity_minimum_seconds",
               "use_count_required",
               "evidence_requirement_refs"
             ],
@@ -15816,11 +15822,49 @@
               "schema": {
                 "type": "string"
               },
+              "requirement_id": {
+                "type": "string"
+              },
+              "project_scope_ref": {
+                "type": "string"
+              },
+              "workstream_ref": {
+                "type": "string"
+              },
+              "callgraph_frame_ref": {
+                "type": "string"
+              },
+              "attempt_generation": {
+                "minimum": 0,
+                "maximum": 4294967295,
+                "type": "integer"
+              },
               "credential_role_ref": {
                 "type": "string"
               },
               "required_operation": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "const": "use",
+                    "type": "string"
+                  },
+                  {
+                    "const": "reveal",
+                    "type": "string"
+                  },
+                  {
+                    "const": "manage",
+                    "type": "string"
+                  },
+                  {
+                    "const": "rotate",
+                    "type": "string"
+                  },
+                  {
+                    "const": "revoke",
+                    "type": "string"
+                  }
+                ]
               },
               "required_exposure_mode": {
                 "type": "string"
@@ -15834,8 +15878,27 @@
                   "type": "string"
                 }
               },
+              "required_auth_challenge_support": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "precondition_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "validity_minimum_seconds": {
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "type": "integer"
+              },
               "use_count_required": {
-                "type": "number"
+                "minimum": 0,
+                "maximum": 4294967295,
+                "type": "integer"
               },
               "evidence_requirement_refs": {
                 "type": "array",
@@ -122175,7 +122238,7 @@
       "policy_owner": "entitlement_policy_resolver"
     },
     {
-      "method": "/v1/worksets",
+      "method": "/v1/worksets/{workset_id}/projection",
       "path": "",
       "capability_id": "focusa.workset.projection",
       "operation_id": "focusa_workset_projection",
@@ -122469,7 +122532,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/worksets",
+          "route": "/v1/worksets/{workset_id}/projection",
           "scope": {
             "kind": "read",
             "route_family": "auto"

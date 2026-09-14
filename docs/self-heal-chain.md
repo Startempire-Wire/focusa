@@ -117,19 +117,18 @@ The pipeline has four self-heal layers, each absorbing a different failure class
                               ▲
 ┌────────────────────────────────────────────────────────────────────┐
 │ Layer 3 — Workflow                                                 │
-│   .github/workflows/auto-retry-deploy.yml                          │
-│   On workflow_run failure of Deploy Live Daemon: re-dispatches     │
-│   once with the same tag + musl asset. Never retries workflow_run- │
-│   triggered deploys (no loops).                                    │
+│   .github/workflows/auto-retry-deploy.yml is quarantined.          │
+│   Retry requires exact failure and rollback evidence; there is no  │
+│   automatic redispatch authority.                                 │
 └────────────────────────────────────────────────────────────────────┘
                               ▲
 ┌────────────────────────────────────────────────────────────────────┐
-│ Layer 2 — Script (install-daemon.sh)                               │
-│   watchdog_check() + watchdog_loop() — wall clock + RSS budget     │
-│   binary_version() — filename-first parser; never wedges          │
-│   patch_service_unit_execstart() — auto-rewrites stale unit       │
-│   curl --max-time 5 — caps a single health probe                  │
-│   wait_for_health 60 — 60s budget for musl cold start             │
+│ Layer 2 — Rust system-install transaction                         │
+│   nonblocking deploy lock + operator-halt gate                    │
+│   exact systemd MainPID/executable and one-process invariant      │
+│   atomic full-release + unit promotion                            │
+│   bounded health/CallGraph acceptance + complete rollback         │
+│   install-daemon.sh only adapts legacy arguments                  │
 └────────────────────────────────────────────────────────────────────┘
                               ▲
 ┌────────────────────────────────────────────────────────────────────┐
@@ -149,14 +148,13 @@ The pipeline has four self-heal layers, each absorbing a different failure class
 | Failure | First layer that absorbs it | Audit row |
 |---|---|---|
 | Kernel OOM kill of `actions.runner` process | Layer 1 — systemd restarts runner in 15s | `fail-2026-06-30-runner-oom-killed` |
-| Stale systemd ExecStart pointing at deleted binary | Layer 2 — `patch_service_unit_execstart` | `fail-2026-06-30-stale-execstart` |
-| glibc mismatch (Ubuntu-built gnu binary on AlmaLinux 8) | Workflow — musl default + `binary_version` filename parser | `fail-2026-06-30-stale-execstart` |
-| `binary_version --version` segfault hangs script | Layer 2 — filename-first + `timeout 3` | `fail-2026-06-30-binary-version-zombie` |
-| Script hangs in curl loop | Layer 2 — watchdog RSS + wall clock | `fail-2026-06-30-deploy-oom-killed` |
-| Script OOM-killed by runner kernel | Layer 2 — watchdog exits with audit row | `fail-2026-06-30-deploy-oom-killed` |
-| /v1/health times out | Layer 2 — `wait_for_health 60` + auto-rollback | `fail-2026-06-30-health-attempts-30` |
-| /v1/health hangs intermittently | (daemon bug — operator recipe in live-release-automation.md) | `fail-2026-06-30-health-intermittent` |
-| Deploy workflow reports failure | Layer 3 — auto-retry re-dispatches once | verified run `28435325539` |
+| Stale systemd ExecStart pointing at deleted binary | Layer 2 — atomically render the canonical unit; restore the prior unit on failure | `fail-2026-06-30-stale-execstart` |
+| glibc mismatch (Ubuntu-built gnu binary on AlmaLinux 8) | Workflow — signed musl release-set selection | `fail-2026-06-30-stale-execstart` |
+| Candidate `--version` crashes or disagrees | Layer 2 — Rust process status/version gate before activation | `fail-2026-06-30-binary-version-zombie` |
+| Unmanaged or duplicate daemon exists | Layer 2 — reject exact process inventory without signalling it | `fail-2026-06-30-deploy-oom-killed` |
+| /v1/health times out | Layer 2 — bounded readiness check and full transaction rollback | `fail-2026-06-30-health-attempts-30` |
+| /v1/health hangs intermittently | Layer 2 rolls back; investigate the daemon bug before retry | `fail-2026-06-30-health-intermittent` |
+| Deploy workflow reports failure | Layer 3 records failure; retry stays quarantined pending exact diagnosis | verified run `28435325539` |
 | Audit row missing for a failure | Layer 4 — `auto-heal-audit.py` synthesizes | `add-2026-06-30-*` rows |
 | Backup list grows without bound | `safe-disk-cleanup.sh` keeps most recent 5 | `add-2026-06-30-bounded-backups` |
 
@@ -183,6 +181,6 @@ If the chain fails (rare but possible: e.g. GitHub outage, runner uninstalled, e
 2. **Verify daemon**: `curl -fsS --max-time 5 http://127.0.0.1:8787/v1/health`
 3. **Tail audit log**: `tail -20 /var/log/focusa/deploy-audit.jsonl`
 4. **Re-run deploy**: `gh workflow run 'Deploy Live Daemon' --ref main -f release_tag=v0.9.42-dev -f asset_suffix=x86_64-unknown-linux-musl`
-5. **Manual rollback**: copy a backup to `/usr/local/bin/focusa-daemon` and `systemctl restart focusa-daemon.service`.
+5. **Rollback**: use `focusa update rollback --dry-run=false --yes`; never hand-copy one binary or bypass the full release transaction.
 
 The audit trail captures every step regardless of outcome. No silent fixes.

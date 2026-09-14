@@ -28,19 +28,20 @@ function handlerBody(eventName) {
   return handlerBodyFrom(source, eventName);
 }
 
-test("module reload clears stale global owner and re-registers", () => {
-  assert.match(source, /const MODULE_LOAD_ID = randomUUID\(\)/);
-  assert.match(source, /processLease\.owner\.moduleLoadId === MODULE_LOAD_ID/);
+test("session replacement or reload clears only a stale global owner", () => {
+  assert.match(source, /function registrationApiIsActive\(/);
+  assert.match(source, /owner\.extensionApi\.getAllTools\(\)/);
+  assert.match(source, /stale after session replacement or reload/);
   assert.match(source, /processLease\.owner = undefined/);
-  assert.match(source, /moduleLoadId: MODULE_LOAD_ID/);
+  assert.match(source, /processLease\.request = undefined/);
+  assert.match(source, /extensionApi: pi/);
 });
 
-test("session reload preserves, rebinds, and proves the compaction coordinator", () => {
+test("session reload releases stale ownership and rebinds the coordinator", () => {
   const shutdown = handlerBody("session_shutdown");
   const start = handlerBody("session_start");
-  assert.doesNotMatch(shutdown, /processLease\.request = undefined/);
-  assert.doesNotMatch(shutdown, /processLease\.owner = undefined/);
-  assert.match(shutdown, /processLease\.owner\.nativeSession = undefined/);
+  assert.match(shutdown, /processLease\.request = undefined/);
+  assert.match(shutdown, /processLease\.owner = undefined/);
   assert.match(start, /processLease\.request = maybeCompact/);
   assert.match(start, /reduceCompactionAuthorityEvents\(persistedEvents\)/);
   assert.match(start, /runtime_registration_verified/);
@@ -195,14 +196,18 @@ test("compaction exposes elapsed heartbeat and bounded no-retry resume outcomes"
   assert.doesNotMatch(compactionSource, /Retrying automatically/);
 });
 
-test("one process-wide first-owner coordinator suppresses duplicate registrations", () => {
+test("session replacement rebinds while active duplicate module loads stay suppressed", () => {
   assert.match(source, /Symbol\.for\("focusa\.compaction\.coordinator\.v1"\)/);
-  assert.match(source, /if \(processLease\.owner\)/);
-  assert.match(source, /compaction coordinator retained across session replacement/);
-  // Different-install duplicates are superseded in place: first lease is
-  // dropped and a fresh owner registers (Spec130A takeover semantics).
-  assert.match(source, /processLease\.owner = undefined;/);
-  assert.match(source, /return false;[\s\S]{0,400}const maxTransientRetries/);
+  assert.match(source, /processLease\.owner\.moduleLoadId === MODULE_LOAD_ID/);
+  assert.match(source, /processLease\.owner\.moduleIdentity === MODULE_IDENTITY/);
+  assert.match(source, /registrationApiIsActive\(processLease\.owner\)/);
+  assert.match(source, /ownerIsActive/);
+  assert.match(source, /duplicate extension suppressed/);
+  assert.match(source, /Remove the duplicate Focusa installation and reload Pi/);
+  assert.match(source, /compaction coordinator rebound after session replacement or reload/);
+  assert.match(source, /processLease\.request = undefined;/);
+  assert.match(source, /return false;/);
+  assert.match(source, /const maxTransientRetries/);
   assert.match(indexSource, /if \(!ownsCompactionCoordinator\) return/);
   assert.match(source, /nativeCompactionCallCount >= 1/);
   assert.match(source, /nativeCompactionCallCount \+= 1/);

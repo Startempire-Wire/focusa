@@ -154,12 +154,13 @@ type CompactionLeaseOwner = {
   registrationId: string;
   adapterInstanceId: string;
   extensionBuild: string;
+  moduleLoadId: string;
+  moduleIdentity: string;
   registrationSource: string;
   attachmentId: string;
   nativeSession?: string;
   registeredHandlers: string[];
-  moduleLoadId: string;
-  moduleIdentity?: string;
+  extensionApi?: Pick<ExtensionAPI, "getAllTools">;
 };
 
 type CompactionOperatorOverride = {
@@ -191,7 +192,7 @@ type ProcessCompactionLease = {
 const PROCESS_LEASE_SYMBOL = Symbol.for("focusa.compaction.coordinator.v1");
 const PI_TOOL_BOUNDARY_COMPACTION_SYMBOL = Symbol.for("focusa.pi.tool-boundary-compaction.v1");
 const MODULE_IDENTITY_SYMBOL = Symbol.for("focusa.compaction.module-identity");
-const EXTENSION_BUILD = "focusa-pi-bridge@0.9.187";
+const EXTENSION_BUILD = "focusa-pi-bridge@0.9.194-dev";
 const REGISTRATION_SOURCE = import.meta.url;
 const REGISTERED_HANDLERS = [
   "session_before_compact",
@@ -467,6 +468,19 @@ function estimateEntryRange(entries: readonly BranchEntry[], start: number, end:
   return total;
 }
 
+function registrationApiIsActive(owner: CompactionLeaseOwner): boolean {
+  if (!owner.extensionApi) return false;
+  try {
+    owner.extensionApi.getAllTools();
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return !/stale after session replacement or reload|failed to load and its API is no longer active/i.test(
+      message
+    );
+  }
+}
+
 // Stable across duplicate module loads (including ?duplicate-install query
 // instances): the first load owns the identity, so the duplicate-install guard
 // can detect re-registration instead of treating each copy as a new owner.
@@ -479,8 +493,7 @@ const moduleIdentityScope = globalThis as typeof globalThis & {
 };
 const MODULE_IDENTITY: string =
   moduleIdentityScope[MODULE_IDENTITY_SYMBOL] ??
-  (moduleIdentityScope[MODULE_IDENTITY_SYMBOL] =
-    `focusa-compaction:${import.meta.url.split("?")[0]}`);
+  (moduleIdentityScope[MODULE_IDENTITY_SYMBOL] = `focusa-compaction:${import.meta.url.split("?")[0]}`);
 
 /** Test-only: release the process compaction lease so a fresh harness can
  * register as a new owner. Never called in production paths. */
@@ -504,27 +517,40 @@ export function registerAutoCompaction(
   getConfig: () => FocusaConfig | undefined = () => undefined
 ): boolean {
   const processLease = processCompactionLease();
+  // Recover sessions stranded by older shutdown code, which cleared the native
+  // session but retained an already-activated registration. Pending factories
+  // and active instances remain protected against duplicate installation.
+  if (
+    processLease.owner &&
+    !processLease.owner.nativeSession &&
+    typeof processLease.owner.attachmentId === "string" &&
+    !processLease.owner.attachmentId.startsWith("pending:")
+  ) {
+    processLease.request = undefined;
+    processLease.owner = undefined;
+  }
   if (processLease.owner) {
+    const previousSource = processLease.owner.registrationSource;
+    const ownerIsActive = registrationApiIsActive(processLease.owner);
     if (
-      processLease.owner.moduleLoadId === MODULE_LOAD_ID ||
-      processLease.owner.moduleIdentity === MODULE_IDENTITY
+      ownerIsActive &&
+      (processLease.owner.moduleLoadId === MODULE_LOAD_ID ||
+        processLease.owner.moduleIdentity === MODULE_IDENTITY)
     ) {
       if (!processLease.duplicateDiagnosticEmitted) {
         processLease.duplicateDiagnosticEmitted = true;
-        // Same-URL re-registration happens on every in-process session
-        // replacement (ctx.newSession / /tree navigation): pi rebuilds all
-        // extension instances against the existing process lease. That is
-        // benign — the original coordinator stays authoritative and no
-        // handlers are double-registered. Only a *different* module URL
-        // reaches the takeover branch below, so this can never indicate a
-        // second installation on disk.
-        console.info(
-          `[focusa] compaction coordinator retained across session replacement (same install at ${processLease.owner.registrationSource}; nothing to remove).`
+        console.warn(
+          `[focusa] duplicate extension suppressed (existing install at ${processLease.owner.registrationSource}). Remove the duplicate Focusa installation and reload Pi.`
         );
       }
       return false;
+    } else {
+      processLease.owner = undefined;
+      processLease.request = undefined;
+      console.info(
+        `[focusa] compaction coordinator rebound after session replacement or reload (previous owner ${previousSource}).`
+      );
     }
-    processLease.owner = undefined;
   }
 
   // Spec130A §16 permits one linked retry per pressure crossing. Provider
@@ -537,11 +563,12 @@ export function registerAutoCompaction(
     registrationId,
     adapterInstanceId: `pi-process-${process.pid}-${registrationId}`,
     extensionBuild: EXTENSION_BUILD,
+    moduleLoadId: MODULE_LOAD_ID,
+    moduleIdentity: MODULE_IDENTITY,
     registrationSource: REGISTRATION_SOURCE,
     attachmentId: `pending:${registrationId}`,
     registeredHandlers: [...REGISTERED_HANDLERS],
-    moduleLoadId: MODULE_LOAD_ID,
-    moduleIdentity: MODULE_IDENTITY,
+    extensionApi: pi,
   };
   processLease.duplicateDiagnosticEmitted = false;
   const ownsRegistrationLease = (): boolean => processLease.owner?.registrationId === registrationId;
@@ -658,43 +685,43 @@ export function registerAutoCompaction(
 
   if (typeof pi.registerCommand === "function") {
     pi.registerCommand("focusa-compaction-policy", {
-    description: "Show or override the scoped adaptive compaction policy",
-    handler: async (args, ctx) => {
-      const [action = "status", route, ...reasonParts] = String(args || "")
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
-      let response: any;
-      if (action === "set") {
-        response = await focusaFetch("/compaction/policy/override", {
-          method: "POST",
-          body: JSON.stringify({
-            action: "set",
-            route,
-            reason: reasonParts.join(" ") || "explicit Pi operator override",
-            actor_ref: "pi-operator",
-          }),
-        });
-      } else if (action === "clear") {
-        response = await focusaFetch("/compaction/policy/override", {
-          method: "POST",
-          body: JSON.stringify({
-            action: "clear",
-            reason: [route, ...reasonParts].filter(Boolean).join(" ") || "Pi operator cleared override",
-            actor_ref: "pi-operator",
-          }),
-        });
-      } else {
-        response = await focusaFetch("/compaction/policy");
-      }
-      processLease.operatorOverride = policyOverride(response);
-      const policy = response?.policy ?? response;
-      const text = response
-        ? `Compaction policy: ${policy?.pressure_percent ?? "?"}% · route=${policy?.selected_route ?? "none"} · reason=${policy?.reason ?? "none"} · rollback=${policy?.rollback_route ?? "none"} · override=${policy?.operator_override?.route ?? "none"}${response?.receipt?.receipt_id ? ` · receipt=${response.receipt.receipt_id}` : ""}`
-        : "Compaction policy unavailable; no local authority changed.";
-      if (ctx.hasUI) ctx.ui.notify(text, response ? "info" : "warning");
-    },
-  });
+      description: "Show or override the scoped adaptive compaction policy",
+      handler: async (args, ctx) => {
+        const [action = "status", route, ...reasonParts] = String(args || "")
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
+        let response: any;
+        if (action === "set") {
+          response = await focusaFetch("/compaction/policy/override", {
+            method: "POST",
+            body: JSON.stringify({
+              action: "set",
+              route,
+              reason: reasonParts.join(" ") || "explicit Pi operator override",
+              actor_ref: "pi-operator",
+            }),
+          });
+        } else if (action === "clear") {
+          response = await focusaFetch("/compaction/policy/override", {
+            method: "POST",
+            body: JSON.stringify({
+              action: "clear",
+              reason: [route, ...reasonParts].filter(Boolean).join(" ") || "Pi operator cleared override",
+              actor_ref: "pi-operator",
+            }),
+          });
+        } else {
+          response = await focusaFetch("/compaction/policy");
+        }
+        processLease.operatorOverride = policyOverride(response);
+        const policy = response?.policy ?? response;
+        const text = response
+          ? `Compaction policy: ${policy?.pressure_percent ?? "?"}% · route=${policy?.selected_route ?? "none"} · reason=${policy?.reason ?? "none"} · rollback=${policy?.rollback_route ?? "none"} · override=${policy?.operator_override?.route ?? "none"}${response?.receipt?.receipt_id ? ` · receipt=${response.receipt.receipt_id}` : ""}`
+          : "Compaction policy unavailable; no local authority changed.";
+        if (ctx.hasUI) ctx.ui.notify(text, response ? "info" : "warning");
+      },
+    });
   }
 
   const notifyOnce = (
@@ -801,15 +828,18 @@ export function registerAutoCompaction(
     const attachmentKey = currentAttachmentKey();
     const withinAttachment = <T>(operation: () => T): T =>
       attachmentKey ? runWithAttachmentRuntime(attachmentKey, operation) : operation();
-    const bindAttachmentCallback = <Args extends unknown[]>(
-      callback: (...args: Args) => void
-    ) =>
+    const bindAttachmentCallback =
+      <Args extends unknown[]>(callback: (...args: Args) => void) =>
       (...args: Args): void =>
         withinAttachment(() => callback(...args));
 
     ctx.compact({
       customInstructions: activeRequest?.customInstructions ?? INSTRUCTIONS,
       onComplete: bindAttachmentCallback((result) => {
+        if (!ownsRegistrationLease()) {
+          releaseProcessAttempt(invokedEpoch.epochId);
+          return;
+        }
         if (invokedEpoch.settlement) {
           persist(
             "secondary_duplicate_settlement",
@@ -864,6 +894,10 @@ export function registerAutoCompaction(
         completedRequest?.onComplete?.();
       }),
       onError: bindAttachmentCallback((error) => {
+        if (!ownsRegistrationLease()) {
+          releaseProcessAttempt(invokedEpoch.epochId);
+          return;
+        }
         const message = error.message || String(error);
         if (invokedEpoch.settlement) {
           persist(
@@ -956,37 +990,40 @@ export function registerAutoCompaction(
             )
           );
           processLease.retryOwnerId = registrationId;
-          retryTimer = setTimeout(bindAttachmentCallback(() => {
-            retryTimer = undefined;
-            if (!ownsRegistrationLease()) {
-              persist("retry_suppressed", { reason: "registration_lease_lost" });
-              clearProcessRetry();
-              setActiveEpoch(undefined);
-              return;
-            }
-            if (!ctx.isIdle() || ctx.hasPendingMessages()) {
-              persist("retry_suppressed", { reason: "session_not_idle" });
-              clearProcessRetry();
-              setActiveEpoch(undefined);
-              return;
-            }
-            const liveUsage = ctx.getContextUsage();
-            const liveDecision = proactiveCompactionDecision(liveUsage, getPolicy());
-            if (!liveUsage || !liveDecision.trigger) {
-              persist("retry_suppressed", { reason: "live_context_no_longer_requires_action" });
-              clearProcessRetry();
-              setActiveEpoch(undefined);
-              return;
-            }
-            const liveKey = contextEpochKey(ctx);
-            if (liveKey !== activeEpoch?.contextKey) {
-              persist("retry_suppressed", { reason: "context_epoch_changed" });
-              clearProcessRetry();
-              setActiveEpoch(undefined);
-              return;
-            }
-            attemptCompaction(ctx, liveUsage);
-          }), retryDelay);
+          retryTimer = setTimeout(
+            bindAttachmentCallback(() => {
+              retryTimer = undefined;
+              if (!ownsRegistrationLease()) {
+                persist("retry_suppressed", { reason: "registration_lease_lost" });
+                clearProcessRetry();
+                setActiveEpoch(undefined);
+                return;
+              }
+              if (!ctx.isIdle() || ctx.hasPendingMessages()) {
+                persist("retry_suppressed", { reason: "session_not_idle" });
+                clearProcessRetry();
+                setActiveEpoch(undefined);
+                return;
+              }
+              const liveUsage = ctx.getContextUsage();
+              const liveDecision = proactiveCompactionDecision(liveUsage, getPolicy());
+              if (!liveUsage || !liveDecision.trigger) {
+                persist("retry_suppressed", { reason: "live_context_no_longer_requires_action" });
+                clearProcessRetry();
+                setActiveEpoch(undefined);
+                return;
+              }
+              const liveKey = contextEpochKey(ctx);
+              if (liveKey !== activeEpoch?.contextKey) {
+                persist("retry_suppressed", { reason: "context_epoch_changed" });
+                clearProcessRetry();
+                setActiveEpoch(undefined);
+                return;
+              }
+              attemptCompaction(ctx, liveUsage);
+            }),
+            retryDelay
+          );
           retryTimer.unref?.();
           return;
         }
@@ -1360,14 +1397,13 @@ export function registerAutoCompaction(
     clearProcessRetry();
     setActiveEpoch(undefined);
     inFlight = false;
-    if (!processLease.inFlightEpochId) {
-      processLease.attemptOwnerId = undefined;
-      // session_shutdown is a session lifecycle boundary, not an extension
-      // unload. Preserve coordinator ownership and its request function so the
-      // next session_start can resume compaction without re-registering code.
-      if (processLease.owner) processLease.owner.nativeSession = undefined;
-      processLease.duplicateDiagnosticEmitted = false;
-    }
+    if (!processLease.inFlightEpochId) processLease.attemptOwnerId = undefined;
+    // Pi tears down this extension runtime on reload and session replacement.
+    // Release registration, but retain any actual in-flight attempt exclusion
+    // until its terminal callback settles that exact epoch.
+    processLease.request = undefined;
+    processLease.owner = undefined;
+    processLease.duplicateDiagnosticEmitted = false;
   });
   return true;
 }

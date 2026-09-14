@@ -107,7 +107,7 @@ sudo -u "$RUNNER_USER" bash -lc "cd '$RUNNER_ROOT' && ./config.sh --url 'https:/
 
 cat > "$SUDOERS_PATH" <<EOF
 Defaults:${RUNNER_USER} !requiretty
-${RUNNER_USER} ALL=(root) NOPASSWD: /bin/bash ${RUNNER_ROOT}/_work/focusa/focusa/scripts/install-daemon.sh *, /bin/bash ${RUNNER_ROOT}/_work/focusa/focusa/scripts/safe-disk-cleanup.sh *, /usr/bin/systemctl start focusa-daemon.service, /usr/bin/systemctl stop focusa-daemon.service, /usr/bin/systemctl is-active focusa-daemon.service, /usr/bin/systemctl show focusa-daemon.service, /usr/bin/systemctl daemon-reload, /usr/bin/systemctl restart focusa-daemon.service, /usr/bin/kill, /usr/bin/install, /usr/bin/mv, /usr/bin/cp, /usr/bin/rm, /usr/bin/ln, /usr/bin/sed
+${RUNNER_USER} ALL=(root) NOPASSWD: /bin/bash ${RUNNER_ROOT}/_work/focusa/focusa/scripts/install-daemon.sh *, /bin/bash ${RUNNER_ROOT}/_work/focusa/focusa/scripts/safe-disk-cleanup.sh *, /usr/bin/install
 EOF
 chmod 440 "$SUDOERS_PATH"
 

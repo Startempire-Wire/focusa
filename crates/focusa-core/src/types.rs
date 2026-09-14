@@ -1045,34 +1045,8 @@ pub struct TrajectoryDefinitionOfDoneRecord {
     pub not_done_if: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub enum TrajectoryMilestoneStatus {
-    #[default]
-    NotStarted,
-    Active,
-    Blocked,
-    Verified,
-    Superseded,
-}
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct TrajectoryMilestoneRecord {
-    pub milestone_id: String,
-    pub title: String,
-    pub desired_state_delta: String,
-    #[serde(default)]
-    pub current_state_evidence_refs: Vec<String>,
-    #[serde(default)]
-    pub completion_evidence_refs: Vec<String>,
-    pub status: TrajectoryMilestoneStatus,
-    #[serde(default)]
-    pub next_workpoint_candidate: serde_json::Value,
-}
 #[derive(Debug, Clone, Serialize)]
 pub struct TrajectoryProjectionRecord {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub milestones: Vec<TrajectoryMilestoneRecord>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub active_milestone_id: Option<String>,
     pub trajectory_id: String,
     #[serde(default)]
     pub scope_ref: Option<crate::scoped_state::ScopeRef>,
@@ -1238,8 +1212,6 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
             merge_legacy_waypoint(&mut waypoints, legacy);
         }
         Ok(Self {
-            milestones: vec![],
-            active_milestone_id: None,
             trajectory_id: wire.trajectory_id,
             scope_ref: wire.scope_ref,
             session_identity: wire.session_identity,
@@ -1276,8 +1248,6 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
 impl Default for TrajectoryProjectionRecord {
     fn default() -> Self {
         Self {
-            milestones: vec![],
-            active_milestone_id: None,
             trajectory_id: String::new(),
             scope_ref: None,
             session_identity: None,
@@ -3742,6 +3712,17 @@ pub enum ArtifactLineKind {
 pub struct FocusGateState {
     pub signals: Vec<Signal>,
     pub candidates: Vec<Candidate>,
+    /// Durable cursor: each retained signal may affect candidate pressure once.
+    #[serde(default)]
+    pub processed_signal_ids: Vec<SignalId>,
+    /// One inactivity signal per active-turn episode and frame.
+    #[serde(default)]
+    pub inactivity_signal_frames: Vec<FrameId>,
+    #[serde(default)]
+    pub inactivity_signal_without_frame: bool,
+    /// One long-running signal per frame lifetime.
+    #[serde(default)]
+    pub long_running_signal_frames: Vec<FrameId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -3833,10 +3814,22 @@ pub enum CandidateState {
 
 // ─── Reference Store / ECS (from 07-reference-store.md) ─────────────────────
 
-/// Index of all known handles.
+/// Bounded hot index of known handles.
+///
+/// Full immutable metadata and content live in the ECS store and remain addressable by id.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ReferenceIndex {
     pub handles: Vec<HandleRef>,
+    /// Number of durable ECS handles omitted from this hot projection.
+    #[serde(default)]
+    pub cold_handle_count: u64,
+}
+
+impl ReferenceIndex {
+    pub fn total_handle_count(&self) -> u64 {
+        self.cold_handle_count
+            .saturating_add(self.handles.len() as u64)
+    }
 }
 
 /// Bounded trajectory ladder context carried by cross-cutting artifacts.
@@ -4342,6 +4335,11 @@ pub enum FocusaEvent {
     },
 
     // Intuition → Gate
+    /// Durable projection event for the bounded Focus Gate pipeline. This keeps
+    /// periodic cursor/candidate updates replayable without whole-state writes.
+    FocusGatePipelineCommitted {
+        focus_gate: FocusGateState,
+    },
     IntuitionSignalObserved {
         signal_id: SignalId,
         signal_type: SignalKind,
@@ -4736,6 +4734,11 @@ pub struct EventLogEntry {
     pub instance_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_id: Option<SessionId>,
+    /// Request-local project/workstream scope for durable attribution.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_root: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub continuity_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thread_id: Option<Uuid>,
 
@@ -4772,6 +4775,8 @@ impl EventLogEntry {
             machine_id: None,
             instance_id: None,
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             thread_id: None,
             is_observation: false,
         }

@@ -20,7 +20,7 @@
     "audit_export"
   ],
   "high_consequence_fail_mode": "closed",
-  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
   "control_statuses": {
     "source_access_authority": "verified_complete",
     "license_terms": "verified_complete",

@@ -306,6 +306,8 @@ mod tests {
             machine_id: Some("test".to_string()),
             instance_id: None,
             session_id: None,
+            project_root: None,
+            continuity_id: None,
             thread_id: None,
             is_observation: false,
         };
@@ -339,6 +341,8 @@ mod tests {
                 machine_id: Some("log1".to_string()),
                 instance_id: None,
                 session_id: None,
+                project_root: None,
+                continuity_id: None,
                 thread_id: None,
                 is_observation: false,
             };
@@ -362,6 +366,8 @@ mod tests {
                 machine_id: Some("log2".to_string()),
                 instance_id: None,
                 session_id: None,
+                project_root: None,
+                continuity_id: None,
                 thread_id: None,
                 is_observation: false,
             };
@@ -398,6 +404,8 @@ mod tests {
                     machine_id: Some(format!("machine-{}", i)),
                     instance_id: None,
                     session_id: None,
+                    project_root: None,
+                    continuity_id: None,
                     thread_id: None,
                     is_observation: false,
                 };
@@ -450,6 +458,8 @@ mod tests {
                 machine_id: Some("a".to_string()),
                 instance_id: None,
                 session_id: None,
+                project_root: None,
+                continuity_id: None,
                 thread_id: None,
                 is_observation: false,
             },

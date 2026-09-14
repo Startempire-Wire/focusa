@@ -240,7 +240,7 @@ mod tests {
         };
         let s = extrapolate(&input).unwrap();
         assert!(s.waypoints.len() <= 7);
-        assert!(s.waypoints.len() >= 1);
+        assert!(!s.waypoints.is_empty());
     }
 
     #[test]

@@ -13,6 +13,7 @@ focusa upgrade --dry-run
 focusa upgrade --dry-run --channel preview
 focusa upgrade --dry-run --check-github
 focusa upgrade --channel stable
+bash focusa-installer-<exact-nightly-tag>.sh --channel=nightly --release-tag=<exact-nightly-tag> --system-install
 focusa --json upgrade --dry-run
 ```
 
@@ -25,6 +26,7 @@ focusa --json upgrade --dry-run
 - Real `focusa upgrade` binds the resolved tag into every delegated installer download; asset, Pi-extension, and agent-context surfaces cannot drift to another tag.
 - Every upgrade downloads, verifies, and atomically installs the four canonical binaries: CLI, daemon, TUI, and session runner.
 - When the running CLI comes from the authoritative `/usr/local/bin` surface, upgrade transactionally promotes all four links there, verifies all four exact versions, restarts an active system daemon against the promoted bytes, and restores/restarts the prior system installation on failure.
+- An older system CLI that predates exact-tag upgrade support is bridged only through the verified shell bootstrap's explicit Linux-only `--system-install` flag. The shell passes the flag to the downloaded, checksum-verified Rust installer; it never copies or relinks product binaries itself.
 - The installer path owns atomic stash and rollback, checksum verification, service rendering, authoritative-path promotion, and license-preserved behavior.
 - Failure output includes `failure_class=upgrade_failed`, `recovery_hint`, and next tools: `focusa recover --dry-run`, `focusa doctor --scope host`, and `focusa install --dry-run`.
 
