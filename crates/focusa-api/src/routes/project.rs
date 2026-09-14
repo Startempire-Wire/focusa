@@ -5255,6 +5255,51 @@ mod tests {
     }
 
     #[test]
+    fn explicit_clean_git_clone_binds_origin_remote() {
+        let root = temp_project("clean-clone-origin");
+        fs::create_dir_all(&root).unwrap();
+        let env: Vec<(String, String)> = std::env::vars()
+            .filter(|(key, _)| key != "GIT_DIR" && key != "GIT_WORK_TREE")
+            .collect();
+        let run = |args: &[&str]| {
+            let output = std::process::Command::new("git")
+                .args(args)
+                .current_dir(&root)
+                .env_clear()
+                .envs(env.clone())
+                .output()
+                .expect("git must be available for the clone fixture");
+            assert!(
+                output.status.success(),
+                "git {:?} failed: {:?}",
+                args,
+                output.stderr
+            );
+            output
+        };
+        run(&["init", "-q", "."]);
+        run(&[
+            "remote",
+            "add",
+            "origin",
+            "https://github.com/Startempire-Wire/agent-driven-life-business-os.git",
+        ]);
+        let candidate = discover_identity(root.to_str(), None, None, RemoteProjectHint::default());
+        assert_eq!(
+            candidate.repo_remote.as_deref(),
+            Some("https://github.com/Startempire-Wire/agent-driven-life-business-os.git")
+        );
+        assert_ne!(candidate.status, "cwd_only");
+        assert!(
+            candidate
+                .signals
+                .iter()
+                .any(|signal| signal.source == "git_common_dir")
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn identity_name_match_accepts_safe_case_and_aliases() {
         let aliases = vec!["focusa-daemon".to_string(), "focusa-cli".to_string()];
         assert!(identity_name_matches(
