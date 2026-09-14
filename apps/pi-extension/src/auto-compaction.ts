@@ -154,12 +154,13 @@ type CompactionLeaseOwner = {
   registrationId: string;
   adapterInstanceId: string;
   extensionBuild: string;
+  moduleLoadId: string;
+  moduleIdentity: string;
   registrationSource: string;
   attachmentId: string;
   nativeSession?: string;
   registeredHandlers: string[];
-  moduleLoadId: string;
-  moduleIdentity?: string;
+  extensionApi?: Pick<ExtensionAPI, "getAllTools">;
 };
 
 type CompactionOperatorOverride = {
@@ -467,6 +468,19 @@ function estimateEntryRange(entries: readonly BranchEntry[], start: number, end:
   return total;
 }
 
+function registrationApiIsActive(owner: CompactionLeaseOwner): boolean {
+  if (!owner.extensionApi) return false;
+  try {
+    owner.extensionApi.getAllTools();
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return !/stale after session replacement or reload|failed to load and its API is no longer active/i.test(
+      message
+    );
+  }
+}
+
 // Stable across duplicate module loads (including ?duplicate-install query
 // instances): the first load owns the identity, so the duplicate-install guard
 // can detect re-registration instead of treating each copy as a new owner.
@@ -516,13 +530,13 @@ export function registerAutoCompaction(
     processLease.owner = undefined;
   }
   if (processLease.owner) {
-    if (processLease.owner.moduleLoadId === MODULE_LOAD_ID) {
-      // Pi re-invokes the cached extension module for in-process session
-      // replacement. Its old runtime handlers are gone, so transfer the lease
-      // to the replacement registration instead of suppressing every Focusa
-      // tool and hook in the new session.
-      processLease.owner = undefined;
-    } else if (processLease.owner.moduleIdentity === MODULE_IDENTITY) {
+    const previousSource = processLease.owner.registrationSource;
+    const ownerIsActive = registrationApiIsActive(processLease.owner);
+    if (
+      ownerIsActive &&
+      (processLease.owner.moduleLoadId === MODULE_LOAD_ID ||
+        processLease.owner.moduleIdentity === MODULE_IDENTITY)
+    ) {
       if (!processLease.duplicateDiagnosticEmitted) {
         processLease.duplicateDiagnosticEmitted = true;
         console.warn(
@@ -532,6 +546,10 @@ export function registerAutoCompaction(
       return false;
     } else {
       processLease.owner = undefined;
+      processLease.request = undefined;
+      console.info(
+        `[focusa] compaction coordinator rebound after session replacement or reload (previous owner ${previousSource}).`
+      );
     }
   }
 
@@ -545,11 +563,12 @@ export function registerAutoCompaction(
     registrationId,
     adapterInstanceId: `pi-process-${process.pid}-${registrationId}`,
     extensionBuild: EXTENSION_BUILD,
+    moduleLoadId: MODULE_LOAD_ID,
+    moduleIdentity: MODULE_IDENTITY,
     registrationSource: REGISTRATION_SOURCE,
     attachmentId: `pending:${registrationId}`,
     registeredHandlers: [...REGISTERED_HANDLERS],
-    moduleLoadId: MODULE_LOAD_ID,
-    moduleIdentity: MODULE_IDENTITY,
+    extensionApi: pi,
   };
   processLease.duplicateDiagnosticEmitted = false;
   const ownsRegistrationLease = (): boolean => processLease.owner?.registrationId === registrationId;

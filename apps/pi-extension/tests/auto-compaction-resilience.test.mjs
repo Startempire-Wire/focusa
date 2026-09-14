@@ -28,11 +28,13 @@ function handlerBody(eventName) {
   return handlerBodyFrom(source, eventName);
 }
 
-test("module reload clears stale global owner and re-registers", () => {
-  assert.match(source, /const MODULE_LOAD_ID = randomUUID\(\)/);
-  assert.match(source, /processLease\.owner\.moduleLoadId === MODULE_LOAD_ID/);
+test("session replacement or reload clears only a stale global owner", () => {
+  assert.match(source, /function registrationApiIsActive\(/);
+  assert.match(source, /owner\.extensionApi\.getAllTools\(\)/);
+  assert.match(source, /stale after session replacement or reload/);
   assert.match(source, /processLease\.owner = undefined/);
-  assert.match(source, /moduleLoadId: MODULE_LOAD_ID/);
+  assert.match(source, /processLease\.request = undefined/);
+  assert.match(source, /extensionApi: pi/);
 });
 
 test("session reload releases stale ownership and rebinds the coordinator", () => {
@@ -194,14 +196,18 @@ test("compaction exposes elapsed heartbeat and bounded no-retry resume outcomes"
   assert.doesNotMatch(compactionSource, /Retrying automatically/);
 });
 
-test("session replacement rebinds while duplicate module loads stay suppressed", () => {
+test("session replacement rebinds while active duplicate module loads stay suppressed", () => {
   assert.match(source, /Symbol\.for\("focusa\.compaction\.coordinator\.v1"\)/);
   assert.match(source, /processLease\.owner\.moduleLoadId === MODULE_LOAD_ID/);
   assert.match(source, /processLease\.owner\.moduleIdentity === MODULE_IDENTITY/);
-  assert.match(source, /transfer the lease/);
+  assert.match(source, /registrationApiIsActive\(processLease\.owner\)/);
+  assert.match(source, /ownerIsActive/);
   assert.match(source, /duplicate extension suppressed/);
   assert.match(source, /Remove the duplicate Focusa installation and reload Pi/);
-  assert.match(source, /return false;[\s\S]{0,400}const maxTransientRetries/);
+  assert.match(source, /compaction coordinator rebound after session replacement or reload/);
+  assert.match(source, /processLease\.request = undefined;/);
+  assert.match(source, /return false;/);
+  assert.match(source, /const maxTransientRetries/);
   assert.match(indexSource, /if \(!ownsCompactionCoordinator\) return/);
   assert.match(source, /nativeCompactionCallCount >= 1/);
   assert.match(source, /nativeCompactionCallCount \+= 1/);

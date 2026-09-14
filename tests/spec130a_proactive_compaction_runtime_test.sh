@@ -54,6 +54,9 @@ function harness(
   const compactCalls = [];
   const sentMessages = [];
   const pi = {
+    getAllTools() {
+      return [];
+    },
     on(name, handler) {
       handlers.set(name, handler);
     },
