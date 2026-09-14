@@ -194,7 +194,10 @@ fi
 case "$CHANNEL" in
   stable) TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+$' ;;
   preview) TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+-(dev|rc)(\..*)?$' ;;
-  nightly) TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+-nightly(\..*)?$' ;;
+  # 2026-09-14: actual nightly releases ship as vX.Y.Z-dev-nightly.YYYYMMDD
+  # (e.g. v0.9.194-dev-nightly.20260913); the previous pattern rejected them
+  # and blocked every fresh nightly-channel bootstrap.
+  nightly) TAG_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+-(dev-)?nightly(\.[0-9]{8})?$' ;;
 esac
 printf '%s\n' "$RELEASE_TAG" | grep -Eq "$TAG_PATTERN" \
   || die "release tag $RELEASE_TAG is not valid for channel $CHANNEL"
@@ -258,8 +261,13 @@ chmod 0755 "$BOOTSTRAP_BIN"
 ARGS=(install --target="$RUST_TARGET" --channel="$CHANNEL" --github-repo="$GITHUB_REPO")
 [ "$EVAL" = 0 ] || ARGS+=(--eval)
 [ "$ACCEPT_LICENSE" = 0 ] || ARGS+=(--accept-license)
-[ "$INSTALL_DEPS" = 0 ] && ARGS+=(--no-install-dependencies) || ARGS+=(--install-dependencies)
-[ "$ASSUME_YES" = 0 ] || ARGS+=(--assume-yes)
+# The Rust installer's install_dependencies is a consent-gated bool (default
+# false) and --assume-yes *requires* it; there is no --no-install-dependencies
+# flag. Forward only what exists.
+if [ "$INSTALL_DEPS" = 1 ]; then
+  ARGS+=(--install-dependencies)
+  [ "$ASSUME_YES" = 0 ] || ARGS+=(--assume-yes)
+fi
 [ "$NO_SERVICE" = 0 ] || ARGS+=(--no-service)
 [ "$SYSTEM_INSTALL" = 0 ] || ARGS+=(--system-install)
 
