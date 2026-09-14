@@ -2,6 +2,29 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if [[ -z "${CARGO_TARGET_DIR:-}" ]]; then
+  export CARGO_TARGET_DIR="/tmp/focusa-ci-local-$$-1"
+fi
+export FOCUSA_CARGO_TARGET_DIR="${FOCUSA_CARGO_TARGET_DIR:-$CARGO_TARGET_DIR}"
+unset TEST_GIT_DIR
+cleanup_test_git() {
+  if [[ -n "${TEST_GIT_DIR:-}" ]]; then
+    unset GIT_DIR GIT_WORK_TREE
+    rm -rf -- "$TEST_GIT_DIR"
+    TEST_GIT_DIR=""
+  fi
+}
+cleanup_ephemeral_builds() {
+  cleanup_test_git
+  "$ROOT_DIR/scripts/ci/cleanup-ephemeral-build-target.sh" "$CARGO_TARGET_DIR"
+}
+trap cleanup_ephemeral_builds EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+# Fail cheap on fixture regressions before compiling the isolated daemon.
+python3 "$ROOT_DIR/tests/spec_gate_git_fixture_test.py"
+
 EXPECTED_OWNER="$(stat -c %U "$ROOT_DIR")"
 find_owner_drift() {
   find "$ROOT_DIR" -xdev     \( -path "$ROOT_DIR/.git" -o -path "$ROOT_DIR/target" -o -path '*/node_modules' -o -path "$ROOT_DIR/data" -o -path "$ROOT_DIR/ecs" \) -prune -o     -user root -print -quit
@@ -18,25 +41,84 @@ if [[ "$EXPECTED_OWNER" != root ]]; then
   fi
 fi
 
-BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:18787}"
+if [[ -z "${FOCUSA_BIND:-}" ]]; then
+  GATE_PORT="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+  export FOCUSA_BIND="127.0.0.1:${GATE_PORT}"
+else
+  GATE_PORT="${FOCUSA_BIND##*:}"
+fi
+BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:${GATE_PORT}}"
 export FOCUSA_BASE_URL="$BASE_URL"
-export FOCUSA_BIND="${FOCUSA_BIND:-127.0.0.1:18787}"
 export FOCUSA_DATA_DIR="${FOCUSA_DATA_DIR:-$(mktemp -d /tmp/focusa-spec-gates.XXXXXX)}"
+# Isolated CI daemon must exercise real entitlement path, not 403.
+# FOCUSA_TEST_MODE=1 grants a bounded test lease (active, sha256, 1h) so write
+# gating still executes. See crates/focusa-api/src/main.rs:322 and
+# crates/focusa-api/src/middleware/entitlement.rs:369.
+export FOCUSA_TEST_MODE="${FOCUSA_TEST_MODE:-1}"
+export FOCUSA_HISTORYLESS_GATE="${FOCUSA_HISTORYLESS_GATE:-0}"
+TEST_BEADS_FIXTURE=""
+TEST_GIT_DIR=""
+if [[ "$FOCUSA_TEST_MODE" == "1" ]] && ! git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  # OVH source sync intentionally excludes the worktree's .git metadata.
+  # Provide a disposable two-commit graph for read-only evidence gates;
+  # never copy or mutate repository history on the build host.
+  # Claim only absent metadata in this isolated workspace; never replace an
+  # existing repository or give the fixture a different canonical root.
+  mkdir "$ROOT_DIR/.git"
+  TEST_GIT_DIR="$ROOT_DIR/.git"
+  # Do not export Git overrides: the daemon resolves independent workspaces.
+  git init -q "$ROOT_DIR"
+  git -C "$ROOT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate base'
+  git -C "$ROOT_DIR" -c user.name=focusa-test -c user.email=focusa-test@invalid commit --allow-empty -qm 'synthetic gate head'
+  [[ "$(git rev-list --count HEAD)" == "2" ]] || {
+    echo "synthetic gate history must contain exactly two commits" >&2
+    exit 1
+  }
+fi
+if [[ "$FOCUSA_TEST_MODE" == "1" && ! -s "$ROOT_DIR/.beads/issues.jsonl" ]]; then
+  # OVH source sync intentionally excludes repository Beads history. Supply
+  # only the synthetic issue required by command-write contract tests, and
+  # remove it on every exit; never copy or mutate operator task history.
+  mkdir -p "$ROOT_DIR/.beads"
+  printf '%s\n' '{"id":"focusa-032h","status":"open"}' > "$ROOT_DIR/.beads/issues.jsonl"
+  TEST_BEADS_FIXTURE="$ROOT_DIR/.beads/issues.jsonl"
+fi
 
-DAEMON_BIN="${DAEMON_BIN:-./target/release/focusa-daemon}"
+export DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-daemon}"
 if [ ! -x "$DAEMON_BIN" ]; then
   CARGO_BIN="${CARGO_BIN:-cargo}"
+  export CARGO_PROFILE_RELEASE_LTO="${CARGO_PROFILE_RELEASE_LTO:-off}"
+  # The release daemon build with thin-LTO can exhaust CI/small-host
+  # resources.  CI workflows supply CARGO_PROFILE_RELEASE_LTO=off so the
+  # spec-gates daemon builds without cross-crate optimization; the
+  # release pipeline uses musl + cross for the shipped artifact.
   "$CARGO_BIN" build -p focusa-api --release --bin focusa-daemon
 fi
-"$DAEMON_BIN" >/tmp/focusa-daemon.log 2>&1 &
+if [ ! -x "$DAEMON_BIN" ]; then
+  echo "spec-gates daemon missing after successful build: $DAEMON_BIN" >&2
+  exit 1
+fi
+# Per-user daemon log: a root/wirebot-owned /tmp/focusa-daemon.log once
+# blocked the github-runner user from starting the daemon (EACCES).
+DAEMON_LOG="${DAEMON_LOG:-/tmp/focusa-daemon.$(id -u).log}"
+"$DAEMON_BIN" >"$DAEMON_LOG" 2>&1 &
 DAEMON_PID=$!
 cleanup() {
   kill "$DAEMON_PID" >/dev/null 2>&1 || true
   rm -rf "$FOCUSA_DATA_DIR" >/dev/null 2>&1 || true
+  if [[ -n "$TEST_BEADS_FIXTURE" ]]; then
+    rm -f "$TEST_BEADS_FIXTURE" >/dev/null 2>&1 || true
+  fi
+  cleanup_ephemeral_builds
 }
 trap cleanup EXIT
 
 for i in $(seq 1 60); do
+  if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
+    echo "spec-gates daemon exited before health on ${FOCUSA_BIND}" >&2
+    tail -60 "$DAEMON_LOG" >&2
+    exit 1
+  fi
   if curl -fsS "${BASE_URL}/v1/health" >/dev/null; then
     break
   fi
@@ -60,6 +142,7 @@ run_gate ./tests/command_write_contract_test.sh
 run_gate ./tests/trace_dimensions_test.sh
 run_gate ./tests/pi_extension_contract_test.sh
 run_gate bash ./tests/spec142_workflow_dependency_onboarding_static_test.sh
+run_gate python3 ./tests/compatibility_canary_authority_fixture_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_task_materialization_e2e_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_work_rail_e2e_test.py
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh
@@ -130,13 +213,8 @@ run_gate bash ./tests/phone_bridge_public_url_static_test.sh
 run_gate bash ./tests/phone_bridge_automatic_callback_static_test.sh
 run_gate bash ./tests/release_notes_workflow_static_test.sh
 run_gate python3 ./tests/release_tag_template_static_test.py
-run_gate python3 ./tests/spec137_temporal_authority_release_gate_test.py
-run_gate python3 ./tests/spec137a_138a_144_documentation_closure_gate.py
-run_gate python3 ./tests/spec143_trajectory_ladder_integrity_static_test.py
-run_gate python3 ./tests/spec143_ota_installability_release_gate_test.py
-run_gate python3 ./tests/spec143_project_genesis_release_gate_test.py
-run_gate python3 ./tests/spec143_project_bootstrap_release_gate_test.py
 run_gate bash ./tests/release_proof_status_route_static_test.sh
+run_gate bash ./tests/build_cruft_cleanup_test.sh
 run_gate bash ./tests/spec80_impl_parquet_export_support_test.sh
 run_gate bash ./tests/spec96_trajectory_context_tool_docs_static_test.sh
 run_gate bash ./tests/spec96_static_false_positive_guard_test.sh
@@ -147,3 +225,26 @@ done
 for fixture_mode in harness subprocess child-leak prompt-wait output-flood model-mismatch retry-failure isolated-git entitlement runner-disconnect; do
   run_gate python3 ./tests/spec133_fault_fixture.py "$fixture_mode" --lines 32
 done
+mapfile -t SPEC143_GATES < <(python3 - "$ROOT_DIR" <<'PY'
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+receipt = json.loads(
+    (root / "docs/contracts/spec143-completion-receipt.v1.json").read_text(encoding="utf-8")
+)
+for gate in receipt["gate_evidence"]:
+    path = pathlib.PurePosixPath(gate["path"])
+    if path.is_absolute() or ".." in path.parts or not path.name.startswith("spec143_"):
+        raise SystemExit(f"unsafe Spec143 gate path: {path}")
+    print(path.as_posix())
+PY
+)
+for gate in "${SPEC143_GATES[@]}"; do
+  run_gate python3 "$ROOT_DIR/$gate"
+done
+run_gate python3 "$ROOT_DIR/tests/spec144_semantic_artifacts_gate.py"
+python3 ./tests/run_spec137_138_full_conformance_gates.py
+run_gate python3 ./tests/spec137a_138a_144_documentation_closure_gate.py
+run_gate python3 ./tests/bead_closure_evidence_gate.py

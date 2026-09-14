@@ -79,6 +79,33 @@ mod url_query_stringify {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DaemonRoutingAuthority {
+    pub schema: String,
+    pub route: Value,
+    pub native_session_id: String,
+    pub status: String,
+    pub selected_daemon_id: Option<String>,
+    pub selected_endpoint: Option<String>,
+    pub health: Option<String>,
+    pub capabilities: Vec<String>,
+    pub recovery_required: bool,
+    pub failure_class: Option<String>,
+}
+
+impl DaemonRoutingAuthority {
+    pub fn display(&self) -> String {
+        format!(
+            "routing={} daemon={} health={} recovery={} failure={}",
+            self.status,
+            self.selected_daemon_id.as_deref().unwrap_or("none"),
+            self.health.as_deref().unwrap_or("unknown"),
+            self.recovery_required,
+            self.failure_class.as_deref().unwrap_or("none")
+        )
+    }
+}
+
 pub struct ApiClient {
     base_url: String,
     client: Client,
@@ -101,6 +128,55 @@ impl ApiClient {
         let url = format!("{}{}", self.base_url, path);
         let resp = self.client.get(&url).send().await?.json().await?;
         Ok(resp)
+    }
+
+    pub async fn resolve_daemon_routing(
+        &self,
+        registry: Value,
+        project_root: &str,
+        continuity_id: &str,
+        working_subpath_id: &str,
+        native_session_id: &str,
+    ) -> Result<DaemonRoutingAuthority> {
+        let url = format!("{}/v1/daemon-routing/resolve", self.base_url);
+        let response = self
+            .client
+            .post(url)
+            .json(&serde_json::json!({
+                "schema": "focusa.daemon_routing_resolve.v1",
+                "registry": registry,
+                "route": {
+                    "project_root": project_root,
+                    "continuity_id": continuity_id,
+                    "working_subpath_id": working_subpath_id
+                },
+                "native_session_id": native_session_id
+            }))
+            .send()
+            .await?;
+        if response.status() == reqwest::StatusCode::FORBIDDEN {
+            let body: Value = response.json().await.unwrap_or(Value::Null);
+            let error = body.get("error").unwrap_or(&body);
+            let code = error
+                .get("code")
+                .and_then(Value::as_str)
+                .unwrap_or("ENTITLEMENT_REQUIRED");
+            if code.starts_with("ENTITLEMENT_") {
+                let feature = error
+                    .get("required_feature")
+                    .and_then(Value::as_str)
+                    .unwrap_or("none");
+                let bucket = error
+                    .get("limit_bucket")
+                    .and_then(Value::as_str)
+                    .unwrap_or("none");
+                anyhow::bail!(
+                    "{code}: mutation blocked before execution; required_feature={feature} limit_bucket={bucket}; recovery, export, repair, and uninstall remain available"
+                );
+            }
+            anyhow::bail!("HTTP 403: mutation denied");
+        }
+        Ok(response.error_for_status()?.json().await?)
     }
 
     /// Spec104 TUI-01: Fetch with typed ScopeContext. The scope query

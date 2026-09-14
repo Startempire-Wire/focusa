@@ -1,0 +1,135 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.52
+Title: 152E.06.04 Quarantine synthetic, duplicate, and ambiguous keys
+Implementation commit: `5d1a693a` (code + fixture + test)
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§6.4 checkout email integrity / quarantine of
+synthetic, duplicate, and ambiguous keys, §20 stable failure semantics, §22.1
+inventory, §22.2 merge rules, §22.3 cutover step 6, §22.4 rollback, §23
+acceptance "Legacy install-site record" and "Duplicate request" rows); Specs
+152, 150A, 152A-D; Spec 158 implementation excluded.
+
+Exact surfaces (this atom only)
+- Key-quarantine ledger and settlement workflow:
+  docs/contracts/spec152e-key-quarantine.v1.php
+  (FocusaSpec152eKeyQuarantineSchema — wpuiai_key_quarantine_ledger,
+  wpuiai_key_quarantine_settlements, wpuiai_key_quarantine_journal, schema
+  migrations/events; FocusaSpec152eKeyQuarantineService — quarantineRecord,
+  selectCanonicalKey, settleRecord, activationLeaseGate, listQuarantined)
+- Duplicate-settlement fixtures:
+  docs/contracts/spec152e-key-quarantine-fixture.v1.json (redacted,
+  deterministic; no raw email, raw key, payment id, or secret)
+- tests/spec152e_key_quarantine_test.php (exact verification)
+
+Bounded result
+- Added the key-quarantine ledger. quarantineRecord() quarantines the four
+  named record classes — synthetic focusa_live rows, duplicate EDD/custom
+  keys, orphan payment IDs, and unresolved products/accounts — one ledger row
+  per record handle, idempotent on replay, storing only the 64-hex key digest
+  (sha256 of the key/payment id/product code/account handle), a masked key, a
+  keyed email lookup digest, and a pinned evidence digest. Every quarantine
+  reason is the surface's fail-closed registered code (EDD_ORDER_UNVERIFIED,
+  LICENSE_ACCOUNT_MISMATCH, ACCOUNT_MERGE_REVIEW_REQUIRED,
+  PRODUCT_MAPPING_REQUIRED, EDD_CUSTOMER_RESOLUTION_FAILED); no raw key, raw
+  email, payment id, or secret is ever stored or returned.
+- activationLeaseGate() denies new activation/lease from quarantined records:
+  any unresolved quarantined row denies with its recorded reason; a
+  settled-denied record denies; an unledgered key carrying a synthetic prefix
+  (focusa_live_*, synthetic_*, local_*, eval_*) denies fail-closed without any
+  ledger row; an explicitly approved canonical record (settled_approved) passes
+  — synthetic records require that separate operator approval and never pass
+  silently; a canonical key absent from the ledger remains usable.
+- Canonical selection only with proof: selectCanonicalKey() requires the keyed
+  identity digest to equal the candidate's stored digest plus evidence-backed
+  provenance; the same proof matching two duplicates is ambiguous and fails
+  closed (ACCOUNT_MERGE_REVIEW_REQUIRED) with the ambiguity journaled; a key
+  group can never hold a second canonical; replays return the stored
+  settlement. The winner is settled_approved; the other duplicates stay
+  quarantined until an explicit operator settlement.
+- Explicit operator review/settlement path: settleRecord() with a bounded
+  operator audit identity, a proof-backed approval reason (PROOF_BACKED_
+  SELECTION with evidence) or a bounded denial code, one settlement per record
+  (replays dedupe; different decisions conflict with IDEMPOTENCY_CONFLICT).
+  listQuarantined() is the bounded digest-only review queue with exact state
+  counts. Rollback is preservation-only: the ledger, settlements, and journal
+  are never deleted and EDD customer/order/refund truth is never touched.
+
+Exact verification (exit codes)
+1. `php tests/spec152e_key_quarantine_test.php` — exit 0 (run three times;
+   deterministic, byte-identical output, sha256
+   370ebb6875ac6736fe87848cbd719c73e8add3887ffacb54f6bf929a68c369a4).
+   Bounded result:
+   {"schema":"focusa.spec152e.key_quarantine_test.v1","positive_checks":251,
+   "negative_checks":15,"ledgered_records":9,"settled_approved":2,
+   "settled_denied":6,"quarantined_remaining":1,"settlements":8,
+   "gate_denials":25,
+   "fixture_digest_sha256":"9b36de8df71561339316cc4413edf315e318f51b61e03f12f98ab534fcca03da",
+   "result":"passed_fail_closed"}
+   Positive: fixture redaction/determinism (typed schema, pinned atom id,
+   no email/secret/full-key/synthetic-key material, bounded masked keys);
+   nine-record quarantine with surface-mapped reasons and sha256 key digests;
+   idempotent replay per handle with exactly one ledger row; gate denial of
+   every quarantined surface for both activation and lease with the recorded
+   reason; unledgered synthetic denial; unledgered canonical allowance;
+   proof-backed canonical selection (evidence required, correct owner digest,
+   group membership), replay of the identical selection, second-canonical
+   impossibility, unresolved-duplicate gate denial until settlement, operator
+   denial then approved-canonical allowance; ambiguous same-proof duplicates
+   failing closed and journaled; explicit operator approval making a synthetic
+   record usable; orphan/unresolved product/account settlements staying
+   fail-closed; digest-only operator listing with exact state counts
+   (quarantined 1 / settled_approved 2 / settled_denied 6) and surface filter;
+   hygiene (no unmasked email, synthetic key, duplicate EDD key, custom key,
+   payment id, account handle, secret prefix, or full key pattern in any
+   ledger, settlement, journal, or listing; every event journaled); and
+   preservation-only rollback journaling.
+   Negative: canonical selection without evidence, with the wrong owner digest,
+   and of a foreign-group record; second canonical in a settled group;
+   ambiguous same-proof selection; settling unknown records; approval without
+   the proof-backed reason; denial with an unbounded reason; re-settlement with
+   a different decision; silent re-quarantine of an approved canonical record;
+   unknown surface, non-mapped reason, and missing key on quarantine; unknown
+   gate purpose; unbounded ledger page limit.
+
+Regression checks (exit codes)
+- All 33 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  key-quarantine test and all prior tests.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  ("Spec 152E activation contracts are current"; no new error codes).
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0 (596-record
+  redacted inventory unchanged; its file was not touched).
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom):
+  tests/spec152e_document_authority_test.py (exit 1, spec152-final-audit-status
+  publication_rule wording gated on focusa-vbcqu.20.13.63 / focusa-vbcqu.20.14.52)
+  and tests/spec152f_surface_reconciliation_contract_test.py (exit 1, Spec 152F
+  reconciliation index stale at the base commit).
+
+Tests added
+- spec152e_key_quarantine_test.php: 251 positive + 15 negative checks covering
+  the quarantine ledger schema and every named surface; synthetic focusa_live
+  rows, duplicate EDD/custom keys, orphan payment IDs, and unresolved
+  products/accounts; gate fail-closed denial for activation and lease with
+  recorded reasons; canonical selection only with proof; the duplicate
+  settlement path (proof-backed canonical + operator denial + operator
+  approval); ambiguity journaling; digest-only operator listing; hygiene
+  redaction; and preservation-only rollback. The fixture
+  (spec152e-key-quarantine-fixture.v1.json) carries only masked keys, keyed
+  groups, and evidence — never raw keys, emails, payment ids, or secrets;
+  test-only key material never enters the fixture or the ledger.
+
+Rollback
+- Revert only implementation commit `5d1a693a` (and this evidence record if
+  required). Preserve EDD customer/order/refund truth, verified identities,
+  licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration
+  journals; the key-quarantine ledger, settlements, and journal are
+  preservation-only and never deleted.
+
+No push, deploy, release, merge, or Beads mutation was performed.

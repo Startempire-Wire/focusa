@@ -2,6 +2,18 @@
 
 Current local Focusa runtime configuration keys used by bounded memory/payload paths.
 
+## Canonical Linux system runtime
+
+| Key | Default | Meaning |
+|---|---:|---|
+| `FOCUSA_HOME` | `/usr/local/lib/focusa` | Canonical system state root rendered by the Rust installer. |
+| `FOCUSA_DATA_DIR` | `/usr/local/lib/focusa` | Canonical system data root; must resolve to the same directory as `FOCUSA_HOME`. |
+| `FOCUSA_DAEMON_URL` | `http://127.0.0.1:8787/v1/health` | Post-activation health/version probe. A base URL is accepted by the compatibility adapter and normalized by the deployment workflow. |
+
+The system installer rejects alternate system state roots. Development and test
+runtimes may use isolated temporary roots, but a checkout path is never a
+production system data root.
+
 ## Pi extension orientation
 
 | Key | Default | Meaning |
@@ -28,8 +40,9 @@ Eviction telemetry appears in `/v1/metacognition/status` under `eviction_telemet
 | Key | Default | Meaning |
 |---|---:|---|
 | `FOCUSA_MEMORY_PRESSURE_RSS_KB` | unset | Enables explicit pressure mode when daemon RSS reaches threshold. |
-| `FOCUSA_LOWMEM_RSS_SOFT_MB` | `700` | Enters LowMem posture at audit-warning RSS; hot routes stay callable while cold payloads prune/defer. |
-| `FOCUSA_LOWMEM_RSS_HARD_MB` | `1000` | Enters emergency posture near audit-critical RSS; Workpoint routes return bounded/pending envelopes instead of blocking. |
+| `FOCUSA_LOWMEM_RSS_SOFT_MB` | `700` | Canonical soft RSS limit. Enters LowMem posture at audit-warning RSS; hot routes stay callable while cold payloads prune/defer. |
+| `FOCUSA_LOWMEM_RSS_HARD_MB` | `1000` | Canonical hard RSS limit. Enters emergency posture near audit-critical RSS; Workpoint routes return bounded/pending envelopes instead of blocking. |
+| `FOCUSA_MEMORY_BUDGET_MB` | unset | Deprecated compatibility alias for the hard RSS limit. Used only when `FOCUSA_LOWMEM_RSS_HARD_MB` is absent; status reports the resolved ResourceMode budget. |
 | `FOCUSA_ONTOLOGY_WORLD_DEFAULT_OBJECT_LIMIT` | `256` | Default object page for `/v1/ontology/world`. |
 | `FOCUSA_ONTOLOGY_WORLD_DEFAULT_LINK_LIMIT` | `512` | Default link page for `/v1/ontology/world`. |
 | `FOCUSA_ONTOLOGY_WORLD_FULL_OBJECT_LIMIT` | `10000` | Hard object ceiling for explicit full ontology world reads. |
@@ -42,4 +55,4 @@ Eviction telemetry appears in `/v1/metacognition/status` under `eviction_telemet
 | `FOCUSA_REFERENCES_SALIENT_DEFAULT_LIMIT` | `50` | Default salient-reference page. |
 | `FOCUSA_REFERENCES_SALIENT_FULL_LIMIT` | `512` | Hard salient-reference full-read ceiling. |
 
-`GET /v1/telemetry/memory` exposes current RSS/peak RSS, store counts, caps, pressure status/last transition, route budgets, and response-size histograms.
+`GET /v1/telemetry/memory` exposes current RSS/peak RSS, store counts, caps, pressure status/last transition, route budgets, and response-size histograms. `GET /v1/status` consumes the same resolved `LowMemBudget`; its legacy `runtime_memory.memory_budget_mb` field mirrors `rss_hard_mb`, while `rss_soft_mb`, `rss_hard_mb`, and `budget_authority=resource_mode` make the canonical policy explicit. If a legacy hard limit is below the default soft limit, the resolved soft limit is clamped to that hard limit.

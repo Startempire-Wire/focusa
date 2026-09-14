@@ -83,6 +83,23 @@ Expose Focusa CLI/HTTP routes as MCP tools with these tool names or equivalents:
 
 MCP wrappers must pass through `canonical`, `advisory`, `degraded`, `failure_class`, `retry`, `next_tools`, and `evidence_refs` fields without rewriting authority semantics.
 
+## Grant-scoped SMS OTP injection
+
+The grant and target handles below are opaque values issued by the credential authority/control plane. Never place an OTP value in an argument, response, log, screenshot, or model prompt.
+
+CLI:
+
+```bash
+focusa sms otp-challenge --provider github.com --target-handle "$TARGET_HANDLE" \
+  --grant-id "$GRANT_ID" --consumer-ref "$CONSUMER_REF" --json
+focusa sms otp-inject --challenge-handle "$CHALLENGE_HANDLE" --target-handle "$TARGET_HANDLE" \
+  --grant-id "$GRANT_ID" --consumer-ref "$CONSUMER_REF" --json
+```
+
+REST adapters send the same fields to `POST /v1/sms/otp/challenges` and `POST /v1/sms/otp/inject`, preserving `tool_result_v1`. MCP/OpenClaw adapters use `focusa_sms_otp_challenge` then `focusa_sms_otp_inject`. They may display challenge/status handles and `injected=true`; they must not add a reveal step.
+
+Thread/read/search/send/event operations require separately issued capabilities even when the same consumer holds an OTP grant. Send additionally requires `confirm=true` and an idempotency key. Revoke additionally requires explicit owner confirmation.
+
 ## Required contract checklist
 
 - Read awareness card.

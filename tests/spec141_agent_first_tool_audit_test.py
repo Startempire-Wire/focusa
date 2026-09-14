@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import json
+import importlib.util
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -7,14 +9,45 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/audit-agent-first-tool-surfaces.py"
 RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
+route_spec = importlib.util.spec_from_file_location(
+    "route_classification", ROOT / "scripts/generate-agent-route-classification.py"
+)
+route_classifier = importlib.util.module_from_spec(route_spec)
+route_spec.loader.exec_module(route_classifier)
+subprocess.run(
+    ["python3", str(ROOT / "tests/spec141_route_test_module_exclusion_test.py")],
+    cwd=ROOT,
+    check=True,
+)
+
+subprocess.run(
+    ["python3", str(ROOT / "tests/613_source_inventory_utf8_test.py")],
+    cwd=ROOT,
+    check=True,
+)
 
 workflow = RELEASE_WORKFLOW.read_text()
-assert "open-issue-release-gate:" in workflow
-assert 'startswith("release-gate:")' in workflow
-assert (
-    "needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate]"
-    in workflow
-)
+# Tracking state is not installed evidence: collecting proof must not depend
+# on prematurely closing the issue that requires that proof.
+assert "open-issue-release-gate:" not in workflow
+assert "needs: [rust-check, final-release-gap-gate, pull-request-release-gate, version-policy]" in workflow
+# Live-corrected 2026-09-09: the predeployment compatibility canary gate was
+# removed from the release chain by operator decision 2026-09-08 (commit
+# 02210e9f6 — the canary authority inputs were never enrolled, so the gate
+# could never run); the deployment wires onto checksums instead. The test now
+# asserts the DECIDED shape: no canary gate in the chain, and the deploy
+# workflow carries the checksum-verified OTA installability path.
+assert "predeployment-compatibility-canary:" not in workflow
+assert "needs: predeployment-compatibility-canary" not in workflow
+deploy_workflow = (ROOT / ".github/workflows/deploy-live-daemon.yml").read_text()
+proof_steps = [
+    "Verify installed distribution parity",
+    "Gate OTA installability against signed deployed release",
+    "Settle signed release manifest after OTA acceptance",
+    "Promote accepted stable release to Latest",
+]
+positions = [deploy_workflow.index(step) for step in proof_steps]
+assert positions == sorted(positions)
 
 with tempfile.TemporaryDirectory(prefix="focusa-spec141-") as tmp:
     report_path = Path(tmp) / "audit.json"
@@ -32,6 +65,46 @@ with tempfile.TemporaryDirectory(prefix="focusa-spec141-") as tmp:
         check=True,
     )
     report = json.loads(report_path.read_text())
+    subprocess.run(
+        [
+            "python3",
+            str(ROOT / "scripts/generate-agent-route-classification.py"),
+            "--check",
+        ],
+        cwd=ROOT,
+        check=True,
+    )
+    classification = json.loads(
+        (
+            ROOT
+            / "docs/contracts/spec141/generated-capability-v2/route-classification.json"
+        ).read_text()
+    )
+    classified_paths = {item["path"] for item in classification["routes"]}
+    constant_route_paths = set()
+    for source in sorted((ROOT / "crates/focusa-api/src").rglob("*.rs")):
+        body = route_classifier.without_inline_test_modules(source.read_text(errors="strict"))
+        constants = dict(
+            re.findall(
+                r'^\s*(?:pub(?:\([^)]*\))?\s+)?const\s+([A-Z][A-Z0-9_]*)\s*:\s*&str\s*=\s*"([^"]+)"\s*;',
+                body,
+                re.M,
+            )
+        )
+        route_constants = set(
+            re.findall(r'^\s*\.route\(\s*([A-Z][A-Z0-9_]*)\s*,', body, re.M)
+        )
+        assert route_constants <= constants.keys(), (
+            f"{source.relative_to(ROOT)} has unresolved route constants: "
+            f"{sorted(route_constants - constants.keys())}"
+        )
+        constant_route_paths.update(constants[name] for name in route_constants)
+    assert constant_route_paths <= classified_paths, (
+        "constant-backed Axum routes missing from classification: "
+        f"{sorted(constant_route_paths - classified_paths)}"
+    )
+    assert "/v1/task-plans/mutate" in constant_route_paths
+
     assert report["schema"] == "focusa.agent_first_tool_audit.v1"
     assert report["status"] in {"pass", "gaps_found"}
     assert report["release_gate"] in {"pass", "fail"}

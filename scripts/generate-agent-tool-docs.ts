@@ -20,6 +20,20 @@ function inline(value: unknown): string {
   return JSON.stringify(value);
 }
 
+const docsRefs = new Map<string, string>();
+for (const descriptor of registry.descriptors) {
+  const toolName = descriptor.tool_names?.pi;
+  const expectedRef = `docs/focusa-tools/tools/${toolName}.md`;
+  if (descriptor.docs_ref !== expectedRef) {
+    throw new Error(`${toolName}: generated docs_ref must be ${expectedRef}, received ${descriptor.docs_ref}`);
+  }
+  const previous = docsRefs.get(descriptor.docs_ref);
+  if (previous) {
+    throw new Error(`${toolName}: generated docs_ref collides with ${previous}: ${descriptor.docs_ref}`);
+  }
+  docsRefs.set(descriptor.docs_ref, toolName);
+}
+
 const operationalNotes: Record<string, string[]> = {
   focusa_evidence_capture: [
     "Trajectory-aware evidence supplies proof alignment metadata for the active trajectory and its HLT, MLG, and STG context without expanding the evidence payload.",

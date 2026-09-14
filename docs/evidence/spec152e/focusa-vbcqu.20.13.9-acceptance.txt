@@ -1,0 +1,71 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.9
+Title: 152E.01.05 Implement verification challenge start and delivery
+Implementation commit: e8c07fa3319d280cdf2169f42d51b5ee49172bdd
+
+Exact surfaces
+- docs/contracts/spec152e-challenge-service.v1.php
+- docs/contracts/spec152e-transactional-mail-adapter.v1.php
+- docs/contracts/spec152e-rate-limiter.v1.php
+- docs/contracts/spec152e-activation-start-handler.v1.php
+- tests/spec152e_verification_start_test.php
+
+Bounded result
+- Added ChallengeService: generates single-use magic links and OTP codes, hashes
+  verifiers for storage with independent key derivation, validates submitted
+  verifiers against stored hashes. Challenge kind (magic link vs OTP) is selected
+  based on facade presenter capabilities. Magic links are bound to the exact
+  facade origin and verification path from the registry.
+- Added TransactionalMailAdapter: sends branded verification challenge emails
+  using facade registry sender identity, display name, and brand assets. Magic
+  link emails contain a branded CTA button; OTP emails contain a monospace code
+  display. Templates are plain PHP strings with no secrets, no raw email in
+  subject lines, and no promotional content. Delivery notifications are
+  supported for post-entitlement lifecycle events.
+- Added RateLimiter: enumeration-resistant rate limiting per facade + opaque
+  client key + route. Window-based counting with a separate consecutive cap.
+  Both allowed and denied attempts are counted identically; callers cannot
+  distinguish rate-limited from other denial reasons. Cleanup is time-based
+  and self-expiring.
+- Added ActivationStartHandler: validates product/facade from the authoritative
+  registry, creates a pending registration via the repository, delivers the
+  branded challenge via the mail adapter, and returns a masked envelope.
+  Invalid/rate-limited input returns enumeration-resistant responses.
+  No EDD customer, order, license, node, or lease is created during start.
+  Idempotency keys prevent duplicate delivery; replayed requests return the
+  same registration without resending email.
+- Added ActivationStartPresenter: produces a safe, enumeration-resistant public
+  result with masked email; never exposes raw email, verifier, poll credential,
+  license key, or EDD internals.
+
+Exact verification (exit codes)
+1. php tests/spec152e_verification_start_test.php — exit 0.
+   result: passed_fail_closed; 30 positive checks, 12 negative checks.
+
+Regression checks (exit codes)
+- php tests/spec152e_registration_schema_test.php — exit 0 (passed_fail_closed)
+- php tests/spec152e_registration_transition_test.php — exit 0 (passed_fail_closed)
+- php tests/spec152e_email_identity_schema_test.php — exit 0 (passed_fail_closed)
+- php tests/spec152e_facade_protocol_test.php — exit 0 (passed_fail_closed)
+- php tests/spec152e_facade_security_test.php — exit 0 (passed_fail_closed)
+- php tests/spec152e_facade_registry_test.php — exit 0 (passed)
+- php tests/spec152e_product_registry_test.php — exit 0 (passed)
+- php tests/spec152e_edd_customer_adapter_test.php — exit 0 (passed_fail_closed)
+- php tests/spec152e_authority_account_schema_test.php — exit 0 (passed_fail_closed)
+
+Tests added
+- tests/spec152e_verification_start_test.php: 30 positive checks covering
+  valid activation start, idempotency replay, magic link and OTP challenge
+  delivery, facade-branded email templates, rate limiter independent counting,
+  challenge service validation, and masked presenter output; 12 negative checks
+  covering unregistered facade origin, unregistered product, facade product
+  allowlist, invalid email enumeration resistance, rate limiting, and
+  indistinguishable known/unknown facade failure responses.
+
+Rollback
+- Revert only the implementation files listed in Exact surfaces above.
+  Preserve customers, orders, refunds, licenses, nodes, sequences, verified
+  identities, registrations, credentials, Workpoints, Evidence, and migration
+  journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.

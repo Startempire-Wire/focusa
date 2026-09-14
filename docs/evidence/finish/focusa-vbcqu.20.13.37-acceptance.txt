@@ -1,0 +1,3 @@
+focusa-vbcqu.20.13.37 152E.04.06 — REAL 2026-08-18
+Commit: 4ea16f5afda1c74ec18c981938d5541609ac8492
+python3 tests/spec152e_recovery_only_surface_test.py PASS

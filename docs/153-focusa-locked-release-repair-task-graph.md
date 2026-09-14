@@ -186,68 +186,37 @@ A task is not done unless all applicable items exist:
 - exact installed-version proof
 - two clean live E2E runs for terminal gates
 
-## 4. Open baseline issue decomposition
+## 4. Release-specific reconstructed lanes
 
-All nine open GitHub baseline issues remain open. Their canonical implementation work is decomposed into 74 ordered child tasks under the locked-release root; the separately discovered all-surface release repair adds seven more. Each child has a concrete description, acceptance criterion, parent, and blocking edge to its predecessor.
+Only two post-lock reconstructed lanes remain connected to the locked-release root because they directly implement the operator-authorized repair of the mangled prior release: GH#106 release governance and the REL19 all-surface publication repair. Broad GitHub epics #45, #52, #89, #101, #107, #112, #114, and #119 remain valid repository/future work but are excluded as release admissions. Their code and historical evidence remain intact; their Beads have no locked-release label, no locked-release parent, and no active publication-blocking edge.
 
-| GitHub issue | Canonical Bead epic | Children | Primary dependency |
+| Obligation | Canonical Bead epic | Children | Release role |
 |---|---|---:|---|
-| #119 licensing/onboarding | `focusa-vbcqu.10` | 12 | foundational authority lane |
-| #45 scoped refresh | `focusa-vbcqu.11` | 9 | isolated Mission Canvas PR only at child `11.6`; post-compaction Pi widget at `11.9` |
-| #89 daemon multiplexing | `focusa-vbcqu.12` | 8 | independent runtime lane |
-| #101 managed convergence | `focusa-vbcqu.13` | 9 | #89 and #119 |
-| #106 release governance | `focusa-vbcqu.14` | 5 | all technical baseline epics |
-| #107 Letta adapter | `focusa-vbcqu.15` | 8 | independent adapter lane |
-| #112 adaptive compaction | `focusa-vbcqu.16` | 9 | independent controller lane |
-| #114 UIAI challenge capability | `focusa-vbcqu.17` | 7 | external UIAI capability contract |
-| #52 final consolidation | `focusa-vbcqu.18` | 7 | #45, #89, #101, #106, #107, #112, #114, #119 |
-| all-surface release repair | `focusa-vbcqu.19` | 7 | candidate assembly waits for #52 |
+| #106 release governance | `focusa-vbcqu.14` | 5 | reconcile immutable r7, explicit operator additions, candidate ancestry, and evidence |
+| all-surface release repair | `focusa-vbcqu.19` | 7 | repair Windows/assets/install/OTA/publication without rewriting `v0.9.143` |
+
+`focusa-vbcqu.10` remains the immutable r7 composable-widget task. The colliding post-release GH#119 reconstruction was moved to `focusa-vbcqu.20` and is now deferred outside the release root; historical child identities and implementation evidence remain preserved.
 
 ### 4.1 Cross-epic order
 
 ```mermaid
 flowchart LR
-  L119[#119 licensing]
-  M89[#89 multiplexing]
-  C101[#101 convergence]
-  R45[#45 refresh]
-  A107[#107 Letta]
-  P112[#112 compaction]
-  U114[#114 UIAI challenge]
-  G106[#106 governance]
-  O52[#52 consolidation]
-  REL[all-surface stable release]
+  R7[Immutable r7 plus explicit operator additions]
+  G106[#106 governance reconciliation]
+  REL[REL19 all-surface stable release]
   FINAL[installed double-run closure]
 
-  L119 --> C101
-  M89 --> C101
-  L119 --> G106
-  M89 --> G106
-  C101 --> G106
-  R45 --> G106
-  A107 --> G106
-  P112 --> G106
-  U114 --> G106
-  G106 --> O52
-  L119 --> O52
-  M89 --> O52
-  C101 --> O52
-  R45 --> O52
-  A107 --> O52
-  P112 --> O52
-  U114 --> O52
-  O52 --> REL
+  R7 --> G106
+  G106 --> REL
   REL --> FINAL
 ```
 
 ### 4.2 Ready work versus blocked work
 
-- Ready in parallel: `10.1`, `11.1`, `12.1`, `15.1`, `16.1`, `17.1`, and release artifact contract/Windows preflight work `19.1`–`19.2`.
-- `11.9` explicitly owns post-compaction North Star completeness: exact scope authority, coherent state, bounded operation counts/pagination, readable narrow-width rendering, and zero private-context leakage; final #45 acceptance `11.8` depends on it.
-- #101 implementation begins only after multiplexing and licensing authority foundations are accepted.
-- #106 reconciliation begins only after every technical epic reaches accepted closure.
-- #52 is the final baseline consolidation gate and cannot begin terminal acceptance while any upstream epic remains open.
-- Release candidate assembly at `19.3` depends on #52; publication never rewrites `v0.9.143`.
-- `focusa-vbcqu.8` depends on the release epic and remains the final installed double-run acceptance gate.
+- `14.1`–`14.5` reconcile only immutable r7 identities, exact operator-authorized additions, and scope-preserving corrections.
+- Release artifact contract/Windows preflight work `19.1`–`19.2` remains independently eligible.
+- Candidate assembly at `19.3` waits on both `19.2` and GH#106 governance, not on any excluded future epic.
+- Publication never rewrites `v0.9.143`.
+- `focusa-vbcqu.8` remains the original installed double-run acceptance gate.
 
 Dependency-cycle audit: zero active cycles. Administrative issue closure is not a dependency substitute.

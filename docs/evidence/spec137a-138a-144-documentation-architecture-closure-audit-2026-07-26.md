@@ -1,6 +1,6 @@
 # Specs 137A, 138A, and 144 Documentation Architecture Closure Audit
 
-Generated: `2026-07-31T17:03:56+00:00`
+Generated: `2026-09-04T10:19:11+00:00`
 
 ## Verdict
 
@@ -14,12 +14,12 @@ The documentation architecture is closed at the source-contract level:
 
 ## Runtime boundary
 
-This audit does **not** claim runtime implementation, activation, or full conformance. Spec 137 remains verified in slices pending combined 137 + 137A closure proof. Spec 138 remains partial/profile-subset runtime work pending full Profiles A–H proof. Spec 144 remains unactivated until Spec 143 closes and the operator explicitly activates implementation.
+This documentation audit does not independently prove runtime or release state. Spec 137 remains verified in slices pending combined 137 + 137A closure proof. Combined Spec 138 + 138A runtime conformance is separately bound to `release-proof/audit/spec138-runtime-receipt.json`. Spec 144 runtime implementation is separately bound to `release-proof/audit/spec144-spec150-double-e2e-receipt.json`. Those source-runtime receipts do not prove stable release, installation, or current-distribution parity.
 
 ## Coverage counts
 
-- Spec 137 + 137A source atoms: `2401`; normative requirements: `1173`
-- Spec 138 + 138A source atoms: `2738`; normative requirements: `542`
+- Spec 137 + 137A source atoms: `2383`; normative requirements: `1166`
+- Spec 138 + 138A source atoms: `2736`; normative requirements: `540`
 - Spec 144 source atoms: `1439`; normative requirements: `677`
 
 The machine-readable source of truth is `docs/contracts/spec137a-138a-144-documentation-architecture-closure-manifest.v1.yaml`.

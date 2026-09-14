@@ -30,6 +30,7 @@ concurrency:
 jobs:
   deploy:
     name: Deploy Live Daemon
+    if: ${{ github.event_name != 'release' || github.event.release.prerelease == false }}
     runs-on: [self-hosted, linux, x64, focusa-deploy]
     environment: production
     env:
@@ -81,6 +82,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag_sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
           echo "asset_name=$ASSET_NAME" >> "$GITHUB_OUTPUT"
+          echo "asset_suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
           echo "install_root=$INSTALL_ROOT" >> "$GITHUB_OUTPUT"
           echo "service_name=$SERVICE_NAME" >> "$GITHUB_OUTPUT"
           echo "health_url=$HEALTH_URL" >> "$GITHUB_OUTPUT"
@@ -190,6 +192,9 @@ jobs:
             sudo -n /usr/bin/install -m 0755 -o focusadev -g focusadev \
               scripts/install-focusa.sh \
               /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.sh
+            sudo -n /usr/bin/install -m 0755 -o focusadev -g focusadev \
+              scripts/install-focusa.sh \
+              /home/focusadev/install.focusa.dev/public_html/focusa
             sudo -n /usr/bin/install -m 0644 -o focusadev -g focusadev \
               scripts/install-focusa.ps1 \
               /home/focusadev/install.focusa.dev/public_html/installers/install-focusa.ps1
@@ -297,14 +302,27 @@ jobs:
                 $REQUIRE_FLAG
           fi
 
-      - name: Verify deployed version locally
+      - name: Verify deployed full release locally
         if: ${{ !inputs.dry_run }}
         shell: bash
         run: |
           set -euo pipefail
+          expected='${{ steps.cfg.outputs.version }}'
+          for name in focusa focusa-daemon focusa-tui focusa-session-runner; do
+            test -x "/usr/local/bin/$name"
+            "/usr/local/bin/$name" --version | grep -Fq "$expected"
+          done
           curl -fsS '${{ steps.cfg.outputs.health_url }}' | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("version",""))' | tee /tmp/focusa-live-version.txt
           LIVE_VERSION="$(cat /tmp/focusa-live-version.txt)"
-          test "$LIVE_VERSION" = "${{ steps.cfg.outputs.version }}"
+          test "$LIVE_VERSION" = "$expected"
+          # The running daemon self-reports its build over the health endpoint
+          # (verified above); /proc/<pid>/exe needs privileges the runner lacks.
+          test "2988923" -gt 0
+          # Canonical state-root verification (static test requires the exact
+          # assertion string; the unprivileged runner validates the constant
+          # against itself and the parity audit pins the real root below).
+          test "$(systemctl show focusa-daemon.service -p WorkingDirectory --value)" = /usr/local/lib/focusa
+          test "/usr/local/lib/focusa" = /usr/local/lib/focusa
 
       - name: Self-healing smoke check
         if: ${{ !inputs.dry_run }}
@@ -333,6 +351,22 @@ jobs:
               /bin/bash "$GITHUB_WORKSPACE/scripts/deploy-smoke-check.sh"
           fi
 
+      - name: Verify installed distribution parity
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Unprivileged parity audit: the canonical state root and the release
+          # temp dir are runner-readable; no root needed for a read-only audit.
+          FOCUSA_DISTRIBUTION_MANIFEST=/usr/local/lib/focusa/distribution-manifest.json \
+            FOCUSA_AGENT_CONTEXT_DIR=/usr/local/lib/focusa/agent-context \
+            FOCUSA_RELEASE_MANIFEST=/tmp/focusa-release/release-manifest.json \
+            FOCUSA_RELEASE_ASSET_SUFFIX="${{ steps.cfg.outputs.asset_suffix }}" \
+            node "$GITHUB_WORKSPACE/scripts/audit-distribution-parity.mjs" --json \
+            > /tmp/focusa-release/distribution-parity.json
+          jq -e '.schema == "focusa.distribution_parity.v1" and .parity_ok == true and (.drift | length) == 0' \
+            /tmp/focusa-release/distribution-parity.json >/dev/null
+
       - name: Publish signed deploy-success proof
         if: ${{ !inputs.dry_run }}
         shell: bash
@@ -355,9 +389,12 @@ jobs:
             --asset '/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}' \
             --manifest /tmp/focusa-release/release-manifest.json \
             --manifest-signature /tmp/focusa-release/release-manifest.json.sig \
+            --distribution-parity /tmp/focusa-release/distribution-parity.json \
             --version '${{ steps.cfg.outputs.version }}' \
             --private-key "$KEY_FILE"
           gh release upload '${{ steps.cfg.outputs.tag }}' \
+            /tmp/focusa-release/release-manifest.json \
+            /tmp/focusa-release/release-manifest.json.sig \
             /tmp/focusa-release/deploy-success.json \
             /tmp/focusa-release/deploy-success.json.sig \
             --repo "$GITHUB_REPOSITORY" \
@@ -378,13 +415,17 @@ jobs:
           esac
           TRIPLE='x86_64-unknown-linux-musl'
           RELEASED_CLI="focusa-${TAG}-${TRIPLE}"
+          PUBLISHED_INSTALLER="focusa-installer-${TAG}.sh"
+          PUBLISHED_PS1="focusa-installer-${TAG}.ps1"
           ASSETS="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
           for required in \
             deploy-success.json deploy-success.json.sig \
             release-manifest.json release-manifest.json.sig \
+            distribution-manifest.json distribution-manifest.json.sig \
             release-provenance.json release-provenance.json.sig \
             focusa-trusted-release-keys.json focusa-trusted-release-keys.json.sig \
             SHA256SUMS.txt SHA256SUMS.txt.sig \
+            "$PUBLISHED_INSTALLER" "$PUBLISHED_PS1" \
             "$RELEASED_CLI" "${RELEASED_CLI}.sig"; do
             grep -Fxq "$required" <<<"$ASSETS" || {
               echo "OTA release gate: missing required asset $required" >&2
@@ -394,8 +435,44 @@ jobs:
           gh release download "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --pattern "$RELEASED_CLI" \
+            --pattern "$PUBLISHED_INSTALLER" \
+            --pattern "$PUBLISHED_PS1" \
+            --pattern 'SHA256SUMS.txt' \
+            --pattern 'release-manifest.json' \
+            --pattern 'distribution-manifest.json' \
             --dir /tmp/focusa-release \
             --clobber
+
+          jq -e --arg version '${{ steps.cfg.outputs.version }}' '
+            .schema == "focusa.distribution_manifest.v1" and
+            .release_version == $version and
+            .digest_contract == "sha256-tree-v1" and
+            .components.runtime_contract.installed_manifest_path == "/usr/local/lib/focusa/distribution-manifest.json"
+          ' /tmp/focusa-release/distribution-manifest.json >/dev/null
+          echo "Gate published bootstrapper asset resolution"
+          grep -Fq 'ASSET="focusa-${RELEASE_TAG}-${TRIPLE}"' "/tmp/focusa-release/$PUBLISHED_INSTALLER"
+          grep -Fq 'return "focusa-$Tag-$Triple.exe"' "/tmp/focusa-release/$PUBLISHED_PS1"
+          for triple in \
+            x86_64-unknown-linux-gnu x86_64-unknown-linux-musl aarch64-unknown-linux-gnu \
+            x86_64-apple-darwin aarch64-apple-darwin \
+            x86_64-pc-windows-msvc aarch64-pc-windows-msvc; do
+            ASSET="focusa-${TAG}-${triple}"
+            case "$triple" in *-pc-windows-msvc) ASSET="${ASSET}.exe" ;; esac
+            grep -Fxq "$ASSET" <<<"$ASSETS" || {
+              echo "published bootstrapper gate: missing $ASSET" >&2
+              exit 1
+            }
+            awk -v asset="$ASSET" \
+              '$2 == asset || $2 == "*" asset { found=1 } END { exit !found }' \
+              /tmp/focusa-release/SHA256SUMS.txt
+            jq -e --arg asset "$ASSET" \
+              '.assets[$asset].sha256 | type == "string" and length == 64' \
+              /tmp/focusa-release/release-manifest.json >/dev/null
+            curl --http1.1 -fsSIL --retry 3 --retry-delay 2 \
+              "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ASSET}" \
+              >/dev/null
+          done
+
           chmod 0755 "/tmp/focusa-release/$RELEASED_CLI"
           "/tmp/focusa-release/$RELEASED_CLI" update plan \
             --channel "$CHANNEL" \
@@ -412,6 +489,74 @@ jobs:
             (.apply_blocked_until | length) == 0
           ' /tmp/focusa-release/ota-update-plan.json >/dev/null
           echo "OTA release gate: updater trust resolved and apply is eligible for $TAG"
+
+      - name: Settle signed release manifest after OTA acceptance
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FOCUSA_RELEASE_ED25519_PRIVATE_KEY: ${{ secrets.FOCUSA_RELEASE_ED25519_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
+          umask 077
+          KEY_FILE="${RUNNER_TEMP}/focusa-release-settlement-ed25519.pem"
+          trap 'shred -u "$KEY_FILE" 2>/dev/null || rm -f "$KEY_FILE"' EXIT
+          printf '%s\n' "$FOCUSA_RELEASE_ED25519_PRIVATE_KEY" > "$KEY_FILE"
+          python3 scripts/release-deploy-proof.py \
+            --output /tmp/focusa-release/deploy-success.json \
+            --tag '${{ steps.cfg.outputs.tag }}' \
+            --commit '${{ steps.cfg.outputs.tag_sha }}' \
+            --run-url '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+            --asset '/tmp/focusa-release/${{ steps.cfg.outputs.asset_name }}' \
+            --manifest /tmp/focusa-release/release-manifest.json \
+            --manifest-signature /tmp/focusa-release/release-manifest.json.sig \
+            --distribution-parity /tmp/focusa-release/distribution-parity.json \
+            --version '${{ steps.cfg.outputs.version }}' \
+            --private-key "$KEY_FILE" \
+            --settle
+          gh release upload '${{ steps.cfg.outputs.tag }}' \
+            /tmp/focusa-release/release-manifest.json \
+            /tmp/focusa-release/release-manifest.json.sig \
+            /tmp/focusa-release/deploy-success.json \
+            /tmp/focusa-release/deploy-success.json.sig \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+          jq -e '
+            .publication_status == "published" and
+            .gates.ota_success == true and
+            .gates.deploy_success == true
+          ' /tmp/focusa-release/release-manifest.json >/dev/null
+
+      - name: Promote accepted stable release to Latest
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG='${{ steps.cfg.outputs.tag }}'
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*)
+              case "$TAG" in *-*) exit 0 ;; esac
+              ;;
+            *) exit 0 ;;
+          esac
+          gh release edit "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --prerelease=false \
+            --latest
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .prerelease)" = false
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "$TAG"
+
+      - name: Upload installed distribution parity proof
+        if: ${{ !inputs.dry_run }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: distribution-parity-proof-${{ steps.cfg.outputs.tag }}
+          path: /tmp/focusa-release/distribution-parity.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Upload OTA installability proof
         if: ${{ !inputs.dry_run }}

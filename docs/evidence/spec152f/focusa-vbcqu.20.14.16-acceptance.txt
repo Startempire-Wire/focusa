@@ -1,0 +1,29 @@
+Spec 152F acceptance record
+Work item: focusa-vbcqu.20.14.16
+Title: 152F.01.04 Add fail-closed entitlement gating for unclassified REST GET routes
+
+Exact surfaces
+- crates/focusa-api/src/middleware/entitlement.rs
+
+Result
+- Added GET/HEAD/OPTIONS gating logic to fail-closed when a route has no authoritative
+  read entitlement classification (`ENTITLEMENT_ROUTE_UNCLASSIFIED`).
+- Added explicit read-path escape for known safe endpoints and known read-classified
+  routes while preserving non-GET recovery/public bypass behavior.
+- Added regression assertions for:
+  - GET route requires enforcement on `/v1/connect/rooms` and `/v1/device/pair/list`.
+  - GET safe reads remain bypassed for `/v1/health`, `/v1/version`, `/v1/device/pair/status`.
+  - GET to `/v1/connect/rooms` returns `ENTITLEMENT_ROUTE_UNCLASSIFIED`.
+
+Verification
+1. `cargo test -p focusa-api unknown_entitlement_classification` — exit 0.
+2. `cargo test -p focusa-api mutation_routes_require_entitlement_before_handlers -- --nocapture` — exit 0 (`1` passed).
+3. `cargo test -p focusa-api exact_feature_and_signed_limit_are_required_before_route_handler -- --nocapture` — exit 0 (`1` passed).
+4. `python3 tests/spec152_recovery_only_route_gate_test.py` — exit 0 (PASS).
+5. `python3 tests/spec152_rest_entitlement_gate_test.py` — exit 0 (`pairing_bypass: false`).
+
+Scope / constraints
+- No changes outside the approved surfaces.
+- No route-classification JSON or generator artifacts were regenerated for this change,
+  because the fail-closed behavior is enforced by middleware-only gating logic.
+- No deployment, release, or git branch operations were performed in this work session.

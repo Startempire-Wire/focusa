@@ -253,6 +253,110 @@ Compaction consumes their typed output and fails closed when it is unavailable.
 20. No optimization may weaken fail-closed scope or completion gates.
 ```
 
+### 3.1 Cardinal Rule — Focusa improves Pi compaction; it never removes itself
+
+```text
+FOCUSA COMPACTION MUST ONLY IMPROVE ON PI'S COMPACTION.
+
+Focusa must not replace the integrated path with Pi-only compaction,
+reduce itself to a passive observer, or make Pi compaction worse.
+```
+
+Pi native compaction is the non-regression safety floor. Focusa remains the
+active, single coordination and cognition layer whenever the Focusa extension is
+enabled and healthy. The ownership split is:
+
+```text
+Pi owns:
+- accepted operator input, images, and steering semantics;
+- the safe native lifecycle boundary;
+- the provider-native tactical summarization invocation;
+- native threshold/overflow compact-and-retry mechanics.
+
+Focusa owns:
+- the one logical CompactionCoordinator and CompactionEpoch;
+- adaptive pressure prediction and trigger policy;
+- bounded preparation from canonical scope, Workpoint, Trajectory, blocker,
+  evidence, receipt, Context Cognition, and Bloatgaurd state;
+- native-compactor preservation instructions;
+- content externalization and rehydrate handles;
+- one bounded CompactionResumeProjection;
+- post-compaction fidelity, effectiveness, and ROI verification;
+- exactly one useful continuation decision under the ResumeDeliveryArbiter.
+```
+
+All native, Focusa, manual, pressure, overflow, and rollover triggers must join or
+upgrade the same logical Focusa epoch. Pi may execute the native lifecycle, but a
+healthy Focusa integration must enrich that lifecycle through its bounded
+prepare/instructions/verify path. It may not bypass its own coordinator merely
+because Pi can compact without it.
+
+The improvement must be monotonic:
+
+```text
+Focusa enabled + healthy:
+  Pi safety and prompt flow
+  + better mission/authority fidelity
+  + better context selection and externalization
+  + adaptive timing
+  + bounded resume guidance
+  + measured verification and recovery
+  - no duplicate model call
+  - no duplicate continuation
+  - no accepted-input loss
+  - no operator resend requirement
+  - no avoidable cache, latency, memory, or persistence regression.
+
+Focusa unavailable, stale, or failed:
+  Pi native compaction proceeds unchanged;
+  Focusa records truthful degraded posture when possible;
+  Focusa never blocks, cancels, or replaces Pi recovery;
+  Focusa may reconcile and verify later without replaying operator input.
+```
+
+Forbidden implementations include:
+
+```text
+- disabling Focusa automatic coordination and calling the result fixed;
+- making Focusa observational-only on the normal healthy path;
+- hard-coding an independent Pi trigger that bypasses the Focusa epoch/policy;
+- vetoing Pi physical compaction because Focusa ROI, HLT, daemon, or packet
+  preparation is unavailable;
+- racing Pi with a second ctx.compact() or summarizer call;
+- aborting an active tool loop merely to reach agent_settled;
+- impersonating operator input to restart work;
+- requiring /focusa-rollover or message resubmission for ordinary pressure;
+- adding a resume model turn after manual/idle compaction;
+- claiming improvement without live fidelity, token, latency, cache, memory,
+  persistence, and productive-continuation evidence.
+```
+
+A conforming implementation must prove all four conditions:
+
+```text
+1. BASELINE PARITY:
+   With Focusa degraded or unavailable, Pi compaction and prompt flow still work.
+
+2. ACTIVE ENHANCEMENT:
+   With Focusa healthy, one Focusa epoch contributes canonical preparation,
+   preservation instructions, bounded projection, and verification around the
+   one Pi native compaction call.
+
+3. FAILURE MONOTONICITY:
+   Any Focusa preparation, verification, transport, or delivery failure falls
+   back to Pi without blocking, duplicate work, lost steering, or operator repair.
+
+4. MEASURABLE NET IMPROVEMENT:
+   Focusa's integrated path preserves or improves task success and authority
+   fidelity while materially improving at least one measured cost and causing no
+   unaccepted material regression.
+```
+
+This Cardinal Rule is release-blocking and outranks any implementation shortcut
+that removes Focusa from compaction in order to make a local lifecycle test pass.
+It refines §§4, 9, 12, 15, 19, and 21 and the seamless prompt-flow requirements
+in Spec 142; it does not weaken Pi's native recovery ownership.
+
 ---
 
 ## 4. CompactionEpoch and coordinator ownership

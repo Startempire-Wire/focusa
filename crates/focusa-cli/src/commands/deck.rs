@@ -63,7 +63,8 @@ fn locate_tui_binary() -> Option<PathBuf> {
             return Some(installed);
         }
     }
-    for name in ["focusa-tui"] {
+    {
+        let name = "focusa-tui";
         if let Ok(found) = which(name) {
             return Some(found);
         }

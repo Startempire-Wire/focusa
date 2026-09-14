@@ -1,0 +1,273 @@
+{
+  "schema": "focusa.spec152f.desktop_action_map.v1",
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+  "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
+  "surface_group": "desktop",
+  "bridge": "apps/menubar/src-tauri/src/spec172_desktop_bridge.rs",
+  "classification_summary": {
+    "navigation_display": 3,
+    "recovery_account": 11,
+    "canonical_operation": 10
+  },
+  "invariants": [
+    "Focusa Desktop is a presenter, not a product",
+    "native/Tauri/local commands never call storage or reducer code directly",
+    "value-producing mutation forwards to the shared core execution guard (daemon)",
+    "the bridge never evaluates entitlement; the daemon core guard decides",
+    "unknown or unregistered desktop actions fail closed before execution",
+    "commercial decisions live in the canonical resolver, not the presenter",
+    "presenters never mint grants, License Types, prices, families, limits, or nodes",
+    "no caller-controlled product, price, License Type, family, feature, limit, node, or commercial right",
+    "clients on the same node do not consume separate nodes",
+    "no raw email, key, token, customer row, credential, or card data"
+  ],
+  "accessibility_fixtures": {
+    "schema": "focusa.spec152f.desktop_action_map_accessibility.v1",
+    "always_reachable": [
+      "navigation",
+      "status",
+      "account",
+      "read",
+      "export",
+      "recovery",
+      "repair",
+      "update",
+      "uninstall"
+    ],
+    "rules": [
+      "no disabled control traps the customer away from data or purchase",
+      "denied value actions carry an accessible explanation and an Operator/Bundle upgrade or recovery action",
+      "read, export, recovery, repair, update, and uninstall are never disabled by an entitlement decision",
+      "limited mode preserves read, export, and recovery (Spec 172 §17)",
+      "desktop decisions equal core/API output; the presenter never owns commercial policy"
+    ]
+  },
+  "action_classes": {
+    "navigation_display": {
+      "description": "UI state changes, tray/window toggles, dialog open/close. No daemon call; no entitlement check; no storage mutation.",
+      "policy": "no_entitlement_check_required",
+      "presenter_must_not": ["evaluate_entitlement", "reject_before_daemon_call", "mint_grants", "interpret_policy", "price_operation"]
+    },
+    "recovery_account": {
+      "description": "License/entitlement status refresh, connection management, pairing lifecycle, update operations, debug bundle copy, saved connection preference. Always reachable per account_recovery family.",
+      "policy_family": "account_recovery",
+      "policy": "always_available_subject_to_security",
+      "presenter_must_not": ["evaluate_entitlement", "reject_before_daemon_call", "mint_grants", "interpret_policy"]
+    },
+    "canonical_operation": {
+      "description": "Invokes a Focusa daemon operation with side effects. Policy inherited from the canonical operation's registered family and decided by the daemon core guard.",
+      "policy": "inherit_canonical_operation",
+      "presenter_must_not": ["evaluate_entitlement", "reject_before_daemon_call", "mint_grants", "interpret_policy", "price_operation"],
+      "presenter_must": ["forward_daemon_error_transparently", "preserve_recovery_paths"]
+    }
+  },
+  "canonical_operations": {
+    "focusa.workpoint.checkpoint": {
+      "family": "base_focusa",
+      "treatment": "base_entitlement",
+      "mutation_class": "mutation",
+      "route": "POST /v1/workpoint/checkpoint"
+    },
+    "focusa.workpoint.resume": {
+      "family": "base_focusa",
+      "treatment": "base_entitlement",
+      "mutation_class": "read",
+      "route": "POST /v1/workpoint/resume"
+    },
+    "focusa.workpoint.evidence.link": {
+      "family": "base_focusa",
+      "treatment": "base_entitlement",
+      "mutation_class": "mutation",
+      "route": "POST /v1/workpoint/evidence/link"
+    },
+    "focusa.sync.peers.add": {
+      "family": "team_remote",
+      "treatment": "optional_premium",
+      "mutation_class": "mutation",
+      "route": "POST /v1/sync/peers"
+    },
+    "focusa.sync.pull": {
+      "family": "team_remote",
+      "treatment": "optional_premium",
+      "mutation_class": "mutation",
+      "route": "POST /v1/sync/pull/{peer_id}"
+    },
+    "focusa.semantic_integrity.operation.invoke": {
+      "family": "base_focusa",
+      "treatment": "base_entitlement",
+      "mutation_class": "mutation",
+      "route": "POST /v1/semantic-integrity/operations/{id}"
+    },
+    "focusa.project.identity.verify": {
+      "family": "base_focusa",
+      "treatment": "base_entitlement",
+      "mutation_class": "read",
+      "route": "GET /v1/project/identity"
+    },
+    "focusa.workpoint.current.verify": {
+      "family": "base_focusa",
+      "treatment": "base_entitlement",
+      "mutation_class": "read",
+      "route": "GET /v1/workpoint/current"
+    },
+    "focusa.license.status": {
+      "family": "account_recovery",
+      "treatment": "always_available",
+      "mutation_class": "read",
+      "route": "GET /v1/license/status"
+    },
+    "focusa.pairing.start": {
+      "family": "account_recovery",
+      "treatment": "always_available",
+      "mutation_class": "mutation",
+      "route": "POST /v1/pairing/start"
+    },
+    "focusa.pairing.revoke": {
+      "family": "account_recovery",
+      "treatment": "always_available",
+      "mutation_class": "mutation",
+      "route": "POST /v1/pairing/revoke"
+    },
+    "focusa.pairing.list": {
+      "family": "account_recovery",
+      "treatment": "always_available",
+      "mutation_class": "read",
+      "route": "GET /v1/pairing/devices"
+    },
+    "focusa.connect.test": {
+      "family": "account_recovery",
+      "treatment": "always_available",
+      "mutation_class": "read",
+      "route": "GET /v1/health"
+    },
+    "focusa.update.check": {
+      "family": "account_recovery",
+      "treatment": "stable_security_allowance",
+      "mutation_class": "read",
+      "route": "GET /v1/update/notifications"
+    },
+    "focusa.update.install": {
+      "family": "account_recovery",
+      "treatment": "stable_security_allowance",
+      "mutation_class": "mutation",
+      "route": "POST /v1/update/install"
+    },
+    "focusa.debug.bundle.copy": {
+      "family": "account_recovery",
+      "treatment": "always_available",
+      "mutation_class": "read",
+      "route": "local_only"
+    },
+    "focusa.connection.save": {
+      "family": "account_recovery",
+      "treatment": "always_available",
+      "mutation_class": "local_storage",
+      "route": "local_only"
+    }
+  },
+  "actions": [
+    {"desktop_action_id":"desktop.tray.toggle","action_class":"navigation_display","canonical_operation_id":null,"description":"Toggle the desktop tray/popover window; local UI, no daemon call."},
+    {"desktop_action_id":"desktop.window.navigate","action_class":"navigation_display","canonical_operation_id":null,"description":"Navigate between desktop views; local UI, no daemon call."},
+    {"desktop_action_id":"desktop.dialog.close","action_class":"navigation_display","canonical_operation_id":null,"description":"Close a desktop dialog; local UI, no daemon call."},
+    {"desktop_action_id":"desktop.license.status","action_class":"recovery_account","canonical_operation_id":"focusa.license.status","description":"Refresh entitlement posture via GET /v1/license/status."},
+    {"desktop_action_id":"desktop.connect.test","action_class":"recovery_account","canonical_operation_id":"focusa.connect.test","description":"Probe daemon health via GET /v1/health."},
+    {"desktop_action_id":"desktop.pairing.start","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.start","description":"Start device pairing via POST /v1/pairing/start."},
+    {"desktop_action_id":"desktop.pairing.revoke","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.revoke","description":"Revoke a paired device via POST /v1/pairing/revoke."},
+    {"desktop_action_id":"desktop.pairing.list","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.list","description":"List paired devices via GET /v1/pairing/devices."},
+    {"desktop_action_id":"desktop.update.check","action_class":"recovery_account","canonical_operation_id":"focusa.update.check","description":"Check for signed update via GET /v1/update/notifications."},
+    {"desktop_action_id":"desktop.update.install","action_class":"recovery_account","canonical_operation_id":"focusa.update.install","description":"Install signed update via POST /v1/update/install; stable security allowance."},
+    {"desktop_action_id":"desktop.debug.bundle.copy","action_class":"recovery_account","canonical_operation_id":"focusa.debug.bundle.copy","description":"Copy debug bundle to clipboard for diagnostics."},
+    {"desktop_action_id":"desktop.connection.save","action_class":"recovery_account","canonical_operation_id":"focusa.connection.save","description":"Save a connection URL to presenter-local preference storage."},
+    {"desktop_action_id":"desktop.project.identity.verify","action_class":"canonical_operation","canonical_operation_id":"focusa.project.identity.verify","description":"Verify active project binding via GET /v1/project/identity."},
+    {"desktop_action_id":"desktop.workpoint.current.verify","action_class":"canonical_operation","canonical_operation_id":"focusa.workpoint.current.verify","description":"Verify current workpoint via GET /v1/workpoint/current."},
+    {"desktop_action_id":"desktop.workpoint.checkpoint","action_class":"canonical_operation","canonical_operation_id":"focusa.workpoint.checkpoint","description":"Create workpoint checkpoint via POST /v1/workpoint/checkpoint."},
+    {"desktop_action_id":"desktop.workpoint.resume","action_class":"canonical_operation","canonical_operation_id":"focusa.workpoint.resume","description":"Resume workpoint via POST /v1/workpoint/resume."},
+    {"desktop_action_id":"desktop.workpoint.evidence.link","action_class":"canonical_operation","canonical_operation_id":"focusa.workpoint.evidence.link","description":"Link evidence to workpoint via POST /v1/workpoint/evidence/link."},
+    {"desktop_action_id":"desktop.semantic_integrity.operation.invoke","action_class":"canonical_operation","canonical_operation_id":"focusa.semantic_integrity.operation.invoke","description":"Execute selected semantic pair operation via POST /v1/semantic-integrity/operations/{id}."},
+    {"desktop_action_id":"desktop.sync.peers.add","action_class":"canonical_operation","canonical_operation_id":"focusa.sync.peers.add","description":"Add a sync peer via POST /v1/sync/peers."},
+    {"desktop_action_id":"desktop.sync.pull","action_class":"canonical_operation","canonical_operation_id":"focusa.sync.pull","description":"Pull sync data from peer via POST /v1/sync/pull/{peer_id}."},
+    {"desktop_action_id":"desktop.first_run.discover","action_class":"recovery_account","canonical_operation_id":"focusa.connect.test","description":"First-run daemon discovery probe via GET /v1/health."},
+    {"desktop_action_id":"desktop.first_run.pair","action_class":"recovery_account","canonical_operation_id":"focusa.pairing.start","description":"First-run device pairing via POST /v1/pairing/start."},
+    {"desktop_action_id":"desktop.first_run.verify_project","action_class":"canonical_operation","canonical_operation_id":"focusa.project.identity.verify","description":"First-run project binding verification via GET /v1/project/identity."},
+    {"desktop_action_id":"desktop.first_run.verify_workpoint","action_class":"canonical_operation","canonical_operation_id":"focusa.workpoint.current.verify","description":"First-run workpoint verification via GET /v1/workpoint/current."}
+  ],
+  "spec172": {
+    "schema": "focusa.spec172.desktop_presenter_parity.v1",
+    "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+    "presenter_not_product": true,
+    "invariants": [
+      "Focusa Desktop is a presenter, not a product",
+      "zero local entitlement authority: no local grants, no local license tables, no local prices",
+      "zero direct-storage mutation bypass: value-producing mutation forwards to the shared core execution guard",
+      "unknown or unregistered desktop actions fail closed before execution",
+      "every desktop action maps to a canonical operation decision from core/API",
+      "read, export, and recovery controls are never disabled",
+      "disable only denied operations; paid families blocked consistently with CLI/API",
+      "clients on the same node do not consume separate nodes; Desktop never registers a node",
+      "no local commercial policy cache; no caller-supplied product, price, License Type, family, feature, limit, or node",
+      "no raw email, key, token, customer row, credential, or card data",
+      "no implicit legacy Download 453 mapping"
+    ],
+    "license_type_display": {
+      "codes": [
+        "focusa_operator_lifetime_v1",
+        "uiai_operator_lifetime_v1",
+        "focusa_uiai_operator_bundle_lifetime_v1"
+      ],
+      "verified_no_license": "Verified no-license limited access (no automatic expiry)",
+      "no_prices": true,
+      "unknown_codes_fail_closed": true,
+      "caller_supplied_codes_never_project": true
+    },
+    "upgrade_display": {
+      "source": "daemon_presenter_allowed_actions_only",
+      "action": "activate_or_manage_entitlement",
+      "accurate_for": {
+        "verified_no_license": "Operator upgrade available",
+        "focusa_operator_lifetime_v1": "manage",
+        "uiai_operator_lifetime_v1": "manage",
+        "focusa_uiai_operator_bundle_lifetime_v1": "manage"
+      },
+      "presenter_never_invents_upgrade": true,
+      "no_price_or_sale_status_rendered": true
+    },
+    "node_semantics": "one verified operator seat; up to three registered operator nodes; Focusa Desktop, CLI, TUI, Pi, menubar, and Cockpit clients on the same node do not consume separate nodes; Desktop never counts apps as nodes and never registers a node",
+    "same_node_identity": "Focusa Desktop uses same-node identity: it never creates a node, activation, seat, or node counter of its own; CLI/menubar/Desktop on the same node share the authority's registered node identity",
+    "no_direct_core_bypass": {
+      "rule": "Desktop, Tauri, native, and local-source commands MUST NOT bypass entitlement by calling storage or reducer code directly (Spec 172 §11.4)",
+      "bridge_enforcement": "every value-producing desktop action carries a daemon route and forwards to the shared core execution guard; the bridge holds no storage/reducer path by construction",
+      "direct_storage": "forbidden",
+      "local_grant_creation": "forbidden",
+      "anonymous_product_capability": "forbidden",
+      "local_self_issued_grant": "forbidden"
+    },
+    "first_run_fixtures": {
+      "schema": "focusa.spec172.desktop_first_run_fixtures.v1",
+      "steps": ["discover", "pair", "verify_project", "verify_workpoint", "manage_or_recovery"],
+      "no_local_grant": true,
+      "no_local_node": true,
+      "no_local_license_type": true,
+      "rules": [
+        "every first-run step resolves through the desktop action registry to a canonical operation or a presenter-local display step",
+        "first-run never creates a grant, node, price, or License Type locally",
+        "pairing proves identity/device posture, not entitlement (Spec 172 §11.3)"
+      ]
+    },
+    "locked_state_fixtures": {
+      "schema": "focusa.spec172.locked_state_fixtures.v1",
+      "upgrade_action": "activate_or_manage_entitlement",
+      "always_reachable": [
+        "navigation", "status", "account", "read", "export",
+        "recovery", "repair", "update", "uninstall"
+      ],
+      "never_disabled": ["read", "export", "recovery", "repair", "update", "uninstall"],
+      "rules": [
+        "denied value actions carry an accessible explanation and an Operator/Bundle upgrade or recovery action",
+        "read, export, recovery, repair, update, and uninstall are never disabled by an entitlement decision",
+        "desktop decisions equal core/API output; presenters never own commercial policy"
+      ]
+    },
+    "disable_policy": "disable only denied operations; never disable read, export, recovery, repair, update, or uninstall; paid families (team_remote, automation, release_proof, premium_updates, customer_data_export) blocked consistently with the canonical decision mapping",
+    "local_commercial_policy": "forbidden"
+  }
+}

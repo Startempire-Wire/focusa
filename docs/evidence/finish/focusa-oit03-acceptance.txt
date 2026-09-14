@@ -1,0 +1,6 @@
+focusa-oit03 — 2026-08-18
+Commit: ed96ef85b3b52960f3694acfd99f45d53927ec3d
+cargo fmt --all -- --check PASS
+cargo clippy -p focusa-core -p focusa-api --all-targets -- -D warnings PASS
+cargo test -p focusa-api entitlement PASS (29)
+cargo test -p focusa-core --lib install_lifecycle PASS (34)

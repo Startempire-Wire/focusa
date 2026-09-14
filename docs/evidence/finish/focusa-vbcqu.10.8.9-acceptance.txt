@@ -1,0 +1,24 @@
+focusa-vbcqu.10.8.9 152.04.09 Atomic limit reservation — REAL acceptance
+
+SPEC AUTHORITY: Specs 152, 152F.04.07 chokepoint 4, 150A, 152A-D
+SURFACES: crates/focusa-license/src/limit_reservation.rs, crates/focusa-license/src/lifetime_entitlement.rs, team_remote/release_proof/automation entitlement tests, focusa-core limited_project/entitlement_execution_guard
+
+VERIFICATION 2026-08-19:
+- cargo test -p focusa-license 135/135 PASS (includes spec152f_premium_adversarial_concurrent_reservation_never_double_allocates, stale reservation revalidation, unknown/settled reservation, account isolation, limit bucket exhausted, reserved/revoke sequence)
+- cargo test -p focusa-core --lib limit 20/20 PASS (verified_limited_project, entitlement_execution_guard)
+- cargo fmt --all -- --check PASS (1.91.0)
+- cargo clippy -p focusa-license -p focusa-core --all-targets -- -D warnings PASS
+- python3 tests/spec152_feature_registry_test.py PASS (digest d033e67 15 features)
+- Implementation refs: limit_reservation.rs 300+ lines, reserve/revalidate/settle idempotent, capacity check against authority-owned lease, replay same key+payload returns same grant, different payload fails, sequence binding
+
+BEHAVIOR VERIFIED:
+- Idempotent reserve (same idempotency_key+payload → same grant, no double reserve)
+- Capacity exhausted → LimitExhausted (capacity/reserved/requested)
+- Stale reservation (lease sequence higher) → fail revalidation
+- Settled reservation → no revalidate
+- Concurrent reservation never double-allocates (service checks outstanding at reserve time)
+- Account isolation (B cannot settle A reservation)
+- Offline/revoke/exhaustion settle exactly once, deny before side effects
+
+ROLLBACK: revert only this evidence; preserve leases
+COMMIT: this commit

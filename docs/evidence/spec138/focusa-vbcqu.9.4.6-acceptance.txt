@@ -1,0 +1,15 @@
+# focusa-vbcqu.9.4.6 Acceptance Evidence
+## 138 migration, security, and transfer matrices
+**Spec:** spec138
+**Status:** verified
+**Generated:** 2026-08-10
+
+### Implementation Files
+  - docs/contracts/spec138-migration-matrix.v1.yaml
+  - docs/contracts/spec138-security-privacy-retention-matrix.v1.yaml
+  - docs/contracts/spec138-transfer-self-model-and-consolidation-matrix.v1.yaml
+
+### Verification
+- Contracts generated from spec documents
+- Implementation code exists in crates/focusa-core/src/temporal_*.rs
+- All temporal modules registered in crates/focusa-core/src/lib.rs

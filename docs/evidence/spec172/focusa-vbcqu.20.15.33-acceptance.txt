@@ -1,0 +1,154 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.33
+Title: 172.05.02 Prove verified no-license reaches useful limited value
+Implementation commit: `6ce24e30` (E2E receipt gate; evidence record
+follows in this commit)
+
+Exact surfaces
+- Verified identity/assertion (verified mailbox -> signed limited-access
+  assertion; no EDD Software Licensing key; no automatic expiry)
+- Installer/CLI/Desktop/Cockpit flows (Unix/PowerShell/Rust installers,
+  CLI/Pi/agent presenters, Focusa Desktop bridge, UIAI Cockpit
+  mixed-product presenter)
+- One-project Focusa and public-observe UIAI fixtures
+- tests/spec172_verified_limited_e2e_test.py (NEW — exact verification)
+
+Bounded result
+- Added `tests/spec172_verified_limited_e2e_test.py`: a cross-surface E2E
+  receipt (`focusa.spec172.verified_limited_e2e.v1`) that proves the
+  required journey end to end in seven stages with real exit codes and a
+  single bounded, redacted JSON line.
+- Stage 1 — Verified identity/assertion: replays the accepted PHP gates
+  `tests/spec172_verified_access_schema_test.php` and
+  `tests/spec172_limited_assertion_test.php` (both exit 0), proving mailbox
+  verification issues the canonical `verified_no_license` posture with an
+  authority-signed limited-access assertion, zero EDD Software Licensing
+  keys (`wp_edd_licenses` count 0), and refresh that rotates the bounded
+  credential without imposing access expiry. The canonical license-types
+  contract binds `verified_no_license` as `account_runtime_posture`
+  (is_license_type false, duration `no_automatic_expiry`,
+  edd_software_license_key false, grant_source
+  `authority_signed_limited_access_assertion`, anonymous_access false,
+  price 0.00) and the Rust types keep `verified_no_license` OUT of
+  `LicenseTypeCode` (exactly FocusaOperatorLifetimeV1 + UiaiOperatorLifetimeV1)
+  with no Evaluation spelling in `AccessPosture`.
+- Stage 2 — Presenter surfaces: replays the accepted gates for the
+  installers (`tests/spec172_installer_limited_access_test.py`), the
+  CLI/Pi/agent presenters (`tests/spec172_cli_agent_presenter_test.py`),
+  Focusa Desktop (`tests/spec172_focusa_desktop_entitlement_test.py`), and
+  the UIAI Cockpit (`tests/spec172_cockpit_mixed_product_test.py`) — all
+  exit 0 — and binds the frozen presenter vocabulary: CLI renders
+  `verified_no_license`, `CAPABILITY_FAMILY_NOT_INCLUDED`,
+  `UPGRADE_AVAILABLE`, and `review_offer_or_manage_entitlement`; the
+  installer maps `--eval` intent to `ActivationJourney::LimitedAccess` and
+  forbids raw keys (`E_AUTHORITY_RAW_KEY_FORBIDDEN`); Desktop carries
+  `SPEC172_RETAINED_ACCESS` (export/update/uninstall never disabled) and the
+  same denial/upgrade vocabulary; Cockpit resolves `cockpit.uiai.browser_click`
+  and the whole `SPEC172_COCKPIT_ACTION_REGISTRY`. Frozen presenter fixtures
+  prove `verified-no-license-manual-allowed` (denial null, upgrade
+  `none_required`) and `verified-no-license-blocked-family` (denial
+  `CAPABILITY_FAMILY_NOT_INCLUDED`, upgrade
+  `review_offer_or_manage_entitlement`).
+- Stage 3 — One-project Focusa fixture: live Rust vectors
+  (`cargo test -p focusa-core verified_limited_project`, exit 0) plus static
+  binds of the allowlist/blocklist constants, the explicit-selection guard
+  (`DeniedSecondProject` / `DeniedNoSelection`), the `focusa project use` /
+  `focusa project switch` recovery actions with "upgrade to Focusa Operator"
+  guidance, the no-deletion / no-activity-heuristic guarantees, and the
+  shared core guard code `ENTITLEMENT_LIMITED_PROJECT`.
+- Stage 4 — Read/export preservation: the state-grid reducer keeps
+  `(VerifiedNoLicense, ReadProjection) => Read` and
+  `(VerifiedNoLicense, AccountRecovery | CustomerDataExport) => Allow`,
+  `PendingUnverified` denies product capability, lifecycle receipts spell
+  `limited_access_ready` / `active_verified_limited` with
+  `signature_verified` product readiness and no Evaluation vocabulary, and
+  the retained-access set (read, export, recovery, repair, update, uninstall)
+  is never disabled.
+- Stage 5 — Public-observe UIAI fixture: live Rust vectors
+  (`cargo test -p focusa-license spec172`, exit 0) plus static binds of the
+  six allowlisted observation operations, the full blocked vector map
+  (browser click/fill/type/select/press/submit, cookie/auth/session
+  persistence, authenticated private dashboards, unattended automation,
+  scheduled/batch QA, premium proxy/hosted/paid-model), the
+  `VerifiedNoLicensePublicObservation { session_quota: 1 }` decision,
+  `LimitedModeRestricted` on a second session, `UiaiGrantRequired` for
+  browser actions, `FocusaOnlyCannotGrantUiai` product isolation, and
+  `UnknownOperation` fail-closed.
+- Stage 6 — Deny before side effects with upgrade guidance: the operation
+  map and resolver precede the shared `active_bound`/child-token helper, the
+  resolver consumes only operation id + authority snapshots (never
+  caller-selected product/price/License Type/family/feature/limit/node/
+  commercial right), every blocked Focusa and UIAI family denies, and the
+  core guard returns `ENTITLEMENT_BASE_REQUIRED` /
+  `ENTITLEMENT_FEATURE_REQUIRED` / `ENTITLEMENT_LIMITED_PROJECT` before any
+  value mutation succeeds.
+- Stage 7 — No anonymous / local / timed grant: unverified state renders
+  `EMAIL_VERIFICATION_REQUIRED`; no installer can self-issue
+  (`E_AUTHORITY_RAW_KEY_FORBIDDEN`, no `--eval` grant, no
+  persist_eval_license / write_license_json / E_EVAL_ISSUED / grant_creation);
+  no Evaluation vocabulary in lifecycle receipts; the posture record has
+  `no_automatic_expiry` and no `expires_at` field; `Evaluation` never appears
+  in the license-types contract.
+- The receipt output is bounded and redacted: hygiene checks reject raw
+  email, Stripe-style secrets, private keys, and card numbers; no raw email,
+  key, token, customer row, credential, or card data appears in the test or
+  the evidence. No anonymous product capability, no local/self-issued grant,
+  no caller-controlled product/price/License Type/family/feature/limit/node/
+  commercial right, no presenter-owned policy, no implicit legacy Download
+  453 mapping, and no data deletion or blocked basic export, repair,
+  rollback, stable security update, or uninstall were added.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_verified_limited_e2e_test.py` — exit 0.
+   Result: passed_fail_closed; 6 replay gates all exit 0; 2 cargo runs all
+   exit 0; positive_checks 116; negative_checks 23;
+   limited_access license_key_received=false, mutable_projects=1,
+   uiai_observation_sessions=1, read_export_preserved=true,
+   deny_before_side_effects=true, automatic_expiry=none.
+   Cargo vectors executed live inside the gate:
+   - `cargo test -p focusa-core verified_limited_project` — exit 0.
+     test result: ok. 17 passed (unit) + 1 passed (guard integration);
+     0 failed; 900 filtered out.
+   - `cargo test -p focusa-license spec172` — exit 0.
+     test result: ok. 16 + 12 + 12 + 7 + 7 = 54 passed; 0 failed;
+     119 + 11 + 8 + 3 + 5 + 35 + 7 + 30 + 5 + 14 + 33 + 43 filtered out.
+
+Regression checks (exit codes)
+- `python3 tests/spec172_family_inheritance_test.py` — exit 0.
+- `python3 tests/spec172_public_facade_convergence_test.py` — exit 0.
+- `python3 tests/spec172_limited_assertion_vector_test.py` — exit 0.
+- `python3 tests/spec172_license_type_lifecycle_test.py` — exit 0.
+- `python3 tests/spec172_dynamic_operation_manifest_test.py` — exit 0.
+- Replay gates inside the E2E receipt (all exit 0):
+  tests/spec172_verified_access_schema_test.php,
+  tests/spec172_limited_assertion_test.php,
+  tests/spec172_installer_limited_access_test.py,
+  tests/spec172_cli_agent_presenter_test.py,
+  tests/spec172_focusa_desktop_entitlement_test.py,
+  tests/spec172_cockpit_mixed_product_test.py.
+- `git diff --check` — exit 0, no whitespace errors.
+
+Tests added
+- tests/spec172_verified_limited_e2e_test.py (116 positive + 23 negative
+  checks across the seven stages above; 6 replay gates; 2 live cargo vector
+  runs; bounded redacted JSON receipt). No production source files were
+  modified: all surfaces bound by this gate were implemented and accepted by
+  the dependency atoms (20.15.11, 20.15.24, 20.15.26–20.15.31).
+
+Remaining blockers
+- None for this atom. Downstream atoms remain: focusa-vbcqu.20.15.34
+  (paid upgrades preserve limited-state data), focusa-vbcqu.20.15.39
+  (UIAI public pricing/browser proof, service-dependent), and
+  focusa-vbcqu.20.15.40 (build-independent Spec 172 gate).
+
+Rollback
+- Revert only this atom's commits: `6ce24e30` (the E2E gate) and the
+  evidence-record commit that follows, i.e. remove
+  tests/spec172_verified_limited_e2e_test.py and
+  docs/evidence/spec172/focusa-vbcqu.20.15.33-acceptance.txt. Preserve
+  verified identities, customers, orders, refunds, License Types, keys,
+  nodes, sequences, customer data, migration journals, evidence, and
+  accepted unrelated work. No data deletion is performed by this atom or
+  its rollback.
+
+No push, deploy, release, merge, or Beads mutation was performed.

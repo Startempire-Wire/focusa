@@ -66,28 +66,25 @@ Optional, with defaults shown:
 
 ## VPS install/restart safeguards
 
-`scripts/install-daemon.sh` now enforces:
+The canonical Rust `focusa install --system-install` transaction enforces:
 
-- deploy lock via `flock` so two deploys cannot overlap
-- backup of the current binary before replacement
-- service `ExecStart` validation so systemd points at the canonical install path
-- service stop + stray process cleanup before install
-- restart through systemd
-- `/v1/health` verification after restart
-- version check against the expected release tag version
-- checksum capture for old/new binaries in the audit trail
-- automatic rollback to the previous binary if start/health/version checks fail
-- duplicate-daemon guard using `pgrep -x focusa-daemon`
-- append-only deploy audit log entries for deploy start, preflight, completion, and rollback
-+
-+`scripts/safe-disk-cleanup.sh` runs before deploy to reclaim only scoped, rebuildable Focusa cruft such as:
-+
-+- repo `target/`
-+- repo `.tmp/`
-+- old `/tmp/focusa-release-*` and `/tmp/focusa-deploy-*`
-+- stale deploy backups past retention
-+
-+It fails closed if free space or disk usage remains below configured thresholds.
+- a nonblocking deployment lock so two system installs cannot overlap;
+- fail-closed preservation of `RefuseManualStart=yes` operator halts;
+- full signed release-set promotion rather than daemon-only replacement;
+- one `/usr/local/lib/focusa` state/data root;
+- rejection of unmanaged, duplicate, missing-`MainPID`, or wrong-executable daemon processes without killing by process name;
+- atomic canonical unit staging and systemd activation;
+- exact `/v1/health` version and installed CallGraph validator acceptance;
+- restoration of prior binaries, unit, and active/inactive state on failure.
+
+`scripts/install-daemon.sh` only translates the established deployment arguments
+to that Rust transaction. It performs no process, unit, health, or rollback
+mutation itself.
+
+`scripts/safe-disk-cleanup.sh` runs before deploy to reclaim only scoped,
+rebuildable Focusa cruft such as repository build output, `.tmp/`, old release
+temporary directories, and backups beyond retention. It fails closed if free
+space or disk usage remains outside configured thresholds.
 
 ## Recommended systemd unit
 
@@ -126,7 +123,8 @@ If the newly deployed daemon:
 - reports the wrong version
 - leaves duplicate daemon processes running
 
-then `scripts/install-daemon.sh` restores the backed-up binary and restarts the prior version.
+then the Rust system-install transaction restores the prior complete release,
+unit definition, and prior service state.
 
 ### Manual fallback
 
@@ -158,22 +156,19 @@ The deploy pipeline self-heals at three layers; operators do not need to interve
 
 If the runner is kernel OOM-killed, systemd restarts it within 15s and the runner reconnects to GitHub. Without this, a transient memory spike would silently kill the runner and the next deploy would fail with no audit trail.
 
-### Script layer (wall clock + RSS + binary version)
+### Rust lifecycle layer
 
-`scripts/install-daemon.sh` ships a `watchdog_check()` that runs in a background loop (`watchdog_loop`):
-
-- wall clock budget: `WALL_CLOCK_SEC` (default 600s)
-- RSS budget: `RSS_LIMIT_MB` (default 768MB)
-
-On breach it audit-logs `deploy_oom_killed` and `TERM`s the parent shell. The script also has:
-
-- `binary_version()` that parses version from filename first (e.g. `focusa-daemon-v0.9.42-dev-x86_64-unknown-linux-musl` → `0.9.42-dev`) and only falls back to `timeout 3 ... --version`
-- `curl --max-time 5` on health probes
-- `patch_service_unit_execstart()` that auto-rewrites a stale systemd `ExecStart` and reloads systemd, so a unit pointing at a deleted in-tree build artifact self-heals without operator action
+`crates/focusa-cli/src/commands/system_service.rs` owns the bounded system
+transaction. The compatibility script validates only immutable release identity
+and delegates. A stale unit is replaced transactionally, not patched in place;
+an unexpected process is rejected, not killed; health readiness is bounded and
+rollback remains available until health and CallGraph checks pass.
 
 ### Workflow layer (auto-retry)
 
-`.github/workflows/auto-retry-deploy.yml` listens on `workflow_run` completion of `Deploy Live Daemon`. If the upstream failed AND was triggered by `release` or `workflow_dispatch`, it re-dispatches the workflow once with the same tag + musl asset. Never retries `workflow_run`-triggered deploys (no infinite loops).
+`.github/workflows/auto-retry-deploy.yml` is quarantined and has no automatic
+redispatch authority. Retry follows the recorded canonical recovery route after
+the exact failure and rollback state are known.
 
 ### Audit layer
 

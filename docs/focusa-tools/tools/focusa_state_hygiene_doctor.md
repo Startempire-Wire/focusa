@@ -74,4 +74,4 @@ Likely next: `focusa_state_hygiene_plan`, `focusa_tool_doctor`, `focusa_scratch`
 - CLI: none.
 - REST: Pi-local only.
 - Specification: contract registry.
-- Descriptor digest: `sha256:018620440d4dc12e2ee74a47530519adba288a532c1b22803f86c0e2411643ec`.
+- Descriptor digest: `sha256:6d8fd0ab7b72505801c308502250425bb6498c50f32b5507a4821360fd0b18ca`.

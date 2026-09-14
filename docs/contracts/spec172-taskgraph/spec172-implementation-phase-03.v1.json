@@ -1,0 +1,159 @@
+{
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+  "parent": "focusa-vbcqu.20.15",
+  "phase": "03",
+  "schema": "focusa.spec172_implementation_phase.v1",
+  "task_count": 7,
+  "tasks": [
+    {
+      "code": "03.01",
+      "dependencies": [
+        "focusa-vbcqu.20.15.2",
+        "focusa-vbcqu.20.15.3",
+        "focusa-vbcqu.20.15.4",
+        "focusa-vbcqu.20.14.5"
+      ],
+      "done_condition": "All registry values round-trip; illegal product/type/posture/grant combinations fail construction.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.18-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; crates/focusa-license/src/lib.rs; focused tests; docs/contracts/spec172-license-types.v1.yaml",
+      "id": "focusa-vbcqu.20.15.18",
+      "lane": "spec152f",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Typed public API used by the existing Spec 152F loader/reducer tasks.",
+      "required_steps": "Add stable ProductCode, LicenseTypeCode, LicenseTypeVersion, SaleStatus, AccessPosture, resource-right, seat/node, and composite-grant types. Reject Evaluation aliases as active policy, unknown types, cross-product grants, malformed Bundle union, and caller-created types.",
+      "title": "Add product, License Type, and limited-assertion Rust types",
+      "verification": "cargo test -p focusa-license spec172_policy_types"
+    },
+    {
+      "code": "03.02",
+      "dependencies": [
+        "focusa-vbcqu.20.15.18",
+        "focusa-vbcqu.20.14.8",
+        "focusa-vbcqu.20.14.9",
+        "focusa-vbcqu.20.14.14"
+      ],
+      "done_condition": "Second-project mutation denies with upgrade/switch action while all retained projects remain readable/exportable.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.19-acceptance.txt",
+      "exact_surfaces": "focusa-core project mutation/select/archive paths; entitlement execution guard; persistence fixtures; tests/spec172_focusa_limited_project_test.py",
+      "id": "focusa-vbcqu.20.15.19",
+      "lane": "spec152f",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Core active-project guard and downgrade fixtures.",
+      "required_steps": "In verified no-license posture allow mutation only in one explicitly selected project. Preserve every other project read/export. Permit explicit switching; if downgrade lacks explicit selection, require operator choice and perform no mutation. Never use activity heuristics or delete data.",
+      "title": "Enforce one mutable project with preserved Focusa read/export",
+      "verification": "python3 tests/spec172_focusa_limited_project_test.py && cargo test -p focusa-core verified_limited_project"
+    },
+    {
+      "code": "03.03",
+      "dependencies": [
+        "focusa-vbcqu.20.15.18",
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.11",
+        "focusa-vbcqu.20.14.22"
+      ],
+      "done_condition": "No new tool becomes limited-access by default; existing Operator families inherit safe implementation additions; material/new/unknown boundaries fail closed.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.20-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license entitlement policy; operation registry generator; Spec172 limited/type contracts; tests/spec172_family_inheritance_test.py",
+      "id": "focusa-vbcqu.20.15.20",
+      "lane": "spec152f",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Deterministic family inheritance classifier and negative vectors.",
+      "required_steps": "Verified no-license uses explicit allowlist. New operation in an included Operator family inherits only when product/outcome/security/side-effect/resource profile match. Material new family, future product, unknown owner, or unknown side effect denies for all pending classification.",
+      "title": "Enforce no-license family allowlist and Operator inheritance defaults",
+      "verification": "python3 tests/spec172_family_inheritance_test.py && cargo test -p focusa-license spec172_family_inheritance"
+    },
+    {
+      "code": "03.04",
+      "dependencies": [
+        "focusa-vbcqu.20.15.11",
+        "focusa-vbcqu.20.15.18",
+        "focusa-vbcqu.20.15.20",
+        "focusa-vbcqu.20.14.35",
+        "focusa-vbcqu.20.13.46",
+        "focusa-vbcqu.10.9.1"
+      ],
+      "done_condition": "Limited observation works; every action/persistence/hosted/cross-product widening fails before UI side effects.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.21-acceptance.txt",
+      "exact_surfaces": "Focusa UIAI operation map/child-token broker; UIAI public-observe/action/persistence classification; tests/spec172_uiai_limited_mode_test.py",
+      "id": "focusa-vbcqu.20.15.21",
+      "lane": "spec152f",
+      "owner": "Startempire-Wire/focusa + WPUIAI/uiai-engine",
+      "phase": "03",
+      "required_output": "Shared Focusa/UIAI vectors and product-isolation adapter.",
+      "required_steps": "Allow one foreground ephemeral public search/source/read/snapshot/screenshot/basic-diagnostics session from verified limited assertion. Deny browser mutation, auth/cookies, private targets, concurrency, persistence, unattended/batch, premium proxy/model, and hosted rights. Paid UIAI/Bundle may proceed subject to independent security/resource gates.",
+      "title": "Enforce UIAI observe-only limited mode and paid action boundary",
+      "verification": "python3 tests/spec172_uiai_limited_mode_test.py && python3 tests/spec152_uiai_child_token_broker_test.py"
+    },
+    {
+      "code": "03.05",
+      "dependencies": [
+        "focusa-vbcqu.20.15.11",
+        "focusa-vbcqu.20.15.16",
+        "focusa-vbcqu.20.15.18",
+        "focusa-vbcqu.20.14.47"
+      ],
+      "done_condition": "Lifetime survives credential rotation/outage recovery while refund/revoke/higher sequence defeats stale and offline credentials.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.22-acceptance.txt",
+      "exact_surfaces": "focusa-license authority verifier/store/refresh; WPUIAI lease/assertion issuer; offline fixtures; tests/spec172_lifetime_credential_test.py",
+      "id": "focusa-vbcqu.20.15.22",
+      "lane": "spec152f",
+      "owner": "Startempire-Wire/focusa + WPUIAI/wpuiai",
+      "phase": "03",
+      "required_output": "Lifecycle state machine and cross-language vectors.",
+      "required_steps": "Model perpetual License Type entitlement independently from expiring/rotating signed device lease. Preserve bounded Offline Grace, highest sequence, key rotation, lost-device revoke, and recovery issuance. Credential expiry cannot erase lifetime rights; stale credentials cannot ignore refund/revoke.",
+      "title": "Separate lifetime entitlement from bounded device credentials",
+      "verification": "python3 tests/spec172_lifetime_credential_test.py && cargo test -p focusa-license spec172_lifetime_credential"
+    },
+    {
+      "code": "03.06",
+      "dependencies": [
+        "focusa-vbcqu.20.15.20",
+        "focusa-vbcqu.20.14.22",
+        "focusa-vbcqu.20.14.29"
+      ],
+      "done_condition": "Unknown dynamic operation cannot execute or become limited/paid by client metadata; trusted operations inherit canonical policy.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.23-acceptance.txt",
+      "exact_surfaces": "operation registry runtime intake; MCP/extension/capsule/A2UI manifest verifier; generated UI bindings; tests/spec172_dynamic_operation_manifest_test.py",
+      "id": "focusa-vbcqu.20.15.23",
+      "lane": "spec152f",
+      "owner": "Startempire-Wire/focusa + WPUIAI/uiai-engine",
+      "phase": "03",
+      "required_output": "Runtime manifest verifier, quarantine state, and adversarial fixtures.",
+      "required_steps": "Require signed/trusted operation_id, product_owner, operation_class, family, and side_effect_class for runtime-added operations. Quarantine unknown/unsigned manifests. Prevent self-labeling recovery, client-selected policy, or generated-UI grant expansion.",
+      "title": "Require trusted manifests for dynamic and generated operations",
+      "verification": "python3 tests/spec172_dynamic_operation_manifest_test.py && cargo test --workspace spec172_dynamic_operation_manifest"
+    },
+    {
+      "code": "03.07",
+      "dependencies": [
+        "focusa-vbcqu.20.15.19",
+        "focusa-vbcqu.20.15.20",
+        "focusa-vbcqu.20.15.21",
+        "focusa-vbcqu.20.15.22",
+        "focusa-vbcqu.20.15.23",
+        "focusa-vbcqu.20.14.43"
+      ],
+      "done_condition": "Resolver/core/API return equivalent decisions and zero denied path produces protected partial side effects.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.24-acceptance.txt",
+      "exact_surfaces": "Spec172 Rust registry/reducer/core/API vectors; limited project/UIAI/dynamic/lifetime tests; tests/spec172_runtime_policy_acceptance_test.py",
+      "id": "focusa-vbcqu.20.15.24",
+      "lane": "spec152f",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Cross-layer runtime acceptance receipt.",
+      "required_steps": "Replay unverified, verified limited, Focusa Operator, UIAI Operator, Bundle, refunded/revoked, offline, corrupt, unknown family/product/type, future Navigator, dynamic tool, node/seat, and resource cases through pure resolver, core guard, and API.",
+      "title": "Run complete Spec 172 runtime policy matrix",
+      "verification": "python3 tests/spec172_runtime_policy_acceptance_test.py && cargo test --workspace spec172_runtime_policy"
+    }
+  ]
+}

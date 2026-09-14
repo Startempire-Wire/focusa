@@ -4,6 +4,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
 echo "=== release deploy automation static test ==="
+python3 tests/release_learning_guard_command_test.py
 
 WORKFLOW_VALIDATION_OUT="$(mktemp /tmp/focusa-workflow-graph-validation.XXXXXX)"
 trap 'rm -f "$WORKFLOW_VALIDATION_OUT"' EXIT
@@ -13,6 +14,7 @@ python3 scripts/validate-github-workflows.py .github/workflows/release.yml .gith
 }
 
 tests/release_version_asset_test.sh
+tests/system_daemon_lifecycle_static_test.sh
 
 # GH5 remote marker onboarding guard.
 tests/spec_focusa_gh5_remote_marker_static_test.sh
@@ -59,6 +61,7 @@ assert_not_grep() {
 # Workflow file assertions
 assert_grep 'name: Deploy Live Daemon' .github/workflows/deploy-live-daemon.yml 'workflow name missing'
 assert_grep 'types: [published]' .github/workflows/deploy-live-daemon.yml 'release trigger missing'
+assert_grep "github.event.release.prerelease == false" .github/workflows/deploy-live-daemon.yml 'candidate publication can dispatch a duplicate production deploy'
 assert_grep 'workflow_dispatch:' .github/workflows/deploy-live-daemon.yml 'workflow_dispatch trigger missing'
 assert_grep "*) CHANNEL='stable'" .github/workflows/deploy-live-daemon.yml 'stable tags must select the stable updater channel'
 assert_grep '--channel "$CHANNEL"' .github/workflows/deploy-live-daemon.yml 'OTA trust gate must use the tag-derived channel'
@@ -70,18 +73,86 @@ assert_grep 'Require successful GitHub CI for target commit' .github/workflows/d
 assert_grep 'runs-on: [self-hosted, linux, x64, focusa-deploy]' .github/workflows/deploy-live-daemon.yml 'self-hosted runner binding missing'
 assert_grep 'Cleanup release artifact temp dir' .github/workflows/deploy-live-daemon.yml 'temp artifact cleanup missing'
 assert_grep 'Self-healing smoke check' .github/workflows/deploy-live-daemon.yml 'post-deploy smoke check missing'
+assert_grep 'Verify deployed full release locally' .github/workflows/deploy-live-daemon.yml 'full installed release parity gate missing'
+assert_grep 'focusa focusa-daemon focusa-tui focusa-session-runner' .github/workflows/deploy-live-daemon.yml 'all canonical binaries must be verified after deploy'
+assert_grep 'WorkingDirectory --value' .github/workflows/deploy-live-daemon.yml 'canonical state-root verification missing'
 assert_grep 'concurrency:' .github/workflows/deploy-live-daemon.yml 'deploy concurrency guard missing'
 
-# install-daemon.sh assertions
-assert_grep 'flock -n 9' scripts/install-daemon.sh 'deploy lock missing'
-assert_grep 'backup saved to' scripts/install-daemon.sh 'backup path log missing'
-assert_grep 'rollback' scripts/install-daemon.sh 'rollback path missing'
-assert_grep 'pgrep -x' scripts/install-daemon.sh 'duplicate-daemon guard missing'
-assert_grep 'set +e' scripts/install-daemon.sh 'strict-mode kill guard missing'
-assert_grep 'health version mismatch' scripts/install-daemon.sh 'version verification rollback missing'
-assert_grep 'FOCUSA_DEPLOY_AUDIT_LOG' scripts/install-daemon.sh 'deploy audit log support missing'
-assert_grep 'ExecStart mismatch' scripts/install-daemon.sh 'service ExecStart validation missing'
-assert_grep 'binary_checksum' scripts/install-daemon.sh 'checksum capture missing'
+# Per-run strict-spec daemon and cleanup propagation guards (#387).
+assert_grep 'export DAEMON_BIN="${DAEMON_BIN:-$CARGO_TARGET_DIR/release/focusa-daemon}"' scripts/ci/run-spec-gates.sh 'strict spec child gates must inherit the isolated daemon path'
+assert_grep 'spec-gates daemon missing after successful build: $DAEMON_BIN' scripts/ci/run-spec-gates.sh 'strict spec gate must fail immediately when its daemon artifact is absent'
+assert_grep 's.bind(("127.0.0.1", 0))' scripts/ci/run-spec-gates.sh 'strict spec gate must allocate an isolated loopback port by default'
+assert_grep 'http://127.0.0.1:${GATE_PORT}' scripts/ci/run-spec-gates.sh 'strict spec base URL must match its isolated daemon port'
+assert_grep 'kill -0 "$DAEMON_PID"' scripts/ci/run-spec-gates.sh 'strict spec health poll must verify its own daemon remains alive'
+assert_grep 'spec-gates daemon exited before health' scripts/ci/run-spec-gates.sh 'strict spec bind failures must stop immediately'
+assert_grep 'TEST_BEADS_FIXTURE="$ROOT_DIR/.beads/issues.jsonl"' scripts/ci/run-spec-gates.sh 'isolated spec gates must provision only a synthetic Beads fixture when history is absent'
+assert_grep 'rm -f "$TEST_BEADS_FIXTURE"' scripts/ci/run-spec-gates.sh 'synthetic Beads fixture must be removed on exit'
+assert_grep 'mkdir "$ROOT_DIR/.git"' scripts/ci/run-spec-gates.sh 'isolated spec gates must claim only absent Git metadata'
+assert_grep 'TEST_GIT_DIR="$ROOT_DIR/.git"' scripts/ci/run-spec-gates.sh 'disposable Git metadata must preserve the canonical workspace root'
+assert_grep 'cleanup_test_git' scripts/ci/run-spec-gates.sh 'owned Git metadata must be cleaned on exit'
+assert_grep 'git init -q "$ROOT_DIR"' scripts/ci/run-spec-gates.sh 'disposable Git metadata must initialize the exact gate worktree'
+assert_grep 'FOCUSA_HISTORYLESS_GATE' scripts/ci/run-spec-gates.sh 'isolated historyless gate mode must be explicit'
+assert_grep 'historyless isolated source sync' tests/bead_closure_evidence_gate.py 'history-only gate must report bounded historyless mode'
+assert_grep 'import os' tests/bead_closure_evidence_gate.py 'historyless gate must import its environment authority'
+assert_grep 'focusa-$(id -u)-${VERSION}-learning-guards.json' scripts/create-dev-release-tag.sh 'release guard artifact must use a per-user path'
+assert_grep 'FOCUSA_LEARNING_GUARDS_ARTIFACT' scripts/run-release-learning-guards.py 'release guard runner must consume the canonical artifact path'
+assert_grep 'os.getuid()' scripts/run-release-learning-guards.py 'release guard fallback must isolate users'
+assert_grep 'FOCUSA_LEARNING_GUARDS_ARTIFACT' scripts/canonical-release-journal.py 'release journal must consume the producing user artifact path'
+assert_grep 'rm -rf -- "$TEST_GIT_DIR"' scripts/ci/run-spec-gates.sh 'disposable Git metadata must be removed on exit'
+assert_grep 'FOCUSA_ROUTE_DRY_RUN=1 cargo --version' scripts/local-release-preflight.sh 'strict preflight must query the canonical cargo routing authority'
+assert_grep '[[ "$CARGO_ROUTE" == route=ovh* ]]' scripts/local-release-preflight.sh 'strict preflight must detect the canonical OVH cargo route'
+assert_grep 'FOCUSA_SOURCE_ROOT="$ROOT" /usr/local/bin/focusa-ovh-build' scripts/local-release-preflight.sh 'routed OVH spec gate must bind the exact release checkout'
+assert_grep 'env -u CARGO_TARGET_DIR -u FOCUSA_CARGO_TARGET_DIR -u DAEMON_BIN' scripts/local-release-preflight.sh 'routed OVH spec gate must preserve ephemeral target isolation'
+assert_grep 'FOCUSA_HISTORYLESS_GATE=1 bash scripts/ci/run-spec-gates.sh' scripts/local-release-preflight.sh 'routed OVH spec gate must explicitly classify its historyless source sync'
+assert_grep 'bash scripts/ci/run-spec-gates.sh' scripts/local-release-preflight.sh 'strict preflight must preserve native runner execution'
+cleanup_block="$(awk '/^cleanup\(\) \{/{capture=1} capture{print} capture && /^}/{exit}' scripts/ci/run-spec-gates.sh)"
+grep -Fq 'cleanup_ephemeral_builds' <<<"$cleanup_block" || { echo '✗ strict spec combined EXIT cleanup missing'; exit 1; }
+
+# Self-hosted AlmaLinux cannot provision actions/setup-python 3.13 (#388).
+docs_workflow=.github/workflows/spec152-documentation-consistency.yml
+assert_not_grep 'actions/setup-python' "$docs_workflow" 'Spec 152 docs workflow must use the installed self-hosted Python runtime'
+assert_grep "sys.version_info >= (3, 12)" "$docs_workflow" 'Spec 152 docs workflow must enforce its Python runtime floor'
+assert_grep 'python3 tests/spec152_documentation_consistency_gate.py' "$docs_workflow" 'Spec 152 documentation gate command missing'
+
+# install-daemon.sh is compatibility-only; Rust owns lifecycle mutation.
+assert_grep 'exec "$BOOTSTRAP"' scripts/install-daemon.sh 'compatibility adapter must delegate exactly once'
+assert_grep --system-install scripts/install-daemon.sh 'compatibility adapter must request full system install'
+assert_grep 'scripts/install-focusa.sh' scripts/install-daemon.sh 'verified Rust bootstrap delegation missing'
+assert_grep 'FOCUSA_RELEASE_TAG="$TAG"' scripts/install-daemon.sh 'exact immutable release binding missing'
+assert_grep '--no-verify is unsupported' scripts/install-daemon.sh 'verification bypass must fail closed'
+assert_not_grep 'pgrep -x' scripts/install-daemon.sh 'compatibility adapter must not inspect by process name'
+assert_not_grep 'systemctl ' scripts/install-daemon.sh 'compatibility adapter must not mutate systemd'
+assert_not_grep 'kill -TERM' scripts/install-daemon.sh 'compatibility adapter must not signal daemon processes'
+assert_grep 'prepare_system_service' crates/focusa-cli/src/commands/install.rs 'Rust installer must own system service transaction'
+assert_grep 'acquire_system_deploy_lock' crates/focusa-cli/src/commands/install.rs 'Rust installer deploy lock missing'
+assert_grep 'RefuseManualStart=yes' crates/focusa-cli/src/commands/system_service_process.rs 'operator halt must fail closed'
+assert_grep 'unmanaged focusa-daemon process' crates/focusa-cli/src/commands/system_service_process.rs 'unmanaged process rejection missing'
+assert_grep 'canonical system service must own exactly one' crates/focusa-cli/src/commands/system_service_process.rs 'exact process invariant missing'
+assert_grep 'Environment=FOCUSA_HOME={}' crates/focusa-cli/src/commands/system_service.rs 'canonical state-root binding missing'
+assert_grep 'Environment=FOCUSA_DATA_DIR={}' crates/focusa-cli/src/commands/system_service.rs 'canonical data-root binding missing'
+assert_grep 'automatic system service rollback failed' crates/focusa-cli/src/commands/system_service.rs 'service rollback evidence missing'
+assert_grep 'canonical daemon health verification failed' crates/focusa-cli/src/commands/system_service.rs 'health/version rollback gate missing'
+assert_grep 'prepare_distribution_manifest' crates/focusa-cli/src/commands/install.rs 'installed distribution manifest is outside the Rust rollback boundary'
+assert_grep 'distribution-manifest.json' crates/focusa-cli/src/commands/system_service_manifest.rs 'canonical system state omits distribution manifest parity'
+assert_grep 'dist/distribution-manifest.json' .github/workflows/release.yml 'release omits the signed distribution manifest asset'
+assert_grep 'distribution-manifest.json' scripts/verify-canonical-release-assets.py 'canonical release matrix does not require the distribution manifest'
+assert_grep '--candidate' .github/workflows/release.yml 'initial release manifest must remain candidate-only before deployment'
+assert_grep '--latest=false' .github/workflows/release.yml 'candidate publication must not change GitHub Latest'
+assert_grep 'Promote accepted stable release to Latest' .github/workflows/deploy-live-daemon.yml 'stable/Latest promotion is not downstream of installed and OTA proof'
+assert_grep '--distribution-parity' scripts/release-deploy-proof.py 'settled release manifest lacks installed parity binding'
+assert_grep 'execute_manifest_bound_apply' crates/focusa-cli/src/commands/update.rs 'v0.9.188+ OTA does not reuse the canonical install lifecycle'
+assert_grep 'crate::commands::install::run(args).await' crates/focusa-cli/src/commands/update.rs 'OTA retains a parallel promotion implementation for manifest-bound releases'
+assert_grep '("session_runner", "focusa-session-runner")' crates/focusa-cli/src/commands/update.rs 'OTA release inventory omits the fourth canonical binary'
+assert_grep 'exact_release_reinstall' crates/focusa-cli/src/commands/update.rs 'manifest-bound OTA does not retain an exact full-release rollback route'
+assert_grep 'manifest-bound updates roll back as one full release' crates/focusa-cli/src/commands/update.rs 'part-only rollback can recreate a mixed installed runtime'
+proof_line="$(grep -n -m1 'name: Publish signed deploy-success proof' .github/workflows/deploy-live-daemon.yml | cut -d: -f1)"
+ota_line="$(grep -n -m1 'name: Gate OTA installability against signed deployed release' .github/workflows/deploy-live-daemon.yml | cut -d: -f1)"
+settlement_line="$(grep -n -m1 'name: Settle signed release manifest after OTA acceptance' .github/workflows/deploy-live-daemon.yml | cut -d: -f1)"
+promotion_line="$(grep -n -m1 'name: Promote accepted stable release to Latest' .github/workflows/deploy-live-daemon.yml | cut -d: -f1)"
+if ! (( proof_line < ota_line && ota_line < settlement_line && settlement_line < promotion_line )); then
+  echo '✗ stable promotion must follow signed installed parity and OTA acceptance'
+  exit 1
+fi
 
 # safe-disk-cleanup.sh assertions
 assert_grep 'target' scripts/safe-disk-cleanup.sh 'target cleanup missing'
@@ -90,20 +161,16 @@ assert_grep 'MIN_FREE_GB' scripts/safe-disk-cleanup.sh 'disk threshold guard mis
 assert_grep 'BACKUP_KEEP' scripts/safe-disk-cleanup.sh 'backup keep bound missing'
 assert_grep 'backup_keep=${{ steps.cfg.outputs.backup_keep }}' .github/workflows/deploy-live-daemon.yml 'workflow backup_keep wiring missing'
 
-# install-daemon.sh unit-patch branch guards (auto-heal stale ExecStart)
-assert_grep 'patch_service_unit_execstart' scripts/install-daemon.sh 'unit auto-patch branch missing'
-assert_grep 'ExecStart=${INSTALL_PATH}' scripts/install-daemon.sh 'unit ExecStart rewrite pattern missing'
+# Canonical Rust lifecycle and deployment topology.
+assert_grep 'ExecStart={}' crates/focusa-cli/src/commands/system_service.rs 'Rust unit renderer must own ExecStart'
+assert_grep 'MemoryHigh=2G' crates/focusa-cli/src/commands/system_service.rs 'outer memory pressure boundary missing'
+assert_grep 'MemoryMax=3G' crates/focusa-cli/src/commands/system_service.rs 'outer memory kill boundary missing'
 assert_grep 'x86_64-unknown-linux-musl' .github/workflows/deploy-live-daemon.yml 'musl default suffix missing (AlmaLinux 8 glibc)'
-assert_grep '/usr/bin/sed' scripts/install-self-hosted-runner.sh 'runner sudoers sed allowlist missing'
+assert_not_grep '/usr/bin/kill' scripts/install-self-hosted-runner.sh 'runner must not receive direct process-kill authority'
+assert_not_grep '/usr/bin/sed' scripts/install-self-hosted-runner.sh 'runner must not patch canonical service files outside Rust'
 
-# Self-healing safety net (wall clock + RSS) and auto-retry workflow
-assert_grep 'WALL_CLOCK_SEC' scripts/install-daemon.sh 'wall clock guard missing'
-assert_grep 'RSS_LIMIT_MB' scripts/install-daemon.sh 'RSS memory guard missing'
-assert_grep 'deploy_oom_killed' scripts/install-daemon.sh 'OOM audit event missing'
-assert_grep 'deploy_health' scripts/install-daemon.sh 'health-timeout audit event missing'
-assert_grep 'watchdog_check' scripts/install-daemon.sh 'watchdog wiring missing'
-assert_grep 'watchdog_loop' scripts/install-daemon.sh 'background watchdog loop missing'
-assert_grep 'timeout 3' scripts/install-daemon.sh 'binary_version must use timeout fallback'
+# Retry automation remains quarantined; lifecycle readiness is bounded in Rust.
+assert_grep 'for _ in 0..40' crates/focusa-cli/src/commands/system_service.rs 'bounded daemon readiness gate missing'
 assert_not_grep '  workflow_run:' .github/workflows/auto-retry-deploy.yml 'quarantined auto-retry must not retain automatic workflow_run authority'
 assert_grep 'status=quarantined' .github/workflows/auto-retry-deploy.yml 'auto-retry quarantine boundary missing'
 
@@ -127,11 +194,30 @@ assert_grep 'wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"' scripts/create-de
 assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh 'release helper must commit and dry-run-revert stamped Pi extension versions'
 [[ "$(grep -o 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh | wc -l)" -ge 2 ]] \
   || fail 'Pi extension version surfaces must appear in both commit and dry-run rollback sets'
-assert_grep 'timeout-minutes: 12' .github/workflows/release.yml 'Release macOS/Tauri job timeout must stay bounded'
-assert_grep 'timeout-minutes: 15' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
+manifest_surface='docs/contracts/spec141/generated-capability-v2/distribution-manifest.json'
+[[ "$(grep -o "$manifest_surface" scripts/create-dev-release-tag.sh | wc -l)" -eq 3 ]] \
+  || fail 'Distribution manifest must appear in retry allowlist, dry-run rollback, and release commit sets'
+assert_grep 'timeout-minutes: 150' .github/workflows/release.yml 'External Menubar receipt gate timeout must cover the bounded 145-minute Codemagic/AppVeyor wait'
+assert_grep 'timeout-minutes: 30' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
+rust_check_block="$(awk '/^  rust-check:/{job=1} /^  tag-ci-proof:/{job=0} job{print}' .github/workflows/release.yml)"
+grep -q 'timeout-minutes: 25' <<<"$rust_check_block" || {
+  echo '✗ Release Contract Check timeout must cover its bounded 20-minute candidate-CI polling window' >&2
+  exit 1
+}
+final_gap_block="$(awk '/^  final-release-gap-gate:/{job=1} /^  version-policy:/{job=0} job{print}' .github/workflows/release.yml)"
+grep -q 'unset NODE_OPTIONS' <<<"$final_gap_block" || {
+  echo '✗ Final release gap gate must sanitize incompatible ambient Node options (GH#350)' >&2
+  exit 1
+}
+for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-unknown-linux-musl; do
+  cache="/home/wirebot/.cache/focusa-release-target/${target}"
+  assert_grep "$cache" .github/workflows/warmup.yml "warmup target cache is not writable and ABI-partitioned: ${target}"
+  assert_grep "target_dir: ${cache}" .github/workflows/release.yml "release target cache does not reuse the ABI partition: ${target}"
+done
 assert_grep 'Release workflow validation' .github/workflows/release.yml 'release workflow needs unconditional validation step to avoid No jobs were run'
 assert_grep "- 'v*'" .github/workflows/release.yml 'release workflow must trigger for immutable stable and preview tags'
 assert_grep 'scripts/verify-release-tag-trigger.py' scripts/create-dev-release-tag.sh 'release helper must verify trigger compatibility before immutable tagging'
+tests/release_candidate_main_push_retry_test.sh
 assert_grep 'release_tag_validation=ok' .github/workflows/release.yml 'release tag validation step missing'
 assert_grep 'needs: checksums' .github/workflows/release.yml 'deploy dispatch must depend on the actual checksums job id'
 if grep -A3 '^  rust-check:' .github/workflows/release.yml | grep -q 'if:'; then
@@ -242,7 +328,12 @@ assert_grep 'scripts/self-heal-decision-drill.py' .github/workflows/self-heal-fa
 assert_grep 'repair_required_no_rerun' scripts/self-heal-decision-drill.py 'drill must prove deterministic no-rerun decision'
 assert_grep 'rerun_once_allowed' scripts/self-heal-decision-drill.py 'drill must prove transient rerun-once decision'
 drill_json="$(mktemp)"
+tracked_self_heal_result=release-proof/audit/self-heal-result.json
+tracked_self_heal_before="$(sha256sum "$tracked_self_heal_result" | awk '{print $1}')"
 python3 scripts/self-heal-decision-drill.py --fixture all --json > "$drill_json"
+tracked_self_heal_after="$(sha256sum "$tracked_self_heal_result" | awk '{print $1}')"
+[[ "$tracked_self_heal_before" == "$tracked_self_heal_after" ]] \
+  || fail 'Self-heal failure injection drill must not rewrite tracked release proof'
 python3 - "$drill_json" <<'PY'
 import json, sys
 payload = json.load(open(sys.argv[1]))
@@ -362,10 +453,10 @@ rm -f "$backfill_ledger" /tmp/focusa-backfill-dry.json /tmp/focusa-backfill-appl
 
 
 # install-daemon contract spec
-assert_grep 'binary_version' docs/install-daemon-contract.md 'contract missing binary_version'
-assert_grep 'patch_service_unit_execstart' docs/install-daemon-contract.md 'contract missing execstart patch'
-assert_grep 'watchdog_check' docs/install-daemon-contract.md 'contract missing watchdog'
-assert_grep 'wait_for_health' docs/install-daemon-contract.md 'contract missing wait_for_health'
+assert_grep 'sole owner' docs/install-daemon-contract.md 'contract missing canonical Rust owner'
+assert_grep 'RefuseManualStart=yes' docs/install-daemon-contract.md 'contract missing operator halt boundary'
+assert_grep 'exactly one systemd-owned daemon' docs/install-daemon-contract.md 'contract missing exact process invariant'
+assert_grep 'restores the prior binaries and unit' docs/install-daemon-contract.md 'contract missing transaction rollback'
 
 # operator runbook
 assert_grep 'GitHub Actions is down' docs/deploy-runbook.md 'runbook must cover GitHub outage'

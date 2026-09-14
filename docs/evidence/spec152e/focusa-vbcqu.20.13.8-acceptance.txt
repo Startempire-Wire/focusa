@@ -1,0 +1,43 @@
+Spec 152E EDD customer resolution adapter acceptance evidence
+Work item: focusa-vbcqu.20.13.8
+Title: 152E.01.04 Implement EDD customer resolution adapter
+
+Exact surfaces
+- docs/contracts/spec152e-edd-customer-adapter.v1.php
+- tests/spec152e_edd_customer_adapter_test.php
+
+Bounded result
+- Added FocusaSpec152eEddCustomerAdapter: resolves or creates EDD customers only from
+  verified identity (mailbox_verified or account_promoted). Works over wp_edd_customers
+  and wp_edd_customer_email_addresses, plus optional WordPress user IDs and Stripe
+  customer references. Returns typed account/customer references with resolution
+  disposition (existing/new). Never enumerates accounts; lookup is exact-email only.
+  Idempotent via wp_wpuiai_edd_customer_idempotency with digest conflict detection.
+- Unverified identities (email_verification_pending) are rejected with
+  EMAIL_VERIFICATION_REQUIRED. Missing or empty migration provenance is rejected.
+  Invalid email formats are rejected. Idempotency key replay with a changed payload
+  (different email) is denied with IDEMPOTENCY_CONFLICT.
+- New verified users create exactly one EDD customer with provenance notes and
+  secondary email address record. Existing customers by primary email or secondary
+  email address are resolved deterministically without creating duplicates.
+- Customer count is bounded for verification only; no enumeration method is exposed.
+
+Exact verification (exit codes)
+1. php tests/spec152e_edd_customer_adapter_test.php — exit 0.
+   Bounded result: {"schema":"focusa.spec152e.edd_customer_adapter_validation.v1","edd_customers_resolved":3,"positive_checks":8,"negative_checks":5,"result":"passed_fail_closed"}
+
+Tests added
+- spec152e_edd_customer_adapter_test.php: 13 test assertions covering:
+  unverified rejection, new verified creation, idempotent replay, existing
+  resolution, distinct email creation, idempotency conflict, account_promoted
+  state, findCustomerByEmail (found + not found), findCustomerById (found +
+  not found), invalid email rejection, empty provenance rejection, secondary
+  email alias lookup, and no-enumeration guard.
+
+Rollback
+- Revert only this atom (docs/contracts/spec152e-edd-customer-adapter.v1.php,
+  tests/spec152e_edd_customer_adapter_test.php, and this evidence file).
+  Preserve EDD customer/order/refund truth, verified identities, licenses,
+  nodes, sequences, credentials, Workpoints, Evidence, and migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.

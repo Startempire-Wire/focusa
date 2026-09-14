@@ -21,6 +21,8 @@ REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 SRC="${REPO_ROOT}/scripts/install-focusa.sh"
 LIVE_DIR="/home/focusadev/install.focusa.dev/public_html/installers"
 LIVE="${LIVE_DIR}/install-focusa.sh"
+DOCROOT="/home/focusadev/install.focusa.dev/public_html"
+ALIAS="${DOCROOT}/focusa"
 
 # Live docroot is owned by focusadev; mutate it as that user so the deploy
 # runner never creates root/wirebot-owned files in a cPanel account.
@@ -34,7 +36,11 @@ as_focusadev() {
 
 sync_copy() {
   as_focusadev mkdir -p "$LIVE_DIR"
+  as_focusadev mkdir -p "$DOCROOT"
   as_focusadev install -m 0755 "$SRC" "$LIVE"
+  as_focusadev install -m 0755 "$SRC" "$ALIAS"
+  # Ensure both bootstrapper aliases stay in sync
+  for target in "$LIVE" "$ALIAS"; do as_focusadev chmod 0755 "$target"; done
 }
 
 mode="sync"

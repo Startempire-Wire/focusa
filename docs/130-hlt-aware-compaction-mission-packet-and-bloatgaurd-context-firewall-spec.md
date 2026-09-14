@@ -3046,8 +3046,3 @@ Never trade heap safety for transcript retention.
 Never claim forever-session support until real long-history, crash, migration, and
 cross-agent gates prove bounded continuation.
 ```
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-compaction-continuity -->
-## Spec 144 compaction continuity
-
-Compaction packets MUST preserve Work Contract hash, Semantic Execution Pair, active attempt/snapshot, obligation and coverage refs, open findings/disputes, assigned Verifiers, placement/common-mode posture, Evidence, reroute history, and next safe action. Hidden reasoning remains excluded; omission of canonical verification state is a compaction failure.

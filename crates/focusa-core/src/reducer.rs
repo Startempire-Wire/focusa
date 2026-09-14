@@ -23,6 +23,7 @@
 
 use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
+use crate::reference::{DEFAULT_HOT_HANDLE_LIMIT, retain_hot_handles};
 use crate::scoped_state::WorkstreamKey;
 use crate::types::*;
 
@@ -392,6 +393,41 @@ fn find_workpoint_mut(
         .ok_or_else(|| ReducerError::InvalidEvent(format!("Workpoint {} not found", workpoint_id)))
 }
 
+fn same_workpoint_scope(left: &WorkpointRecord, right: &WorkpointRecord) -> bool {
+    left.project_root == right.project_root && left.continuity_id == right.continuity_id
+}
+
+fn bound_workpoint_scope_history(state: &mut FocusaState, scope: &WorkpointRecord) {
+    let active_id = state.workpoint.active_workpoint_id;
+    let excess = state
+        .workpoint
+        .records
+        .iter()
+        .filter(|candidate| {
+            same_workpoint_scope(candidate, scope)
+                && !(candidate.canonical && candidate.status == WorkpointStatus::Active)
+                && Some(candidate.workpoint_id) != active_id
+        })
+        .count()
+        .saturating_sub(workpoint_caps::RECORDS);
+    if excess == 0 {
+        return;
+    }
+
+    let mut remaining = excess;
+    state.workpoint.records.retain(|candidate| {
+        let evictable = same_workpoint_scope(candidate, scope)
+            && !(candidate.canonical && candidate.status == WorkpointStatus::Active)
+            && Some(candidate.workpoint_id) != active_id;
+        if evictable && remaining > 0 {
+            remaining -= 1;
+            false
+        } else {
+            true
+        }
+    });
+}
+
 fn upsert_workpoint_record(
     state: &mut FocusaState,
     mut record: WorkpointRecord,
@@ -402,17 +438,25 @@ fn upsert_workpoint_record(
         record.created_at = Some(now);
     }
     record.updated_at = Some(now);
-    if let Some(existing) = state
+
+    // Re-checkpointing is a fresh retention event. Moving the replacement to
+    // the back prevents a newly accepted record from retaining a stale slot.
+    if let Some(index) = state
         .workpoint
         .records
-        .iter_mut()
-        .find(|w| w.workpoint_id == record.workpoint_id)
+        .iter()
+        .position(|candidate| candidate.workpoint_id == record.workpoint_id)
     {
-        *existing = record;
-    } else {
-        state.workpoint.records.push(record);
-        truncate_front(&mut state.workpoint.records, workpoint_caps::RECORDS);
+        state.workpoint.records.remove(index);
     }
+    state.workpoint.records.push(record);
+    let scope = state
+        .workpoint
+        .records
+        .last()
+        .expect("workpoint was just appended")
+        .clone();
+    bound_workpoint_scope_history(state, &scope);
 }
 
 fn bound_trajectory_record(record: &mut TrajectoryProjectionRecord) {
@@ -483,6 +527,19 @@ fn upsert_trajectory_record(
 use chrono::Utc;
 use uuid::Uuid;
 
+const MAX_TEMPORAL_SIGNAL_MARKERS: usize = 1000;
+
+fn push_bounded_unique<T: Copy + PartialEq>(items: &mut Vec<T>, item: T) {
+    if items.contains(&item) {
+        return;
+    }
+    items.push(item);
+    if items.len() > MAX_TEMPORAL_SIGNAL_MARKERS {
+        let remove = items.len() - MAX_TEMPORAL_SIGNAL_MARKERS;
+        items.drain(..remove);
+    }
+}
+
 /// Core reducer: apply an event to state, producing new state + emitted events.
 ///
 /// Flow: pre-check invariants → apply event → post-check invariants → bump version.
@@ -543,6 +600,8 @@ pub fn reduce_with_meta(
     let emitted_event = event.clone();
 
     match event {
+        FocusaEvent::CallGraphFrameDispatched { .. }
+        | FocusaEvent::CallGraphFrameSettled { .. } => {}
         // ─── Context corpus ─────────────────────────────────────────────
         FocusaEvent::ContextSourceCommitted { source } => {
             if source.receipt.before_state_version != state.version
@@ -1815,6 +1874,16 @@ pub fn reduce_with_meta(
             adapter_id,
             raw_user_input,
         } => {
+            // A new turn begins a new inactivity episode. Its temporal signal may
+            // fire once if this turn later exceeds the inactivity threshold.
+            if let Some(active_id) = state.focus_stack.active_id {
+                state
+                    .focus_gate
+                    .inactivity_signal_frames
+                    .retain(|frame_id| *frame_id != active_id);
+            } else {
+                state.focus_gate.inactivity_signal_without_frame = false;
+            }
             // Store turn in active_turn for correlation.
             state.active_turn = Some(ActiveTurn {
                 turn_id,
@@ -1922,6 +1991,11 @@ pub fn reduce_with_meta(
             state.work_loop.execution_workpoint_id = workpoint_id;
             state.work_loop.enabled = true;
             state.work_loop.status = WorkLoopStatus::Idle;
+            state.work_loop.current_task = None;
+            state.work_loop.deferred_items.clear();
+            state.work_loop.run.task_run_id = None;
+            state.work_loop.run.tranche_run_id = None;
+            state.work_loop.run.worker_session_id = None;
             state.work_loop.policy = policy;
             state.work_loop.run.project_run_id = project_run_id;
             state.work_loop.last_blocker_class = None;
@@ -1958,6 +2032,10 @@ pub fn reduce_with_meta(
             state.work_loop.enabled = false;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.current_task = None;
+            state.work_loop.deferred_items.clear();
+            state.work_loop.run.task_run_id = None;
+            state.work_loop.run.tranche_run_id = None;
+            state.work_loop.run.worker_session_id = None;
             state.work_loop.last_continue_reason = Some(reason);
             state.work_loop.enabled_at = None;
             state.work_loop.budget_epoch_id = None;
@@ -2049,6 +2127,17 @@ pub fn reduce_with_meta(
             state.work_loop.transport_session_state = Some("attached".to_string());
             state.work_loop.last_transport_event_kind = Some("session_attached".to_string());
             state.work_loop.last_transport_event_summary = Some(session_id);
+            if state.work_loop.enabled
+                && state.work_loop.status == WorkLoopStatus::TransportDegraded
+            {
+                state.work_loop.status = if state.work_loop.current_task.is_some() {
+                    WorkLoopStatus::SelectingReadyWork
+                } else {
+                    WorkLoopStatus::Idle
+                };
+                state.work_loop.last_blocker_class = None;
+                state.work_loop.last_blocker_reason = None;
+            }
         }
         FocusaEvent::ContinuousTransportAbortForwarded { reason } => {
             state.work_loop.transport_abort_reason = Some(reason.clone());
@@ -2615,6 +2704,10 @@ pub fn reduce_with_meta(
         }
 
         // ─── Intuition → Gate ────────────────────────────────────────────
+        FocusaEvent::FocusGatePipelineCommitted { focus_gate } => {
+            state.focus_gate = focus_gate;
+        }
+
         FocusaEvent::IntuitionSignalObserved {
             signal_id,
             signal_type,
@@ -2623,6 +2716,24 @@ pub fn reduce_with_meta(
             related_frame_id,
         } => {
             let now = Utc::now();
+            match signal_type {
+                SignalKind::InactivityTick => match related_frame_id {
+                    Some(frame_id) => push_bounded_unique(
+                        &mut state.focus_gate.inactivity_signal_frames,
+                        frame_id,
+                    ),
+                    None => state.focus_gate.inactivity_signal_without_frame = true,
+                },
+                SignalKind::LongRunningFrame => {
+                    if let Some(frame_id) = related_frame_id {
+                        push_bounded_unique(
+                            &mut state.focus_gate.long_running_signal_frames,
+                            frame_id,
+                        );
+                    }
+                }
+                _ => {}
+            }
             state.focus_gate.signals.push(Signal {
                 id: signal_id,
                 ts: now,
@@ -2730,6 +2841,16 @@ pub fn reduce_with_meta(
             }
 
             state.reference_index.handles.push(handle);
+            let active_session_id = state
+                .session
+                .as_ref()
+                .filter(|session| session.status == SessionStatus::Active)
+                .map(|session| session.session_id);
+            retain_hot_handles(
+                &mut state.reference_index,
+                active_session_id,
+                DEFAULT_HOT_HANDLE_LIMIT,
+            );
         }
 
         FocusaEvent::ArtifactPinned { artifact_id } => {
@@ -5005,8 +5126,8 @@ pub fn check_invariants(state: &FocusaState) -> Result<(), ReducerError> {
     // focus_gate.candidates, never focus_stack.
 
     // INVARIANT 6: Artifacts are immutable once registered.
-    // Enforced at registration time: ArtifactRegistered rejects duplicate IDs.
-    // No handles in reference_index share the same ID.
+    // The reducer rejects duplicate hot IDs; ReferenceStore atomically rejects reuse
+    // of durable cold IDs that are intentionally absent from this bounded projection.
     let handle_count = state.reference_index.handles.len();
     let unique_count = {
         let mut ids: Vec<_> = state.reference_index.handles.iter().map(|h| h.id).collect();
@@ -5256,7 +5377,10 @@ mod tests {
             .unwrap();
         assert_eq!(active.status, WorkpointStatus::Active);
         assert_eq!(active.confidence, WorkpointConfidence::Verified);
-        assert_eq!(state.trajectory.records[0].active_workpoint_id, Some(workpoint_id));
+        assert_eq!(
+            state.trajectory.records[0].active_workpoint_id,
+            Some(workpoint_id)
+        );
     }
 
     #[test]
@@ -5407,6 +5531,142 @@ mod tests {
             workpoint_caps::VERIFICATIONS
         );
         assert_eq!(stored.blockers.len(), workpoint_caps::BLOCKERS);
+    }
+
+    #[test]
+    fn test_recheckpointed_active_workpoint_survives_unrelated_scope_pressure() {
+        let target = workpoint_record("homepage-task");
+        let target_id = target.workpoint_id;
+        let target_idempotency = Some("homepage-rebind".to_string());
+        let mut state = reduce(
+            fresh_state(),
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: target },
+        )
+        .unwrap()
+        .new_state;
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: target_id,
+                confidence: WorkpointConfidence::Verified,
+                reason: "homepage active".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        for index in 0..workpoint_caps::RECORDS {
+            let mut unrelated = workpoint_record(&format!("unrelated-{index}"));
+            unrelated.project_root = Some(format!("/repo/unrelated-{index}"));
+            unrelated.continuity_id = Some(format!("continuity-{index}"));
+            state = reduce(
+                state,
+                FocusaEvent::WorkpointCheckpointProposed {
+                    workpoint: unrelated,
+                },
+            )
+            .unwrap()
+            .new_state;
+        }
+
+        let mut refreshed = workpoint_record("homepage-task");
+        refreshed.workpoint_id = target_id;
+        refreshed.idempotency_key = target_idempotency.clone();
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointProposed {
+                workpoint: refreshed,
+            },
+        )
+        .unwrap()
+        .new_state;
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: target_id,
+                confidence: WorkpointConfidence::Verified,
+                reason: "homepage rebound".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let mut final_unrelated = workpoint_record("final-unrelated");
+        final_unrelated.project_root = Some("/repo/focusa".to_string());
+        final_unrelated.continuity_id = Some("focusa-continuity".to_string());
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointProposed {
+                workpoint: final_unrelated,
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let retained = state
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == target_id)
+            .expect("freshly re-checkpointed active workpoint must survive unrelated traffic");
+        assert_eq!(retained.status, WorkpointStatus::Active);
+        assert_eq!(retained.idempotency_key, target_idempotency);
+    }
+
+    #[test]
+    fn test_workpoint_history_cap_is_per_scope_and_never_evicts_active() {
+        let active = workpoint_record("active-task");
+        let active_id = active.workpoint_id;
+        let mut state = reduce(
+            fresh_state(),
+            FocusaEvent::WorkpointCheckpointProposed { workpoint: active },
+        )
+        .unwrap()
+        .new_state;
+        state = reduce(
+            state,
+            FocusaEvent::WorkpointCheckpointPromoted {
+                workpoint_id: active_id,
+                confidence: WorkpointConfidence::Verified,
+                reason: "pin active authority".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        for index in 0..(workpoint_caps::RECORDS + 5) {
+            let mut history = workpoint_record(&format!("history-{index}"));
+            history.status = WorkpointStatus::Superseded;
+            history.canonical = false;
+            state = reduce(
+                state,
+                FocusaEvent::WorkpointCheckpointProposed { workpoint: history },
+            )
+            .unwrap()
+            .new_state;
+        }
+
+        assert!(
+            state
+                .workpoint
+                .records
+                .iter()
+                .any(|record| record.workpoint_id == active_id
+                    && record.status == WorkpointStatus::Active)
+        );
+        assert_eq!(
+            state
+                .workpoint
+                .records
+                .iter()
+                .filter(|record| {
+                    record.project_root.as_deref() == Some("/repo/test")
+                        && record.continuity_id.as_deref() == Some("cont-test")
+                        && record.status != WorkpointStatus::Active
+                })
+                .count(),
+            workpoint_caps::RECORDS
+        );
     }
 
     // ─── Session lifecycle ───────────────────────────────────────────
@@ -5787,6 +6047,58 @@ mod tests {
     }
 
     // ─── Focus Gate ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_temporal_signal_marker_is_unique_and_durable() {
+        let (state, frame_id) = push_frame(fresh_state(), "Long task");
+        let event = FocusaEvent::IntuitionSignalObserved {
+            signal_id: Uuid::now_v7(),
+            signal_type: SignalKind::LongRunningFrame,
+            severity: "0.4".into(),
+            summary: "Frame long-running".into(),
+            related_frame_id: Some(frame_id),
+        };
+        let state = reduce(state, event).unwrap().new_state;
+        let state = reduce(
+            state,
+            FocusaEvent::IntuitionSignalObserved {
+                signal_id: Uuid::now_v7(),
+                signal_type: SignalKind::LongRunningFrame,
+                severity: "0.4".into(),
+                summary: "Frame long-running".into(),
+                related_frame_id: Some(frame_id),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert_eq!(state.focus_gate.long_running_signal_frames, vec![frame_id]);
+        let encoded = serde_json::to_vec(&state).unwrap();
+        let restored: FocusaState = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(
+            restored.focus_gate.long_running_signal_frames,
+            vec![frame_id]
+        );
+    }
+
+    #[test]
+    fn test_new_turn_resets_inactivity_episode_marker() {
+        let (mut state, frame_id) = push_frame(fresh_state(), "Active task");
+        state.focus_gate.inactivity_signal_frames.push(frame_id);
+        let state = reduce(
+            state,
+            FocusaEvent::TurnStarted {
+                turn_id: "turn-next".into(),
+                harness_name: "test".into(),
+                adapter_id: "test".into(),
+                raw_user_input: Some("continue".into()),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert!(state.focus_gate.inactivity_signal_frames.is_empty());
+    }
 
     #[test]
     fn test_candidate_surfaced() {
@@ -6681,8 +6993,19 @@ mod tests {
         );
         assert_eq!(enabled.work_loop.execution_workpoint_id, Some(workpoint_id));
 
-        let stopped = reduce(
+        let deferred = reduce(
             enabled,
+            FocusaEvent::ContinuousWorkItemDeferred {
+                work_item_id: "focusa-workloop-completion.2.1".to_string(),
+                reason: "temporary external dependency".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(deferred.work_loop.deferred_items.len(), 1);
+
+        let stopped = reduce(
+            deferred,
             FocusaEvent::ContinuousWorkModeDisabled {
                 reason: "operator stop".to_string(),
             },
@@ -6692,6 +7015,55 @@ mod tests {
         assert_eq!(stopped.work_loop.execution_scope, None);
         assert_eq!(stopped.work_loop.execution_work_item_id, None);
         assert_eq!(stopped.work_loop.execution_workpoint_id, None);
+        assert!(stopped.work_loop.deferred_items.is_empty());
+        assert!(stopped.work_loop.run.task_run_id.is_none());
+        assert!(stopped.work_loop.run.tranche_run_id.is_none());
+        assert!(stopped.work_loop.run.worker_session_id.is_none());
+    }
+
+    #[test]
+    fn reenable_clears_stale_deferred_frontier_and_prior_run_selection() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let mut state = fresh_state();
+        state.work_loop.deferred_items.push(WorkLoopDeferredItem {
+            work_item_id: "settled-atom".to_string(),
+            reason: "prior blocked frontier".to_string(),
+            deferred_at: Utc::now(),
+        });
+        state.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "settled-atom".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+        state.work_loop.run.task_run_id = Some(Uuid::now_v7());
+        state.work_loop.run.tranche_run_id = Some(Uuid::now_v7());
+        state.work_loop.run.worker_session_id = Some("stale-worker".to_string());
+
+        let rebound = reduce(
+            state,
+            FocusaEvent::ContinuousWorkModeEnabled {
+                project_run_id: Uuid::now_v7(),
+                policy: WorkLoopPolicy::default(),
+                scope: Some(scope),
+                work_item_id: Some("focusa-vbcqu.20.15".to_string()),
+                workpoint_id: Some(Uuid::now_v7()),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert!(rebound.work_loop.deferred_items.is_empty());
+        assert!(rebound.work_loop.current_task.is_none());
+        assert!(rebound.work_loop.run.task_run_id.is_none());
+        assert!(rebound.work_loop.run.tranche_run_id.is_none());
+        assert!(rebound.work_loop.run.worker_session_id.is_none());
+        assert_eq!(rebound.work_loop.status, WorkLoopStatus::Idle);
     }
 
     #[test]
@@ -6827,6 +7199,51 @@ mod tests {
         assert_eq!(
             attached.work_loop.transport_workpoint_id,
             Some(workpoint_id)
+        );
+    }
+
+    #[test]
+    fn replacement_transport_recovers_degraded_selected_task() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let mut state = fresh_state();
+        state.work_loop.enabled = true;
+        state.work_loop.status = WorkLoopStatus::TransportDegraded;
+        state.work_loop.last_blocker_class = Some(BlockerClass::Transport);
+        state.work_loop.last_blocker_reason = Some("rpc stream closed".to_string());
+        state.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "focusa-vbcqu.20.15.7".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+
+        let recovered = reduce(
+            state,
+            FocusaEvent::ContinuousTransportSessionAttached {
+                adapter: "pi-rpc".to_string(),
+                session_id: "replacement-session".to_string(),
+                scope,
+                work_item_id: "focusa-vbcqu.20.15".to_string(),
+                workpoint_id: Uuid::now_v7(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert_eq!(
+            recovered.work_loop.status,
+            WorkLoopStatus::SelectingReadyWork
+        );
+        assert!(recovered.work_loop.last_blocker_class.is_none());
+        assert!(recovered.work_loop.last_blocker_reason.is_none());
+        assert_eq!(
+            recovered.work_loop.transport_session_id.as_deref(),
+            Some("replacement-session")
         );
     }
 

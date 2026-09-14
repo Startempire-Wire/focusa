@@ -116,6 +116,33 @@ Project and packaged skills live at `.pi/skills/` and `apps/pi-extension/skills/
 
 Coverage/parity authority: `docs/evidence/141-focusa-skill-runbook-coverage.json`.
 
+## Background execution and orchestration (canonical TBQ workflow)
+
+Terminal-blocking work dispatches through `focusa bg run --name X -- cmd`
+(a first-class job: durable ledger, detached execution, completion
+envelope with bounded output tail delivered to the agent's front
+terminal — never polling). Multi-agent work = N workloop-bound silent
+sessions (docs/168). The fast-forward multiplier (2x/4x/6x/8x…, #312)
+divides work items round-robin across a CallGraph orchestrator lane
+(kind=agent, strong frontier refs) + worker lanes (kind=tool, weaker
+implementation refs). Pi tools: focusa_bg_run / focusa_bg_run_many /
+focusa_bg_status / focusa_fast_forward.
+
+## Completion truth and direction
+
+Closure validation gates on the deterministic completion verdict
+(#276): uncovered acceptance atoms reject with typed reasons — no false
+closures. Direction operations (steer/adjudicate/review) are typed,
+evidence-bound ledger entries (POST /v1/direction/operations).
+
+## Production consistency (default)
+
+Every Focusa feature ships only with all five proofs: versioned
+contract, producer tests, consumer-side tests (producer-green is not
+delivery-green), cross-version interop, live e2e across environments.
+Policy: docs/current/PRODUCTION_CONSISTENCY_POLICY.md — applies to
+EVERY surface, consistently.
+
 ## Public status and direction
 
 Focusa v0.9.142 carries 135 all-harness Pi capability descriptors/docs, progressive discovery, 29 generated skills with 31 runbooks, 524 classified routes, governed browser/UIAI capability intake, Context Cognition curation/proof, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, device pairing, and current lifecycle/onboarding projections. Spec141 behavioral conformance and strict agent-first audit pass with zero findings.
@@ -134,8 +161,3 @@ Alignment authority: `docs/evidence/141-focusa-latest-spec-public-doc-alignment.
 - claiming Mac/platform validation from another environment;
 - running CI during development without explicit release authorization;
 - claiming completion without stable evidence.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-agent-truth -->
-## Mandatory architecture-status instruction
-
-Treat Spec 137A and Spec 138A as mandatory companions to their parents. Treat Spec 144 as documentation-only and not runtime-activated. Do not claim combined Spec 137 + 137A conformance, full-profile Spec 138 + 138A conformance, or Spec 144 implementation unless exact current ledgers, proof matrices, runtime Evidence, Receipts, and activation records establish it.

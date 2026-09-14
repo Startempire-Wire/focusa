@@ -1,0 +1,6 @@
+Spec137 S137-REQ-005 Replay — v0.9.144 candidate
+Candidate SHA: 50ed5879
+Requirement: AC005 replay preservation
+Commands: cargo test -p focusa-core temporal; python3 tests/spec137_temporal_authority_release_gate_test.py
+Result: PASS — distinct typed implementation verified, replayed from pinned commit
+Disposition: accepted_replay

@@ -1,0 +1,127 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.40
+Title: 172.05.09 Run complete build-independent Spec 172 gate
+Implementation commit: `b557688c` (feat(spec172): run complete build-independent
+Spec 172 gate; see git log for this atom)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.15.40 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- tests/spec172_build_independent_gate.sh (NEW — the complete build-independent
+  Spec 172 gate)
+- All Spec172 contracts/generators/Python/PHP/Node/static tests under
+  tests/ (38 files, read-only execution by the gate)
+- Reconciliation overlay: tests/172_focusa_spec152_locked_release_
+  reconciliation_test.py plus docs/contracts/spec172-spec152-
+  reconciliation-map.v1.json (validated by the taskgraph contract test)
+- Governance inventory: docs/contracts/spec172-no-sales-inventory.v1.json
+  (semantically validated by tests/spec172_no_sales_inventory_test.py and
+  statically by the gate)
+- No contract, generator, or other test file was modified by this atom.
+
+Bounded result
+- Added tests/spec172_build_independent_gate.sh: one deterministic,
+  build-free gate that runs the complete Spec 172 test surface with ZERO
+  hidden skips and ZERO fabricated passes:
+  * Every tests/spec172_*.{py,php,mjs,sh} file runs, discovered by glob —
+    no static skip list, so a new Spec 172 test can never be silently
+    skipped; a missing runtime (python3/php/node) fails the gate. The gate
+    script itself (the aggregator) is excluded from the shell glob to avoid
+    self-recursion. 28 Python + 9 PHP + 1 Node tests ran, all exit 0.
+  * Documented-flake mitigation: the accepted refund/revoke gate
+    (tests/spec172_refund_downgrade_test.php) carries a pre-existing,
+    documented hygiene flake — its random opaque settlement token
+    (bin2hex(random_bytes(16))) can randomly form a 16-digit run that the
+    gate's own card-pattern self-check false-positives on. Mirroring the
+    acceptance lane's own mitigation (tests/spec172_downgrade_data_
+    preservation_test.py, retries=4), the build-independent gate re-runs a
+    test a bounded number of times (up to 4 real attempts) ONLY when the
+    exact documented signature "no card data in any settlement decision"
+    appears; every attempt is a genuine full run and the recorded exit
+    code is a real run result. Final runs: flake_retries=0.
+  * Reconciliation overlay and governance inventory run and validate:
+    tests/172_focusa_spec152_locked_release_reconciliation_test.py
+    (Spec 152 locked-release reconciliation, PASS admitted=465 accepted=210
+    pending=255), tests/spec172_no_sales_inventory_test.py, and a static
+    assertion of the migration-preserving inventory decision
+    (zero_sales_proven=false, clean_cutover_allowed=false,
+    status=migration_preserving_path_selected).
+  * Static layer over every Spec 172 contract/generator artifact: JSON parse
+    of all 10 spec172 contracts plus all 6 taskgraph phase files (16 total),
+    YAML parse of all 5 spec172 YAML contracts, php -l on all 16 spec172 PHP
+    contracts plus all 9 PHP tests (25 lints), Python syntax compile of all
+    28 Python tests, node --check of the Node test — 55 static runs, all
+    exit 0.
+  * Generated artifacts are current with ZERO DIFF: the taskgraph index
+    per-phase sha256 digests are recomputed byte-exactly (including the
+    reconciliation-map sha256), the cross-language fixture regeneration gates
+    inside the Spec 172 tests (e.g. spec172_limited_assertion_test.php,
+    spec172_lifetime_credential_test.py) assert byte-identical
+    regeneration, and after the full run `git diff --quiet -- docs/contracts`
+    plus an untracked-file check prove no artifact changed.
+  * Fail-closed FORBIDDEN coverage: each forbidden property is asserted by at
+    least one Spec 172 test — no anonymous product capability, no
+    local/self-issued grant, no presenter-owned policy, no caller-controlled
+    product/price/License Type/family/feature/limit/node/commercial right,
+    no implicit legacy Download 453 mapping, recovery always available, and
+    retained export/repair/rollback/update/uninstall controls never
+    disabled.
+  * Redaction hygiene: no raw email, key, token, customer row, credential,
+    or card data anywhere under docs/evidence/spec172 (credential-token,
+    email, and card-like regex scans, all zero matches).
+  * Prior-atom completeness: at least 39 closed Spec 172 acceptance records
+    exist (39 at gate time), proving no hidden skip in the atom series.
+  * `git diff --check` clean on docs/contracts, tests, and
+    docs/evidence/spec172.
+
+Exact verification (exit codes)
+1. `bash tests/spec172_build_independent_gate.sh` — exit 0.
+   Receipt: runs=114 passed=114 failed=0 flake_retries=0;
+   tests=py:28 php:9 node:1 sh:0 overlay=1
+   contracts=json:16 yaml:5 php_lint:25.
+   Final line: `✓ spec172_build_independent_gate PASS (zero hidden skips)`.
+2. Re-run of the exact verification from the committed state (evidence file
+   in place) — exit 0, runs=114 passed=114 failed=0, tree clean after the
+   run (the hygiene scan then covers this acceptance record too).
+
+Regression checks (exit codes)
+- The gate runs the full pre-existing Spec 172 suite; every test exits 0:
+  28 Python, 9 PHP, 1 Node, 1 reconciliation-overlay run.
+- `bash -n tests/spec172_build_independent_gate.sh` — exit 0 (script
+  syntax valid).
+- `git diff --check` — exit 0, no whitespace errors.
+
+Tests added
+- tests/spec172_build_independent_gate.sh — the complete build-independent
+  Spec 172 gate: glob-discovered execution of every Spec 172
+  Python/PHP/Node/shell test (no skip list), explicit reconciliation-overlay
+  and governance-inventory runs and decision-shape assertions, static
+  JSON/YAML/PHP-lint/Python-syntax/Node-syntax validation of every Spec 172
+  contract and generator artifact, taskgraph per-phase sha256 zero-diff
+  recomputation, forbidden-property coverage assertions, evidence redaction
+  hygiene, prior-atom evidence completeness (>= 39 records), a
+  zero-diff/untracked-file check on docs/contracts after the run, and a
+  bounded genuine re-run (max 4 attempts, exact documented signature only)
+  for the accepted refund/revoke gate's pre-existing random-token hygiene
+  flake. Fails closed (exit 1) on any failure, missing runtime, stale
+  generated artifact, or skipped surface.
+
+Remaining blockers
+- None for this atom. Downstream atoms remain open as planned:
+  focusa-vbcqu.20.15.41 (172.05.10 installed exact-SHA cross-platform
+  acceptance) and focusa-vbcqu.20.14.49 (152F.06.07 complete build-
+  independent Spec 152F gate) are dependents, not prerequisites. The live
+  public-surface contradictions recorded by focusa-vbcqu.20.15.39 (R01-R09)
+  remain open for the site owners; this build-independent gate does not
+  mutate any live surface.
+
+Rollback
+- Revert only this atom: `git revert b557688c` (drop
+  tests/spec172_build_independent_gate.sh and
+  docs/evidence/spec172/focusa-vbcqu.20.15.40-acceptance.txt if required).
+  No contract, generator, or other test file was modified by this atom;
+  verified identities, customers, orders, refunds, License Types, keys,
+  nodes, sequences, data, migration journals, evidence, and accepted
+  unrelated work are preserved untouched.
+
+No push, deploy, release, merge, or Beads mutation was performed.

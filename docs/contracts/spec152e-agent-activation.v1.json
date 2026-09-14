@@ -1,0 +1,135 @@
+{
+  "schema": "focusa.spec152e.agent_activation.v1",
+  "contract_version": "1.0.0",
+  "authority": "docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md",
+  "spec_refs": [
+    "Spec 152E §14.2 Agent/JSON presenter",
+    "Spec 152E §19 Security and privacy requirements",
+    "Spec 152E §20 Stable failure semantics"
+  ],
+  "base_contract": "docs/contracts/spec152e-activation-internal.v1.json",
+  "error_registry": "docs/contracts/spec152e-activation-errors.v1.json",
+  "purpose": "One agent-safe JSON activation and resume protocol for CLI --json, daemon/API operation, and Pi/agent tool envelopes. Agents receive typed human-action states, masked email/key by default, safe checkout/verification links, bounded poll/resume, an explicit customer-controlled key-reveal gate, and a resumable registration handle. Agents never invent an email, verification code, consent, payment confirmation, or license, and never advance a human-required state themselves.",
+  "presenter_states": [
+    "email_required",
+    "email_verification_pending",
+    "email_verified",
+    "selection_required",
+    "checkout_required",
+    "payment_pending",
+    "license_delivery_ready",
+    "activated",
+    "denied",
+    "recovery_only"
+  ],
+  "terminal_presenter_states": ["activated", "denied", "recovery_only"],
+  "envelope": {
+    "schema": "focusa.agent_activation_envelope.v1",
+    "required": [
+      "schema",
+      "registration_id",
+      "state",
+      "terminal",
+      "human_action_required",
+      "key_present",
+      "key_visible",
+      "poll_count",
+      "max_polls",
+      "retry_posture",
+      "next_action"
+    ],
+    "optional": [
+      "human_action",
+      "masked_email",
+      "safe_url",
+      "masked_key_prefix",
+      "retry_after_seconds",
+      "error"
+    ],
+    "forbidden": [
+      "email",
+      "normalized_email",
+      "raw_email",
+      "full_license_key",
+      "one_time_key_envelope",
+      "lease_envelope",
+      "poll_credential",
+      "poll_credential_hash",
+      "verification_hash",
+      "server_credential",
+      "signing_key",
+      "card_pan",
+      "card_expiry",
+      "card_cvc",
+      "edd_internal_record"
+    ]
+  },
+  "human_action_states": {
+    "email_required": "provide_email",
+    "email_verification_pending": "enter_verification_code",
+    "email_verified": "select_offer",
+    "selection_required": "select_offer",
+    "checkout_required": "open_checkout_url",
+    "payment_pending": "complete_payment_then_poll",
+    "license_delivery_ready": "reveal_or_accept_license"
+  },
+  "terminal_states_require_no_human_action": ["activated", "denied", "recovery_only"],
+  "secret_masking": {
+    "email": "masked_by_default_masked_email_only",
+    "key": "masked_by_default",
+    "masked_key_prefix_example": "FOCUSA-XXXX-XXXX-XXXX-XXXX",
+    "reveal_policy": {
+      "full_key_output_masked_by_default": true,
+      "explicit_customer_controlled_reveal": true,
+      "requires_opt_in_flag": "reveal_key",
+      "requires_confirmation_flag": "reveal_confirmation",
+      "reveal_requires_both": true,
+      "absent_authorization_key_visible_false": true,
+      "one_time_key_envelope_never_in_agent_transcript": true,
+      "masked_key_prefix_only_from_caller_held_key": true
+    }
+  },
+  "resumable_handle": {
+    "field": "registration_id",
+    "opaque": true,
+    "poll_credential_stored_as": "protected_store_keyed_hash_only_at_rest",
+    "poll_credential_never_in_snapshot": true,
+    "resume_operation": "bounded_poll_with_re_supplied_protected_credential",
+    "terminal_registrations_refuse_resume_steps": true
+  },
+  "bounded_poll": {
+    "poll_credential": "registration_scoped_expiring_opaque",
+    "budget_field": "max_polls",
+    "count_field": "poll_count",
+    "default_max_polls": 40,
+    "retry_after_min_seconds": 1,
+    "retry_after_max_seconds": 30,
+    "timeout_settles_fail_closed": "cancel_to_recovery_only"
+  },
+  "agent_behavior": {
+    "never_invents_email": true,
+    "never_invents_verification_code": true,
+    "never_invents_consent": true,
+    "never_invents_payment_confirmation": true,
+    "never_invents_license": true,
+    "never_advances_human_required_state": true,
+    "hands_envelope_and_handle_to_human_when_human_action_required": true,
+    "resumes_only_after_authority_completion": true,
+    "polls_within_budget": true
+  },
+  "invariants": [
+    "unknown_state_or_error_fails_closed",
+    "masked_email_and_masked_key_by_default",
+    "raw_email_full_key_and_credentials_absent_from_agent_transcripts",
+    "human_required_states_are_never_advanced_by_the_agent",
+    "reveal_requires_explicit_customer_opt_in_and_confirmation",
+    "recovery_only_never_regrants",
+    "poll_credential_never_persisted_in_snapshots",
+    "no_local_or_self_issued_entitlement"
+  ],
+  "surfaces": {
+    "cli_json": "focusa license activate-flow --agent --email|--resume [--reveal-key --confirm-reveal]",
+    "daemon_api": "GET /v1/activation/status",
+    "pi_agent_tool_envelope": "apps/pi-extension/src/activation-envelope.ts (focusa.agent_activation_envelope.v1 builder)"
+  }
+}

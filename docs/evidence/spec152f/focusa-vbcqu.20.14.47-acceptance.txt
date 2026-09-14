@@ -1,0 +1,122 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.47
+Title: 152F.06.05 Prove Offline Grace, outage, and bypass resistance
+Implementation commit: `809fb7a7` (feat(spec152f): prove offline grace, outage, and bypass resistance E2E)
+
+Exact surfaces
+- cached lease fixtures: spec172-focusa-paid-lease-fixture.v1.php +
+  spec152e-edd-bound-lease-issuer.v1.php + spec152e-lease-refresh-service.v1.php
+  (frozen 90+30 day credential window; active -> offline_grace -> expired)
+- authority outage harness: spec152e-install-facade-routes.v1.php
+  authorityUnavailable() (503 recovery_only, retry preserved, no local
+  license/node/lease issuance) + the local cached-lease resolution that is the
+  only execution authority during the outage
+- stale sequence/refund/revoke set: spec152e-edd-lifecycle-projection.v1.php +
+  spec172-refund-downgrade-settlement.v1.php + spec172-assertion-transition
+  -fixture.v1.php (higher refund/revoke sequence overrides older cached grants)
+- direct core/API/CLI/worker/UIAI bypass attempts:
+  tests/spec152f_offline_adversarial_test.py (php journey + static pinning of
+  crates/focusa-license/src/entitlement_policy.rs, uiai_child_token.rs,
+  limit_reservation.rs, crates/focusa-core/src/entitlement_execution_guard.rs,
+  silent_session_scheduler.rs, crates/focusa-api/src/middleware/entitlement.rs,
+  and the lifecycle/refresh/facade php contracts)
+  + crates/focusa-license/tests/spec152f_bypass_resistance.rs (7 tests)
+  + crates/focusa-core/tests/spec152f_bypass_resistance.rs (4 tests)
+
+Bounded result
+- Cached base/premium grants resolve only within signed bounds: the signed
+  lease is active inside the 90-day refresh window, degrades to offline_grace
+  past it, and expires past the 30-day grace window (frozen 90+30 policy,
+  lifetime term preserved). Premium features re-check the signed grace window
+  at decision time (CachedGrantExpired / MissingCachedGrantExpiry); a premium
+  feature that was not signed into the lease is never minted offline
+  (MissingFeature). Base and premium decisions bind the authority lease
+  sequence; no caller product/price/grant input is accepted.
+- No node/grant/limit expansion: the declared node limit stays exactly three
+  and the fourth node is denied even while a fresh paid or still-window-valid
+  cached grant exists; caller-invented limit buckets and units above the
+  authority-owned capacity are refused at reservation time; caller-controlled
+  grants/price/node-limits are rejected on every commercial surface.
+- Higher refund/revoke sequence wins: refund (account sequence 3) and revoke
+  (account sequence 6) each settle the lease to a terminal recovery-only state
+  with a signed refusal, overriding the still-window-valid cached offline
+  grant; stale paid credentials can never refresh again; replay never bumps
+  the sequence; terminal reactivation is denied; the verified account returns
+  to limited mode with recovery allowances intact.
+- Outage preserves recovery: during the outage the facade returns the
+  canonical AUTHORITY_UNAVAILABLE recovery_only envelope (never terminal,
+  retry preserved) and creates no customer, order, license, projection, node,
+  or lease; the cached signed lease is the only execution authority inside its
+  window; read/export/account-control/repair/rollback/stable-security-update/
+  uninstall remain available while value-producing base mutations are denied.
+- Direct core/API/CLI/worker/UIAI bypass attempts fail closed: wrong product,
+  wrong node, stale sequence, revoked lease, caller-controlled grants/price/
+  node-limits, child-token feature/limit widening (SCOPE_NOT_GRANTED), nonce
+  replay, and worker dispatch without a base entitlement (or with a closed
+  offline grace window) are all refused before side effects.
+- Adversarial matrix recorded: schema
+  focusa.spec152f.offline_adversarial_matrix.v1 with outage, stale_set, and
+  bypass matrices all true; project data and recovery preserved end to end;
+  rollback is preservation-only; no raw email/key/token/customer PII in any
+  journal or evidence.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_offline_adversarial_test.py` — exit 0.
+   Harness run twice with byte-identical stdout (replayable):
+   positive=146 negative=9 (harness); static positive=29 negative=0.
+   Summary schema focusa.spec152f.offline_adversarial_validation.v1,
+   result=passed; sequence chain [0,1,2,3,4,5,6], final sequence 6;
+   customers=1 orders=2 licenses=2 projections=2.
+2. `cargo test --workspace spec152f_bypass_resistance` — exit 0.
+   focusa-license tests/spec152f_bypass_resistance.rs:
+   test result: ok. 7 passed; 0 failed; 0 filtered out.
+   focusa-core tests/spec152f_bypass_resistance.rs:
+   test result: ok. 4 passed; 0 failed; 0 filtered out.
+   All other workspace test binaries: 0 passed / 0 failed (filtered), exit 0
+   (56 binaries reported ok).
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license spec152f` — exit 0: 35 + 7 + 30 + 5 + 14 + 33 +
+  43 spec152f tests passed, 0 failed (unit + integration suites incl.
+  entitlement_policy_grid, premium adversarial, automation/team_remote/
+  release_proof/export, observability).
+- `cargo test -p focusa-core spec152f` — exit 0: 18 spec152f tests passed,
+  0 failed (incl. scheduler revalidation metrics), plus 4 bypass-resistance
+  integration tests.
+- No production source was modified by this atom (test surfaces only), so the
+  full workspace build compiled cleanly as part of the exact verification.
+
+Tests added
+- tests/spec152f_offline_adversarial_test.py — php offline/outage/bypass
+  journey (146 positive / 9 negative harness checks) + 29 static policy pins
+  (base gate, premium window re-check, child-token widening rules, server-owned
+  limit buckets, core guard denial codes, worker dispatch deferral, API
+  middleware recovery allowances, lifecycle/refresh/facade contracts).
+- crates/focusa-license/tests/spec152f_bypass_resistance.rs — 7 tests:
+  cached offline-grace base bounded by signed window; expired/unbounded grace
+  fails closed (CachedGrantExpired/MissingCachedGrantExpiry, export packaging
+  too); offline grace cannot expand nodes/grants/limits (invented bucket,
+  exhausted capacity, unbound node, stored claim on refunded state); higher
+  refund/revoke sequence overrides cached grants (base/premium/reservation/
+  child-token cache); outage keeps recovery/read/export available while base
+  mutations deny; direct core/handler bypass fails (forged products, stale
+  active lease, lease-less snapshot, projection on revoked state); child token
+  cannot widen or outlive grants (ScopeNotGranted, nonce replay, response
+  mismatch, TTL bound, UIAI family gating).
+- crates/focusa-core/tests/spec152f_bypass_resistance.rs — 4 tests: worker
+  dispatch revalidates authority at dispatch (outage/revoke refused, active
+  allowed); premium worker dispatch stops when offline grace closes; core
+  guard direct bypass fails closed (outage/revoked deny, active/valid grace
+  allow, unsigned premium deny); recovery/read/export/update/rollback/uninstall
+  survive outage while maintenance bypass is refused.
+
+Rollback
+- Revert only this atom's test/evidence files (tests/
+  spec152f_offline_adversarial_test.py, crates/focusa-license/tests/
+  spec152f_bypass_resistance.rs, crates/focusa-core/tests/
+  spec152f_bypass_resistance.rs, and this evidence record if required). No
+  production policy or authority behavior was changed by this atom. Preserve
+  customers, orders, refunds, licenses, nodes, sequences, customer data,
+  migration journals, and accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.

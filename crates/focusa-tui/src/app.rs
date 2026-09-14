@@ -1,6 +1,10 @@
 //! Application state for the TUI.
 
+use crate::activation_presenter::{
+    TuiActivationView, TuiLicensePosture, project_activation_status, project_license_status,
+};
 use crate::api::ApiClient;
+use crate::spec172_presenter::{Spec172Posture, project_spec172_posture};
 use chrono::{DateTime, Local};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -252,6 +256,18 @@ pub struct App {
     pub connected: bool,
     pub last_error: Option<String>,
     pub last_refresh_at: Option<DateTime<Local>>,
+    /// Presenter-safe activation view from `GET /v1/activation/status`
+    /// (Spec 152E §21: the TUI renders the shared activation states/actions,
+    /// masked identity, checkout/verify links, denial/recovery, and resume
+    /// handles; it never re-decides a transition).
+    pub activation: Option<TuiActivationView>,
+    /// Presenter-safe entitlement posture from `GET /v1/license/status`.
+    pub license: Option<TuiLicensePosture>,
+    /// Presenter-safe Spec 172 posture (License Type / Operator + Bundle
+    /// upgrade accuracy / node semantics / retained controls) from the same
+    /// `GET /v1/license/status` payload (Spec 172 §11, §15). The TUI renders
+    /// the canonical projection and never owns commercial policy.
+    pub spec172: Option<Spec172Posture>,
     client: ApiClient,
 }
 
@@ -307,6 +323,9 @@ impl App {
             connected: false,
             last_error: None,
             last_refresh_at: None,
+            activation: None,
+            license: None,
+            spec172: None,
             client: ApiClient::new(api_url),
         }
     }
@@ -366,6 +385,21 @@ impl App {
                 }
             }
         }
+        // Shared activation/entitlement presenter projections (Spec 152E §21).
+        // Fail closed: an unreachable daemon or unknown posture renders as
+        // `None` and the TUI shows the posture as unavailable rather than
+        // inventing an activation state.
+        let activation_status = self.client.fetch_json("/v1/activation/status").await.ok();
+        self.activation = activation_status
+            .as_ref()
+            .and_then(project_activation_status);
+        let license_status = self.client.fetch_json("/v1/license/status").await.ok();
+        self.license = license_status.as_ref().and_then(project_license_status);
+        // Spec 172 presenter projection from the same payload: License Type,
+        // Operator/Bundle upgrade accuracy, node semantics, and retained
+        // controls. Fails closed to `None` (posture unavailable) rather than
+        // inventing a License Type or upgrade.
+        self.spec172 = license_status.as_ref().and_then(project_spec172_posture);
         let authority_scope = self
             .extra_data
             .get("workpoint_resume")
@@ -400,8 +434,17 @@ impl App {
             );
             let value = self.client.fetch_json(&endpoint).await.ok();
             self.extra_data.insert("prediction_authority".into(), value);
+            let compaction_endpoint = format!(
+                "/v1/compaction/policy?project_root={}&continuity_id={}",
+                encode_query_component(&root_path),
+                encode_query_component(&continuity_id),
+            );
+            let compaction_policy = self.client.fetch_json(&compaction_endpoint).await.ok();
+            self.extra_data
+                .insert("compaction_policy".into(), compaction_policy);
         } else {
             self.extra_data.insert("prediction_authority".into(), None);
+            self.extra_data.insert("compaction_policy".into(), None);
         }
     }
 

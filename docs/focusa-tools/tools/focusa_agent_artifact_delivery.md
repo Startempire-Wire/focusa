@@ -78,4 +78,4 @@ Likely next: `focusa_agent_artifact_verify`, `focusa_instruction_integrity_statu
 - CLI: `focusa agent-runtime artifacts apply`.
 - REST: `POST /v1/agent-runtime/delivery/commit`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:a1e14c16308232eba8ec28948791b0151e600221d5840c892f61dc106c8dee1b`.
+- Descriptor digest: `sha256:4114b8389bc2de46a667d734a3a626b655c995bee0971cd6d9dc239581dd5813`.

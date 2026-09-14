@@ -1,6 +1,6 @@
 //! Shared, credential-free guided lifecycle UX for install/update/uninstall.
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use chrono::Utc;
 use clap::{Args, ValueEnum};
 use focusa_core::install_lifecycle::{
@@ -140,12 +140,36 @@ fn operation_for(action: GuidedAction, flow: Flow) -> Result<LifecycleOperation>
     let operation = match (flow, action) {
         (Flow::Install, GuidedAction::Repair) => LifecycleOperation::Repair,
         (Flow::Install, GuidedAction::Rerun) => LifecycleOperation::Rerun,
-        (Flow::Install, GuidedAction::Inspect | GuidedAction::Preview | GuidedAction::Confirm | GuidedAction::Apply | GuidedAction::Resume) => LifecycleOperation::Install,
+        (
+            Flow::Install,
+            GuidedAction::Inspect
+            | GuidedAction::Preview
+            | GuidedAction::Confirm
+            | GuidedAction::Apply
+            | GuidedAction::Resume,
+        ) => LifecycleOperation::Install,
         (Flow::Update, GuidedAction::Rollback) => LifecycleOperation::Rollback,
-        (Flow::Update, GuidedAction::Inspect | GuidedAction::Preview | GuidedAction::Confirm | GuidedAction::Apply | GuidedAction::Resume) => LifecycleOperation::Update,
+        (
+            Flow::Update,
+            GuidedAction::Inspect
+            | GuidedAction::Preview
+            | GuidedAction::Confirm
+            | GuidedAction::Apply
+            | GuidedAction::Resume,
+        ) => LifecycleOperation::Update,
         (Flow::Uninstall, GuidedAction::Purge) => LifecycleOperation::Purge,
-        (Flow::Uninstall, GuidedAction::Inspect | GuidedAction::Preview | GuidedAction::Confirm | GuidedAction::Apply | GuidedAction::Resume | GuidedAction::Uninstall) => LifecycleOperation::Uninstall,
-        _ => bail!("that lifecycle action is not valid for this command; inspect the command help for supported recovery actions"),
+        (
+            Flow::Uninstall,
+            GuidedAction::Inspect
+            | GuidedAction::Preview
+            | GuidedAction::Confirm
+            | GuidedAction::Apply
+            | GuidedAction::Resume
+            | GuidedAction::Uninstall,
+        ) => LifecycleOperation::Uninstall,
+        _ => bail!(
+            "that lifecycle action is not valid for this command; inspect the command help for supported recovery actions"
+        ),
     };
     Ok(operation)
 }

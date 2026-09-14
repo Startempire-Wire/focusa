@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:c7392ed838c10d4117584ee11a47c93214e4a887aeec4bd838cf3c1bb570305f`
+Registry digest: `sha256:ec9775458f22ba12fee89dbc180ded2497e9e7fa5ca2ebf6c2c545e8352c8d5a`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -123,6 +123,39 @@ Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed
 - Skills: `skill:focusa`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_awareness_packet.md`
+
+## focusa_bg_run
+
+Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.bg.run`
+- Family: `background_job`
+- Side effects: `durable_dispatch`, `durable_dispatch`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
+- Dependencies/next: `focusa_bg_status`, `focusa_workpoint_checkpoint`
+- Documentation: `docs/focusa-tools/tools/focusa_bg_run.md`
+
+## focusa_bg_run_many
+
+Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.bg.run.many`
+- Family: `background_job`
+- Side effects: `durable_dispatch`, `durable_dispatch`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
+- Dependencies/next: `focusa_bg_status`, `focusa_workpoint_checkpoint`
+- Documentation: `docs/focusa-tools/tools/focusa_bg_run_many.md`
+
+## focusa_bg_status
+
+Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.bg.status`
+- Family: `background_job`
+- Side effects: `read_status`, `read_status`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
+- Dependencies/next: `focusa_bg_run`, `focusa_workpoint_resume`
+- Documentation: `docs/focusa-tools/tools/focusa_bg_status.md`
 
 ## focusa_bloatgaurd_domain
 
@@ -300,6 +333,28 @@ Verify a Call Stack Design against bounded implementation surfaces and report dr
 - Dependencies/next: `focusa_call_stack_design`, `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`
 - Documentation: `docs/focusa-tools/tools/focusa_call_stack_verify.md`
 
+## focusa_callgraph_observe
+
+Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.callgraph.observe`
+- Family: `callgraph`
+- Side effects: `read_observation`, `read_observation`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_trajectory_view`, `focusa_workpoint_resume`
+- Documentation: `docs/focusa-tools/tools/focusa_callgraph_observe.md`
+
+## focusa_callgraph_validate
+
+Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when validating a CallGraph definition deterministically before any create or dispatch action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.callgraph.validate`
+- Family: `callgraph`
+- Side effects: `read_validation`, `read_validation`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_callgraph_observe`, `focusa_tool_describe`
+- Documentation: `docs/focusa-tools/tools/focusa_callgraph_validate.md`
+
 ## focusa_canonical_instruction_amendment_activate
 
 Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -321,6 +376,17 @@ Record an operator-originated canonical instruction amendment proposal without a
 - Skills: `skill:focusa`, `skill:focusa-spec-implementation`, `skill:focusa-security-auth-licensing`
 - Dependencies/next: `focusa_canonical_instruction_amendment_activate`, `focusa_instruction_integrity_evaluate`
 - Documentation: `docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md`
+
+## focusa_cockpit_projection
+
+Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation. Use it when Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.cockpit.projection`
+- Family: `cockpit`
+- Side effects: `read_projection`, `read_projection`
+- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Dependencies/next: `focusa_workset_projection`, `focusa_bg_status`
+- Documentation: `docs/focusa-tools/tools/focusa_cockpit_projection.md`
 
 ## focusa_constraint
 
@@ -410,6 +476,17 @@ Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menub
 - Dependencies/next: `focusa_context_cognition`, `focusa_context_cognition_proof`
 - Documentation: `docs/focusa-tools/tools/focusa_context_cognition_render.md`
 
+## focusa_credentials_verify
+
+Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.credentials.verify`
+- Family: `credential`
+- Side effects: `read_verdict`, `read_verdict`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_credentials_verify`, `focusa_tool_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_credentials_verify.md`
+
 ## focusa_current_focus
 
 Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). Use it when Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -420,6 +497,17 @@ Update current focus — what you are actively working on right now (1-3 sentenc
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_trajectory_view`, `focusa_workpoint_checkpoint`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_current_focus.md`
+
+## focusa_daemon_routing_status
+
+Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Use it when Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.daemon.routing.status`
+- Family: `project_identity`
+- Side effects: `read_state`, `read_state`
+- Skills: `skill:focusa`, `skill:focusa-project-scope`
+- Dependencies/next: `focusa_project_identity`, `focusa_tool_doctor`, `focusa_workpoint_resume`
+- Documentation: `docs/focusa-tools/tools/focusa_daemon_routing_status.md`
 
 ## focusa_decide
 
@@ -542,6 +630,17 @@ Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DX
 - Dependencies/next: `focusa_dxux_report`, `focusa_dxux_digest`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_dxux_requirement.md`
 
+## focusa_epistemic_operation
+
+Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.epistemic.operation`
+- Family: `metacognition`
+- Side effects: `typed_read_or_canonical_epistemic_mutation`, `typed_read_or_canonical_epistemic_mutation`
+- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Dependencies/next: `focusa_prediction_authority`, `focusa_metacog_retrieve`, `focusa_trajectory_view`
+- Documentation: `docs/focusa-tools/tools/focusa_epistemic_operation.md`
+
 ## focusa_evidence_capture
 
 Capture a bounded evidence ref/result and optionally link it to the active Workpoint. Use it when Capture a bounded evidence ref/result and optionally link it to the active Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -563,6 +662,17 @@ Record a specific failure with diagnosis in Focus State. Must identify WHAT fail
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_tool_doctor`, `focusa_workpoint_resume`, `focusa_metacog_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_failure.md`
+
+## focusa_fast_forward
+
+Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.fast.forward`
+- Family: `session_fanout`
+- Side effects: `durable_dispatch`, `durable_dispatch`
+- Skills: `skill:focusa`, `skill:focusa-silent-sessions`
+- Dependencies/next: `focusa_bg_status`, `focusa_workpoint_checkpoint`
+- Documentation: `docs/focusa-tools/tools/focusa_fast_forward.md`
 
 ## focusa_hlt_history
 
@@ -1136,6 +1246,127 @@ Daemon-native Spec133 Silent Session client for status, observation, steering, c
 - Dependencies/next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_resource_mode`
 - Documentation: `docs/focusa-tools/tools/focusa_silent_sessions.md`
 
+## focusa_sms_checkpoint
+
+Create and verify an encrypted atomic connector checkpoint. Returns value-free receipt metadata only. Use it when Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.checkpoint`
+- Family: `communications`
+- Side effects: `confirmed_encrypted_checkpoint`, `confirmed_encrypted_checkpoint`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_health`, `focusa_sms_events`, `focusa_sms_enrollment`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_checkpoint.md`
+
+## focusa_sms_enrollment
+
+Read value-free customer-owned connector enrollment status. Use it when Read value-free customer-owned connector enrollment status. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.enrollment`
+- Family: `communications`
+- Side effects: `read_value_free_enrollment`, `read_value_free_enrollment`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_health`, `focusa_sms_threads`, `focusa_sms_events`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_enrollment.md`
+
+## focusa_sms_events
+
+Read bounded value-free broker audit events. Use it when Read bounded value-free communications audit events. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.events`
+- Family: `communications`
+- Side effects: `read_value_free_audit_events`, `read_value_free_audit_events`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_health`, `focusa_sms_checkpoint`, `focusa_sms_revoke`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_events.md`
+
+## focusa_sms_health
+
+Read value-free connector/checkpoint health. Never returns messages, cookies, pairing state, or OTP values. Use it when Read value-free connector and encrypted-checkpoint health. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.health`
+- Family: `communications`
+- Side effects: `read_value_free_health`, `read_value_free_health`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_enrollment`, `focusa_sms_checkpoint`, `focusa_sms_events`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_health.md`
+
+## focusa_sms_otp_challenge
+
+Register an exact provider/target challenge before requesting OTP delivery. Returns a handle, never an OTP. Use it when Register an exact provider and target challenge before OTP delivery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.otp.challenge`
+- Family: `communications`
+- Side effects: `bounded_challenge_registration`, `bounded_challenge_registration`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_otp_inject`, `focusa_sms_events`, `focusa_sms_health`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_otp_challenge.md`
+
+## focusa_sms_otp_inject
+
+Inject one eligible OTP into its exact bound target. The OTP value never enters model context or tool output. Use it when Inject one eligible OTP into its exact bound target without exposing the value to model context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.otp.inject`
+- Family: `communications`
+- Side effects: `single_use_secret_injection`, `single_use_secret_injection`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_events`, `focusa_sms_health`, `focusa_sms_revoke`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_otp_inject.md`
+
+## focusa_sms_read_thread
+
+Read a bounded customer-authorized thread. OTP grants do not authorize this tool. Use it when Read one bounded customer-authorized thread; OTP authority never implies message-read authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.read.thread`
+- Family: `communications`
+- Side effects: `authorized_customer_data_read`, `authorized_customer_data_read`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_search`, `focusa_sms_send`, `focusa_sms_events`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_read_thread.md`
+
+## focusa_sms_revoke
+
+Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.revoke`
+- Family: `communications`
+- Side effects: `confirmed_connector_and_grant_revocation`, `confirmed_connector_and_grant_revocation`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_enrollment`, `focusa_sms_health`, `focusa_sms_events`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_revoke.md`
+
+## focusa_sms_search
+
+Search customer-authorized message scope with bounded results. Use it when Search separately authorized message scope with bounded results. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.search`
+- Family: `communications`
+- Side effects: `authorized_customer_data_read`, `authorized_customer_data_read`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_read_thread`, `focusa_sms_threads`, `focusa_sms_send`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_search.md`
+
+## focusa_sms_send
+
+Send one customer-authorized message. Requires separate send grant, idempotency key, consumer attribution, and confirm=true. Use it when Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.send`
+- Family: `communications`
+- Side effects: `confirmed_idempotent_message_delivery`, `confirmed_idempotent_message_delivery`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_events`, `focusa_sms_threads`, `focusa_sms_checkpoint`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_send.md`
+
+## focusa_sms_threads
+
+List customer-authorized thread summaries under a separately granted list_threads capability. Use it when List customer-authorized thread summaries under the separate list_threads grant. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.sms.threads`
+- Family: `communications`
+- Side effects: `authorized_customer_data_read`, `authorized_customer_data_read`
+- Skills: `skill:focusa`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_sms_read_thread`, `focusa_sms_search`, `focusa_sms_send`
+- Documentation: `docs/focusa-tools/tools/focusa_sms_threads.md`
+
 ## focusa_state_hygiene_apply
 
 Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. Use it when Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -1204,7 +1435,7 @@ Cold-load one complete runtime Focusa tool definition after search. Returns stri
 
 ## focusa_tool_doctor
 
-Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.tool.doctor`
 - Family: `diagnostics_hygiene`
@@ -1498,3 +1729,14 @@ Fetch the active Focusa WorkpointResumePacket after compaction, resume, context 
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_trajectory_view`, `focusa_active_object_resolve`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_workpoint_resume.md`
+
+## focusa_workset_projection
+
+Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.workset.projection`
+- Family: `workset`
+- Side effects: `read_projection`, `read_projection`
+- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Dependencies/next: `focusa_workpoint_resume`, `focusa_callgraph_validate`
+- Documentation: `docs/focusa-tools/tools/focusa_workset_projection.md`

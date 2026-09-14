@@ -82,4 +82,4 @@ Likely next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_predict
 - CLI: `focusa predict evaluate`.
 - REST: `POST /v1/predictions/{prediction_id}/evaluate`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:b9159d4084d97b1f12f013aec70f8a668a1c96f1ad99dfe19a3090f67ee21f4f`.
+- Descriptor digest: `sha256:bd5578fd13fe726b6825216275cf1097f3237226c1372cce0e28b19c1386cb33`.

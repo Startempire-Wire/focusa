@@ -33,7 +33,11 @@ fn fixture() -> (
     };
     let persistence = SqlitePersistence::new(&config).unwrap();
     let session = SilentSession::draft(
-        SilentSessionAuthority::new("/repo/focusa", "continuity-stream").unwrap(),
+        SilentSessionAuthority::new(
+            crate::test_support::absolute_path_string("silent-stream-project"),
+            "continuity-stream",
+        )
+        .unwrap(),
         "stream-proof",
         "prove durable streams",
         ConfigRevisionId::new(),

@@ -104,30 +104,29 @@ function textContentContains(content: unknown, marker: string): boolean {
   );
 }
 
-/** Attach volatile Focusa context to the newest user turn, after cacheable history. */
+/**
+ * Attach volatile Focusa context as a separate synthetic user message placed
+ * directly after the newest operator-authored turn. The cacheable history
+ * prefix is unchanged, the operator's authored message stays pristine (no
+ * private runtime text leaks into it at harness/provider boundaries), and a
+ * retried request never receives a duplicate slice.
+ */
 export function attachFocusSliceToNewestUser(messages: any[], slice: string): any[] {
   const marker = "[Focusa Focus Slice — minimal applicable context]";
   const next = [...messages];
   let userIndex = -1;
   for (let index = next.length - 1; index >= 0; index -= 1) {
-    if (next[index]?.role === "user") {
+    if (next[index]?.role === "user" && !textContentContains(next[index]?.content, marker)) {
       userIndex = index;
       break;
     }
   }
+  const sliceMessage = { role: "user", content: [{ type: "text", text: slice }] };
   if (userIndex < 0) {
-    return [...next, { role: "user", content: [{ type: "text", text: slice }] }];
+    return [...next, sliceMessage];
   }
-  const current = next[userIndex];
-  if (textContentContains(current?.content, marker)) return next;
-  const content = current?.content;
-  const updatedContent =
-    typeof content === "string"
-      ? `${content}\n\n${slice}`
-      : Array.isArray(content)
-        ? [...content, { type: "text", text: slice }]
-        : [{ type: "text", text: slice }];
-  next[userIndex] = { ...current, content: updatedContent };
+  if (textContentContains(next[userIndex + 1]?.content, marker)) return next;
+  next.splice(userIndex + 1, 0, sliceMessage);
   return next;
 }
 

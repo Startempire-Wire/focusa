@@ -25,7 +25,7 @@
     "corrections_append",
     "resolution_policy_frozen"
   ],
-  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
   "state_statuses": {
     "claimed": "verified_complete",
     "disputed": "verified_complete",

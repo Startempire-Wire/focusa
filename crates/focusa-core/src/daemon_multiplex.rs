@@ -41,6 +41,7 @@ pub struct DaemonRegistration {
     pub auth_fingerprint: String,
     pub version: String,
     pub capabilities: BTreeSet<String>,
+    pub allowed_native_sessions: BTreeSet<String>,
     pub health: DaemonHealth,
     pub generation: u64,
 }
@@ -72,8 +73,109 @@ pub enum DaemonRegistryEvent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DaemonRegistryProjection {
     pub registrations: BTreeMap<String, DaemonRegistration>,
+    #[serde(with = "route_map_serde")]
     pub routes: BTreeMap<ProjectRouteKey, BTreeSet<String>>,
+    pub quarantined_daemons: BTreeMap<String, String>,
     pub rejected_events: u64,
+}
+
+mod route_map_serde {
+    use super::ProjectRouteKey;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::collections::{BTreeMap, BTreeSet};
+
+    pub fn serialize<S>(
+        value: &BTreeMap<ProjectRouteKey, BTreeSet<String>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        value.iter().collect::<Vec<_>>().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<BTreeMap<ProjectRouteKey, BTreeSet<String>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let entries = Vec::<(ProjectRouteKey, BTreeSet<String>)>::deserialize(deserializer)?;
+        Ok(entries.into_iter().collect())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DaemonRoutingAuthority {
+    pub schema: String,
+    pub route: ProjectRouteKey,
+    pub native_session_id: String,
+    pub status: String,
+    pub selected_daemon_id: Option<String>,
+    pub selected_endpoint: Option<String>,
+    pub health: Option<DaemonHealth>,
+    pub capabilities: BTreeSet<String>,
+    pub recovery_required: bool,
+    pub failure_class: Option<String>,
+}
+
+pub fn project_routing_authority(
+    registry: &DaemonRegistryProjection,
+    route: &ProjectRouteKey,
+    native_session_id: &str,
+) -> DaemonRoutingAuthority {
+    let resolved = if native_session_id.trim().is_empty() {
+        Err(DaemonRegistryError::MissingIdentity("native_session_id"))
+    } else {
+        registry.resolve(route)
+    };
+    match resolved {
+        Ok(registration)
+            if registration
+                .allowed_native_sessions
+                .contains(native_session_id) =>
+        {
+            DaemonRoutingAuthority {
+                schema: "focusa.daemon_routing_authority.v1".into(),
+                route: route.clone(),
+                native_session_id: native_session_id.into(),
+                status: "resolved".into(),
+                selected_daemon_id: Some(registration.daemon_id.clone()),
+                selected_endpoint: Some(registration.endpoint.clone()),
+                health: Some(registration.health),
+                capabilities: registration.capabilities.clone(),
+                recovery_required: false,
+                failure_class: None,
+            }
+        }
+        Ok(_) => unresolved_authority(route, native_session_id, "session_not_admitted"),
+        Err(DaemonRegistryError::AmbiguousRoute) => {
+            unresolved_authority(route, native_session_id, "ambiguous_route")
+        }
+        Err(DaemonRegistryError::NoRoute) => {
+            unresolved_authority(route, native_session_id, "no_exact_route")
+        }
+        Err(_) => unresolved_authority(route, native_session_id, "invalid_scope"),
+    }
+}
+
+fn unresolved_authority(
+    route: &ProjectRouteKey,
+    native_session_id: &str,
+    failure_class: &str,
+) -> DaemonRoutingAuthority {
+    DaemonRoutingAuthority {
+        schema: "focusa.daemon_routing_authority.v1".into(),
+        route: route.clone(),
+        native_session_id: native_session_id.into(),
+        status: "unresolved".into(),
+        selected_daemon_id: None,
+        selected_endpoint: None,
+        health: None,
+        capabilities: BTreeSet::new(),
+        recovery_required: true,
+        failure_class: Some(failure_class.into()),
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -127,11 +229,31 @@ pub fn reduce_daemon_registry(
 ) -> DaemonRegistryProjection {
     let mut projection = DaemonRegistryProjection::default();
     for event in events {
-        if apply_event(&mut projection, event).is_err() {
-            projection.rejected_events += 1;
+        let daemon_id = event_daemon_id(&event).to_string();
+        match apply_event(&mut projection, event) {
+            Ok(()) => {
+                projection.quarantined_daemons.remove(&daemon_id);
+            }
+            Err(error) => {
+                projection.rejected_events += 1;
+                if !daemon_id.is_empty() {
+                    projection
+                        .quarantined_daemons
+                        .insert(daemon_id, error.to_string());
+                }
+            }
         }
     }
     projection
+}
+
+fn event_daemon_id(event: &DaemonRegistryEvent) -> &str {
+    match event {
+        DaemonRegistryEvent::Enrolled { registration } => &registration.daemon_id,
+        DaemonRegistryEvent::HealthObserved { daemon_id, .. }
+        | DaemonRegistryEvent::ScopeAssigned { daemon_id, .. }
+        | DaemonRegistryEvent::Revoked { daemon_id, .. } => daemon_id,
+    }
 }
 
 fn apply_event(
@@ -221,6 +343,7 @@ impl DaemonRegistryProjection {
         let owners = self.routes.get(route).ok_or(DaemonRegistryError::NoRoute)?;
         let healthy = owners
             .iter()
+            .filter(|daemon_id| !self.quarantined_daemons.contains_key(*daemon_id))
             .filter_map(|daemon_id| self.registrations.get(daemon_id))
             .filter(|registration| registration.health == DaemonHealth::Healthy)
             .collect::<Vec<_>>();
@@ -244,6 +367,7 @@ mod tests {
             auth_fingerprint: format!("sha256:{id}"),
             version: "0.9.143".into(),
             capabilities: BTreeSet::from(["workpoint".into()]),
+            allowed_native_sessions: BTreeSet::from(["session-1".into()]),
             health: DaemonHealth::Healthy,
             generation,
         }
@@ -255,6 +379,35 @@ mod tests {
             continuity_id: "continuity-1".into(),
             working_subpath_id: "working-subpath:main".into(),
         }
+    }
+
+    #[test]
+    fn canonical_surface_projection_never_infers_foreign_daemon_or_session() {
+        let projection = reduce_daemon_registry([
+            DaemonRegistryEvent::Enrolled {
+                registration: registration("daemon-a", 1),
+            },
+            DaemonRegistryEvent::ScopeAssigned {
+                daemon_id: "daemon-a".into(),
+                generation: 1,
+                route: route(),
+            },
+        ]);
+        let resolved = project_routing_authority(&projection, &route(), "session-1");
+        assert_eq!(resolved.status, "resolved");
+        assert_eq!(resolved.selected_daemon_id.as_deref(), Some("daemon-a"));
+        let foreign = project_routing_authority(&projection, &route(), "session-foreign");
+        assert_eq!(foreign.status, "unresolved");
+        assert_eq!(foreign.selected_daemon_id, None);
+        assert_eq!(
+            foreign.failure_class.as_deref(),
+            Some("session_not_admitted")
+        );
+        let mut foreign_route = route();
+        foreign_route.project_root = "/srv/foreign".into();
+        let missing = project_routing_authority(&projection, &foreign_route, "session-1");
+        assert_eq!(missing.selected_daemon_id, None);
+        assert_eq!(missing.failure_class.as_deref(), Some("no_exact_route"));
     }
 
     #[test]
@@ -291,15 +444,8 @@ mod tests {
                 generation: 1,
                 route: route(),
             },
-            DaemonRegistryEvent::HealthObserved {
-                daemon_id: "daemon-a".into(),
-                generation: 1,
-                health: DaemonHealth::Offline,
-                version: "stale".into(),
-                capabilities: BTreeSet::new(),
-            },
         ]);
-        assert_eq!(projection.rejected_events, 1);
+        assert_eq!(projection.rejected_events, 0);
         assert_eq!(
             projection.resolve(&route()),
             Err(DaemonRegistryError::AmbiguousRoute)
@@ -320,5 +466,41 @@ mod tests {
             },
         ]);
         assert_eq!(revoked.resolve(&route()), Err(DaemonRegistryError::NoRoute));
+    }
+
+    #[test]
+    fn replay_survives_restart_and_quarantines_stale_duplicate_and_untrusted_daemons() {
+        let mut unsafe_registration = registration("daemon-unsafe", 1);
+        unsafe_registration.endpoint = "http://remote.example.test".into();
+        let events = vec![
+            DaemonRegistryEvent::Enrolled {
+                registration: registration("daemon-a", 1),
+            },
+            DaemonRegistryEvent::ScopeAssigned {
+                daemon_id: "daemon-a".into(),
+                generation: 1,
+                route: route(),
+            },
+            DaemonRegistryEvent::Enrolled {
+                registration: registration("daemon-a", 1),
+            },
+            DaemonRegistryEvent::Enrolled {
+                registration: unsafe_registration,
+            },
+        ];
+        let serialized = serde_json::to_vec(&events).unwrap();
+        let replayed_events: Vec<DaemonRegistryEvent> =
+            serde_json::from_slice(&serialized).unwrap();
+        let first = reduce_daemon_registry(events);
+        let after_restart = reduce_daemon_registry(replayed_events);
+        assert_eq!(first, after_restart);
+        assert_eq!(first.rejected_events, 2);
+        assert!(first.quarantined_daemons.contains_key("daemon-a"));
+        assert!(first.quarantined_daemons.contains_key("daemon-unsafe"));
+        assert_eq!(first.resolve(&route()), Err(DaemonRegistryError::NoRoute));
+        assert_eq!(
+            serde_json::to_vec(&first).unwrap(),
+            serde_json::to_vec(&after_restart).unwrap()
+        );
     }
 }

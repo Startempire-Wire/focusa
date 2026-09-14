@@ -1,0 +1,38 @@
+Spec 152E email-identity schema and exact lookup acceptance evidence
+Work item: focusa-vbcqu.20.13.6
+Scope: WPUIAI/wpuiai verified email identity migration/repository, provider-neutral normalization, encrypted storage, keyed exact lookup, verification gate, bounce/suppression state, and separate consent timestamps
+
+IMPLEMENTATION COMMIT
+- a313665d77a3ffc057adcb955cac94cc1545ec81 (feat(spec152e): add verified email identity lookup schema)
+
+EXACT VERIFICATION
+Command (repository root):
+  php tests/spec152e_email_identity_schema_test.php
+Exit code: 0
+Bounded result:
+  {"schema":"focusa.spec152e.email_identity_schema_validation.v1","migration_versions":1,"verified_identities":2,"assertion_groups":12,"raw_email_logging":false,"result":"passed_fail_closed"}
+
+PROVED BOUNDARIES
+- Repeated schema migration is idempotent and preserves the first application timestamp/provenance journal row.
+- Verified identity rows are stored in the authority-owned email-identity table separately from EDD customer truth; unverified registration state is rejected before persistence.
+- Canonical input with presentation whitespace/domain case is idempotent, while local-part dots, plus tags, and distinct valid aliases remain exact and distinct.
+- Lookup uses an independent keyed digest; normalized email material is encrypted, and safe repository results omit both ciphertext and lookup digest.
+- Database uniqueness enforces one primary identity per account and one exact lookup digest per identity.
+- Transactional and promotional consent timestamps are separate; bounce and suppression state are bounded and recorded independently.
+- Delivery state and authenticated reveal are explicit repository seams; generic output contains no raw email.
+- Rollback preparation is preservation-only and append-journals the event without deleting verified identities or migration history.
+
+PINNED DIGESTS
+- docs/contracts/spec152e-email-identity.v1.php sha256:fd12461a027bfcbb527bb5c491849705ffb9f090400fc46d8faa3fff9ccd712b
+- tests/spec152e_email_identity_schema_test.php sha256:b12af69c8ea9fc933eeab62eecc54f1b4bc89ad8980c735995e7e83ef437edb7
+
+PUBLIC-SAFETY AND DELIVERY BOUNDARY
+- The exact test uses only in-memory SQLite and synthetic identifiers/emails.
+- No deployed WordPress database, EDD customer/order/refund record, secret, credential, administrative URL, unmasked real email, publication, deployment, merge, release, or push was read or changed.
+- This evidence file is closure preparation only; no administrative Beads closure was performed.
+
+ROLLBACK
+Revert only commit a313665d77a3ffc057adcb955cac94cc1545ec81 and this evidence file. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.
+
+RESULT
+TECHNICAL_ACCEPTANCE: PASSED

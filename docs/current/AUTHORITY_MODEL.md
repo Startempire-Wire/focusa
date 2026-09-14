@@ -90,21 +90,3 @@ verify_first
 diagnosis_only
 planning_only
 ```
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-authority-extension -->
-## Spec 144 authority extension
-
-| Surface | Authority role | Canonical when | Non-canonical states |
-| --- | --- | --- | --- |
-| Semantic Work Contract | Frozen target-state and acceptance authority for one work scope | Validated, approved, versioned, and reducer-linked | draft, amended-pending, stale, invalid |
-| Builder | Authorized mutation lineage within lease and contract | Never canonical truth by itself | advisory claims, blocked, stale |
-| Obligation Compiler | Deterministic and policy-derived verification-duty compiler | Output is canonical only after validation and Receipt | incomplete, invalid, unknown-impact |
-| Verification Router | Assignment and portfolio proposal authority | Authorized plan after eligibility/coverage validation | proposed, conflicted, uncovered, stale |
-| Verifier | Obligation-scoped finding authority | Finding is durable evidence after structure/scope/evidence validation | advisory, unsupported, stale, ineligible |
-| Coverage Challenger | Independent obligation-omission challenge | Validated challenge/receipt | advisory, common-mode, stale |
-| PRE / registered resolver | Deterministic conflict resolution for registered classes | Reducer applies valid resolution | advisory score, unresolved, clarification-required |
-| Arbiter / Operator Reviewer | Judgmental dispute recommendation or decision where policy assigns | Explicit eligible, independent, receipted path | conflicted, ineligible, advisory |
-| Spec 139 Placement | Environment and execution-venue authority | Current verified placement/lease/fencing decision | stale, ambiguous, partitioned, unsupported |
-| Spec 136 Settlement | Canonical completion and settlement authority | Reducer-settled with complete Spec 144 inputs | ready, blocked, challenged, reopened |
-
-No Builder, Verifier, Router, projection, client, model, or majority vote may mint settlement truth.

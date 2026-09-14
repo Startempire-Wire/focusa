@@ -2,6 +2,7 @@ import { diagnosticsStore } from '$lib/stores/diagnostics.svelte';
 import { getCurrentAuthToken } from '$lib/stores/pairing.svelte';
 import type { ScopeContext } from '$lib/projectContext.svelte';
 import type { SemanticPairActionRequest, SemanticPairStatus } from './types/focus-canvas';
+import { bindSpec138OperationPath, spec138Operation } from './generated/spec138-operations';
 
 export const DEFAULT_API_URL = 'http://127.0.0.1:8787';
 export const SAVED_CONNECTIONS_KEY = 'focusa_saved_connections_v1';
@@ -69,6 +70,52 @@ export function hasEverConnected(): boolean {
   } catch {
     return false;
   }
+}
+
+export interface EpistemicScopeIdentity {
+  project_root: string;
+  project_id?: string;
+  scope_id?: string;
+  canonical_name: string;
+  fingerprint: string;
+}
+
+/** Invoke generated Spec138 operations; only daemon results carry authority. */
+export async function requestSpec138Operation(
+  operationId: string,
+  identity: EpistemicScopeIdentity,
+  continuityId: string,
+  id?: string,
+  event?: unknown,
+): Promise<unknown> {
+  const descriptor = spec138Operation(operationId);
+  if (!descriptor) throw new Error(`Unknown Spec138 operation: ${operationId}`);
+  const scopeId = String(identity.scope_id || identity.project_id || '').trim();
+  if (!identity.project_root || !identity.canonical_name || !identity.fingerprint || !scopeId || !continuityId.trim()) {
+    throw new Error('Canonical Spec138 operation requires complete typed project scope');
+  }
+  const path = bindSpec138OperationPath(descriptor.path, id);
+  const rootScope = {
+    scope_kind: 'project', scope_id: scopeId, root_path: identity.project_root,
+    canonical_name: identity.canonical_name, fingerprint: identity.fingerprint,
+  };
+  if (descriptor.method === 'GET') {
+    const query = new URLSearchParams({
+      scope_kind: 'project', scope_id: scopeId, root_path: identity.project_root,
+      canonical_name: identity.canonical_name, fingerprint: identity.fingerprint,
+      continuity_id: continuityId,
+    });
+    return requestJson(`${path}?${query.toString()}`);
+  }
+  if (!event) throw new Error(`${operationId} requires a typed ScopedAuthorityEvent`);
+  return requestJson(path, {
+    method: 'POST',
+    body: {
+      operation_id: descriptor.operation_id,
+      scope: { root_scope: rootScope, continuity_id: continuityId },
+      event,
+    },
+  });
 }
 
 export interface ApiRequestOptions {
@@ -153,6 +200,13 @@ export async function requestJson<T = any>(path: string, options: ApiRequestOpti
   // localStorage anymore. The api module is consumed by Svelte components
   // that import { currentAuthToken } from the pairing store.
   const mergedHeaders = { ...headers };
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    const values = body as Record<string, unknown>;
+    const key = values.idempotency_key ?? values.idempotencyKey ?? values.request_id ?? values.requestId;
+    if (typeof key === 'string' && key.trim() && !mergedHeaders['Idempotency-Key']) {
+      mergedHeaders['Idempotency-Key'] = key.trim();
+    }
+  }
   if (!mergedHeaders['Authorization'] && !mergedHeaders['authorization']) {
     try {
       const tok = getCurrentAuthToken();
@@ -179,9 +233,18 @@ export async function requestJson<T = any>(path: string, options: ApiRequestOpti
       }
     }
     if (!resp.ok) {
-      const err = new Error(data?.error || data?.message || `${path} returned HTTP ${resp.status}`);
+      const errorBody = data?.error && typeof data.error === 'object' ? data.error : null;
+      const code = String(errorBody?.code || data?.code || '');
+      const message = String(errorBody?.message || data?.error || data?.message || `${path} returned HTTP ${resp.status}`);
+      const err = new Error(message);
       (err as any).status = resp.status;
-      (err as any).failure_class = data?.failure_class || `http_${resp.status}`;
+      (err as any).code = code || undefined;
+      (err as any).failure_class = code.startsWith('ENTITLEMENT_')
+        ? 'entitlement_blocked'
+        : data?.failure_class || `http_${resp.status}`;
+      (err as any).required_feature = errorBody?.required_feature || null;
+      (err as any).limit_bucket = errorBody?.limit_bucket || null;
+      (err as any).recovery = errorBody?.recovery || null;
       (err as any).body = data;
       diagnosticsStore.record({ area: 'api', phase: 'http_response', error: err, url, method, status: resp.status, body: data });
       // FOCUSA_FIX-1vfz/67ud: Handle 401 auth failures from daemon.

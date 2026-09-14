@@ -1,0 +1,3 @@
+focusa-vbcqu.10.8.5 152.04.05 — REAL 2026-08-18
+Commit: 8f093c87e4f894d491e66ed20eadb98fbe5b453b
+python3 tests/spec152f_agent_presenter_test.py PASS (146)

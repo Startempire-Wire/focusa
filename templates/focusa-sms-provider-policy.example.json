@@ -1,0 +1,10 @@
+{
+  "schema": "focusa.sms_provider_policy.v1",
+  "providers": {
+    "github.com": {
+      "thread_pattern": "^GitHub$",
+      "otp_pattern": "(?<!\\d)(\\d{6})(?!\\d)",
+      "message_class": "renewable_login_otp"
+    }
+  }
+}

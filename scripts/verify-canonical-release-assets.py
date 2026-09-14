@@ -11,11 +11,12 @@ RUST_TARGETS = (
     ("aarch64-apple-darwin", ""),
     ("x86_64-apple-darwin", ""),
     ("x86_64-unknown-linux-gnu", ""),
+    ("aarch64-unknown-linux-gnu", ""),
     ("x86_64-unknown-linux-musl", ""),
     ("x86_64-pc-windows-msvc", ".exe"),
     ("aarch64-pc-windows-msvc", ".exe"),
 )
-RUST_SURFACES = ("focusa", "focusa-daemon", "focusa-tui")
+RUST_SURFACES = ("focusa", "focusa-daemon", "focusa-tui", "focusa-session-runner")
 
 
 def required_exact(tag: str) -> list[str]:
@@ -31,8 +32,13 @@ def required_exact(tag: str) -> list[str]:
             f"focusa-generated-clients-{tag}.tar.gz",
             f"focusa-installer-{tag}.sh",
             f"focusa-installer-{tag}.ps1",
+            "distribution-manifest.json",
             f"Focusa-{tag}-aarch64-apple-darwin.app.zip",
             f"Focusa-{tag}-x86_64-apple-darwin.app.zip",
+            "Focusa_aarch64.app.tar.gz",
+            "Focusa_aarch64.app.tar.gz.sig",
+            "Focusa_x64.app.tar.gz",
+            "Focusa_x64.app.tar.gz.sig",
         ]
     )
     return required
@@ -43,9 +49,13 @@ def required_patterns() -> list[str]:
         "Focusa_*aarch64*.dmg",
         "Focusa_*x64*.dmg",
         "Focusa_*x64*setup.exe",
+        "Focusa_*x64*setup.exe.sig",
         "Focusa_*arm64*setup.exe",
+        "Focusa_*arm64*setup.exe.sig",
         "Focusa_*x64*.msi",
+        "Focusa_*x64*.msi.sig",
         "Focusa_*arm64*.msi",
+        "Focusa_*arm64*.msi.sig",
     ]
 
 

@@ -1,0 +1,88 @@
+Spec 152 / Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.4
+Title: 152.01.04 Replay recovery-only middleware
+Implementation commit: (recorded by `git log -1 --format=%H -- crates/focusa-api/src/middleware/entitlement.rs`)
+
+Exact surfaces
+- crates/focusa-api/src/middleware/entitlement.rs
+- route registration/classification (route-classification.json ledger verified
+  fresh against the generator; no regeneration needed)
+- mutation route tests (in-module, same file)
+
+Bounded result
+- Route classification now distinguishes public, recovery, safe-read,
+  entitled-mutation, and execution routes. `route_requires_entitlement` no
+  longer exempts every ledger-declared read: a declared-method ledger entry
+  never exempts a route that resolves to an optional-premium family
+  (`route_has_premium_policy`), so premium collaboration/automation reads
+  (`/v1/connect/rooms`, `/v1/device/pair/list`) pass the entitlement gate while
+  base reads (`/v1/workpoint/current`), recovery reads
+  (`/v1/device/pair/status`), and declared public surfaces remain exempt. No
+  route-name substring guessing was added; matching stays exact/template-based.
+- The pre-handler gate now validates lease binding/current state before handler
+  invocation: `route_entitlement_denial` returns early for every declared
+  recovery/customer-control allowance (never lease-gated), and after the policy
+  state grid passes, `entitlement_allows_mutation` re-checks that the lease is
+  bound (non-empty lease id + `sha256:` digest) and current (Active with future
+  expiry, or OfflineGrace within its window). Expired, revoked, unbound, and
+  fabricated leases therefore deny value-producing handlers even where the
+  state grid alone would allow them.
+- With no signed lease at all, a premium-family operation reports
+  `ENTITLEMENT_BASE_REQUIRED` (base gate is the first prerequisite) instead of
+  the later-stage `ENTITLEMENT_REQUIRED`.
+- Added a replay side-effect sentinel test proving that missing, invalid,
+  expired, and revoked leases permit only the declared recovery surfaces and
+  emit a denial sentinel for every protected mutation route (zero mutation
+  sentinel events escape to handlers).
+
+Exact verification (exit codes)
+1. `cargo test -p focusa-api entitlement` — exit 0.
+   test result: ok. 8 passed; 0 failed; 0 ignored; 463 filtered out,
+   including `blocked_leases_permit_only_declared_recovery_surfaces_with_zero_mutation_sentinels`,
+   `recovery_route_matrix_permanent_customer_control_routes`,
+   `mutation_routes_require_entitlement_before_handlers`, and
+   `exact_feature_and_signed_limit_are_required_before_route_handler`.
+2. `cargo clippy -p focusa-api --all-targets -- -D warnings` — exit 101,
+   blocked only by pre-existing lints OUTSIDE this atom's exact surfaces:
+   - crates/focusa-license/src/entitlement_policy.rs:1480/1485/1488
+     (3x `manual_contains` from commit 2fa95680, a prior atom's merged work);
+   - after bypassing those, crates/focusa-core/src/silent_session_scheduler.rs
+     (6x `result_large_err`) and
+     crates/focusa-core/src/entitlement_execution_guard.rs:50
+     (`manual_is_variant_check`) also fail.
+   No clippy warning or error is reported for this atom's surface file
+   (crates/focusa-api/src/middleware/entitlement.rs).
+3. `cargo fmt --all -- --check` — exit 1, blocked only by 41 pre-existing
+   unformatted files OUTSIDE this atom's exact surfaces (recently merged atoms
+   committed unformatted code; the historical baseline under the OVH stable
+   rustfmt 1.97 is otherwise clean, e.g. crates/focusa-api/src/routes/attachments.rs).
+   This atom's surface file is fmt-clean: it no longer appears in the check
+   output after this atom's formatting pass.
+
+Regression / supporting checks
+- `git diff --check` — exit 0 (no whitespace errors).
+- `python3 scripts/generate-agent-route-classification.py --check` — exit 0
+  (generated route classification ledger is current: 538 routes,
+  operator_only 418 / agent_eligible 108 / public_pairing 6 / internal 6).
+
+Tests added
+- middleware/entitlement: `blocked_leases_permit_only_declared_recovery_surfaces_with_zero_mutation_sentinels`
+  — replays the pre-handler gate across missing (eval), invalid (Active with
+  malformed lease digest), expired (Active past expiry), and revoked
+  (RecoveryOnly) leases; asserts every declared recovery surface passes with no
+  denial and every protected mutation route emits a denial before side effects.
+
+External blockers (pre-existing, not in this atom's surfaces)
+- Workspace-wide `cargo fmt --all -- --check` and `cargo clippy ... -- -D warnings`
+  cannot reach green until the merged base is repaired: 41 unformatted files
+  and 10 clippy lints in crates/focusa-license and crates/focusa-core from
+  in-flight/merged atoms are outside this atom's exact surfaces. This atom's
+  surfaces are fmt-clean, clippy-clean, and fully tested.
+
+Rollback
+- Revert only this atom's implementation commit (and this evidence record if
+  required). Preserve leases, credentials, user data, Workpoints, Evidence,
+  migration journals, and accepted authority state. No recovery surface
+  behavior changes are introduced beyond the pre-existing middleware gate.
+
+No push, deploy, release, merge, or Beads mutation was performed.

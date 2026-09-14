@@ -81,4 +81,4 @@ Likely next: `focusa_project_verify`, `focusa_evidence_capture`, `focusa_workpoi
 - CLI: `focusa ontology scope-migration-dry-run`, `focusa ontology scope-migration-status`, `focusa ontology scope-migration-apply`, `focusa ontology scope-migration-rollback`.
 - REST: `POST /v1/ontology/scope-migrations`.
 - Specification: `docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md`.
-- Descriptor digest: `sha256:e9af9a90476a82002a843c06d4d2a17c4bc8df2dd6cca54c2478b45e2ef4555b`.
+- Descriptor digest: `sha256:7b0e4368ff8b756c5998f9fa68a399313181b6de2938c26fa2a10f4ba1003381`.

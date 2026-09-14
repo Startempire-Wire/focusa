@@ -1,0 +1,161 @@
+Spec 152E one-time device-encrypted terminal key envelope — acceptance evidence
+Work item: focusa-vbcqu.20.13.32
+Title: 152E.04.01 Implement one-time device-encrypted terminal key envelope
+Scope: registration device public key, delivery envelope schema/service, poll
+response, credential adapter
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§11 paid journey "terminal poll receives encrypted
+key envelope", §14.2 agent/JSON presenter reveal mode, §16.2 terminal delivery,
+§19 security and privacy requirements); Specs 152, 150A, 152A-D; Spec 158
+implementation excluded.
+
+Exact surfaces (this atom only)
+- Registration device public key: FocusaSpec152eActivationRegistrationRepository::
+  bindDevicePublicKey() records the registration's device X25519 public key and
+  marks the one-time terminal delivery in one compare-and-set update; re-binding
+  to a different device key fails closed (NODE_KEY_MISMATCH), replays are
+  idempotent, and the plaintext credential is never persisted.
+- Delivery envelope schema/service: docs/contracts/spec152e-terminal-delivery-
+  envelope.v1.php — pure-PHP RFC 7748 X25519 (GMP) + HKDF-SHA256 + AES-256-GCM
+  envelope sealing/open with canonical JSON claims that bind account, EDD
+  customer, EDD license, product code, registration, issued/expiry, and a
+  one-time flag; a delivery journal (wp_wpuiai_terminal_delivery_envelopes)
+  enforces one envelope per delivery, idempotent replay, and retention; schema
+  migration and preservation-only rollback are journaled.
+- Poll response: FocusaSpec152eTerminalEnvelopeService::deliverPollResponse()
+  returns the public-safe activation response with one_time_key_envelope
+  (base64url sealed envelope) exactly once; a new poll after delivery fails
+  closed with LICENSE_DELIVERY_FAILED; wrong poll credentials, expired
+  credentials, malformed/mismatched device keys, pending or failed delivery
+  posture, revoked licenses, and expired registrations all fail closed with the
+  stable public codes.
+- Credential adapter: FocusaSpec152eTerminalCredentialAdapter — protected
+  credential-store seam; store confirmation exposes only the masked key and an
+  opaque handle; one-time reveal is granted only under explicit customer
+  consent and within the envelope lifetime, and a replayed reveal fails closed.
+- Cross-language golden vectors: docs/contracts/spec152e-terminal-envelope-
+  golden-vectors.v1.json — public synthetic fixture, byte-exact between the PHP
+  contract and Python `cryptography` (RFC 7748 clamped exchange semantics,
+  matching libsodium crypto_scalarmult).
+
+Implementation commits: `e078f830` (envelope contract, registration device-key
+surface, cross-language golden vectors, and both exact-verification tests).
+
+Bounded result
+- Added FocusaSpec152eTerminalEnvelopeCrypto: deterministic RFC 7748 X25519
+  (pure PHP via GMP; passes RFC 7748 vectors 1 and 2 and the 1,000-round
+  iterated vector), HKDF-SHA256 key derivation, and AES-256-GCM seal/open with
+  the canonical envelope header bound as AAD. The PHP seal with the golden
+  fixed inputs is byte-identical to the Python `cryptography` output, and the
+  golden envelope decrypts to the exact canonical claims in both languages.
+- Added FocusaSpec152eTerminalEnvelopeService::deliverPollResponse(): one-time
+  terminal delivery through the activation poll response. The exact canonical
+  EDD Software Licensing key (resolved only from wp_edd_licenses, active
+  status, canonical hex pattern) is sealed to the registration's device public
+  key with claims binding account/license/product/registration/expiry, the
+  device key is bound on the registration, terminal_delivery_status becomes
+  'delivered' with delivery_attempts and delivered_at, and exactly one journal
+  row is written. An idempotent replay returns the identical stored envelope;
+  a new poll after delivery fails closed and never mints a second envelope or
+  key. openForDevice() validates every claim fail-closed.
+- Added FocusaSpec152eTerminalCredentialAdapter: store returns masked
+  confirmation only; reveal returns the one-time decrypted key only under
+  explicit customer-controlled consent within the envelope lifetime, and a
+  replayed reveal fails closed.
+- Added the registration device-key surface bindDevicePublicKey() with a
+  one-line nested-transaction guard on the repository transaction helper so the
+  poll response composes atomically with the existing idempotency journal.
+- No facade/access/generic log, response, journal, or evidence contains the
+  plaintext EDD key or any unmasked real email; journals store only the
+  license_key_digest, license_key_mask, and the sealed envelope payload.
+
+Exact verification (exit codes)
+1. php tests/spec152e_terminal_envelope_test.php — exit 0.
+   Bounded result: {"schema":"focusa.spec152e.terminal_envelope_validation.v1",
+   "rfc7748_vectors":2,"golden_vectors":"byte_exact_cross_language",
+   "envelopes_issued":1,"delivery_attempts":1,"positive_checks":71,
+   "negative_checks":19,"result":"passed_fail_closed"}
+   Positive: RFC 7748 vectors 1-2; golden device/ephemeral public keys, shared
+   secret, HKDF key, and sealed envelope are byte-exact with the Python vector;
+   the bound device decrypts the exact canonical EDD key with all claims bound;
+   poll response marks one-time delivery with masked key only; journal row
+   count and delivery_attempts; idempotent replay returns the identical
+   envelope; credential adapter masked store and one-time reveal; hygiene
+   (no plaintext key or unmasked email in any returned structure); rollback
+   preservation journaling.
+   Negative: wrong device (ENVELOPE_AUTH_FAILED), tampered ciphertext
+   (ENVELOPE_AUTH_FAILED), tampered header/AAD (ENVELOPE_AUTH_FAILED), unknown
+   algorithm (ENVELOPE_FORMAT_DENIED), envelope replayed against another
+   registration (ENVELOPE_BINDING_MISMATCH), expired envelope
+   (ENVELOPE_EXPIRED), second poll after delivery (LICENSE_DELIVERY_FAILED),
+   changed idempotency identity (IDEMPOTENCY_CONFLICT), wrong poll credential
+   (POLL_CREDENTIAL_REQUIRED), expired poll credential
+   (POLL_CREDENTIAL_EXPIRED), malformed device key (NODE_PUBLIC_KEY_REQUIRED),
+   delivery not ready (LICENSE_DELIVERY_PENDING), revoked canonical license
+   (EDD_LICENSE_UNUSABLE), device re-bind mismatch (NODE_KEY_MISMATCH),
+   restricted binding context (PENDING_AUTHORITY_FIELD_DENIED), reveal without
+   consent / replayed reveal / expired reveal (CREDENTIAL_REVEAL_DENIED /
+   ENVELOPE_EXPIRED).
+2. python3 tests/spec152e_terminal_envelope_vector_test.py — exit 0.
+   Bounded result: {"fixture":"public_synthetic_nonproduction",
+   "golden_vectors":"byte_exact_cross_language","negative_checks":9,
+   "positive_checks":28,"result":"passed_fail_closed"}
+   Positive: fixture structure and hygiene; device public key derives with
+   RFC 7748 clamped exchange semantics; the golden envelope decrypts to the
+   canonical claims; deterministic re-seal reproduces the golden envelope
+   byte-for-byte; claims round-trip; expiry policy bound.
+   Negative: wrong device, tampered ciphertext, tampered nonce, tampered
+   ephemeral key, unknown schema/version/algorithm, expired lifetime policy,
+   and forged re-binding (authenticated claims) all fail closed.
+
+Regression checks (exit codes)
+- php tests/spec152e_registration_schema_test.php — exit 0.
+- php tests/spec152e_registration_transition_test.php — exit 0.
+- php tests/spec152e_edd_license_issuance_test.php — exit 0.
+- php tests/spec152e_edd_customer_adapter_test.php — exit 0.
+- php tests/spec152e_edd_order_binding_test.php — exit 0.
+- php tests/spec152e_edd_commerce_acceptance_test.php — exit 0.
+- php tests/spec152e_authority_outbox_test.php — exit 0.
+- python3 tests/spec152e_api_contract_test.py — exit 0 (generated activation
+  contracts are current; the poll operation already declares device_public_key
+  input and one_time_key_envelope in the ActivationEnvelope response schema).
+- python3 tests/spec152e_state_machine_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_golden_vector_test.py — exit 0.
+- Full sweep: every tests/spec152e_*.php and tests/spec152e_*.py suite passes
+  except tests/spec152e_document_authority_test.py, which fails identically on
+  the pre-atom HEAD (missing publication-rule token for atoms 20.13.63 /
+  20.14.52) and is unrelated to this atom's surfaces.
+
+Tests added
+- tests/spec152e_terminal_envelope_test.php (exact verification; 71 positive /
+  19 negative checks across RFC 7748 compliance, cross-language golden vector
+  byte-exactness, one-time poll delivery, idempotent replay, device binding,
+  credential adapter, fail-closed tamper/replay/wrong-device/expired paths,
+  rollback preservation, and log hygiene).
+- tests/spec152e_terminal_envelope_vector_test.py (exact verification; 28
+  positive / 9 negative checks proving PHP/Python byte-compatibility of the
+  envelope format and fail-closed negatives).
+
+Acceptance criteria
+- Only the bound device decrypts the exact EDD key; tamper/replay/wrong-device/
+  expired envelopes fail closed: verified — the sealed claims open only with
+  the bound device private key; tampered ciphertext/header, expired envelopes,
+  wrong-device decryption, forged re-binding, and post-delivery polls all fail
+  closed; the envelope is delivered once (journal + registration status) and an
+  idempotent replay returns the identical envelope with no second key.
+- All named positive and negative checks pass; diff contains only named
+  surfaces; generated contracts are current (api_contract_test.py passes);
+  secrets and unmasked real email are absent (hygiene checks pass); evidence is
+  replayable from the pinned commit (both tests are offline and deterministic).
+
+Rollback
+Revert only this atom's commits: docs/contracts/spec152e-terminal-delivery-
+envelope.v1.php, docs/contracts/spec152e-terminal-envelope-golden-vectors.v1.json,
+tests/spec152e_terminal_envelope_test.php,
+tests/spec152e_terminal_envelope_vector_test.py, the bindDevicePublicKey()
+addition in docs/contracts/spec152e-activation-registration.v1.php (and this
+evidence file if required). Preserve EDD customer/order/refund truth, verified
+identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and
+migration journals; envelope schema rollback is preservation-only.
+
+No push, deploy, release, merge, or Beads mutation was performed.

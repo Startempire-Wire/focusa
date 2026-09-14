@@ -1,0 +1,18 @@
+focusa-vbcqu.10.7.12 152.03.10 Installer presenter parity — REAL acceptance
+
+SPEC: Specs 152, 150A, 152A-D
+SURFACES: tests/spec152_installer_presenter_parity_test.py, scripts/install-focusa.sh, crates/focusa-cli, apps/menubar
+
+VERIFICATION 2026-08-19:
+- python3 tests/spec152_installer_presenter_parity_test.py PASS (schema focusa.installer_presenter_parity_report.v1, 8 cases active/offline/expired/revoked/invalid/unactivated/raw_credential/interrupted all passed for Rust/Bash/PowerShell/menubar, recovery_parity passed, redaction passed)
+- cargo test -p focusa-cli -- install spec128_installer_update_runtime_script_passes 1/1 PASS
+- bash -n scripts/install-focusa.sh PASS (shellcheck not installed on host, syntax ok)
+- svelte-check 0 errors 0 warnings (menubar check)
+- cargo fmt --all -- --check PASS
+- cargo clippy -p focusa-cli -p focusa-core --all-targets -- -D warnings PASS (prev)
+
+BEHAVIOR:
+- State names, error codes, redaction, recovery actions, lease/status fields, interruption rollback consistent across presenters
+- Zero parity gaps; native build acceptance deferred to 152.07 lane
+
+ROLLBACK: revert only this evidence

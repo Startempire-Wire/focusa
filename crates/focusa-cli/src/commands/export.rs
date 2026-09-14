@@ -5,7 +5,6 @@
 use crate::api_client::ApiClient;
 use anyhow::Context;
 use clap::{Subcommand, ValueEnum};
-use focusa_core::license::require_feature;
 use parquet::data_type::{ByteArray, ByteArrayType};
 use parquet::file::properties::WriterProperties;
 use parquet::file::writer::SerializedFileWriter;
@@ -303,10 +302,9 @@ async fn run_export(
 }
 
 pub async fn run(cmd: ExportCmd, json_mode: bool) -> anyhow::Result<()> {
-    // Spec §5.4 + §5.5: commercial_export is a license-gated feature.
-    if let Err(e) = require_feature("commercial_export") {
-        anyhow::bail!("{e}");
-    }
+    // Basic customer-data export is always available (Spec 152F §3.3, §8).
+    // The focusa.export.packaged premium feature gates only value-added
+    // hosted packaging/transformation/report formats, never basic export.
     let api = ApiClient::new();
 
     match cmd {

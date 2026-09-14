@@ -732,8 +732,3 @@ Spec 88 is complete when:
 Meaning lives in the typed workpoint, not in the transcript.
 
 Focusa should not hope compaction preserves meaning. Focusa should checkpoint the typed working world before compaction, project it after compaction, and verify future turns against it.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-workpoint-continuity -->
-## Spec 144 Workpoint continuity integration
-
-A Workpoint participating in a Semantic Execution Pair MUST preserve Work Contract revision, active build attempt, Verification Plan, immutable snapshot, open obligations/findings, dispute posture, placement bindings, Evidence, and next safe action. Compaction or handoff cannot collapse those records into a favorable verdict string or transcript summary.

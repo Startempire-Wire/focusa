@@ -1,0 +1,123 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.36
+Title: 172.05.05 Prove future Navigator, new family, and new product default
+exclusion
+Implementation commit: `9ffbc689` (runtime vectors + contract matrix; evidence
+record follows in this commit)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.15.36 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- License Type lifecycle registry (docs/contracts/spec172-license-type-lifecycle
+  .v1.yaml — read-only; frozen by prior atom 20.15.9)
+- Synthetic Navigator/new-family/new-product/dynamic-operation fixtures
+  (crates/focusa-license/tests/spec172_future_default.rs — NEW; embedded
+  synthetic fixtures)
+- tests/spec172_future_default_test.py (NEW — exact verification)
+
+Bounded result
+- Added `tests/spec172_future_default_test.py`: a contract matrix
+  (`focusa.spec172.future_default_validation.v1`) that evaluates five
+  synthetic future-evolution attempts (future Navigator License Type, a
+  materially new capability family, an unregistered future product, a hosted
+  metered resource, and a safe same-family implementation) plus four
+  synthetic dynamic-operation manifests against the frozen License Type
+  lifecycle registry, the verified-no-license limited-access contract, and
+  the canonical operation registry. 76 positive checks, 0 negative.
+- Navigator proof: `focusa_navigator_lifetime_v1` is not a License Type
+  today — unknown type codes fail serde; the frozen Operator grant validates
+  byte-identically after the attempt; the Bundle stays the exact two-grant
+  union and a forged/“Navigator-like” grant fails validation and can never
+  enter the Bundle (`InvalidLicenseTypeGrant` / `MalformedBundleUnion`);
+  `LifetimeEntitlement::new("focusa", "focusa_navigator_lifetime_v1", ...)`
+  is refused with `InvalidLicenseType` (separate stable code required); the
+  lifecycle `navigator_is_separate` fixture asserts
+  `operator_manifest_mutation=denied` and Operator customer access denied
+  without an explicit upgrade/cross-grade/grant.
+- New-family proof: `classify_operator_family_inheritance` returns
+  `ExcludedPendingAssignment` for a synthetic materially new family; the
+  family never enters the Focusa or UIAI verified-no-license allowlists and
+  is not expressible in the typed capability-family set (serde rejects it);
+  blocked families still deny in verified_no_license posture.
+- Future-product and hosted-resource proof: an unregistered product owner
+  denies as `DeniedFutureProduct` (never folded into Operator; namespace or
+  marketing resemblance grants nothing), a fully unknown product denies as
+  `DeniedUnknownProduct`, and a known family with a materially new hosted
+  cost denies as `DeniedMateriallyNewHostedCost`; the Operator grant keeps
+  `hosted_resource = HostedExcluded`; the Bundle remains the exact two-grant
+  union with no hosted right.
+- Safe same-family inheritance proof: all ten canonical Operator v1 families
+  inherit a new implementation when the five Section 8.2 conditions hold
+  (`Inherit`, no per-tool pricing); missing any one condition fails closed;
+  `InternalMaintenance` inherits the initiating posture (`Inherit`) and
+  denies with `MissingInitiatingPolicy` when orphaned.
+- Dynamic-operation proof: synthetic manifests for the Navigator tool
+  (declared `license_type`), the new-family tool (unregistered family), the
+  future-product tool (unregistered owner), and the hosted-resource tool
+  (unregistered family + declared `commercial_right`) all quarantine at
+  runtime intake (`QuarantinedClientSelectedPolicy` /
+  `QuarantinedUnregisteredFamily` / `QuarantinedUnknownOwner`) with the
+  stable `ENTITLEMENT_POLICY_UNKNOWN` error and enter the quarantine ledger;
+  the safe canonical operation trusts without widening. The Python side
+  proves the same four operation ids and their families are absent from the
+  canonical operation registry (never executable or purchasable).
+- No-mutation proof: sha256 digests of the lifecycle registry
+  (`0201ca79dcc7631e5e9fd909c423b327c6e07ec42e38b89dcd0e196440c40b8c`) and
+  the verified-limited contract
+  (`4569f2e3e6b7ae8cc9502f1ddafb363cdcdfae16b7b412ed2c760c3dbc4e15b6`) are
+  byte-identical before and after the attempt matrix — the attempts are pure
+  fail-closed evaluations with zero mutation of any existing Operator /
+  Bundle / verified-no-license surface. Post-first-sale immutability is
+  structural: only `sale_status` may change after first sale, and
+  discontinuation preserves existing grants (never renamed/revoked/
+  downgraded/converted).
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_future_default_test.py` — exit 0.
+   Receipt: focusa.spec172.future_default_validation.v1, attempts 5,
+   dynamic_attempts 4, navigator separate_type_explicit_grant_required,
+   new_family excluded_pending_explicit_versioned_assignment, future_product
+   excluded_pending_operator_approved_registration, hosted_resource
+   excluded_unless_explicitly_listed, safe_same_family_implementation
+   inherit, dynamic_operations quarantined_fail_closed, positive_checks 76,
+   negative_checks 0, result passed_fail_closed.
+2. `cargo test -p focusa-license spec172_future_default` — exit 0.
+   test result: ok. 5 passed; 0 failed; 0 ignored (0 filtered out) in
+   tests/spec172_future_default.rs: navigator_is_separate_and_never_mutates_
+   operator, new_family_excluded_pending_versioned_assignment,
+   future_product_and_hosted_resource_denied,
+   safe_same_family_implementation_inherits,
+   dynamic_operation_fixtures_fail_closed.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0. Full suite green: 135 unit tests,
+  11 authority-lease, 8 entitlement-grid, 3 capsule, 5 activation, 35
+  automation, 7 bypass-resistance, 30/5 observability/export, 14 premium
+  adversarial, 33 release-proof, 43 team-remote, 12 dynamic-operation
+  manifest, 12 family-inheritance, 5 future-default (this atom), 7
+  lifetime-credential, 7 runtime-policy; 0 failed.
+- No other source file was modified; the lifecycle and verified-limited
+  contracts were only read (digests recorded above).
+
+Tests added
+- tests/spec172_future_default_test.py — contract matrix over the frozen
+  lifecycle registry, verified-limited contract, and operation registry:
+  operator freeze/discontinuation invariants, inheritance-rule defaults,
+  five synthetic attempts with per-surface no-change assertions, four
+  synthetic dynamic-operation fixtures, no-mutation digest proof, and
+  commercial-authority/preservation guards.
+- crates/focusa-license/tests/spec172_future_default.rs — five runtime
+  vectors (Navigator separation, new-family exclusion, future-product and
+  hosted-resource denial, safe same-family inheritance, dynamic-operation
+  quarantine) with synthetic fixtures and the stable error code.
+
+Rollback
+- Revert only this atom: `git revert 9ffbc689` (runtime vectors + contract
+  matrix) and drop `docs/evidence/spec172/focusa-vbcqu.20.15.36-acceptance
+  .txt` if required. Preserve verified identities, customers, orders,
+  refunds, License Types, keys, nodes, sequences, data, migration journals,
+  evidence, and accepted unrelated work (the lifecycle and verified-limited
+  contracts are untouched; all prior spec152/152E/152F/spec172 work remains
+  intact).
+
+No push, deploy, release, merge, or Beads mutation was performed.

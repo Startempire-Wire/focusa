@@ -330,7 +330,7 @@ mod tests {
             created_by_actor_ref: "actor:test".into(),
             operator_principal_ref: "operator:test".into(),
             os_execution_user: "runner".into(),
-            project_root: PathBuf::from("/tmp/focusa-authority"),
+            project_root: crate::test_support::absolute_path("silent-authority-project"),
             project_identity_ref: "project:focusa".into(),
             continuity_id: "continuity:test".into(),
             trajectory_ref: Some("trajectory:test".into()),
@@ -376,7 +376,7 @@ mod tests {
             observed_model_binding: None,
             workspace_binding: WorkspaceBinding {
                 workspace_id: "workspace:test".into(),
-                root: PathBuf::from("/tmp/focusa-authority-worktree"),
+                root: crate::test_support::absolute_path("silent-authority-worktree"),
                 strategy: WorkspaceStrategy::IsolatedWorktree,
                 branch_ref: Some("aaaaaaaa".into()),
             },

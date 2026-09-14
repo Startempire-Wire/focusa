@@ -2658,8 +2658,3 @@ Spec 131 is complete only when Focusa can prove that:
 The governing watchword remains:
 
 > **THE CALENDAR AND THE CLOCK NEVER WAIT. TO BE EARLY IS TO BE ON TIME; TO BE ON TIME IS TO BE LATE.**
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-timing-attribution -->
-## Spec 144 verification timing and closure attribution
-
-Spec 131 remains timing and closure authority. It MUST attribute Builder, obligation compilation, deterministic validation, specialist verification, dispute, repair, reroute, settlement, and revalidation intervals without double counting. Verification latency and failure history feed forecasts, but time pressure cannot waive coverage or independence.

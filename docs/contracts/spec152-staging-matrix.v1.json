@@ -1,0 +1,1 @@
+{"schema":"focusa.spec152.staging_matrix.v1","cases":["evaluation","paid","bundle","pending","slow_down","wrong_product","expiry","offline","revoke","refund","node_limit","outage","idempotent_retry","bundle_pending"],"result":"synthetic PASS redacted"}

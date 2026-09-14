@@ -1,15 +1,72 @@
 schema: focusa.spec152.supersession_and_integration_matrix.v1
-generated_at: 2026-08-01T20:10:00Z
+generated_at: 2026-08-06T00:53:00Z
 normative_authorities:
   entitlement: docs/152-mandatory-authority-licensing-evaluation-entitlements-and-unified-onboarding-spec.md
   lifecycle_overlay: docs/150a-spec152-entitlement-overlay-and-lifecycle-integration.md
   protected_distribution: docs/152a-protected-distribution-private-feature-capsules-and-anti-tamper-spec.md
+  edd_centered_correction: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+  simple_entitlement_policy: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+  license_type_and_surface_governance: docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md
+  spec_158: excluded
 release_rule: >-
   Historical implementation truth may remain documented, but no active guide, release claim,
-  lifecycle receipt, installer path, pairing path, source-build path, or UIAI health/auth path
-  may treat missing/local state as Evaluation or claim evaluator/customer readiness without
-  the combined Spec 150 + 150A + 152 + applicable 152A gates.
+  lifecycle receipt, installer path, pairing path, source-build path, facade path, or UIAI
+  health/auth path may treat missing/local state as Evaluation, create a canonical customer or
+  entitlement before mailbox verification, use split registries or direct install-site issuance,
+  trust implicit EDD mappings or caller-controlled grants, or claim evaluator/customer readiness
+  without the combined Spec 150 + 150A + 152 + 152E + 152F + 172 + applicable 152A gates. Spec 158 remains excluded.
+  Spec 172 narrowly supersedes only conflicting Evaluation, initial product-model, Bundle-price,
+  and future-family/product inheritance clauses; identity, EDD, key, lease, refund/revoke, node,
+  sequence, recovery, privacy, customer-data preservation, and Spec 158 exclusion remain binding.
 entries:
+  - path: docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md
+    classification: active_release_blocking_license_type_and_surface_governance_addendum
+    conflicting_claim: non-paid product capability must use anonymous local or time-bounded Evaluation; the initial product model, USD 1097.00 Bundle, or existing License Types automatically include future families products or types
+    disposition: verified_no_license is a permanent authority-signed limited posture; paid rights use product-scoped immutable License Types; the Bundle is USD 1254.60 and exactly unions the two Operator grants; new families products and License Types are excluded by default
+    required_change: complete focusa-vbcqu.20.15 while preserving verified identity WPUIAI.com EDD keys signed assertions and leases refund/revoke nodes sequence recovery privacy customer data and Spec 158 exclusion
+    status: registered_pending_implementation
+  - path: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+    classification: active_release_blocking_simplification_policy
+    conflicting_claim: exhaustive entitlement coverage requires independent commercial policy or feature purchase decisions at every route command button worker or source file
+    disposition: all surfaces inherit one base product gate four optional premium families permanent recovery/read/export/security-maintenance allowances and dormant future dimensions
+    required_change: complete focusa-vbcqu.20.14 through focusa-vbcqu.20.14.52 without weakening Spec 152E authority
+    status: registered_pending_implementation
+  - path: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+    classification: active_release_blocking_correction
+    conflicting_claim: prior Spec 152 documents do not fully consolidate EDD identity commerce human-key entitlement and facade authority
+    disposition: Spec 152E is mandatory and supersedes local Evaluation split registries direct install-site issuance implicit EDD mappings caller-controlled grants and unverified-email promotion
+    required_change: complete focusa-vbcqu.20.13 and preserve Spec 158 exclusion
+    status: registered_pending_implementation
+  - path: deployment://install.focusa.dev/custom-license-registry
+    classification: deployed_split_authority_superseded
+    conflicting_claim: custom registry and direct Stripe webhook can independently issue Focusa or UIAI entitlement
+    disposition: retain read-only migration evidence; WPUIAI.com EDD becomes sole issuance authority and the domain becomes a registered facade
+    required_change: inventory migrate subordinate then disable new issuance with rollback and reconciliation proof
+    status: release_blocker
+  - path: deployment://wpuiai.com/edd-focusa-integration
+    classification: deployed_canonical_authority_incomplete
+    conflicting_claim: implicit EDD Download mapping synthetic payment IDs or custom Focusa keys can establish durable product and order authority
+    disposition: EDD remains canonical only through explicit server-owned product mappings real orders Software Licensing keys and verified identity
+    required_change: implement allowlisted product registry atomic customer promotion checkout integrity outbox and reconciliation
+    status: release_blocker
+  - path: activation://unverified-email
+    classification: superseded_identity_flow
+    conflicting_claim: supplied email Stripe email or installer receipt may create or link canonical customer checkout Evaluation license node or lease
+    disposition: unverified email creates only a bounded pending registration; mailbox verification precedes canonical promotion
+    required_change: implement single-use verification atomic EDD customer promotion and email-change hold
+    status: release_blocker
+  - path: facade://non-wpuiai-domains
+    classification: presenter_only
+    conflicting_claim: a branded domain may issue entitlement collect card data select grants or own customer truth
+    disposition: registered facades render brand and bounded proxy flows only; exact origin and redirects are authority controlled
+    required_change: implement facade registry credentials origin binding safe redirects and negative spoof tests
+    status: release_blocker
+  - path: evaluation://installer-local
+    classification: superseded_evaluation_flow
+    conflicting_claim: installer-local state --eval missing license or source checkout may create runnable Evaluation
+    disposition: Evaluation is a verified EDD-backed authority-issued expiring human key and signed lease
+    required_change: remove local issuance and converge every presenter on the universal registration state machine
+    status: release_blocker
   - path: docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md
     classification: active_spec_amended
     conflicting_claim: lifecycle acceptance can be complete from version, health, adapters, project, and first Workpoint without immutable entitlement binding
@@ -173,6 +230,16 @@ entries:
     required_change: none unless an evidence file falsely claims future/current entitlement completion
     status: retained
 combined_release_blockers:
+  - Spec 172 verified-no-license License Type product Bundle surface inheritance reconciliation and acceptance
+  - Spec 152F base gate premium-family recovery inheritance future-granularity implementation and acceptance
+  - reconciliation of the 395 baseline surfaces without independent paywalls or presenter-owned authority
+  - Spec 152E correction registration implementation and acceptance
+  - canonical WPUIAI.com EDD identity customer order refund human-key and entitlement authority
+  - verified-mailbox pending registration and atomic customer promotion
+  - server-owned EDD product checkout grant and commercial mappings
+  - registered branded facades without independent authority
+  - canonical human-key delivery node sequence outbox and signed lease services
+  - migration and retirement of split registries direct Stripe issuance synthetic mappings and local Evaluation
   - canonical signed-lease verifier
   - authority device-code and verified-email Evaluation issuance
   - lifecycle entitlement binding and receipts

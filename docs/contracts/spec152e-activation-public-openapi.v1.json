@@ -1,0 +1,921 @@
+{
+  "components": {
+    "schemas": {
+      "ActivationEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "lease_envelope": {
+            "contentEncoding": "base64",
+            "type": "string"
+          },
+          "masked_email": {
+            "pattern": "^[^@]*\\*[^@]*@[^@]+$",
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "one_time_key_envelope": {
+            "contentEncoding": "base64",
+            "type": "string"
+          },
+          "registration_id": {
+            "minLength": 8,
+            "type": "string"
+          },
+          "request_id": {
+            "minLength": 8,
+            "type": "string"
+          },
+          "retry": {
+            "$ref": "#/components/schemas/Retry"
+          },
+          "safe_url": {
+            "format": "uri",
+            "type": "string"
+          },
+          "schema": {
+            "const": "focusa.activation.response.v1"
+          },
+          "state": {
+            "enum": [
+              "email_required",
+              "email_verification_pending",
+              "email_verified",
+              "selection_required",
+              "checkout_required",
+              "payment_pending",
+              "license_delivery_ready",
+              "activated",
+              "denied",
+              "recovery_only"
+            ],
+            "type": "string"
+          },
+          "terminal": {
+            "type": "boolean"
+          },
+          "verification_delivery_status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "request_id",
+          "registration_id",
+          "state",
+          "terminal",
+          "retry",
+          "next_action"
+        ],
+        "type": "object"
+      },
+      "CorrelationHeaders": {
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "Error": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "ACCOUNT_EMAIL_MISMATCH",
+              "ACCOUNT_MERGE_REVIEW_REQUIRED",
+              "AUTHORITY_UNAVAILABLE",
+              "EDD_CHECKOUT_REQUIRED",
+              "EDD_CUSTOMER_RESOLUTION_FAILED",
+              "EDD_LICENSE_PENDING",
+              "EDD_LICENSE_UNUSABLE",
+              "EDD_ORDER_PENDING",
+              "EDD_ORDER_UNVERIFIED",
+              "EMAIL_DELIVERY_FAILED",
+              "EMAIL_REQUIRED",
+              "EMAIL_VERIFICATION_EXPIRED",
+              "EMAIL_VERIFICATION_FAILED",
+              "EMAIL_VERIFICATION_REQUIRED",
+              "ENTITLEMENT_FEATURE_REQUIRED",
+              "ENTITLEMENT_LIMIT_EXHAUSTED",
+              "ENTITLEMENT_REQUIRED",
+              "EVALUATION_NOT_ELIGIBLE",
+              "FACADE_ORIGIN_DENIED",
+              "FACADE_PRODUCT_DENIED",
+              "IDEMPOTENCY_CONFLICT",
+              "IDEMPOTENCY_KEY_REQUIRED",
+              "LICENSE_ACCOUNT_MISMATCH",
+              "LICENSE_DELIVERY_FAILED",
+              "LICENSE_DELIVERY_PENDING",
+              "NODE_LIMIT_EXHAUSTED",
+              "POLL_CREDENTIAL_EXPIRED",
+              "POLL_CREDENTIAL_REQUIRED",
+              "PRODUCT_MAPPING_REQUIRED",
+              "REFUNDED",
+              "REQUEST_ID_REQUIRED",
+              "REQUEST_IN_PROGRESS",
+              "REVOKED"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "next_action"
+        ],
+        "type": "object"
+      },
+      "MutationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object"
+          },
+          "registration_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "registration_id"
+        ],
+        "type": "object"
+      },
+      "ReadRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "Retry": {
+        "additionalProperties": false,
+        "properties": {
+          "posture": {
+            "enum": [
+              "none",
+              "safe_retry",
+              "retry_same_idempotency_key",
+              "restart",
+              "recovery_only"
+            ]
+          },
+          "retry_after_seconds": {
+            "maximum": 30,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "posture"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Spec 152E Universal Activation Facade API",
+    "version": "1.0.0"
+  },
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/account/manage-link": {
+      "get": {
+        "operationId": "account.manage_link",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EMAIL_VERIFICATION_REQUIRED",
+          "ACCOUNT_EMAIL_MISMATCH",
+          "FACADE_ORIGIN_DENIED",
+          "REQUEST_ID_REQUIRED",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "AccountManageLinkHandler",
+        "x-focusa-idempotency": false
+      }
+    },
+    "/v1/activation/checkout": {
+      "post": {
+        "operationId": "activation.checkout",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EMAIL_VERIFICATION_REQUIRED",
+          "ACCOUNT_EMAIL_MISMATCH",
+          "PRODUCT_MAPPING_REQUIRED",
+          "EDD_CHECKOUT_REQUIRED",
+          "EDD_ORDER_UNVERIFIED",
+          "REQUEST_ID_REQUIRED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_CONFLICT",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "ActivationCheckoutHandler",
+        "x-focusa-idempotency": true
+      }
+    },
+    "/v1/activation/existing-license": {
+      "post": {
+        "operationId": "activation.existing_license",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EMAIL_VERIFICATION_REQUIRED",
+          "LICENSE_ACCOUNT_MISMATCH",
+          "EDD_LICENSE_PENDING",
+          "EDD_LICENSE_UNUSABLE",
+          "NODE_LIMIT_EXHAUSTED",
+          "REQUEST_ID_REQUIRED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_CONFLICT",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "ActivationExistingLicenseHandler",
+        "x-focusa-idempotency": true
+      }
+    },
+    "/v1/activation/offers": {
+      "get": {
+        "operationId": "activation.offers",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EMAIL_VERIFICATION_REQUIRED",
+          "FACADE_PRODUCT_DENIED",
+          "PRODUCT_MAPPING_REQUIRED",
+          "REQUEST_ID_REQUIRED",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "ActivationOffersHandler",
+        "x-focusa-idempotency": false
+      }
+    },
+    "/v1/activation/poll": {
+      "post": {
+        "operationId": "activation.poll",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "POLL_CREDENTIAL_REQUIRED",
+          "POLL_CREDENTIAL_EXPIRED",
+          "EDD_ORDER_PENDING",
+          "EDD_ORDER_UNVERIFIED",
+          "EDD_LICENSE_PENDING",
+          "EDD_LICENSE_UNUSABLE",
+          "LICENSE_DELIVERY_PENDING",
+          "LICENSE_DELIVERY_FAILED",
+          "NODE_LIMIT_EXHAUSTED",
+          "REQUEST_ID_REQUIRED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_CONFLICT",
+          "REQUEST_IN_PROGRESS",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "ActivationPollHandler",
+        "x-focusa-idempotency": true
+      }
+    },
+    "/v1/activation/select-offer": {
+      "post": {
+        "operationId": "activation.select_offer",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EMAIL_VERIFICATION_REQUIRED",
+          "FACADE_PRODUCT_DENIED",
+          "PRODUCT_MAPPING_REQUIRED",
+          "EVALUATION_NOT_ELIGIBLE",
+          "REQUEST_ID_REQUIRED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_CONFLICT"
+        ],
+        "x-focusa-handler": "ActivationSelectOfferHandler",
+        "x-focusa-idempotency": true
+      }
+    },
+    "/v1/activation/start": {
+      "post": {
+        "operationId": "activation.start",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EMAIL_REQUIRED",
+          "EMAIL_DELIVERY_FAILED",
+          "FACADE_ORIGIN_DENIED",
+          "FACADE_PRODUCT_DENIED",
+          "PRODUCT_MAPPING_REQUIRED",
+          "REQUEST_ID_REQUIRED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_CONFLICT",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "ActivationStartHandler",
+        "x-focusa-idempotency": true
+      }
+    },
+    "/v1/activation/verify": {
+      "post": {
+        "operationId": "activation.verify",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EMAIL_VERIFICATION_REQUIRED",
+          "EMAIL_VERIFICATION_EXPIRED",
+          "EMAIL_VERIFICATION_FAILED",
+          "EMAIL_DELIVERY_FAILED",
+          "ACCOUNT_MERGE_REVIEW_REQUIRED",
+          "EDD_CUSTOMER_RESOLUTION_FAILED",
+          "REQUEST_ID_REQUIRED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_CONFLICT",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "ActivationVerifyHandler",
+        "x-focusa-idempotency": true
+      }
+    },
+    "/v1/lease/refresh": {
+      "post": {
+        "operationId": "lease.refresh",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EDD_LICENSE_UNUSABLE",
+          "LICENSE_ACCOUNT_MISMATCH",
+          "REFUNDED",
+          "REVOKED",
+          "ENTITLEMENT_REQUIRED",
+          "REQUEST_ID_REQUIRED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_CONFLICT",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "LeaseRefreshHandler",
+        "x-focusa-idempotency": true
+      }
+    },
+    "/v1/nodes": {
+      "get": {
+        "operationId": "nodes.list",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EMAIL_VERIFICATION_REQUIRED",
+          "ENTITLEMENT_REQUIRED",
+          "REQUEST_ID_REQUIRED",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "NodesListHandler",
+        "x-focusa-idempotency": false
+      }
+    },
+    "/v1/nodes/deactivate": {
+      "post": {
+        "operationId": "nodes.deactivate",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Redacted activation state"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivationEnvelope"
+                }
+              }
+            },
+            "description": "Stable public-safe failure"
+          }
+        },
+        "x-focusa-authority": "WPUIAI.com EDD",
+        "x-focusa-failure-codes": [
+          "EMAIL_VERIFICATION_REQUIRED",
+          "LICENSE_ACCOUNT_MISMATCH",
+          "REQUEST_ID_REQUIRED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_CONFLICT",
+          "AUTHORITY_UNAVAILABLE"
+        ],
+        "x-focusa-handler": "NodeDeactivateHandler",
+        "x-focusa-idempotency": true
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://{registeredFacade}",
+      "variables": {
+        "registeredFacade": {
+          "default": "facade.invalid"
+        }
+      }
+    }
+  ],
+  "x-focusa-facade-authority": "proxy_only",
+  "x-focusa-spec158": "excluded"
+}

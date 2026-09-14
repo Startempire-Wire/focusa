@@ -1,0 +1,110 @@
+Spec 172 acceptance record
+Work item: focusa-vbcqu.20.15.26
+Title: 172.04.02 Project Spec 172 through CLI, Pi, and agent tools
+Implementation commit: `5d476c52`
+
+Exact surfaces
+- focusa-cli license/command preflight (crates/focusa-cli/src/commands/license.rs)
+- apps/pi-extension entitlement adapter/tool descriptors
+  (apps/pi-extension/src/entitlement-policy-adapter.ts)
+- JSON fixtures (crates/focusa-cli/tests/fixtures/spec172-cli-agent-presenter-fixtures.v1.json)
+- tests/spec172_cli_agent_presenter_test.py
+
+Bounded result
+- Added the canonical Spec 172 presenter projection
+  (`focusa.spec172.presenter_projection.v1`) to the CLI `license status` and
+  `license preflight` surfaces: it renders posture, product, License Type,
+  capability family, denial, retained access, and upgrade/recovery action
+  from the authority snapshot only, through the core license guard
+  (`focusa_license::resolve_license_guard`). The CLI never accepts a
+  caller-selected product, price, License Type, family, feature, limit, node,
+  or commercial right; preflight `--family` remains bounded to the six
+  canonical families and unknown families fail closed
+  (`E_AUTHORITY_UNKNOWN_PREFLIGHT_FAMILY`). Preflight keeps its nonzero exit
+  semantics for denied/limited gates.
+- Posture is derived only from the snapshot state (active_paid_operator,
+  offline_grace, unverified, refunded_or_revoked, missing_or_corrupt);
+  `verified_no_license` is canonical vocabulary that a presenter never
+  synthesizes. License Type is the frozen registry code for the snapshot's
+  own product (focusa_operator_lifetime_v1 / uiai_operator_lifetime_v1) or
+  `none`; the composite Bundle SKU remains a commerce SKU in the frozen
+  vocabulary, never a third feature catalog. Denials use only the frozen
+  Spec 172 §21 stable errors (EMAIL_VERIFICATION_REQUIRED, VERIFIED_LIMITED_ACCESS,
+  LICENSE_TYPE_REQUIRED, PRODUCT_NOT_INCLUDED, CAPABILITY_FAMILY_NOT_INCLUDED,
+  ENTITLEMENT_POLICY_UNKNOWN, RECOVERY_ONLY, ...). Retained access
+  (navigation, status, account, read, export, recovery, repair, update,
+  uninstall) and upgrade/recovery actions are frozen presentation vocabulary;
+  every denial preserves retained access.
+- Added the same canonical projection to the Pi entitlement policy adapter
+  (`projectSpec172PresenterV1(toolName, posture)`): family comes from the
+  canonical tool contract, posture from the daemon authority, product and
+  License Type from frozen surface vocabulary — the function signature
+  accepts no caller-controlled commercial field. The adapter keeps the
+  capability-only authority boundary (licensing_grants_capability_only,
+  operator/cognitive authority never granted, approval never inferred,
+  discovery visibility never grants entitlement) and the existing
+  `focusa.entitlement_decision.v1` denial projection.
+- Added CLI/Pi/agent parity fixtures covering the canonical posture vectors
+  (active operator, offline grace, verified-no-license allowlist family and
+  blocked family, unverified email required, refunded recovery only, expired,
+  missing/corrupt, UIAI-lease-on-Focusa-family product mismatch) and the
+  parity gate test proving the CLI source, Pi adapter source, fixtures, and
+  agent capability descriptors render the same envelope with the same frozen
+  vocabulary. Discovery projections (pi-tools/openai-tools/mcp-tools/agent
+  card) remain advisory and carry no grant fields; every one of the 136
+  agent descriptors still carries resolver-owned operation policy.
+- Never infers grants from installed client, pairing, tool discovery, or
+  email; JSON stays stable and redacted (no raw email, key, token, or
+  customer row in fixtures or presenters). No data deletion or blocked basic
+  export, repair, rollback, stable security update, or uninstall.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_cli_agent_presenter_test.py && node apps/pi-extension/tests/pi-entitlement-gate.test.mjs` — exit 0.
+   - "Spec172 CLI/Pi/agent presenter parity: PASS (fixtures=9 sha256=6e2fd409a883686b surfaces=cli,pi,agent positive=1097 negative=0)"
+   - "Pi entitlement denial projection gate passed"
+2. `cargo check -p focusa-cli` (routed to the remote OVH build) — exit 0,
+   "Finished `dev` profile ... in 1m 45s" (focusa-cli, focusa-core,
+   focusa-license, focusa-terminal-ui all compiled cleanly).
+
+Regression checks (exit codes)
+- `python3 tests/spec152f_cli_presenter_test.py` — exit 0 ("PASS fixtures=6 ... positive=110 negative=0").
+- `python3 tests/spec152f_agent_presenter_test.py` — exit 0 ("PASS (136 Pi tools inherit descriptor policy, ...)").
+- `python3 tests/spec172_runtime_policy_acceptance_test.py` — exit 0.
+- `python3 tests/spec172_dynamic_operation_manifest_test.py` — exit 0.
+- `python3 tests/spec172_family_inheritance_test.py` — exit 0.
+- `python3 tests/spec172_limited_assertion_vector_test.py` — exit 0.
+- `python3 tests/spec172_public_facade_convergence_test.py` — exit 0.
+- `npx --yes esbuild apps/pi-extension/src/entitlement-policy-adapter.ts --bundle --format=esm --platform=node --external:'*'` — exit 0 (TS syntax clean).
+- `git diff --check` — exit 0.
+
+Tests added
+- tests/spec172_cli_agent_presenter_test.py: CLI/Pi/agent presenter parity
+  gate (1097 positive assertions): fixture shape/determinism/privacy, CLI
+  Spec 172 projection markers and frozen vocabulary, core-guard execution,
+  Pi adapter projection markers and capability-only authority boundary,
+  agent descriptor family vocabulary, discovery projections carry no grant
+  fields, canonical License Type registry convergence, and cross-surface
+  shared-vocabulary invariants.
+- crates/focusa-cli/tests/fixtures/spec172-cli-agent-presenter-fixtures.v1.json:
+  9 canonical posture/denial parity vectors shared by CLI, Pi, and agent
+  presenters.
+- apps/pi-extension/tests/pi-entitlement-gate.test.mjs: unchanged, still
+  passes — the adapter additions are additive.
+
+Remaining blockers
+- None in this atom's surfaces. Cross-presenter/dynamic-tool/offline and
+  bypass adversarial matrix (172.05.07) and verified no-license useful
+  limited value (172.05.02) are separate downstream atoms.
+
+Rollback
+- Revert only implementation commit `5d476c52` (and this evidence record if
+  required): the CLI Spec 172 projection additions in license.rs, the Pi
+  adapter Spec 172 projection additions, the parity fixtures, and the parity
+  test. Reverting restores the prior Spec 152F presentation behavior without
+  weakening EDD identity/commerce, signed-lease, refund/revoke, node,
+  sequence, or recovery authority; the daemon-side canonical enforcement is
+  untouched. Preserve customers, orders, refunds, License Types, keys,
+  nodes, sequences, data, migration journals, evidence, and accepted
+  unrelated work.
+
+No push, deploy, release, merge, or Beads mutation was performed.

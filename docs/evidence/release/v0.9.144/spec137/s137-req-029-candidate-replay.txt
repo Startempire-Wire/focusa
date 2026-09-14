@@ -1,0 +1,4 @@
+Spec137 S137-REQ-029 Replay — v0.9.144 candidate
+Candidate SHA: 6ddfcd27
+Disposition: accepted_replay
+Evidence: cargo test -p focusa-core temporal PASS; spec137 gate PASS

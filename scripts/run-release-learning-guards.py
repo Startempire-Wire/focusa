@@ -4,6 +4,7 @@
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -16,12 +17,18 @@ CONFIG = ROOT / "config/release-learning-guards.json"
 def resolve_command(command: list[str]) -> list[str]:
     if not command or command[0] != "cargo":
         return command
-    probe = subprocess.run(command[:1] + ["--version"], cwd=ROOT, text=True, capture_output=True)
-    if probe.returncode == 0:
-        return command
     override = os.environ.get("FOCUSA_RELEASE_CARGO", "").strip()
     if override:
         return [override, *command[1:]]
+    route = shutil.which("focusa-command-route")
+    if route:
+        return [route, "cargo", shutil.which("cargo") or "/usr/bin/cargo", *command[1:]]
+    try:
+        probe = subprocess.run(command[:1] + ["--version"], cwd=ROOT, text=True, capture_output=True)
+    except (FileNotFoundError, PermissionError):
+        probe = None
+    if probe is not None and probe.returncode == 0:
+        return command
     # Root's stable proxy can exist without usable cargo/rustc components.
     # Nightly is the installed fallback and satisfies the workspace rust-version;
     # operators may pin another compatible toolchain explicitly.
@@ -47,7 +54,11 @@ def main() -> int:
     config = json.loads(CONFIG.read_text())
     if config.get("schema") != "focusa.release_learning_guards.v1":
         raise SystemExit("release learning guard schema mismatch")
-    output = Path(args.output or f"/tmp/focusa-{args.tag.removeprefix('v')}-learning-guards.json")
+    output = Path(
+        args.output
+        or os.environ.get("FOCUSA_LEARNING_GUARDS_ARTIFACT", "").strip()
+        or f"/tmp/focusa-{os.getuid()}-{args.tag.removeprefix('v')}-learning-guards.json"
+    )
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     if output.exists():
         cached = json.loads(output.read_text())

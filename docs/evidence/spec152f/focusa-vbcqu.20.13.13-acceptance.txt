@@ -1,0 +1,93 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.13
+Title: 152E.01.09 Require verification for legacy EDD customers and key owners
+Implementation commit: `3048949a3c5cdfeaf6523eec7ae6257b7cb0256a`
+
+Exact surfaces
+- docs/contracts/spec152e-legacy-activation-adapter.v1.php (new legacy
+  customer/key activation adapter)
+- docs/contracts/spec152e-edd-customer-adapter.v1.php (EDD email/license
+  lookup: findLicenseByKey, findLicenseById, findOrderById,
+  findOrderItemById, customerHasEmail)
+- docs/contracts/spec152e-account-promotion.v1.php (account promotion
+  service: adds mergeLegacyVerified and the shared promote core)
+- tests/spec152e_legacy_identity_merge_test.php (exact verification)
+
+Bounded result
+- Added FocusaSpec152eLegacyActivationAdapter: mailbox verification is
+  mandatory before new-node activation, reissue, terminal delivery, or
+  account merge for legacy EDD customers. The submitted EDD Software
+  Licensing key must resolve to a usable license (not revoked/disabled)
+  whose owning customer has the verified email as a primary or linked
+  owner address, with a complete order, and the resolution must be
+  evidence-backed (kind purchase_evidence | stripe_reconciliation |
+  install_site_migration). Synthetic/unknown records and missing evidence
+  remain quarantined (EDD_ORDER_UNVERIFIED). A key and an unrelated
+  verified email fail closed with LICENSE_ACCOUNT_MISMATCH — raw matching
+  email alone never transfers ownership. The adapter is read-only over EDD
+  truth and returns a masked, deterministic envelope: no raw email, no raw
+  key, no secrets; only masked license/customer/order/product references,
+  allowed-purpose flags, and the pinned evidence digest.
+- Extended FocusaSpec152eEddCustomerAdapter with bounded, exact
+  email/license lookup primitives (never enumerating; key is never echoed
+  in results, logs, or exceptions) and customerHasEmail() for exact
+  owner-email proof against primary and verified linked addresses.
+- Extended FocusaSpec152eAccountPromotionService with
+  mergeLegacyVerified(): one idempotent, caller-owned transaction that
+  re-resolves the legacy key inside the transaction, requires the same
+  owner match and evidence-backed linkage, requires stronger evidence for
+  conflicting paid records (ACCOUNT_MERGE_REVIEW_REQUIRED when the claimed
+  purchase is foreign or points at a different order/license than the
+  resolved key), journals the legacy evidence and its bounded digest on
+  the purchase link, preserves existing order/license state (EDD rows are
+  never modified; revoked/disabled licenses and non-complete orders are
+  never reactivated; paid entitlement is never downgraded), and advances
+  the registration to account_promoted. The shared promote core keeps
+  promoteVerified() byte-for-byte behavior identical (verified-mode replay
+  and digest unchanged).
+- Failed merges write zero state (transaction rollback verified by row
+  counts); identical replays return the stored bounded result with no
+  duplicates; the result envelope and idempotency payload are masked.
+
+Exact verification (exit codes)
+1. `php tests/spec152e_legacy_identity_merge_test.php` — exit 0.
+   {"schema":"focusa.spec152e.legacy_identity_merge_test.v1","positive_checks":52,"negative_checks":19,"accounts":2,"customers":7,"identities":2,"purchase_links":2,"result":"passed_fail_closed"}
+
+Regression checks (exit codes)
+- `php tests/spec152e_account_promotion_test.php` — exit 0 (64 positive +
+  13 negative checks; promoteVerified behavior unchanged by the refactor).
+- All 14 spec152e PHP tests pass with exit 0, including the new
+  spec152e_legacy_identity_merge_test.php.
+- `python3 tests/spec152e_api_contract_test.py` — exit 0 (33 errors,
+  11 operations; no new error codes were introduced, generated activation
+  contracts remain current).
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0
+  (19 states, 48 transitions; registration state machine untouched).
+- `python3 tests/spec152e_document_authority_test.py` remains red on the
+  same pre-existing assertion as the base commit
+  (docs/contracts/spec152-final-audit-status.v1.yaml publication token
+  tied to atoms focusa-vbcqu.20.13.63 / focusa-vbcqu.20.14.52); the file
+  is untouched by this atom and the failure is identical to the base
+  commit.
+
+Tests added
+- spec152e_legacy_identity_merge_test.php: 52 positive checks + 19
+  negative checks covering verified legacy owner activation for
+  node/reissue/terminal-delivery/account-merge purposes, linked
+  (secondary) owner-email resolution, deterministic evidence-pinned
+  resolution with masked envelopes (no raw email, no raw key, no
+  secrets), atomic legacy merge preserving EDD order/license/customer
+  rows untouched, evidence journaled on the purchase link, identical
+  replay idempotency, unverified/mismatched/unknown-key/revoked/refunded/
+  unrelated-email/synthetic/missing-evidence denials, conflicting paid
+  records entering review, raw order-email match never transferring
+  ownership, zero state written by failed merges, and preservation-only
+  rollback.
+
+Rollback
+- Revert only this atom's commit `3048949a3c5cdfeaf6523eec7ae6257b7cb0256a`
+  (and this evidence record if required). Preserve EDD customer/order/
+  refund truth, verified identities, licenses, nodes, sequences,
+  credentials, Workpoints, Evidence, and migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.

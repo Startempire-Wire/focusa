@@ -75,4 +75,4 @@ Likely next: `focusa_tree_recent_snapshots`, `focusa_tree_diff_context`, `focusa
 - CLI: `focusa state snapshot create`.
 - REST: `POST /v1/focus/snapshots`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:520b8a1a8fadbc22d6f8ff62b929ac6eb1339d7840bb7c5a185af693a1a7a11b`.
+- Descriptor digest: `sha256:d47faceb1dc2222cd114577370aabf4f7f7bab0b0f54c9228bc24a5cdafda34d`.

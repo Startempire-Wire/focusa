@@ -2,7 +2,10 @@ use crate::api_client::ApiClient;
 use crate::commands::scope_resolver::resolve_project_scope;
 use anyhow::{Context, anyhow};
 use clap::{Args, Subcommand};
-use focusa_core::scoped_state::{ScopeRef, WorkstreamKey};
+use focusa_core::{
+    scoped_state::{ScopeRef, WorkstreamKey},
+    spec138_operations::spec138_operation,
+};
 use serde_json::{Value, json};
 use std::path::Path;
 
@@ -82,6 +85,19 @@ pub enum PredictCmd {
     Stats {
         #[command(flatten)]
         scope: PredictionScopeArgs,
+    },
+    /// Invoke one canonical Spec 138/138A operation by exact operation id.
+    Operation {
+        #[command(flatten)]
+        scope: PredictionScopeArgs,
+        #[arg(long)]
+        operation: String,
+        /// Value for canonical {id} path segments.
+        #[arg(long)]
+        id: Option<String>,
+        /// ScopedAuthorityEvent JSON; required for mutation operations.
+        #[arg(long)]
+        event_json: Option<String>,
     },
     /// Append one immutable Spec 138 authority event from JSON.
     AuthorityAppend {
@@ -257,6 +273,42 @@ pub async fn run(cmd: PredictCmd, json_mode: bool) -> anyhow::Result<()> {
                 scoped_query(&scope, None)
             ))
             .await?
+        }
+        PredictCmd::Operation {
+            scope,
+            operation,
+            id,
+            event_json,
+        } => {
+            let scope = resolve_prediction_scope(&scope)?;
+            let descriptor = spec138_operation(&operation)
+                .ok_or_else(|| anyhow!("unknown canonical Spec 138 operation: {operation}"))?;
+            let path = if descriptor.path.contains("{id}") {
+                let id = id
+                    .as_deref()
+                    .filter(|value| !value.trim().is_empty())
+                    .ok_or_else(|| anyhow!("{} requires --id", descriptor.operation_id))?;
+                descriptor.path.replace("{id}", &urlencoding::encode(id))
+            } else {
+                descriptor.path.to_string()
+            };
+            if descriptor.method == "GET" {
+                api.get(&format!("{path}?{}", scoped_query(&scope, None)))
+                    .await?
+            } else {
+                let raw = event_json
+                    .as_deref()
+                    .ok_or_else(|| anyhow!("{} requires --event-json", descriptor.operation_id))?;
+                let event: Value = serde_json::from_str(raw)
+                    .context("--event-json must be a typed Spec 138 ScopedAuthorityEvent")?;
+                api.post(
+                    &path,
+                    &json!({
+                        "operation_id":descriptor.operation_id, "scope":scope, "event":event
+                    }),
+                )
+                .await?
+            }
         }
         PredictCmd::AuthorityAppend { scope, event_json } => {
             let scope = resolve_prediction_scope(&scope)?;

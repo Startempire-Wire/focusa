@@ -1,0 +1,70 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.30
+Title: 152F.04.01 Enforce automation premium boundaries
+Implementation commit: d2a65a19
+
+Exact surfaces
+- crates/focusa-api/src/middleware/entitlement_routes.rs — subagent/result route
+- crates/focusa-license/src/lib.rs — premium feature ID re-exports
+- crates/focusa-license/tests/spec152f_automation_entitlement.rs — automation boundary tests
+
+Bounded result
+- Reclassified `/v1/subagent/result` from `focusa.core.workpoint` (BaseFocusa,
+  interactive work loop) to `focusa.agent.silent_sessions` (Automation premium
+  family) with `silent_session_runs` limit bucket. Subagent intake is
+  autonomous automation, not an interactive base operation.
+- Re-exported `premium_family_feature_ids`, `AUTOMATION_PREMIUM_FEATURE_IDS`,
+  `PREMIUM_UPDATES_PREMIUM_FEATURE_IDS`, `RELEASE_PROOF_PREMIUM_FEATURE_IDS`,
+  and `TEAM_REMOTE_PREMIUM_FEATURE_IDS` from `focusa-license` so integration
+  tests can verify the automation family map.
+- All four automation surfaces are now enforced:
+  - silent-session routes: already gated by Automation family with
+    `focusa.agent.silent_sessions` feature (unchanged)
+  - provider-parallelism routes: already gated by Automation family with
+    `focusa.agent.parallelism` feature (unchanged)
+  - subagent route: changed from BaseFocusa to Automation (this atom)
+  - scheduled-work (silent session scheduler dispatch): already revalidates
+    entitlement at dispatch with `InternalMaintenance` inheriting from
+    initiating operation, and daemon dispatch gates
+    `focusa.silent_session.writer_admission` and
+    `focusa.silent_session.dispatch` through Automation family (unchanged)
+- Interactive base use (work loop, turn, workpoint, mission, evidence) remains
+  in BaseFocusa family and is not accidentally premium. Verified no-license
+  state allows BaseFocusa (limited) but denies Automation.
+
+Exact verification (exit codes)
+1. `cargo test --workspace spec152f_automation_entitlement` — exit 0.
+   test result: ok. 34 passed; 0 failed.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 49 unit + 11 authority-lease +
+  8 entitlement-grid + 34 automation-entitlement + 3 family-inheritance tests
+  passed, 0 failed.
+- `cargo test -p focusa-core --lib entitlement_execution` — exit 0:
+  6 passed, 0 failed.
+- `cargo test -p focusa-core --lib silent_session_scheduler` — exit 0:
+  8 passed, 0 failed.
+- `cargo test -p focusa-core --lib daemon_dispatch` — exit 0:
+  8 passed, 0 failed.
+- `cargo check -p focusa-api` — exit 0, finished cleanly.
+
+Tests added
+- focusa-license/tests/spec152f_automation_entitlement.rs: 34 tests covering
+  automation family map (exact two premium features, qualified identifiers),
+  state grid (denied for unlicensed states, requires feature for active paid,
+  requires cached feature for offline grace), premium family resolution
+  (silent_sessions and parallelism require feature grants, denied without
+  grants, base product first, sequence binding, cross-family rejection,
+  unqualified identifier rejection, offline grace window, active lease
+  expiry), interactive base vs automation boundary (base is not premium,
+  base requires base posture not feature), subagent automation classification,
+  provider parallelism automation classification, dispatch revalidation,
+  limits reservation before spawn, caller-controlled grant rejection,
+  and all four premium families are distinct.
+
+Rollback
+- Revert only this atom's implementation commit. Preserve customers, orders,
+  refunds, licenses, nodes, sequences, customer data, migration journals,
+  and accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.

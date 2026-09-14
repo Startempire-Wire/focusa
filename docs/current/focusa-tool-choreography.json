@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 135,
-  "edge_count": 381,
+  "tool_count": 157,
+  "edge_count": 438,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -69,6 +69,42 @@
     }
   ],
   "per_tool_next_tools": {
+    "focusa_workset_projection": [
+      "focusa_workpoint_resume",
+      "focusa_callgraph_validate"
+    ],
+    "focusa_callgraph_validate": [
+      "focusa_callgraph_observe",
+      "focusa_tool_describe"
+    ],
+    "focusa_callgraph_observe": [
+      "focusa_trajectory_view",
+      "focusa_workpoint_resume"
+    ],
+    "focusa_credentials_verify": [
+      "focusa_credentials_verify",
+      "focusa_tool_doctor"
+    ],
+    "focusa_cockpit_projection": [
+      "focusa_workset_projection",
+      "focusa_bg_status"
+    ],
+    "focusa_bg_run": [
+      "focusa_bg_status",
+      "focusa_workpoint_checkpoint"
+    ],
+    "focusa_bg_run_many": [
+      "focusa_bg_status",
+      "focusa_workpoint_checkpoint"
+    ],
+    "focusa_bg_status": [
+      "focusa_bg_run",
+      "focusa_workpoint_resume"
+    ],
+    "focusa_fast_forward": [
+      "focusa_bg_status",
+      "focusa_workpoint_checkpoint"
+    ],
     "focusa_agent_runtime_effective": [
       "focusa_instruction_sources",
       "focusa_instruction_conflicts",
@@ -222,6 +258,11 @@
       "focusa_preload_verify",
       "focusa_preload_doctor"
     ],
+    "focusa_daemon_routing_status": [
+      "focusa_project_identity",
+      "focusa_tool_doctor",
+      "focusa_workpoint_resume"
+    ],
     "focusa_project_identity": [
       "focusa_project_card",
       "focusa_project_verify",
@@ -265,6 +306,11 @@
       "focusa_trajectory_view",
       "focusa_workpoint_resume",
       "focusa_project_verify"
+    ],
+    "focusa_epistemic_operation": [
+      "focusa_prediction_authority",
+      "focusa_metacog_retrieve",
+      "focusa_trajectory_view"
     ],
     "focusa_trajectory_view": [
       "focusa_temporal_authority",
@@ -715,6 +761,61 @@
       "focusa_metacog_reflect",
       "focusa_tree_snapshot_state"
     ],
+    "focusa_sms_health": [
+      "focusa_sms_enrollment",
+      "focusa_sms_checkpoint",
+      "focusa_sms_events"
+    ],
+    "focusa_sms_enrollment": [
+      "focusa_sms_health",
+      "focusa_sms_threads",
+      "focusa_sms_events"
+    ],
+    "focusa_sms_threads": [
+      "focusa_sms_read_thread",
+      "focusa_sms_search",
+      "focusa_sms_send"
+    ],
+    "focusa_sms_read_thread": [
+      "focusa_sms_search",
+      "focusa_sms_send",
+      "focusa_sms_events"
+    ],
+    "focusa_sms_search": [
+      "focusa_sms_read_thread",
+      "focusa_sms_threads",
+      "focusa_sms_send"
+    ],
+    "focusa_sms_send": [
+      "focusa_sms_events",
+      "focusa_sms_threads",
+      "focusa_sms_checkpoint"
+    ],
+    "focusa_sms_otp_challenge": [
+      "focusa_sms_otp_inject",
+      "focusa_sms_events",
+      "focusa_sms_health"
+    ],
+    "focusa_sms_otp_inject": [
+      "focusa_sms_events",
+      "focusa_sms_health",
+      "focusa_sms_revoke"
+    ],
+    "focusa_sms_checkpoint": [
+      "focusa_sms_health",
+      "focusa_sms_events",
+      "focusa_sms_enrollment"
+    ],
+    "focusa_sms_events": [
+      "focusa_sms_health",
+      "focusa_sms_checkpoint",
+      "focusa_sms_revoke"
+    ],
+    "focusa_sms_revoke": [
+      "focusa_sms_enrollment",
+      "focusa_sms_health",
+      "focusa_sms_events"
+    ],
     "focusa_awareness_packet": [
       "focusa_workpoint_resume",
       "focusa_trajectory_view",
@@ -722,6 +823,96 @@
     ]
   },
   "edges": [
+    {
+      "from": "focusa_workset_projection",
+      "to": "focusa_workpoint_resume",
+      "weight": 1
+    },
+    {
+      "from": "focusa_workset_projection",
+      "to": "focusa_callgraph_validate",
+      "weight": 1
+    },
+    {
+      "from": "focusa_callgraph_validate",
+      "to": "focusa_callgraph_observe",
+      "weight": 1
+    },
+    {
+      "from": "focusa_callgraph_validate",
+      "to": "focusa_tool_describe",
+      "weight": 1
+    },
+    {
+      "from": "focusa_callgraph_observe",
+      "to": "focusa_trajectory_view",
+      "weight": 1
+    },
+    {
+      "from": "focusa_callgraph_observe",
+      "to": "focusa_workpoint_resume",
+      "weight": 1
+    },
+    {
+      "from": "focusa_credentials_verify",
+      "to": "focusa_credentials_verify",
+      "weight": 1
+    },
+    {
+      "from": "focusa_credentials_verify",
+      "to": "focusa_tool_doctor",
+      "weight": 1
+    },
+    {
+      "from": "focusa_cockpit_projection",
+      "to": "focusa_workset_projection",
+      "weight": 1
+    },
+    {
+      "from": "focusa_cockpit_projection",
+      "to": "focusa_bg_status",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bg_run",
+      "to": "focusa_bg_status",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bg_run",
+      "to": "focusa_workpoint_checkpoint",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bg_run_many",
+      "to": "focusa_bg_status",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bg_run_many",
+      "to": "focusa_workpoint_checkpoint",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bg_status",
+      "to": "focusa_bg_run",
+      "weight": 1
+    },
+    {
+      "from": "focusa_bg_status",
+      "to": "focusa_workpoint_resume",
+      "weight": 1
+    },
+    {
+      "from": "focusa_fast_forward",
+      "to": "focusa_bg_status",
+      "weight": 1
+    },
+    {
+      "from": "focusa_fast_forward",
+      "to": "focusa_workpoint_checkpoint",
+      "weight": 1
+    },
     {
       "from": "focusa_agent_runtime_effective",
       "to": "focusa_instruction_sources",
@@ -1138,6 +1329,21 @@
       "weight": 1
     },
     {
+      "from": "focusa_daemon_routing_status",
+      "to": "focusa_project_identity",
+      "weight": 1
+    },
+    {
+      "from": "focusa_daemon_routing_status",
+      "to": "focusa_tool_doctor",
+      "weight": 1
+    },
+    {
+      "from": "focusa_daemon_routing_status",
+      "to": "focusa_workpoint_resume",
+      "weight": 1
+    },
+    {
       "from": "focusa_project_identity",
       "to": "focusa_project_card",
       "weight": 1
@@ -1275,6 +1481,21 @@
     {
       "from": "focusa_temporal_authority",
       "to": "focusa_project_verify",
+      "weight": 1
+    },
+    {
+      "from": "focusa_epistemic_operation",
+      "to": "focusa_prediction_authority",
+      "weight": 1
+    },
+    {
+      "from": "focusa_epistemic_operation",
+      "to": "focusa_metacog_retrieve",
+      "weight": 1
+    },
+    {
+      "from": "focusa_epistemic_operation",
+      "to": "focusa_trajectory_view",
       "weight": 1
     },
     {
@@ -2613,6 +2834,171 @@
       "weight": 1
     },
     {
+      "from": "focusa_sms_health",
+      "to": "focusa_sms_enrollment",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_health",
+      "to": "focusa_sms_checkpoint",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_health",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_enrollment",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_enrollment",
+      "to": "focusa_sms_threads",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_enrollment",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_threads",
+      "to": "focusa_sms_read_thread",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_threads",
+      "to": "focusa_sms_search",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_threads",
+      "to": "focusa_sms_send",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_read_thread",
+      "to": "focusa_sms_search",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_read_thread",
+      "to": "focusa_sms_send",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_read_thread",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_search",
+      "to": "focusa_sms_read_thread",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_search",
+      "to": "focusa_sms_threads",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_search",
+      "to": "focusa_sms_send",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_send",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_send",
+      "to": "focusa_sms_threads",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_send",
+      "to": "focusa_sms_checkpoint",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_challenge",
+      "to": "focusa_sms_otp_inject",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_challenge",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_challenge",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_inject",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_inject",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_otp_inject",
+      "to": "focusa_sms_revoke",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_checkpoint",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_checkpoint",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_checkpoint",
+      "to": "focusa_sms_enrollment",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_events",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_events",
+      "to": "focusa_sms_checkpoint",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_events",
+      "to": "focusa_sms_revoke",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_revoke",
+      "to": "focusa_sms_enrollment",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_revoke",
+      "to": "focusa_sms_health",
+      "weight": 1
+    },
+    {
+      "from": "focusa_sms_revoke",
+      "to": "focusa_sms_events",
+      "weight": 1
+    },
+    {
       "from": "focusa_awareness_packet",
       "to": "focusa_workpoint_resume",
       "weight": 1
@@ -2639,5 +3025,6 @@
     "formula": "effective_weight = base_weight * clamp(0.75 + average_score * 0.5, 0.75, 1.25)",
     "authority": "dynamic weights advise ordering only; operator steering and safety gates win"
   },
-  "runtime_weight_adjustments": []
+  "runtime_weight_adjustments": [],
+  "declared_edges": 405
 }

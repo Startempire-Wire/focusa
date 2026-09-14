@@ -1057,8 +1057,3 @@ Valid public claim template:
 > **"On `focusa-agent-bench-vX`, Focusa improved `<metric>` from `<no_focusa>` to `<full_focusa>` versus the No-Focusa baseline (`Δ=<delta>`, 95% CI `<ci>`), using `<model/version>` across `<n>` matched trials. Raw artifacts: `<evidence_ref>`."**
 
 This is what makes Focusa grounded: measured claims, raw artifacts, replayable evals, and explicit No-Focusa baselines.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-benchmarks -->
-## Spec 144 benchmark integration
-
-Benchmarks MUST measure obligation recall, false omission, false positive/negative findings, snapshot staleness, common-mode failure, independence truth, routing eligibility, calibration, repair efficiency, oscillation, placement correctness, dispute resolution, settlement correctness, and revalidation. A favorable average cannot hide an uncovered critical obligation.

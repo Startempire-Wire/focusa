@@ -1,0 +1,36 @@
+{
+  "schema": "focusa.spec172.entitlement_errors.v1",
+  "contract_version": 1,
+  "rules": {
+    "deny_before_execution": true,
+    "one_stable_recovery_action_per_error": true,
+    "presenter_authority": "none",
+    "presenters_must_not_rewrite_codes_or_recovery": true,
+    "unknown_codes_fail_closed": true,
+    "security_and_entitlement_denials_are_independent": true
+  },
+  "errors": [
+    {"code":"SCOPE_REQUIRED","owner":"project_scope_guard","category":"scope","http_status":403,"recovery_action":"select_and_verify_project_scope","retryable":true},
+    {"code":"AUTHENTICATION_REQUIRED","owner":"authentication_service","category":"auth","http_status":401,"recovery_action":"authenticate_with_trusted_identity","retryable":true},
+    {"code":"ROLE_AUTHORIZATION_REQUIRED","owner":"role_authorization_service","category":"role","http_status":403,"recovery_action":"request_required_role_from_operator","retryable":false},
+    {"code":"CONFIRMATION_REQUIRED","owner":"confirmation_permission_guard","category":"confirmation","http_status":428,"recovery_action":"obtain_fresh_bounded_confirmation","retryable":true},
+    {"code":"ARTIFACT_TRUST_REQUIRED","owner":"artifact_trust_verifier","category":"trust","http_status":403,"recovery_action":"install_or_select_trusted_artifact","retryable":false},
+    {"code":"PRIVACY_POLICY_REQUIRED","owner":"privacy_policy_guard","category":"privacy","http_status":403,"recovery_action":"satisfy_privacy_policy_without_expanding_scope","retryable":false},
+    {"code":"EMAIL_VERIFICATION_REQUIRED","owner":"authority_identity_verifier","category":"identity","http_status":403,"recovery_action":"complete_or_resend_mailbox_verification","retryable":true},
+    {"code":"VERIFIED_LIMITED_ACCESS","owner":"WPUIAI.com_EDD_authority","category":"grant","http_status":403,"recovery_action":"continue_with_limited_family_or_activate_paid_key","retryable":false},
+    {"code":"NODE_LIMIT_REACHED","owner":"authority_node_registry","category":"node","http_status":403,"recovery_action":"deactivate_an_existing_node","retryable":true},
+    {"code":"ENTITLEMENT_POLICY_UNKNOWN","owner":"authority_lease_verifier","category":"lease","http_status":403,"recovery_action":"refresh_authority_policy_or_run_diagnostics","retryable":true},
+    {"code":"SIDE_EFFECT_UNCLASSIFIED","owner":"operation_policy_registry","category":"classification","http_status":403,"recovery_action":"register_the_exact_side_effect_policy","retryable":false},
+    {"code":"PRODUCT_NOT_INCLUDED","owner":"product_registry","category":"product","http_status":403,"recovery_action":"obtain_a_license_for_the_required_product","retryable":false},
+    {"code":"ENTITLEMENT_PRODUCT_MISMATCH","owner":"product_registry","category":"product","http_status":403,"recovery_action":"activate_the_key_for_the_requested_product","retryable":false},
+    {"code":"LICENSE_TYPE_REQUIRED","owner":"license_type_registry","category":"license_type","http_status":403,"recovery_action":"activate_an_applicable_paid_key","retryable":false},
+    {"code":"LICENSE_TYPE_NOT_INCLUDED","owner":"license_type_registry","category":"license_type","http_status":403,"recovery_action":"obtain_an_applicable_license_type","retryable":false},
+    {"code":"OPERATOR_SEAT_LIMIT_REACHED","owner":"license_type_registry","category":"license_type","http_status":403,"recovery_action":"release_the_existing_operator_seat","retryable":true},
+    {"code":"CAPABILITY_FAMILY_NOT_INCLUDED","owner":"entitlement_policy_resolver","category":"family","http_status":403,"recovery_action":"use_an_included_family_or_obtain_its_license_type","retryable":false},
+    {"code":"HOSTED_RESOURCE_NOT_INCLUDED","owner":"entitlement_resource_reservation","category":"resource","http_status":403,"recovery_action":"use_local_execution_or_obtain_hosted_resource_access","retryable":false}
+  ],
+  "unknown_error": {
+    "code": "ENTITLEMENT_POLICY_UNKNOWN",
+    "recovery_action": "refresh_authority_policy_or_run_diagnostics"
+  }
+}

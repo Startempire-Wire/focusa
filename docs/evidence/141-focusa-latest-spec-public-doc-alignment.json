@@ -1,7 +1,7 @@
 {
   "schema": "focusa.latest_spec_public_doc_alignment.v1",
   "snapshot": "v0.9.121-dev",
-  "spec_count": 15,
+  "spec_count": 16,
   "rule": "rolling Spec135b through Spec140 set locked by Spec141",
   "entries": [
     {
@@ -111,23 +111,24 @@
       ]
     },
     {
-      "spec": "137",
+      "spec": "137 + 137A",
       "path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
       "direction": "temporal authority, deadlines, urgency, and grounded forecasting",
-      "status": "implemented_with_active_hardening",
+      "status": "verified_runtime_slices_combined_full_conformance_open",
       "public_refs": [
         "docs/llms.txt"
       ]
     },
     {
-      "spec": "138",
+      "spec": "138 + 138A",
       "path": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
       "direction": "prediction calibration, metacognitive transfer, and epistemic governance",
-      "status": "implemented_with_active_hardening",
+      "status": "combined_full_conformance_verified_stable_release_pending",
       "public_refs": [
         "README.md",
         "docs/llms.txt"
-      ]
+      ],
+      "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json"
     },
     {
       "spec": "139",
@@ -147,6 +148,17 @@
         "README.md",
         "docs/llms.txt"
       ]
+    },
+    {
+      "spec": "144",
+      "path": "docs/144-focusa-semantic-integrity-rdf-owl-shacl-build-verify-routing-and-vertical-intelligence-spec.md",
+      "direction": "semantic integrity and domain-routed Build↔Verify fabric",
+      "status": "runtime_implementation_verified_stable_release_pending",
+      "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+      "public_refs": [
+        "docs/README.md",
+        "docs/llms.txt"
+      ]
     }
   ],
   "integrity": {
@@ -154,11 +166,5 @@
     "spec_paths_resolve": true,
     "all_entries_have_public_refs": true
   },
-  "spec137a_138a_144_architecture_closure": {
-    "generated_at": "2026-07-31T17:03:56+00:00",
-    "spec_137_137a": "verified_runtime_slices_combined_full_conformance_open",
-    "spec_138_138a": "partial_runtime_foundations_full_profile_conformance_open",
-    "spec_144": "normative_documentation_only_implementation_not_activated",
-    "supersedes_any_broader_implemented_status": true
-  }
+  "source_runtime_release_boundary": "source runtime receipts do not prove stable release, installation, or current distribution parity"
 }

@@ -12,7 +12,12 @@ const compile = (name) =>
 const token = `inventory-${process.pid}`;
 const modelPath = resolve(root, `${token}-model.mjs`);
 const inventoryPath = resolve(root, `${token}-inventory.mjs`);
-writeFileSync(modelPath, compile("mission-canvas-model"));
+const spec138Path = resolve(root, `${token}-spec138.mjs`);
+writeFileSync(spec138Path, compile("generated/spec138-operations"));
+writeFileSync(
+  modelPath,
+  compile("mission-canvas-model").replace("./generated/spec138-operations.js", `./${token}-spec138.mjs`)
+);
 writeFileSync(
   inventoryPath,
   compile("mission-canvas-session-inventory").replace("./mission-canvas-model.js", `./${token}-model.mjs`)
@@ -57,4 +62,5 @@ assert(rows.some((row) => row.kind === "silent_session"));
 assert(rows.every((row) => row.projectRoot && row.continuityId && row.sessionId));
 rmSync(modelPath, { force: true });
 rmSync(inventoryPath, { force: true });
+rmSync(spec138Path, { force: true });
 console.log("Mission Canvas session inventory: PASS (Pi/Silent/UIAI identity, grouping, cap)");

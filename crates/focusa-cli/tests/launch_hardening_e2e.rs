@@ -54,7 +54,9 @@ fn stop_command_exposes_distinct_statuses() {
     let main = read_repo("crates/focusa-cli/src/main.rs");
     assert!(daemon.contains("StopOutcome::Stopped"));
     assert!(daemon.contains("StopOutcome::AlreadyStopped"));
-    assert!(daemon.contains("Focusa daemon stop failed"));
+    assert!(daemon.contains("authenticated exact-daemon shutdown request failed"));
+    assert!(daemon.contains("daemon returned an invalid shutdown acceptance receipt"));
+    assert!(daemon.contains("exact Focusa daemon instance still responds after shutdown timeout"));
     assert!(main.contains("already_stopped"));
     assert!(main.contains("Focusa daemon already stopped (no-op)"));
 }

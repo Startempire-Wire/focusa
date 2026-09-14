@@ -1,0 +1,131 @@
+{
+  "schema": "focusa.callgraph.v1",
+  "graph_id": "golden-1",
+  "revision": 1,
+  "scope": {
+    "project_root": "/root/golden-proj",
+    "continuity_id": "cont-golden"
+  },
+  "mission_ref": "m-golden",
+  "trajectory_ref": null,
+  "workpoint_refs": ["wp-golden"],
+  "title": "golden linear graph",
+  "description": "canonical fixture: plan → review → approve",
+  "entry_frame_ids": ["plan"],
+  "frames": [
+    {
+      "frame_id": "plan",
+      "name": "plan",
+      "purpose": "produce the plan",
+      "kind": "agent",
+      "input_schema": {},
+      "return_schema": {},
+      "preconditions": [],
+      "postconditions": [],
+      "side_effect_class": "local",
+      "capability_refs": ["shell"],
+      "authority_requirement": null,
+      "timeout_policy": null,
+      "retry_policy": null,
+      "failure_boundary": null,
+      "compensation_frame_id": null,
+      "resource_budget": null,
+      "acceptance": {
+        "acceptance_atoms": ["plan-doc-exists"],
+        "verifier": "operator"
+      },
+      "execution_binding": null
+    },
+    {
+      "frame_id": "review",
+      "name": "review",
+      "purpose": "review the plan",
+      "kind": "agent",
+      "input_schema": {},
+      "return_schema": {},
+      "preconditions": [],
+      "postconditions": [],
+      "side_effect_class": "none",
+      "capability_refs": ["shell"],
+      "authority_requirement": null,
+      "timeout_policy": null,
+      "retry_policy": null,
+      "failure_boundary": null,
+      "compensation_frame_id": null,
+      "resource_budget": null,
+      "acceptance": {
+        "acceptance_atoms": ["review-complete"],
+        "verifier": null
+      },
+      "execution_binding": null
+    },
+    {
+      "frame_id": "approve",
+      "name": "approve",
+      "purpose": "operator approves the plan",
+      "kind": "approval",
+      "input_schema": {},
+      "return_schema": {},
+      "preconditions": [],
+      "postconditions": [],
+      "side_effect_class": "security",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "operator",
+        "reference": "op-golden"
+      },
+      "timeout_policy": null,
+      "retry_policy": null,
+      "failure_boundary": null,
+      "compensation_frame_id": null,
+      "resource_budget": null,
+      "acceptance": {
+        "acceptance_atoms": ["approval-recorded"],
+        "verifier": "operator"
+      },
+      "execution_binding": null
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "e-plan-review",
+      "from_frame_id": "plan",
+      "to_frame_id": "review",
+      "kind": "call",
+      "condition": null,
+      "input_mapping": [],
+      "return_mapping": [],
+      "join_policy": null,
+      "cycle_policy": null,
+      "authority_requirement": null
+    },
+    {
+      "edge_id": "e-review-approve",
+      "from_frame_id": "review",
+      "to_frame_id": "approve",
+      "kind": "call",
+      "condition": null,
+      "input_mapping": [],
+      "return_mapping": [],
+      "join_policy": null,
+      "cycle_policy": null,
+      "authority_requirement": null
+    }
+  ],
+  "policies": {
+    "max_depth": 16,
+    "default_cycle_policy": null
+  },
+  "required_evidence": [
+    {
+      "evidence_type": "acceptance",
+      "min_count": 1
+    }
+  ],
+  "created_at": "2026-08-16T00:00:00Z",
+  "created_by": {
+    "authority_kind": "operator",
+    "reference": "op-golden"
+  },
+  "supersedes_revision": null
+}

@@ -83,4 +83,4 @@ Likely next: `focusa_project_card_outcome`, `focusa_traverse`, `focusa_trajector
 - CLI: `focusa project card`.
 - REST: `GET /v1/project/card`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:939b73c0a8cf9ff4e52c6afc5685b1381c9d262489eaa880eebbfd3b728d5455`.
+- Descriptor digest: `sha256:39996708124631ae8666678db737a26d835d7177130d54a960c7160044b3f760`.

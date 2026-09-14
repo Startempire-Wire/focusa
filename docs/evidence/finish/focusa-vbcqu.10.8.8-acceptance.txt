@@ -1,0 +1,3 @@
+focusa-vbcqu.10.8.8 152.04.08 — REAL 2026-08-18
+Commit: 4872bd51cc7ebf6e65bb9b8bdf8adcffc516f780
+cargo test --workspace entitlement PASS (route_entitlement_inheritance ok, 587 routes)

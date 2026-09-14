@@ -13,6 +13,7 @@ pub struct InstallCompletionSummary {
     pub daemon_path: String,
     pub daemon_health: String,
     pub tui_path: String,
+    pub runner_path: String,
     pub service_status: String,
     pub path_status: String,
     pub pi_status: String,
@@ -38,6 +39,7 @@ impl InstallCompletionSummary {
                 self.daemon_path, self.daemon_health
             ),
             format!("TUI:              {}", self.tui_path),
+            format!("Session runner:   {}", self.runner_path),
             format!("Service:          {}", self.service_status),
             format!("PATH:             {}", self.path_status),
             format!("Pi integration:   {}", self.pi_status),
@@ -52,5 +54,23 @@ impl InstallCompletionSummary {
             }
         }
         lines.join("\n")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn durable_summary_reports_session_runner_path() {
+        let summary = InstallCompletionSummary {
+            runner_path: "/opt/focusa/bin/focusa-session-runner".into(),
+            ..InstallCompletionSummary::default()
+        };
+        assert!(
+            summary
+                .render_human()
+                .contains("Session runner:   /opt/focusa/bin/focusa-session-runner")
+        );
     }
 }

@@ -1,0 +1,32 @@
+{
+  "canonical_request": "focusa.spec152e.facade_protocol.v1\ncred_synthetic_facade_01\n1786060800\nnonce_synthetic_0001\nreq_synthetic_protocol_01\nidem_synthetic_protocol_01\nreg_synthetic_01\nfocusa_install_v1\nhttps://install.focusa.dev\nfocusa_operator_lifetime_v1\nactivation_start\nsuccess\ncmVnX3N5bnRoZXRpY18wMQpmb2N1c2FfaW5zdGFsbF92MQphY3RpdmF0aW9uX3N0YXJ0Cm5vbmNlX3N5bnRoZXRpY18wMDAxCjE3ODYwNjExMDA.cc75c6dbaeaa21dd59d3690f08b99dc67b9f83d27679e5659b2e98e9ba969cc3\n44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "credential": {
+    "credential_id": "cred_synthetic_facade_01",
+    "facade_id": "focusa_install_v1",
+    "fixture_kind": "public_synthetic_nonproduction",
+    "key_utf8": "public-synthetic-spec152e-vector-key-v1"
+  },
+  "expected": {
+    "authority_route": "/v1/activation/start",
+    "safe_redirect": "https://install.focusa.dev/activate/callback/success"
+  },
+  "now": 1786060800,
+  "request": {
+    "action": "activation_start",
+    "body_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "continuation_token": "cmVnX3N5bnRoZXRpY18wMQpmb2N1c2FfaW5zdGFsbF92MQphY3RpdmF0aW9uX3N0YXJ0Cm5vbmNlX3N5bnRoZXRpY18wMDAxCjE3ODYwNjExMDA.cc75c6dbaeaa21dd59d3690f08b99dc67b9f83d27679e5659b2e98e9ba969cc3",
+    "credential_id": "cred_synthetic_facade_01",
+    "facade_id": "focusa_install_v1",
+    "idempotency_key": "idem_synthetic_protocol_01",
+    "nonce": "nonce_synthetic_0001",
+    "origin": "https://install.focusa.dev",
+    "product_code": "focusa_operator_lifetime_v1",
+    "redirect_handle": "success",
+    "registration_id": "reg_synthetic_01",
+    "request_id": "req_synthetic_protocol_01",
+    "schema": "focusa.spec152e.facade_protocol.v1",
+    "signature": "961e130f5a30572205ca8b1fff5a7a04ed56320975daf40aa2e4ed61bb691d4b",
+    "timestamp": 1786060800
+  },
+  "schema": "focusa.spec152e.facade_golden_vectors.v1"
+}

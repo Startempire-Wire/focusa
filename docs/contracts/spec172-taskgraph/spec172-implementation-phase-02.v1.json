@@ -1,0 +1,174 @@
+{
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+  "parent": "focusa-vbcqu.20.15",
+  "phase": "02",
+  "schema": "focusa.spec172_implementation_phase.v1",
+  "task_count": 8,
+  "tasks": [
+    {
+      "code": "02.01",
+      "dependencies": [
+        "focusa-vbcqu.20.15.3",
+        "focusa-vbcqu.20.15.4",
+        "focusa-vbcqu.20.13.12"
+      ],
+      "done_condition": "Verified promotion creates one account posture; unverified input creates none; no assertion row can be interpreted as an EDD license.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.10-acceptance.txt",
+      "exact_surfaces": "WPUIAI private authority account/identity/registration migrations; signed-access-assertion schema/repository; tests/spec172_verified_access_schema_test.php",
+      "id": "focusa-vbcqu.20.15.10",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai",
+      "phase": "02",
+      "required_output": "Idempotent schema/repository and signed assertion model.",
+      "required_steps": "Persist verified_no_license separately from paid EDD license truth. Bind account, verified identity, product scope, node, family allowlist, sequence, issue/refresh times, signer, and status. Do not create an EDD key or zero-dollar fake license.",
+      "title": "Add verified-no-license authority-account posture and assertion schema",
+      "verification": "php tests/spec172_verified_access_schema_test.php"
+    },
+    {
+      "code": "02.02",
+      "dependencies": [
+        "focusa-vbcqu.20.15.10",
+        "focusa-vbcqu.20.13.20",
+        "focusa-vbcqu.20.13.34"
+      ],
+      "done_condition": "Valid assertions round-trip; unverified, tampered, stale-sequence, wrong-node, unknown-family, and paid-family claims fail closed.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.11-acceptance.txt",
+      "exact_surfaces": "WPUIAI limited-access assertion service/routes; Focusa authority client/store; cross-language fixture; tests/spec172_limited_assertion_test.php; tests/spec172_limited_assertion_vector_test.py",
+      "id": "focusa-vbcqu.20.15.11",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai + Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Authority issuer/verifier/client vectors for permanent posture with bounded credentials.",
+      "required_steps": "Issue only after verified account and node binding. Refresh current allowlist/sequence without imposing an access expiry. Rotate bounded credentials; revoke lost device/account abuse; recover from verified identity. Never widen into paid families.",
+      "title": "Issue, refresh, revoke, and recover limited-access assertions",
+      "verification": "php tests/spec172_limited_assertion_test.php && python3 tests/spec172_limited_assertion_vector_test.py"
+    },
+    {
+      "code": "02.03",
+      "dependencies": [
+        "focusa-vbcqu.20.15.8",
+        "focusa-vbcqu.20.15.9",
+        "focusa-vbcqu.20.13.15"
+      ],
+      "done_condition": "Exactly three dedicated records match the canonical registry; unrelated downloads and 453 cannot grant these License Types.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.12-acceptance.txt",
+      "exact_surfaces": "WPUIAI private product registry/migration/admin command; EDD Downloads and Software Licensing settings; tests/spec172_edd_operator_products_test.php",
+      "id": "focusa-vbcqu.20.15.12",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai",
+      "phase": "02",
+      "required_output": "Idempotent EDD product provisioning command and redacted receipt.",
+      "required_steps": "Create or reconcile dedicated Focusa Operator v1, UIAI Operator v1, and Bundle v1 records from the server registry. Use 69700, 69700, and 125460 USD minor units. Configure lifetime, 30-day refund metadata, one operator, three shared nodes, and disabled checkout until validation passes.",
+      "title": "Create dedicated EDD Operator v1 Downloads and prices",
+      "verification": "php tests/spec172_edd_operator_products_test.php"
+    },
+    {
+      "code": "02.04",
+      "dependencies": [
+        "focusa-vbcqu.20.15.12",
+        "focusa-vbcqu.20.13.19"
+      ],
+      "done_condition": "One eligible item produces one Focusa Operator key/grant; wrong product/price/account/replay creates none.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.13-acceptance.txt",
+      "exact_surfaces": "WPUIAI EDD order binding/SL issuance/License Type projector; Focusa paid lease fixture; tests/spec172_focusa_operator_issuance_test.php",
+      "id": "focusa-vbcqu.20.15.13",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai",
+      "phase": "02",
+      "required_output": "Paid Focusa issuance adapter and positive/negative fixtures.",
+      "required_steps": "For one verified complete eligible Focusa order, issue one canonical human key and project focusa_operator_lifetime_v1 with its frozen family digest, seat/node limits, price version, and sequence. Reject metadata/caller grants and duplicate issuance.",
+      "title": "Issue Focusa Operator Lifetime v1 from canonical EDD truth",
+      "verification": "php tests/spec172_focusa_operator_issuance_test.php"
+    },
+    {
+      "code": "02.05",
+      "dependencies": [
+        "focusa-vbcqu.20.15.12",
+        "focusa-vbcqu.20.13.46"
+      ],
+      "done_condition": "UIAI paid operations resolve; excluded hosted/metered rights remain denied; Focusa-only orders cannot obtain UIAI.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.14-acceptance.txt",
+      "exact_surfaces": "WPUIAI EDD License Type projector; UIAI grant/child-token fixture; hosted-resource exclusion registry; tests/spec172_uiai_operator_issuance_test.php",
+      "id": "focusa-vbcqu.20.15.14",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai + WPUIAI/uiai-engine",
+      "phase": "02",
+      "required_output": "Paid UIAI issuance adapter and explicit local/hosted boundary fixtures.",
+      "required_steps": "Issue uiai_operator_lifetime_v1 only from its dedicated paid item. Include local product families and three nodes; exclude unlimited hosted compute, paid proxies/models/APIs, resale, redistribution, and embedding unless separately granted.",
+      "title": "Issue UIAI Operator Lifetime v1 with hosted-resource exclusions",
+      "verification": "php tests/spec172_uiai_operator_issuance_test.php"
+    },
+    {
+      "code": "02.06",
+      "dependencies": [
+        "focusa-vbcqu.20.15.13",
+        "focusa-vbcqu.20.15.14",
+        "focusa-vbcqu.20.13.47"
+      ],
+      "done_condition": "Bundle semantic grants equal the exact union of both Operator records, use three shared node identities, and contain no additional/future product.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.15-acceptance.txt",
+      "exact_surfaces": "WPUIAI Bundle order/SL adapter; License Type registry; signed lease claims; tests/spec172_bundle_composition_test.php",
+      "id": "focusa-vbcqu.20.15.15",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai",
+      "phase": "02",
+      "required_output": "Composite Bundle projector and union/isolation fixtures.",
+      "required_steps": "Bind one verified $1,254.60 Bundle order/item to one canonical EDD human key. Derive exact Focusa Operator v1 plus UIAI Operator v1 grants from underlying records; never maintain a third copied family list or six unrelated nodes.",
+      "title": "Implement Bundle as one SKU/key and two underlying grants",
+      "verification": "php tests/spec172_bundle_composition_test.php"
+    },
+    {
+      "code": "02.07",
+      "dependencies": [
+        "focusa-vbcqu.20.15.11",
+        "focusa-vbcqu.20.15.13",
+        "focusa-vbcqu.20.15.14",
+        "focusa-vbcqu.20.15.15",
+        "focusa-vbcqu.20.13.21",
+        "focusa-vbcqu.20.13.36"
+      ],
+      "done_condition": "All adverse events settle once, both Bundle grants revoke together, and customer data/recovery remain accessible.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.16-acceptance.txt",
+      "exact_surfaces": "EDD lifecycle projector/outbox/reconciler; account sequence; paid and limited assertion transition fixtures; tests/spec172_refund_downgrade_test.php",
+      "id": "focusa-vbcqu.20.15.16",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai + Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Lifecycle transition matrix and idempotent outbox/reconciliation proof.",
+      "required_steps": "Apply 30-day whole-order Bundle refund only; no component refund in v1. Refund/revoke increments sequence, removes paid grants, preserves account/data/history, and returns a still-verified account to limited mode. Chargeback/revoke cannot reactivate from stale cache.",
+      "title": "Settle refund, chargeback, revoke, and whole-Bundle downgrade",
+      "verification": "php tests/spec172_refund_downgrade_test.php"
+    },
+    {
+      "code": "02.08",
+      "dependencies": [
+        "focusa-vbcqu.20.15.11",
+        "focusa-vbcqu.20.15.12",
+        "focusa-vbcqu.20.15.13",
+        "focusa-vbcqu.20.15.14",
+        "focusa-vbcqu.20.15.15",
+        "focusa-vbcqu.20.15.16",
+        "focusa-vbcqu.20.13.24"
+      ],
+      "done_condition": "Every case produces exactly the canonical posture and no direct Stripe/facade/install-site path creates entitlement.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec172/focusa-vbcqu.20.15.17-acceptance.txt",
+      "exact_surfaces": "Spec172 identity/assertion/product/issuance/Bundle/refund services and synthetic EDD fixtures; tests/spec172_edd_commerce_acceptance_test.php",
+      "id": "focusa-vbcqu.20.15.17",
+      "lane": "spec152e",
+      "owner": "WPUIAI/wpuiai",
+      "phase": "02",
+      "required_output": "One build-independent commerce acceptance result with no live charge.",
+      "required_steps": "Exercise no-license, Focusa, UIAI, Bundle, wrong price/product/account, Download 453, credit pack, duplicate order, caller grants, partial Bundle refund, chargeback, future type, and hosted-resource attempts.",
+      "title": "Run complete Spec 172 EDD commerce matrix",
+      "verification": "php tests/spec172_edd_commerce_acceptance_test.php"
+    }
+  ]
+}

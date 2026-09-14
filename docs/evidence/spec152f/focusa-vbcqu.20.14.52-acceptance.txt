@@ -1,0 +1,222 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.52
+Title: 152F.06.10 Wire Spec 152F closure into Spec 152E and release milestones
+Implementation commit: `2773d4de` (feat(spec152f): wire Spec 152F closure
+into Spec 152E and release milestones; see git log for this atom)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.14.52 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+  (Spec 152F active doc: implementation status updated to accepted with
+  receipts; stable release/publication stays forbidden until Spec 152E final
+  closure focusa-vbcqu.20.13.63 and REL.4-REL.7 close truthfully)
+- docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-
+  addendum.md (Spec 152E completion gate: final closure and final release
+  milestones depend on the accepted Spec 152F closure)
+- docs/contracts/spec152-final-audit-status.v1.yaml (final audit: Spec 152F
+  closure status accepted_with_receipts, spec152e_final_closure_dependency
+  focusa-vbcqu.20.14.52, REL.4-REL.7 status not_closed; publication rule
+  unchanged and still forbidden)
+- docs/contracts/spec152-next-command.v1.yaml (next-command: post-spec152f
+  closure command points at the Spec 152E final release milestone
+  focusa-vbcqu.20.13.63 and REL.4-REL.7 acceptance; publication remains
+  forbidden_until_focusa-vbcqu.20.13.63_and_focusa-vbcqu.20.14.52_close)
+- docs/contracts/spec152-release-blocker-summary.v1.yaml (release blocker:
+  simplification_closure_status accepted_with_receipts with receipt binding;
+  spec152e_final_closure_blocked_by focusa-vbcqu.20.14.52; status stays
+  blocked_for_new_evaluator_customer_and_stable_distribution)
+- tests/spec152f_release_dependency_test.py (NEW — the exact verification
+  for 152F.06.10: the final dependency/provenance audit with no cycles)
+- tests/spec152f_build_independent_gate.sh (one-line inventory sync: the
+  gate's documented fail-closed mechanism requires every new Spec 152F test
+  to be explicitly inventoried; spec152f_release_dependency_test.py is now
+  pinned between spec152f_recovery_matrix_test.py and
+  spec152f_rest_entitlement_inheritance_test.py so it can never be silently
+  skipped)
+- docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt (this record)
+- No contract, generator, source, workflow, or other test file was modified
+  by this atom; the committed taskgraph, governance gate, reconciliation
+  ledger, and evidence of all prior atoms were consumed read-only.
+
+Bounded result
+- Added tests/spec152f_release_dependency_test.py: one deterministic,
+  stdlib-only, fail-closed final dependency/provenance audit for the Spec
+  152F child series. It cannot pass with a broken Spec152E wiring, a cyclic
+  dependency graph, a Spec152F bypass in the REL closure, a stale taskgraph,
+  a missing child record, an uncommitted receipt, or an unblocked stable
+  publication, and it exits 0 only when the complete closure chain is
+  present in the committed tree:
+  * Taskgraph final-task wiring — the Spec 152F taskgraph keeps
+    task_count=52, first_task=focusa-vbcqu.20.14.1, final_task=
+    focusa-vbcqu.20.14.52, phase_counts 00:4 01:9 02:8 03:8 04:7 05:6
+    06:10, internal_dependency_edge_count=123, per-phase sha256 zero-diff,
+    and the committed downstream_release_edges exactly
+    [{blocked: focusa-vbcqu.20.13.63, blocker: focusa-vbcqu.20.14.52}] —
+    the Spec 152E final release milestone depends on the accepted Spec 152F
+    closure.
+  * Spec152E final closure depends on accepted Spec152F closure — the Spec
+    152E completion gate gains condition 13: the accepted Spec 152F closure
+    (focusa-vbcqu.20.14.52, docs/evidence/spec152f/focusa-vbcqu.20.14.52-
+    acceptance.txt) and the REL.4-REL.7 governance acceptance close first,
+    Spec152F cannot be bypassed by REL closure, the dependency graph has
+    zero cycles, and stable publication still requires the exact final
+    release acceptance; the final-audit contract wires
+    spec152e_final_closure_dependency= focusa-vbcqu.20.14.52 and the
+    release-blocker summary wires spec152e_final_closure_blocked_by=
+    focusa-vbcqu.20.14.52.
+  * Active docs updated from implementation_pending to accepted only with
+    receipts — the Spec 152F addendum status now reads "implementation
+    accepted with receipts (see docs/evidence/spec152f/focusa-vbcqu.20.14.52-
+    acceptance.txt)" while keeping the Section 13 non-goal that publication
+    of stable v0.9.144 stays forbidden before Specs 152/152E/152F and
+    REL.4-REL.7 close truthfully; the final-audit contract records
+    spec152f_closure_status=accepted_with_receipts with the exact receipt
+    path. Every phase-06 record (20.14.43..20.14.52) satisfies the strict
+    receipt template.
+  * Spec152F cannot be bypassed by REL closure — the committed governance
+    gate is re-derived byte-identically (scripts/reduce-locked-release-
+    technical-closure.py --check) and reports status=verified,
+    invalid_closed_count=0, invalid_closed_ids=[], mapping_count=465,
+    technically_pending_count=255 with the REL wiring successors
+    (focusa-vbcqu.20.14.51, 20.14.52, 20.13.62, 20.13.63) still technically
+    pending (no administrative closure); the GH#106.2 governance
+    reconciliation (164 test) stays truthfully blocked with an explicit
+    pending_technical_acceptance gap.
+  * Acyclic final dependency proof — an independent Kahn traversal of the
+    123 internal taskgraph edges visits all 52/52 tasks (zero internal
+    cycles); the committed taskgraph contract test re-proves cycles=0; the
+    literal Beads edge command (bd dep cycles --json) exits 0 with
+    cycles=[] count=0; the Spec 172 seal blocks this final item
+    (20.14.52<-20.15.42), so every Spec152E/F path to REL acceptance passes
+    through the accepted Spec 152F closure.
+  * Stable publication still requires exact final release acceptance — the
+    Spec 152 final-audit contract keeps distribution_status=blocked,
+    migration_cutover_accepted=false, all_platform_final_candidate_verified
+    =false, spec152e_correction_status=in_progress,
+    spec152f_policy_status=implementation_open (pinned by the Spec 152F
+    document-authority gate), rel_gates_status=not_closed, and the
+    publication_rule "forbidden until focusa-vbcqu.20.13.63 and
+    focusa-vbcqu.20.14.52 close with linked acceptance evidence; the Spec
+    172 final acceptance work item must also close"; the next-command
+    contract keeps publication:
+    forbidden_until_focusa-vbcqu.20.13.63_and_focusa-vbcqu.20.14.52_close
+    and the release-blocker summary keeps status=
+    blocked_for_new_evaluator_customer_and_stable_distribution.
+  * Child-atom provenance audit — all 52 taskgraph evidence paths are
+    audited; the only absent records are the documented external-branch
+    refusal (focusa-vbcqu.20.14.6, cited commits outside this tree) and
+    this atom's own receipt at the moment the audit first runs; every
+    present record is git-tracked, names its work item, carries
+    verification content, cites no unfinished-acceptance markers, and every
+    phase-06 record plus the 20.14.51 seal names an implementation commit
+    that resolves in this repository (earlier-era records bind via committed
+    blob + verification content, per the 20.14.51 rule).
+  * FORBIDDEN coverage — no local/self-issued Evaluation, caller-controlled
+    product/price/grants, presenter-owned commercial decision, 395
+    independent paywalls, or disabled customer-data export/account
+    control/repair/security-update/rollback/uninstall is introduced; the
+    redaction scan of the full Spec 152F evidence set stays clean and the
+    documentation consistency gate re-proves the Spec 152F forbidden-policy
+    tokens.
+- The Spec 152F build-independent gate inventory was synchronized by exactly
+  one addition (the release dependency test), which is the gate's own
+  documented mechanism for new tests; the gate re-runs the full Spec 152F
+  surface with zero hidden skips (27 Python + 2 Node tests, 77 runs total).
+- The governance reconciliation ledger, the technical closure gate, the
+  final-audit status, the next-command, and the release-blocker contracts
+  were updated only within this atom's exact surfaces; the committed
+  taskgraph, coverage ledgers, reconciliation map, and evidence of all prior
+  atoms were consumed read-only (byte-identity proven by the zero-diff
+  checks). No Beads state, ledger, or other atom's evidence was mutated.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_release_dependency_test.py` (from the committed
+   implementation state) — exit 0.
+   Receipt: sha256 head=2773d4de2bbc4bf2e576a507e2f3e309378a1e6f;
+   tasks=52 evidenced=50 (absent=focusa-vbcqu.20.14.52, focusa-vbcqu.20.14.6);
+   governance=verified invalid_closed:0 pending:255;
+   beads_cycles=0 publication=blocked spec152e_dependency=focusa-vbcqu.20.13.63.
+   Final line: `✓ spec152f_release_dependency PASS`.
+2. `python3 tests/164_focusa_locked_release_governance_reconciliation_test.py`
+   — exit 0. "GH#106.2 locked-release governance reconciliation: PASS
+   (truthfully blocked)".
+3. `bd dep cycles --json` — exit 0.
+   `{"cycles":[],"count":0,"active_count":0,"archived_closed_count":0,
+   "total_count":0,"blocking_only":false,"include_closed":false,
+   "scope":"active"}` (zero bead dependency cycles).
+4. Full chain `python3 tests/spec152f_release_dependency_test.py && python3
+   tests/164_focusa_locked_release_governance_reconciliation_test.py &&
+   bd dep cycles --json` — all three exit 0 (the exact verification is
+   green as a single command chain).
+5. Re-run of the exact verification after this evidence file is in place —
+   exit 0 all three commands (the provenance audit then covers this record
+   too, and the phase-06 strict template check validates it).
+
+Regression checks (exit codes)
+- `bash tests/spec152f_build_independent_gate.sh` (the complete
+  build-independent Spec 152F gate, now including the release dependency
+  test) — exit 0. Receipt: sha256 head=2773d4de...; runs=77 passed=77
+  failed=0; tests=py:27 node:2 sh:0; contracts=json:16 yaml:2; coverage
+  covered=974 unmatched=0 exclusions=9; evidence records=70; final line
+  `✓ spec152f_build_independent_gate PASS (zero hidden skips)`.
+- `bash -n tests/spec152f_build_independent_gate.sh` — exit 0 (script syntax
+  valid).
+- `python3 tests/spec152f_document_authority_test.py` — exit 0 (Spec 152F
+  authority tokens, including the pinned
+  `spec152f_policy_status: implementation_open` and the exact
+  publication_rule, all retained).
+- `python3 tests/spec152e_document_authority_test.py` — exit 0.
+- `python3 tests/spec172_document_authority_test.py` — exit 0.
+- `python3 tests/spec152_documentation_consistency_gate.py` — exit 0
+  (documentation digest re-proved).
+- `python3 tests/spec152f_taskgraph_contract_test.py` — exit 0
+  (tasks=52 internal_edges=123 external_edges=8 cycles=0).
+- `python3 tests/spec152f_final_closure_test.py` (the 152F.06.09 closure
+  receipt) — exit 0: `✓ spec152f_final_closure PASS`.
+- `python3 tests/spec172_final_closure_test.py` (the 172.05.11 closure
+  receipt) — exit 0: `✓ spec172_final_closure PASS` (publication_rule and
+  final-audit tokens unchanged).
+- `git diff --check` — exit 0, no whitespace errors.
+- `git status --short` after all runs shows only this atom's files (test,
+  gate inventory line, five exact-surface docs/contracts, and this evidence
+  record).
+
+Tests added
+- tests/spec152f_release_dependency_test.py — the Spec 152F final
+  dependency/provenance audit: taskgraph final-task wiring with exact
+  downstream release edge (20.13.63<-20.14.52); Spec152E completion-gate and
+  contract wiring behind the accepted Spec 152F closure receipt; active-doc
+  accepted-with-receipts status with publication non-goal intact;
+  zero-invalid-closure governance re-derivation (reducer --check,
+  invalid_closed=0, REL successors technically pending) plus a real run of
+  the 164 reconciliation test; Beads edge check (bd dep cycles --json,
+  cycles=[] count=0) plus an independent Kahn acyclicity proof over the 123
+  internal edges (52/52); child-atom provenance audit with exact-SHA
+  binding for phase-06 records, the 20.14.51 seal, and this atom's own
+  receipt; stable-publication-blocked proof (final-audit,
+  next-command, release-blocker, Spec 152F/152E docs); exact-SHA closure
+  receipt. Fails closed (exit 1) on any broken wiring, cyclic graph,
+  REL bypass, stale taskgraph, missing child record, uncommitted receipt, or
+  unblocked publication.
+
+Rollback
+- Revert only this atom: `git revert 2773d4de` (drop
+  tests/spec152f_release_dependency_test.py, the single inventory line
+  added to tests/spec152f_build_independent_gate.sh, the Spec 152F/152E
+  doc status and completion-gate edits, and the additive final-audit/
+  next-command/release-blocker closure-wiring fields) and, if the evidence
+  record itself must be rolled back, the follow-up docs commit that records
+  this file. Reverting restores the previous 26-test gate inventory and the
+  prior contract text; no contract, generator, source, workflow, or other
+  test file was modified by this atom. Verified identities, customers,
+  orders, refunds, License Types, keys, nodes, sequences, data, migration
+  journals, evidence, and accepted unrelated work are preserved untouched.
+  This atom wires Spec 152F closure into Spec 152E and the release
+  milestones only; it does not weaken EDD identity/commerce, signed-lease,
+  refund/revoke, node, sequence, or recovery authority, it does not
+  administratively close the Spec 152E final milestone
+  (focusa-vbcqu.20.13.63) or REL.4-REL.7, and stable publication remains
+  forbidden until those close with linked acceptance evidence.
+
+No push, deploy, release, merge, or Beads mutation was performed.

@@ -1,0 +1,175 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.50
+Title: 152F.06.08 Run installed exact-SHA cross-platform acceptance
+Implementation commit: `39aa86e84d973cd5a254e54787746f662c3802a8`
+(feat(spec152f): run installed exact-SHA cross-platform acceptance receipt
+verification; see git log for this atom)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.14.50 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- tests/spec152f_installed_acceptance_receipt_test.py (NEW — the installed
+  exact-SHA cross-platform acceptance receipt test, i.e. the exact
+  verification for 152F.06.08)
+- tests/spec152f_build_independent_gate.sh (one-line inventory sync: the
+  gate's documented fail-closed mechanism requires every new Spec 152F test
+  to be explicitly inventoried; the new receipt test is now pinned between
+  spec152f_facade_policy_presenter_test.py and
+  spec152f_lifecycle_policy_test.py so it can never be silently skipped)
+- docs/evidence/spec152f/focusa-vbcqu.20.14.50-acceptance.txt (this record)
+- No contract, generator, source, or other test file was modified by this
+  atom.
+
+Bounded result
+- Added tests/spec152f_installed_acceptance_receipt_test.py: one
+  deterministic, stdlib-only, fail-closed receipt test for the installed
+  exact-SHA cross-platform acceptance surfaces. It cannot pass with a missing
+  platform, weakened authority, unsigned/candidate-only bypass, or missing
+  exact-SHA binding, and it exits 0 only when the complete installed receipt
+  chain is present in the committed tree:
+  * Cross-platform final candidate artifact manifest — all six platforms are
+    pinned in .github/workflows/locked-release-candidate-artifacts.yml with
+    native runners (aarch64-apple-darwin/macos-14 and
+    x86_64-apple-darwin/macos-15-intel for macOS arm64/x64;
+    x86_64-unknown-linux-gnu and x86_64-unknown-linux-musl with `musl: true`
+    cross for Linux GNU/musl; x86_64-pc-windows-msvc/windows-latest and
+    aarch64-pc-windows-msvc/windows-11-arm for Windows x64/arm64). Artifacts
+    are pinned to the exact version 0.9.144 and verified surfaces
+    (verify-version-surfaces.py v0.9.144); signing authority is mandatory
+    and fail-closed (TAURI_SIGNING_PRIVATE_KEY[/_PASSWORD] and
+    FOCUSA_RELEASE_ED25519_PRIVATE_KEY, empty values rejected); installed
+    artifacts are verified before acceptance (codesign --verify --deep
+    --strict, sha256sum -c SHA256SUMS.txt, verify-canonical-release-assets.py
+    --dist dist --tag v0.9.144); publication is explicitly candidate-only
+    (`.publication_status == "candidate_only"`, `.gates.release_success |
+    not`, `.gates.release_run_url == null`) and softprops/action-gh-release,
+    gh release create, and git push are forbidden in the candidate workflow;
+    the canonical asset verifier covers all six RUST_TARGETS and all
+    installed surfaces (focusa, focusa-daemon, focusa-tui, Pi extension,
+    agent context, generated clients, sh/ps1 installers, macOS desktop zips).
+  * Installed CLI/desktop/agent flows — Windows native OTA
+    (.github/workflows/windows-ota-e2e.yml) installs twice per architecture
+    where specified (clean install v0.9.116-dev -> apply v0.9.117-dev ->
+    rollback -> reapply on both x64/windows-latest and
+    arm64/windows-11-arm), asserts the native architecture, restarts and
+    health-verifies the daemon after every phase, preserves a user-data
+    sentinel across install/update/rollback/reapply, and emits a
+    focusa.windows_native_ota_proof.v1 receipt with
+    production_entitlement_claimed = $false and
+    historical_fixture_authority = non_authoritative_migration_fixture; the
+    UIAI engine in installed flows is a bounded local health fixture
+    (uiai-health.py + UIAI_ENGINE_URL), never an entitlement authority. The
+    installer cannot self-issue Evaluation (no persist_eval_license, no
+    eval-string return) and routes through DeviceAuthorizationSession /
+    AuthorityHttpClient / PersistedAuthorityState::from_verified_envelopes /
+    KeyringCredentialStore / rotate_refresh_credential; install-focusa.sh
+    maps Darwin arm64/x64 and Linux x86_64 installed flows to the exact
+    triples; update/rollback requires verify_deploy_proof on signed
+    deploy-success.json before any installed apply
+    (execute_verified_apply, rollback_promoted_parts); the stable release
+    pipeline retains the OTA installability release contract gate, the final
+    release gap gate, the musl target/asset suffix, Tauri updater signing
+    authority, and canonical asset verification.
+  * WPUIAI test authority — WPUIAI.com EDD remains the canonical authority in
+    the cutover fixtures (tests/spec152e_final_cutover_canary_test.py) with
+    product registry owner WPUIAI/wpuiai; UIAI/browser surfaces never grant
+    (spec152f_uiai_policy_test.py: "Focusa-only paid entitlement NEVER
+    grants"; 162_focusa_uiai_challenge_ownership_test.py: external
+    uiai-engine owner, mutation_authority False; facade policy presenter
+    never selects grants/prices or branches on facade id). Installed test
+    fixtures remain visibly non-authoritative.
+  * Exact-SHA binding — release.yml reuses only successful candidate gates
+    for the exact SHA (headSha == $sha) and locks the release candidate to
+    exact_sha == env.GITHUB_SHA; the candidate artifact manifest and trust
+    metadata bind to "$GITHUB_SHA" (--commit/--sha); the build-independent
+    gate receipt (focusa-vbcqu.20.14.49) records the exact HEAD SHA and the
+    policy-contract sha256 digest; every phase-06 acceptance record
+    (20.13.62, 20.14.43..20.14.49) is bound to an exact commit SHA; the
+    prior-atom evidence floor (>= 67 records) protects against hidden skips.
+  * Lifecycle cases — Evaluation/paid/expired/refunded/recovery/premium/
+    offline E2E tests exist and their phase-06 receipts are exact-SHA bound.
+  * Fail-closed FORBIDDEN + redaction — each forbidden property token
+    (no_local_issuance, caller_controlled, presenter_must_not,
+    recovery_always_available, no_raw_key_or_token, no_dead_end_paywalls) is
+    asserted by at least one Spec 152F test, and no raw credential/token
+    material exists under docs/evidence/spec152f.
+- The Spec 152F build-independent gate inventory was synchronized by exactly
+  one addition (the new receipt test), which is the gate's own documented
+  mechanism for new tests; the gate re-runs the full Spec 152F surface with
+  zero hidden skips (25 Python + 2 Node tests, 73 runs total).
+
+Exact verification (exit codes)
+1. `python3 tests/spec152f_installed_acceptance_receipt_test.py` (from the
+   committed implementation state, 39aa86e8) — exit 0.
+   Receipt: sha256 head=39aa86e84d973cd5a254e54787746f662c3802a8;
+   platforms=macos:arm64,x64 windows:x64,arm64 linux:gnu,musl;
+   installed_flows=cli,daemon,tui,desktop,pi-extension,agent-context,
+   installers; installed_twice=windows:clean_install+reapply (x64,arm64);
+   authority=WPUIAI.com EDD (canonical; facades/UIAI never grant);
+   evidence_records=68.
+   Final line: `✓ spec152f_installed_acceptance_receipt PASS`.
+2. Re-run of the exact verification after this evidence file is in place —
+   exit 0 (evidence_records=69; the phase-06 exact-SHA chain and redaction
+   scans then cover this record too).
+3. Regression: `bash tests/spec152f_build_independent_gate.sh` (the complete
+   build-independent Spec 152F gate, now including the new receipt test) —
+   exit 0. Receipt: sha256 head=39aa86e8...; runs=73 passed=73 failed=0;
+   tests=py:25 node:2 sh:0; contracts=json:16 yaml:2; final line
+   `✓ spec152f_build_independent_gate PASS (zero hidden skips)`.
+4. Fail-closed negative verification (the receipt test cannot pass with a
+   weakened installed acceptance surface):
+   a. Removing the clean-install/reapply phase token from
+      .github/workflows/windows-ota-e2e.yml in a scratch copy — receipt test
+      exit 1 ("installed-twice OTA phase step missing"); scratch discarded,
+      committed workflow untouched.
+   b. Removing the exact-SHA lock assertion from release.yml in a scratch
+      copy — receipt test exit 1 (".exact_sha == env.GITHUB_SHA" missing);
+      scratch discarded, committed workflow untouched.
+   c. Tampering with a phase-06 evidence record commit reference in a scratch
+      copy — receipt test exit 1 ("phase-06 acceptance record not bound to an
+      exact commit"); scratch discarded, committed record untouched.
+
+Regression checks (exit codes)
+- `bash -n tests/spec152f_build_independent_gate.sh` — exit 0 (script syntax
+  valid).
+- `git diff --check` — exit 0, no whitespace errors.
+- The build-independent gate re-ran the entire pre-existing Spec 152F suite
+  with the new test: 25 Python + 2 Node tests and 55 static contract/syntax
+  runs all exit 0 (see gate receipt above); coverage contract unchanged
+  (covered=974 unmatched=0 total=974, exclusions=9) and generated artifacts
+  regenerate byte-identically.
+- `python3 tests/spec152f_installed_acceptance_receipt_test.py` twice in a
+  row from a clean tree — exit 0 both times (deterministic, no state
+  mutation; the redaction scan then covers this acceptance record too).
+
+Tests added
+- tests/spec152f_installed_acceptance_receipt_test.py — the installed
+  exact-SHA cross-platform acceptance receipt test: six-platform candidate
+  artifact manifest with mandatory signing and candidate-only publication;
+  installed CLI/desktop/agent flows including installed-twice (clean
+  install + reapply), daemon restart health, user-data preservation, bounded
+  non-authoritative UIAI health fixture, fail-closed installer authority,
+  verified-deploy-proof-gated update/rollback, and macOS/Linux portable
+  installed triples; WPUIAI.com EDD canonical authority with facade/UIAI
+  never-grant assertions; exact-SHA binding of platform receipts and the
+  artifact manifest (release candidate lock, candidate gate reuse, trust
+  metadata --commit/--sha, phase-06 evidence chain, prior-atom evidence
+  floor); lifecycle-case test presence; forbidden-property coverage tokens
+  and evidence redaction hygiene (credential/token patterns). Fails closed
+  (exit 1) on any missing receipt, weakened authority, or candidate-only
+  bypass.
+
+Rollback
+- Revert only this atom: `git revert 39aa86e8` (drop
+  tests/spec152f_installed_acceptance_receipt_test.py, the single inventory
+  line added to tests/spec152f_build_independent_gate.sh, and
+  docs/evidence/spec152f/focusa-vbcqu.20.14.50-acceptance.txt if required).
+  Reverting restores the previous 24-test gate inventory; no contract,
+  generator, source, or other test file was modified by this atom. Verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, data, migration journals, evidence, and accepted unrelated work
+  are preserved untouched. This atom verifies installed acceptance receipts
+  only; it does not weaken EDD identity/commerce, signed-lease,
+  refund/revoke, node, sequence, or recovery authority.
+
+No push, deploy, release, merge, or Beads mutation was performed.

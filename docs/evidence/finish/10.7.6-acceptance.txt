@@ -1,0 +1,14 @@
+# 152.03.04 Rust installer entitlement orchestration — evidence 10.7.6
+commit: 578b2269eed0999fe59c73ad217a1ecd8abe4f1c
+verification: cargo fmt --all -- --check; cargo clippy -p focusa-cli --all-targets -- -D warnings; cargo clippy --workspace --all-targets -- -D warnings; php -l wpuiai-plugin/**/*.php; cargo test -p focusa-cli install
+fmt: ok (1.91.0)
+clippy -p focusa-cli: ok 0 warnings
+clippy --workspace --all-targets: ok 0 warnings (fixed tui bool_assert/const_is_empty x9)
+php -l wpuiai-plugin: 3 files ok (admin-grant-endpoint.php, grant-ui.php, wpuiai-admin-grant.php)
+cargo test -p focusa-cli install:
+  running 39 tests (src/main.rs)
+  test commands::install::tests::* ... ok (39 passed)
+  + launch_hardening_e2e 1 passed
+  total 40 install-filtered passed, 0 failed
+evidence_ref: evidence:installer-entitlement-orchestration-10.7.6
+sha256: 578b2269e

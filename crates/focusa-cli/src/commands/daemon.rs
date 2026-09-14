@@ -1,27 +1,109 @@
 //! Daemon control commands — start/stop.
 
 use crate::api_client::ApiClient;
+use anyhow::Context;
+use focusa_core::daemon_lifecycle::{
+    DAEMON_PROCESS_IDENTITY_SCHEMA, DaemonLockRecord, DaemonProcessIdentity, DaemonShutdownRequest,
+};
+use focusa_core::types::FocusaConfig;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 fn running_version_matches(health: &serde_json::Value) -> bool {
     health.get("version").and_then(|v| v.as_str()) == Some(env!("CARGO_PKG_VERSION"))
 }
 
-async fn wait_until_stopped(client: &ApiClient) -> bool {
+fn health_process_identity(health: &serde_json::Value) -> anyhow::Result<DaemonProcessIdentity> {
+    let identity: DaemonProcessIdentity = serde_json::from_value(
+        health
+            .get("daemon")
+            .cloned()
+            .context("daemon health is missing exact process identity")?,
+    )
+    .context("daemon health contains invalid process identity")?;
+    anyhow::ensure!(
+        identity.schema == DAEMON_PROCESS_IDENTITY_SCHEMA && identity.pid > 0,
+        "daemon health process identity is unsupported"
+    );
+    Ok(identity)
+}
+
+fn configured_lock_path() -> PathBuf {
+    let data_dir = std::env::var_os("FOCUSA_DATA_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(FocusaConfig::default().data_dir));
+    let data_dir = if data_dir == Path::new("~") {
+        std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or(data_dir)
+    } else if let Ok(relative) = data_dir.strip_prefix("~/") {
+        std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .map(|home| home.join(relative))
+            .unwrap_or(data_dir)
+    } else {
+        data_dir
+    };
+    data_dir.join("focusa-daemon.lock")
+}
+
+fn bind_port(bind: &str) -> Option<u16> {
+    bind.rsplit(':').next()?.parse().ok()
+}
+
+fn validate_lock_identity(
+    record: &DaemonLockRecord,
+    identity: &DaemonProcessIdentity,
+    base_url: &str,
+) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        record.pid == identity.pid && record.start_token == identity.start_token,
+        "daemon health and lock process identities do not match"
+    );
+    let target_port = reqwest::Url::parse(base_url)
+        .ok()
+        .and_then(|url| url.port_or_known_default());
+    anyhow::ensure!(
+        bind_port(&record.bind).is_some() && bind_port(&record.bind) == target_port,
+        "daemon lock port does not match the requested endpoint"
+    );
+    Ok(())
+}
+
+fn shutdown_bearer(identity: &DaemonProcessIdentity, base_url: &str) -> anyhow::Result<String> {
+    if let Ok(admin_token) = std::env::var("FOCUSA_AUTH_TOKEN")
+        && !admin_token.is_empty()
+    {
+        return Ok(admin_token);
+    }
+
+    let expected_path = configured_lock_path();
+    anyhow::ensure!(
+        Path::new(&identity.lock_path) == expected_path,
+        "daemon-advertised lock path does not match configured local data directory"
+    );
+    let content = std::fs::read_to_string(&expected_path)
+        .context("read exact daemon lock for shutdown authorization")?;
+    let record = DaemonLockRecord::parse(&content)
+        .context("parse exact daemon lock for shutdown authorization")?;
+    validate_lock_identity(&record, identity, base_url)?;
+    Ok(record.shutdown_token)
+}
+
+async fn wait_until_identity_stopped(client: &ApiClient, expected: &DaemonProcessIdentity) -> bool {
     for _ in 0..50 {
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        if client.get("/v1/health").await.is_err() {
-            return true;
+        match client.get("/v1/health").await {
+            Err(_) => return true,
+            Ok(health) => match health_process_identity(&health) {
+                Ok(running)
+                    if running.pid == expected.pid
+                        && running.start_token == expected.start_token => {}
+                _ => return true,
+            },
         }
     }
     false
-}
-
-fn kill_daemon_processes() {
-    let _ = std::process::Command::new("pkill")
-        .arg("-f")
-        .arg("focusa-daemon")
-        .status();
 }
 
 /// Start the Focusa daemon.
@@ -43,11 +125,13 @@ pub async fn start() -> anyhow::Result<bool> {
                 .unwrap_or("unknown"),
             env!("CARGO_PKG_VERSION")
         );
-        let _ = stop().await;
+        stop()
+            .await
+            .context("exact stale-daemon shutdown failed; refusing broad process repair")?;
         if client.get("/v1/health").await.is_ok() {
-            eprintln!("Focusa daemon graceful shutdown did not finish; using safe process repair.");
-            kill_daemon_processes();
-            let _ = wait_until_stopped(&client).await;
+            anyhow::bail!(
+                "daemon endpoint is still occupied after exact shutdown; refusing to signal by process name"
+            );
         }
     }
 
@@ -104,27 +188,38 @@ pub enum StopOutcome {
 pub async fn stop() -> anyhow::Result<StopOutcome> {
     let client = ApiClient::new();
 
-    // Check if running.
-    if client.get("/v1/health").await.is_err() {
-        return Ok(StopOutcome::AlreadyStopped);
-    }
-
-    // Send shutdown request (if endpoint exists).
-    // For now, use pkill as fallback.
-    if client
-        .post("/v1/shutdown", &serde_json::json!({}))
+    let health = match client.get("/v1/health").await {
+        Ok(health) => health,
+        Err(_) => return Ok(StopOutcome::AlreadyStopped),
+    };
+    let identity = health_process_identity(&health)?;
+    let bearer = shutdown_bearer(&identity, client.base_url())?;
+    let request = DaemonShutdownRequest::new(identity.pid, identity.start_token.clone());
+    let body = serde_json::to_value(&request)?;
+    let authorization = format!("Bearer {bearer}");
+    let response = client
+        .post_with_headers(
+            "/v1/shutdown",
+            &body,
+            &[("authorization", authorization.as_str())],
+        )
         .await
-        .is_err()
-    {
-        // Fallback: kill by name.
-        kill_daemon_processes();
-    }
+        .context("authenticated exact-daemon shutdown request failed")?;
+    anyhow::ensure!(
+        response.get("status").and_then(serde_json::Value::as_str) == Some("accepted")
+            && response.get("pid").and_then(serde_json::Value::as_u64) == Some(identity.pid as u64)
+            && response
+                .get("start_token")
+                .and_then(serde_json::Value::as_str)
+                == Some(identity.start_token.as_str()),
+        "daemon returned an invalid shutdown acceptance receipt"
+    );
 
-    if wait_until_stopped(&client).await {
+    if wait_until_identity_stopped(&client, &identity).await {
         return Ok(StopOutcome::Stopped);
     }
 
-    anyhow::bail!("Focusa daemon stop failed: health endpoint still responds after timeout")
+    anyhow::bail!("exact Focusa daemon instance still responds after shutdown timeout")
 }
 
 /// Find the daemon binary.
@@ -158,4 +253,58 @@ fn find_daemon_binary() -> anyhow::Result<std::path::PathBuf> {
     }
 
     anyhow::bail!("Could not find focusa-daemon binary. Install it or add to PATH.")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use focusa_core::daemon_lifecycle::DAEMON_PROCESS_IDENTITY_SCHEMA;
+
+    fn identity() -> DaemonProcessIdentity {
+        DaemonProcessIdentity::new(4242, "start-token", "/tmp/focusa-daemon.lock")
+    }
+
+    fn lock() -> DaemonLockRecord {
+        DaemonLockRecord {
+            pid: 4242,
+            bind: "127.0.0.1:18787".into(),
+            started_at: "2026-08-31T00:00:00Z".into(),
+            start_token: "start-token".into(),
+            shutdown_token: "shutdown-token".into(),
+        }
+    }
+
+    #[test]
+    fn health_requires_versioned_exact_process_identity() {
+        let health = serde_json::json!({"daemon": identity()});
+        assert_eq!(health_process_identity(&health).unwrap(), identity());
+        let legacy = serde_json::json!({"ok": true, "version": "0.9.177"});
+        assert!(health_process_identity(&legacy).is_err());
+        let wrong_schema = serde_json::json!({
+            "daemon": {
+                "schema": "focusa.daemon_process_identity.v0",
+                "pid": 4242,
+                "start_token": "start-token",
+                "lock_path": "/tmp/focusa-daemon.lock"
+            }
+        });
+        assert!(health_process_identity(&wrong_schema).is_err());
+        assert_eq!(identity().schema, DAEMON_PROCESS_IDENTITY_SCHEMA);
+    }
+
+    #[test]
+    fn lock_validation_binds_pid_start_token_and_target_port() {
+        assert!(validate_lock_identity(&lock(), &identity(), "http://127.0.0.1:18787").is_ok());
+        let mut foreign_pid = lock();
+        foreign_pid.pid = 5252;
+        assert!(
+            validate_lock_identity(&foreign_pid, &identity(), "http://127.0.0.1:18787").is_err()
+        );
+        let mut foreign_start = lock();
+        foreign_start.start_token = "other-start".into();
+        assert!(
+            validate_lock_identity(&foreign_start, &identity(), "http://127.0.0.1:18787").is_err()
+        );
+        assert!(validate_lock_identity(&lock(), &identity(), "http://127.0.0.1:28787").is_err());
+    }
 }

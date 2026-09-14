@@ -1130,8 +1130,3 @@ This spec cannot close while:
 - cross-project or cross-domain isolation is unproven;
 - a required client exposes semantically divergent contracts;
 - implementation or proof is deferred outside the Spec 135 closure graph.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-vertical-intelligence-bundles -->
-## Spec 144 Vertical Intelligence Bundle composition
-
-A Vertical Intelligence Bundle composes workspace profile, domain packs, semantic modules, SHACL shapes, Verification Pack extensions, temporal and epistemic applicability, evidence policies, verifier capabilities, reflex overlays, artifact/connector bindings, migrations, conformance, and golden scenarios. Every bundle inherits `focusa.verification.core@1`; no Vertical forks reducer, temporal, prediction, ontology, or settlement authority.

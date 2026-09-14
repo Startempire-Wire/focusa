@@ -77,4 +77,4 @@ Likely next: `focusa_metacog_capture`, `focusa_predict_stats`, `focusa_decide`.
 - CLI: `focusa metacognition evaluate`.
 - REST: `POST /v1/metacognition/evaluate`, `GET /v1/metacognition/evaluations/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3f696358493d40aa48bef60e24381c7cb38efea966d9d3d6c70f63afa0de43b8`.
+- Descriptor digest: `sha256:53326c5bcaac06f5022e084bf48404bb22fc40da27e5706cf3a4d9495af4a3ec`.

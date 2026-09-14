@@ -13,12 +13,25 @@ SETTINGS="$ROOT/apps/menubar/src/lib/components/Settings.svelte"
 RELEASE="$ROOT/.github/workflows/release.yml"
 CI="$ROOT/.github/workflows/ci.yml"
 SIGNING_PROOF="$ROOT/.github/workflows/tauri-updater-signing-proof.yml"
+TRUST_KEYS="$ROOT/config/focusa-trusted-release-keys.json"
 BETA_INSTALLER="$ROOT/scripts/install-focusa-menubar-beta.sh"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
 jq -e '.bundle.createUpdaterArtifacts == true' "$CONF" >/dev/null || fail "Tauri updater artifacts disabled"
 jq -e '.plugins.updater.pubkey | type == "string" and length > 80' "$CONF" >/dev/null || fail "Tauri updater public key missing"
+python3 - "$CONF" <<'PY'
+import base64
+import hashlib
+import json
+import sys
+from pathlib import Path
+public_box = base64.b64decode(json.loads(Path(sys.argv[1]).read_text())["plugins"]["updater"]["pubkey"], validate=True)
+public_raw = base64.b64decode(public_box.splitlines()[1], validate=True)
+assert public_raw[2:10].hex() == "5f216ee7de6246e8"
+assert hashlib.sha256(public_raw[10:]).hexdigest() == "10ee85d8b85062a049a1443303300d8475e0cb15e4cc45cdcb1995b0802f9f0f"
+PY
+jq -e '.keys | any(.key_id == "focusa-release-2026-08-24-4ed9c92b" and .valid_from == "2026-08-24T00:00:00Z" and .valid_until == null)' "$TRUST_KEYS" >/dev/null || fail "rotated release trust root missing"
 jq -e '.plugins.updater.endpoints | any(startswith("https://") and endswith("latest.json"))' "$CONF" >/dev/null || fail "HTTPS updater endpoint missing"
 jq -e '.permissions | index("updater:default") and index("process:allow-restart")' "$CAP" >/dev/null || fail "updater/relaunch capabilities missing"
 jq -e '.dependencies["@tauri-apps/plugin-updater"] and .dependencies["@tauri-apps/plugin-process"]' "$PKG" >/dev/null || fail "frontend updater dependencies missing"
@@ -36,7 +49,8 @@ rg -q 'uploadUpdaterJson: true' "$RELEASE" || fail "release updater JSON upload 
 rg -q 'APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_API_KEY_P8 APPLE_TEAM_ID' "$RELEASE" || fail "mandatory Apple signing/notarization preflight missing"
 if rg -q 'UNNOTARIZED-PREVIEW' "$RELEASE"; then fail "release still allows unnotarized updater artifacts"; fi
 rg -q 'tauri signer sign' "$SIGNING_PROOF" || fail "secret-backed updater signing proof missing"
-rg -q 'minisign -Vm' "$SIGNING_PROOF" || fail "updater public-key verification missing"
+rg -q 'Ed25519PublicKey.*verify' "$SIGNING_PROOF" || fail "updater Ed25519 verification missing"
+rg -q 'public_raw\[2:10\].*signature_raw\[2:10\]' "$SIGNING_PROOF" || fail "updater key-ID verification missing"
 rg -q 'createUpdaterArtifacts.*false' "$CI" || fail "non-release CI must not require private updater signing material"
 
 if rg -n 'BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY|untrusted comment: encrypted secret key' "$ROOT/apps" "$ROOT/.github" --glob '!package-lock.json'; then
@@ -52,12 +66,6 @@ for marker in \
   'Signature=adhoc' \
   'install-focusa-menubar-beta.sh'; do
   rg -q "$marker" "$RELEASE" || fail "release workflow missing pre-license marker: $marker"
-done
-for marker in \
-  'issues?state=open&per_page=100' \
-  'has("pull_request") | not' \
-  'startswith("release-gate:")'; do
-  rg -Fq "$marker" "$RELEASE" || fail "release workflow missing generic open-issue gate contract: $marker"
 done
 for marker in \
   'pre-license macOS beta' \

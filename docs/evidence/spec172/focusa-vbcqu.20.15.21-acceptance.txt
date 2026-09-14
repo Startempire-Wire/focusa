@@ -1,0 +1,133 @@
+Spec 172 / Spec 152F acceptance record
+Work item: focusa-vbcqu.20.15.21
+Title: 172.03.04 Enforce UIAI observe-only limited mode and paid action boundary
+Implementation commit: `3d667373c2b8f92a427baaf09ab3269d3ecebfe0`
+
+Exact surfaces
+- crates/focusa-license/src/uiai_child_token.rs
+  (Focusa UIAI operation map / child-token broker; UIAI
+  public-observe/action/persistence classification)
+- tests/spec172_uiai_limited_mode_test.py
+
+Bounded result
+- Added the canonical Spec 172 Section 6.3 public-observe/action/persistence
+  classification `UiaiActionPersistenceClass` (`PublicObserve` / `Action` /
+  `Persistence`) with a coarse capability-class projection
+  (`operation_class()`): only public observation is local base integration;
+  action and persistence always resolve as remote/premium capability.
+- Added the canonical Focusa UIAI operation map `SPEC172_UIAI_OPERATION_MAP`
+  (21 server-owned rows, `UiaiOperationMapEntry`): the six
+  verified-no-license public-observe operations (public_search,
+  source_to_markdown, public_page_read, accessibility_snapshot, screenshot,
+  basic_diagnostics), browser mutation (click/fill/type/select/press/submit),
+  persistence (cookie/auth-state/session), authenticated/private targets,
+  unattended automation, scheduled/batch QA, and premium hosted resources
+  (premium proxy, hosted capacity, paid model calls). Every row binds a
+  limited-mode family label and a paid UIAI Operator v1 family feature; rows
+  cannot be extended, renamed, or reclassified by callers.
+- Added `classify_uiai_operation` (exact operation-id lookup; unknown,
+  prefixed, aliased, and empty ids fail closed) and the product-isolation
+  adapter `resolve_uiai_operation_capability` — the shared Focusa/UIAI entry
+  point browser, proxy, MCP, and taskgraph adapters call BEFORE any child
+  token is minted or any UI side effect runs. It consumes only the canonical
+  operation id and authority snapshots (`focusa_parent`, `uiai_grant`,
+  `active_session_count`, `now`); product, price, License Type, family,
+  feature, limit, node, and commercial rights are never caller-controlled.
+- Enforced the observe-only limited mode and paid action boundary:
+  - verified no-license: exactly one foreground, ephemeral, public-observe
+    session (session_quota 1); a second concurrent session is denied
+    (`LimitedModeRestricted`);
+  - every action/persistence/hosted operation fails closed in limited mode
+    (`UiaiGrantRequired`) before any side effect;
+  - paid UIAI/Bundle proceeds only for granted paid Operator v1 family
+    features (`PaidFamily` bound to the parent Focusa lease and UIAI grant
+    sequence); persistence requires the `uiai_persistence` grant, browser
+    action the `uiai_browser_action` grant, scheduled/batch QA the
+    `uiai_batch_responsive` grant;
+  - authenticated/private targets, unattended automation, premium proxies,
+    hosted capacity, and paid model calls carry NO canonical paid feature, so
+    they fail closed (`FamilyNotGranted`) even for paid grants (Spec 172
+    Section 7.2: paid UIAI never includes paid proxies, hosted compute, paid
+    model usage, or authenticated/private targets unless explicitly listed);
+  - Focusa-only paid entitlement never grants UIAI
+    (`FocusaOnlyCannotGrantUiai`); no posture at all fails closed
+    (`MissingPosture`); unknown operation ids fail before any decision
+    (`UiaiOperationError::UnknownOperation`).
+- The existing child-token broker (authority-only issuance, same-EDD-account
+  binding, cached-token revalidation rejecting stale parents and widened
+  tokens) remains the post-decision gate; cross-product widening can never
+  mint or reuse a child token. No anonymous product capability, no
+  local/self-issued grant, and no caller-controlled commercial right was
+  added; no data deletion or blocked basic export/repair/rollback/security
+  update/uninstall exists in this surface.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_uiai_limited_mode_test.py` — exit 0.
+   Spec172 UIAI observe-only limited mode gate: PASS
+   operation_map_entries=21, limited_allowed_operations=6,
+   limited_blocked_operations=15.
+2. `python3 tests/spec152_uiai_child_token_broker_test.py` — exit 0.
+   Spec152 UIAI authority child-token broker gate: PASS.
+   Compound command `python3 tests/spec172_uiai_limited_mode_test.py &&
+   python3 tests/spec152_uiai_child_token_broker_test.py` — exit 0.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license spec172_operation_map` — exit 0:
+  1 passed, 0 failed (uiai_child_token::tests::
+  spec172_operation_map_classifies_observe_action_and_persistence).
+- `cargo test -p focusa-license spec172_limited_mode_allows` — exit 0:
+  1 passed, 0 failed (spec172_limited_mode_allows_only_one_foreground_
+  public_observe_session).
+- `cargo test -p focusa-license spec172_paid_boundary` — exit 0:
+  1 passed, 0 failed (spec172_paid_boundary_requires_granted_family_and_
+  denies_hosted_rights).
+- `cargo test -p focusa-license` — exit 0: 128 unit + 11 authority-lease +
+  8 entitlement-policy-grid + 3 capsule + 5 activation-contract + 35
+  automation + 7 bypass-resistance + 30 export + 5 observability + 14
+  premium-adversarial + 33 release-proof + 43 team-remote + 12
+  dynamic-operation-manifest + 12 family-inheritance = 346 tests passed,
+  0 failed.
+- `cargo fmt -- crates/focusa-license/src/uiai_child_token.rs` — exit 0.
+- `git diff --check` — exit 0, no whitespace errors.
+- `python3 tests/spec152f_uiai_policy_test.py` — exit 0 (prior UIAI
+  parent-policy gate untouched and green).
+- `python3 tests/spec172_family_inheritance_test.py` — exit 0 (prior
+  family-inheritance gate untouched and green).
+
+Tests added
+- Rust (focusa-license unit tests in uiai_child_token.rs):
+  spec172_operation_map_classifies_observe_action_and_persistence (every
+  allowlisted operation is PublicObserve with a canonical paid feature; action
+  and persistence classes bind their exact families; hosted/private operations
+  carry no canonical paid feature; unknown/prefixed/empty ids never resolve;
+  rows are unique; every limited family label is canonical),
+  spec172_limited_mode_allows_only_one_foreground_public_observe_session
+  (six allowed operations once; concurrency denied; all fifteen blocked
+  operations fail closed; unknown operation fails before any decision),
+  spec172_paid_boundary_requires_granted_family_and_denies_hosted_rights
+  (paid browser action and persistence proceed only with the granted family,
+  bound to parent lease + grant sequence; hosted/private rights deny even for
+  paid grants; Focusa-only never grants UIAI; missing posture fails closed).
+- Python (tests/spec172_uiai_limited_mode_test.py, 21 canonical map rows, 6
+  allowed + 15 blocked operations): classification surface markers; every
+  Section 6.3 operation vector present in the map; allowlist families bound to
+  the classifier constants in entitlement_policy.rs; canonical paid features
+  vs non-canonical hosted/private features; resolver signature consumes only
+  operation id + authority snapshots and never caller policy; fail-closed
+  ordering (map -> resolver -> shared active_bound); no SigningKey/Signer/
+  self_sign/customer_email/access_token/device_proof/pairing_proof anywhere in
+  the surface.
+
+Remaining blockers
+- None for this atom. Downstream atoms (172.03.07 complete Spec 172 runtime
+  policy matrix; 172.04.05 UIAI Cockpit mixed-product presenter) build on the
+  canonical operation map and product-isolation adapter.
+
+Rollback
+- Revert only implementation commit `3d667373c2b8f92a427baaf09ab3269d3ecebfe0`
+  (and this evidence record if removal is required). Preserve verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, customer data, migration journals, evidence, and accepted
+  unrelated work. No data deletion is performed by this atom or its rollback.
+
+No push, deploy, release, merge, or Beads mutation was performed.

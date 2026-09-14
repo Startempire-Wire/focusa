@@ -1,0 +1,19 @@
+focusa-vbcqu.10.8.1 152.04.01 Define product feature and limit registry — REAL acceptance
+
+SPEC AUTHORITY: Specs 152, 150A, 152A-D (release lock 0.9.174-dev)
+SURFACES: docs/contracts/spec152-feature-registry.v1.yaml, docs/contracts/spec152-feature-registry.v1.sha256, scripts/generate-spec152-feature-registry.py, crates/focusa-license feature decision types
+
+VERIFICATION (NO RELEASE BUILD) 2026-08-19:
+- python3 tests/spec152_feature_registry_test.py PASS -> {"digest":"d033e6748907d75c6224da08aa82d77a27e337fe7b6922b456ca2d28730d3d69","feature_count":15,"result":"passed","schema":"focusa.feature_registry_validation.v1","unknown_keys":"fail_closed"} (stale fix 5aa0adb→d033e67)
+- cargo test -p focusa-license 135/135 PASS (0 failed) — includes spec152 capsule, authority_store, uiai_child_token slices
+- cargo test -p focusa-license --lib 9/9 PASS core tier checks
+- cargo fmt --all -- --check PASS (1.91.0)
+- cargo clippy -p focusa-license -p focusa-core --all-targets -- -D warnings PASS
+- registry digest: d033e6748907d75c6224da08aa82d77a27e337fe7b6922b456ca2d28730d3d69  spec152-feature-registry.v1.yaml (15 features, fail_closed unknown_keys)
+
+IMPLEMENTATION_REFS: git:b982edfd + this commit
+REGISTRY: docs/contracts/spec152-feature-registry.v1.yaml (15 features) + sha256 d033e67...
+
+ROLLBACK: revert only docs/contracts/spec152-feature-registry.v1.sha256 + this evidence; preserve leases/beads
+
+EVIDENCE: this file committed at HEAD; replay: python3 tests/spec152_feature_registry_test.py && cargo test -p focusa-license

@@ -1,0 +1,175 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.62
+Title: 152E.07.08 Run final migration and cutover canary acceptance
+Implementation commit: 37e1c5b4 (feat(spec152e): run final migration and
+cutover canary acceptance); this evidence record is committed separately.
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§17 periodic reconciliation; §18 refund, revoke,
+and recovery; §22.1 inventory; §22.2 merge rules; §22.3 cutover steps 6-10;
+§22.4 rollback; §23 acceptance matrix; §24 completion gate 11-12); Specs 152,
+150A, 152A-D; Spec 158 implementation excluded. Locked-release correction atom
+in the spec152f/spec172 async pipeline.
+
+Exact surfaces (this atom only)
+- Evidence-backed paid/legacy/synthetic/refunded record fixtures (consumed
+  read-only): docs/contracts/spec152e-paid-record-migration-fixture.v1.json
+  (10 records, 5 evidence-backed imports, 2 refunded/revoked),
+  docs/contracts/spec152e-legacy-customer-fixture.v1.json (9 records:
+  verify_first x3, evidence_backed_import, duplicate, synthetic_quarantine,
+  refunded/revoked x2, unresolved), docs/contracts/spec152e-migration-inventory.v1.json
+  (596 physical records; 41 refunded/revoked, 34 synthetic_quarantine,
+  515 unresolved, 6 verify_first; destructive reconciliation forbidden)
+- Bounded canary + reconciler + rollback (consumed read-only):
+  docs/contracts/spec152e-migration-canary.v1.php and
+  docs/contracts/spec152e-migration-canary-fixture.v1.json (pinned before/after
+  vector digests, EDD/authority truth digests, journal vectors)
+- Authority cutover gate + read-only legacy registry (consumed read-only):
+  docs/contracts/spec152e-authority-cutover.v1.php and
+  docs/contracts/spec152e-authority-cutover-fixture.v1.json (6 denied issuance
+  surfaces, 2 read-only legacy tables, 9 retained recovery surfaces, 11 facade
+  proxy + EDD authority endpoints, 2 install-site proxy routes, 3 legacy
+  read-only routes)
+- Facades and clients (consumed read-only): docs/contracts/spec152e-facade-registry.v1.json
+  (6 facades, 11 proxy routes, request contract forbids price/grants),
+  docs/contracts/spec152e-edd-product-registry.v1.json (14 catalog entries,
+  0 checkout-enabled, 3 protected offers, 10 legacy record classes
+  3 migrate/5 quarantine/2 retire), docs/contracts/spec152e-recovery-only-surface.v1.json
+  (recovery never grants entitlement)
+- tests/spec152e_final_cutover_canary_test.py (exact verification)
+
+Bounded result
+- Repeated the bounded migration canary under the FINAL committed code with the
+  authority cutover state published through the atom 20.13.53 contract: nothing
+  canary-shaped runs before publish (CUTOVER_STATE_REQUIRED); the run binds to
+  the published state digest and asserts new_issuance=edd_authority_only,
+  facade_role=presenter_and_bounded_proxy_only, spec158=excluded.
+- Compared counts/status/digests under final code: dry run covers the whole
+  8-entry cohort with zero writes; each applied entry writes exactly one
+  sequence-ledger row and its before/after counts/digests/status equal the
+  pinned vectors (imports end active, verify_first gated by the keyed identity
+  digest, refund/revoke end recovery_only with a sequence increment, unresolved
+  and injected-failure entries stay quarantined with zero writes, retries are
+  idempotent and never un-quarantine). The canary converged: cohort 8 = 6
+  applied + 2 quarantined, pending 0, ledger 6 == expected 6, zero customer/
+  license loss, zero authority rollback, journal chain valid.
+- Reconciliation (Spec 152E §17): EDD and authority digests recompute to the
+  pinned values; a stale active lease for a refunded EDD record and quarantined
+  set drift both fail closed with RECONCILIATION_MISMATCH writing zero rows.
+- Legacy recovery (Spec 152E §18, §22.3 steps 9-10): the legacy install-site
+  registry (wpuiai_licenses, wpuiai_license_audit) accepts SELECT only and every
+  UPDATE/INSERT/DELETE fails closed with LEGACY_TABLE_READ_ONLY before any
+  statement; unregistered tables fail closed; all 9 retained validation/
+  recovery surfaces (legacy_validate, legacy_keys_validate, legacy_status,
+  recovery_status/export/diagnostics/repair/update/uninstall) grant no
+  entitlement; legacy read-only routes resolve to bounded recovery; install-site
+  legacy routes proxy to the authority instead of acting locally.
+- New EDD issuance stays singular and authority-backed (Spec 152E §22.3 step 8):
+  every denied issuance surface (install-site create/payment/webhook, custom
+  issue, direct Stripe, local self-Evaluation) fails closed with its exact
+  denial code and is journaled once (idempotent replay adds zero rows); every
+  facade proxy action (11) resolves to the matching EDD authority kernel route
+  with no local issuance action (FACADE_ROUTE_DENIED otherwise); the server-
+  owned product allowlist {focusa_operator, uiai_engine_operator,
+  focusa_uiai_bundle, focusa_evaluation} is consistent across the canary and
+  paid-record fixtures; the EDD product registry forbids every caller-controlled
+  price/grant/product field and checkout stays disabled until the operator gate.
+- Rollback rehearsal without authority rollback (Spec 152E §22.4): proveRollback
+  verifies verified identity, EDD refund/revoke truth, monotonic sequence, and
+  audit truth are all preserved; refunded/revoked cohort rows remain
+  recovery_only and reactivate() fails closed with REFUNDED/REVOKED; new
+  issuance still fails closed during the rehearsal and the legacy registry stays
+  read-only; the rehearsal is preservation-only (preserveForRollback journals
+  rollback_preserved, changes zero canary rows, and no DELETE/TRUNCATE/DROP path
+  exists in either contract); both journal chains validate from genesis.
+- Redaction: no raw email, secret prefix, synthetic focusa_live key shape,
+  private key material, GitHub token, or raw license-shaped key appears in any
+  consumed fixture or contract, and the harness output contains none.
+- No unverified-email promotion, no local/self-issued entitlement, no
+  independent facade authority, no client-controlled EDD price/grants. Cargo/
+  release builds remain deferred until the operator's 50% gate; this atom
+  touches no Rust surface, so no cargo build was run.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152e_final_cutover_canary_test.py` — exit 0 (run three
+   times; deterministic, byte-identical harness output; bounded immutable result
+   handle = harness SHA-256 b18370101013bc70d4e6d9ae1498a75f54fbf03cf1593014cf4425e00c5bce63).
+   Validation summary:
+   canary_fixture_sha256=728a73209e28ee4639aeffe753223bd618d9161b00b8f4c400c055e06f2f68fd
+   cutover_fixture_sha256=625be0b1f5f9f3e6cfc3fcc0b01c463e72b061046d6c7986665c2b8dae6d09f1
+   paid_fixture_sha256=e620feeff83e896e81d9aaea965e58d229b6fc7e82626a8e5dc3b060fe653cc2
+   legacy_fixture_sha256=2335f9f688143dd4eef36729e723405ff101e5e05ae658846d0c0eb33908aa13
+   inventory_fixture_sha256=8240e68701fcadbcfb98342f5badbfabc9557aacdba9bcb87fdf87a51183f4ca
+   facade_fixture_sha256=59ea4214650b007a340a938f97f3be20324b188c7721d25321ceb6e573603ad8
+   product_fixture_sha256=c42c13cd943055433a7cc5104a6bdc7494701512f74fa95c04b738bc6e239904
+   canary_contract_sha256=5d05cff62c78b198ee2378e9da673f5f8766a71788c66c3bbbeb27d42cb193a4
+   cutover_contract_sha256=67c196d4724417e9bccca18ccdf92081555b275e04e83254d274becda218ebf1
+   positive_checks=113  negative_checks=16  cohort_size=8  applied_entries=6
+   quarantined_entries=2  ledger_rows=6  reconciled_rows=1  rollback_proof_rows=1
+   recovery_only_rows=2  dry_run_writes=0  replay_second_rows=0
+   denials_journaled=6  legacy_tables_read_only=2  recovery_surfaces_retained=9
+   facade_proxy_actions=11  journal_chain_valid=true
+   rollback_rehearsal_preservation_only=true  result=passed
+   The gate statically validates all eight consumed fixtures and both contracts
+   (redaction hygiene with the repo-wide email/secret/key/token patterns,
+   cutover fixture structure, pinned before/after digest recomputation, EDD/
+   authority truth digest recomputation, paid/legacy/inventory record counts
+   and dispositions, facade/product registry invariants and fail-closed request
+   contracts, server-owned allowlist consistency, preservation-only rollback,
+   no destructive statements), then executes the PHP final cutover canary
+   adapter twice against sqlite with byte-identical output: pre-publish gates,
+   cutover publication, bounded canary repeat with per-entry count/status/
+   digest comparisons and convergence, reconciliation with fail-closed drift
+   cases, legacy read-only registry + retained recovery surface gates, denied
+   issuance surface denials (journaled once, idempotent replay), facade proxy
+   resolution to the EDD authority kernel, rollback-safety proof, recovery_only
+   persistence with reactivation denials, preservation-only rollback rehearsal,
+   and replay of start/reconcile/proof with zero new rows.
+
+Regression checks (exit codes)
+- `python3 tests/spec152e_migration_canary_test.py` — exit 0 (prior atom
+  20.13.54 canary contract untouched; final canary consumed it read-only).
+- `python3 tests/spec152e_authority_cutover_test.py` — exit 0 (prior atom
+  20.13.53 cutover contract untouched; final canary consumed it read-only).
+- `python3 tests/spec152e_paid_record_migration_test.py` — exit 0 (prior atom
+  20.13.50 paid-record fixture untouched).
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0 (prior atom
+  20.13.49 inventory fixture untouched; physical_records=596).
+- `python3 tests/spec152e_recovery_only_surface_test.py` — exit 0 (recovery-only
+  surface contract intact).
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0 (facade
+  registry intact).
+- `php tests/spec152e_legacy_customer_migration_test.php` — exit 0 (prior atom
+  20.13.51 legacy-customer contract intact).
+- `php -l docs/contracts/spec152e-migration-canary.v1.php` — exit 0 (no syntax
+  errors).
+- `php -l docs/contracts/spec152e-authority-cutover.v1.php` — exit 0 (no syntax
+  errors).
+- No cargo command was run: this atom touches no Rust surface and the
+  locked-release FORBIDDEN rule defers cargo/release builds to the operator's
+  50% gate.
+
+Tests added
+- tests/spec152e_final_cutover_canary_test.py — the exact verification gate
+  (113 positive / 16 negative checks): redaction hygiene across all consumed
+  fixtures/contracts; cutover fixture structure (denied issuance, read-only
+  legacy registry, retained recovery, facade proxy == EDD authority endpoints);
+  pinned canary before/after digest recomputation and EDD/authority truth
+  digest recomputation; paid/legacy/inventory record counts and dispositions;
+  facade/product registry invariants with fail-closed request contracts;
+  server-owned allowlist consistency; static contract invariants (cutover-gate
+  coupling, no destructive statements, no raw email/price/grant inputs); and
+  behavioral final cutover canary execution of the PHP adapter (repeat bounded
+  canary under final code with counts/status/digest comparisons, convergence,
+  reconciliation, legacy recovery, denied new issuance, facade proxying, rollback
+  rehearsal, and replay) with byte-identical replayable output.
+
+Rollback
+- Revert only this atom's implementation commit 37e1c5b4 (tests/spec152e_final_cutover_canary_test.py)
+  plus the evidence commit containing this file. Preserve EDD customer/order/
+  refund truth, verified identities, licenses, nodes, sequences, credentials,
+  Workpoints, Evidence, and migration journals; no contract, source, or other
+  atom's file was changed, so rollback touches no canonical state and the
+  canary/journal/reconciliation/ledger/rollback-proof state exercised here is
+  in-memory only.
+
+No push, deploy, release, merge, or Beads mutation was performed.

@@ -6,6 +6,18 @@
 use reqwest::{Client, ClientBuilder};
 use serde_json::Value;
 
+fn body_idempotency_key(body: &Value) -> Option<&str> {
+    [
+        "idempotency_key",
+        "idempotencyKey",
+        "request_id",
+        "requestId",
+    ]
+    .iter()
+    .find_map(|key| body.get(*key).and_then(Value::as_str))
+    .filter(|value| !value.trim().is_empty())
+}
+
 fn redact_error_json(value: &mut Value) {
     match value {
         Value::Object(object) => {
@@ -232,6 +244,14 @@ impl ApiClient {
     ) -> anyhow::Result<Value> {
         let url = format!("{}{}", self.base, path);
         let mut req = self.client.post(&url).json(body);
+        let explicit_idempotency = headers
+            .iter()
+            .any(|(key, _)| key.eq_ignore_ascii_case("Idempotency-Key"));
+        if !explicit_idempotency {
+            if let Some(key) = body_idempotency_key(body) {
+                req = req.header("Idempotency-Key", key.trim());
+            }
+        }
         for (key, value) in headers {
             req = req.header(*key, *value);
         }
@@ -266,20 +286,21 @@ impl ApiClient {
         let url = format!("{}{}", self.base, path);
         let body_json = body.to_string();
 
-        // Use curl for a truly synchronous HTTP request
+        // Use curl for a truly synchronous HTTP request.
+        let timeout = timeout_secs.to_string();
+        let mut args = vec![
+            "-s".to_string(),
+            "-X".to_string(),
+            "POST".to_string(),
+            "-H".to_string(),
+            "Content-Type: application/json".to_string(),
+        ];
+        if let Some(key) = body_idempotency_key(body) {
+            args.extend(["-H".to_string(), format!("Idempotency-Key: {}", key.trim())]);
+        }
+        args.extend(["-d".to_string(), body_json, "-m".to_string(), timeout, url]);
         let _ = Command::new("curl")
-            .args([
-                "-s",
-                "-X",
-                "POST",
-                "-H",
-                "Content-Type: application/json",
-                "-d",
-                body_json.as_str(),
-                "-m",
-                &timeout_secs.to_string(),
-                &url,
-            ])
+            .args(args)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .output();

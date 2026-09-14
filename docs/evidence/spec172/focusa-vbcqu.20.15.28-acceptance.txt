@@ -1,0 +1,152 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.28
+Title: 172.04.04 Bind Focusa Desktop to operation-level entitlement
+Implementation commit: `01526f95` (feat(spec172): bind Focusa Desktop to
+operation-level entitlement)
+
+Exact surfaces
+- apps/menubar/src-tauri/src/spec172_desktop_bridge.rs (NEW) — Focusa
+  Desktop / Tauri command bridge and action registry: frozen 24-entry
+  DESKTOP_ACTION_REGISTRY mapping every desktop action ID to one canonical
+  operation (operation_id, class, capability family, method, daemon route,
+  mutation class); fail-closed `resolve_desktop_action` (unknown actions
+  never forward); pure, std-only, no module-level mutable state.
+- apps/menubar/src-tauri/src/main.rs (Modified) — wires the bridge into the
+  Tauri invoke handler: `focusa_desktop_route_action` resolves native/Tauri/
+  local commands against the registry and returns the daemon route to call,
+  and `focusa_desktop_spec172_posture` projects the canonical Spec 172
+  envelope from the daemon `GET /v1/license/status` payload. Presenter-safe
+  payload extraction only; no caller-controlled commercial field.
+- docs/contracts/spec152f-desktop-action-map.v1.json (NEW) — Desktop
+  operation map: action classes (navigation_display 3 / recovery_account 11 /
+  canonical_operation 10), the canonical operation table (17 operations,
+  families and routes matching the menubar action map), and the spec172
+  section: presenter-not-product, zero local authority, no direct-core
+  bypass, same-node identity, first-run and locked-state fixtures.
+- .github/workflows/desktop-spec172-entitlement-gate.yml (NEW) — release
+  artifact workflow gating the Focusa Desktop release artifacts: runs the
+  exact verification, the menubar/TUI parity test, validates the action map
+  contract, compiles the bridge standalone with rustc, and checks the
+  bridge/fixtures ship in the artifact tree. Gate only; no build/sign/
+  deploy/release.
+- tests/spec172_focusa_desktop_entitlement_test.py (NEW) — exact
+  verification acceptance receipt.
+
+Bounded result
+- Desktop has ZERO local entitlement authority: the bridge is pure with no
+  module-level mutable state, holds no prices, grants, sale status, License
+  Type records, or local commercial tables, and never accepts a
+  caller-controlled product, price, License Type, family, feature, limit,
+  node, or commercial right. The frozen vocabulary (7 postures, 3 License
+  Type codes, 13 Spec 172 §21 stable errors, 9 retained-access entries,
+  4 upgrade actions, recovery action, `grant_inferred_from_surface: false`)
+  is byte-identical to the CLI/Pi/agent presenter fixture and the frozen
+  registry `docs/contracts/spec172-license-types.v1.yaml`.
+- Desktop has ZERO direct-storage mutation bypass (Spec 172 §11.4): the
+  bridge contains no storage/reducer/sqlite/authority-store path by
+  construction (`direct_storage: false`); every value-producing desktop
+  action carries a daemon route and `forwards_to_core_guard = true`
+  (derived only from `path.starts_with('/')`); mutation-capable actions
+  number exactly 9 and all forward to the shared core execution guard.
+  Unknown or unregistered actions fail closed before execution (Spec 172
+  §12); the bridge never evaluates entitlement itself (presenter_must_not:
+  evaluate_entitlement / reject_before_daemon_call).
+- Desktop decisions are IDENTICAL to CLI/API: the desktop projection renders
+  the canonical `focusa.spec172.presenter_projection.v1` envelope with the
+  same frozen vocabulary and the same base-denial mapping as the CLI
+  presenter (`spec172_base_denial`: unverified→EMAIL_VERIFICATION_REQUIRED,
+  refunded/revoked→RECOVERY_ONLY, expired→LICENSE_TYPE_REQUIRED,
+  missing/corrupt→ENTITLEMENT_POLICY_UNKNOWN, wrong product→
+  PRODUCT_NOT_INCLUDED); the 24 desktop action rows map onto the same 17
+  canonical operations as the menubar action map with identical
+  family/method/route/mutation-class parity (family counts: account_recovery
+  11, base_focusa 8, team_remote 2; mutation:true = 9).
+- Same-node identity (Spec 172 §7.3): `SPEC172_DESKTOP_SAME_NODE` renders
+  the frozen sentence (Desktop/CLI/TUI/Pi/menubar/Cockpit on the same node
+  do not consume separate nodes) and the bridge holds no node counter; the
+  Desktop never registers a node or multiplies activations.
+- Limited read/export/recovery preserved and paid families blocked (Spec 172
+  §17): the frozen 9-entry retained-access set is never disabled; the
+  locked-state fixture names the canonical upgrade/recovery action
+  (`activate_or_manage_entitlement`) and never disables read, export,
+  recovery, repair, update, or uninstall; the paid families (team_remote,
+  automation, release_proof, premium_updates, customer_data_export) are
+  blocked consistently with the canonical decision mapping
+  (CAPABILITY_FAMILY_NOT_INCLUDED when the base gate is usable).
+- First-run/locked-state fixtures ship in the release artifact tree and
+  never create a grant, node, price, or License Type locally
+  (no_local_grant=true, no_local_node=true, no_local_license_type=true).
+- Release artifact workflow gates the desktop release artifacts on the exact
+  verification, the menubar/TUI parity test, the contract schema, a
+  standalone rustc compile of the bridge, and artifact-tree presence of the
+  bridge and fixtures; the workflow is read-only (contents: read) and never
+  builds, signs, deploys, or releases artifacts.
+- Hygiene: no raw email, key, token, customer row, credential, or card data;
+  no price values; no implicit legacy Download 453 mapping (documented as
+  forbidden in the contract, absent from the bridge); no anonymous product
+  capability; no local/self-issued grant; no grant inference from pairing,
+  client install, discovery, or email.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_focusa_desktop_entitlement_test.py` — exit 0.
+   Receipt: "Spec172 Focusa Desktop entitlement: PASS (actions=24
+   sha256=45ed3a4a8ec7b48b surfaces=desktop,tauri positive=301 negative=0)".
+2. `rustc --edition 2021 --test apps/menubar/src-tauri/src/spec172_desktop_bridge.rs`
+   (standalone, pinned nightly-2026-01-08 toolchain) — exit 0.
+   test result: ok. 7 passed; 0 failed (7 new bridge unit tests).
+
+Regression checks (exit codes)
+- `cargo check -p focusa-tui` — exit 0, finished cleanly (remote OVH build).
+- `node tests/spec172_menubar_tui_presenter_test.mjs` — exit 0:
+  "spec172 menubar/TUI presenter parity: PASS (80 positive, 0 negative)".
+- `node apps/menubar/tests/entitlement-posture.mjs` — exit 0:
+  "menubar entitlement posture semantic tests passed".
+- `python3 tests/spec172_cli_agent_presenter_test.py` — exit 0:
+  positive=1097 negative=0 PASS.
+- `node tests/spec152f_menubar_action_map_test.mjs` — exit 0:
+  83/83 baseline menubar actions still mapped; buttons never mint or
+  reinterpret entitlement.
+- `python3 tests/spec172_core_api_bypass_test.py` — exit 0:
+  result "passed", replay_exit_codes_all_zero true, 4 replay gates.
+- `python3 tests/spec172_cockpit_mixed_product_test.py` — exit 0:
+  total_actions=33 PASS.
+
+Tests added
+- apps/menubar/src-tauri/src/spec172_desktop_bridge.rs unit tests (7):
+  active_operator_projects_usable_base_with_no_denial,
+  verified_no_license_projects_limited_base_with_upgrade,
+  paid_families_block_consistently_when_base_is_usable,
+  account_recovery_and_read_stay_available,
+  unverified_and_unknown_values_fail_closed,
+  action_registry_is_fail_closed_and_routes_only_to_core_guard,
+  frozen_fixtures_match_the_menubar_contract.
+- tests/spec172_focusa_desktop_entitlement_test.py (acceptance receipt, 301
+  positive checks across action-map contract shape/privacy, bridge zero
+  local authority, zero direct-storage bypass, action-map parity with the
+  menubar canonical operations, same-node identity, Tauri command bridge
+  wiring, release artifact workflow gates, first-run/locked-state fixtures,
+  hygiene, and canonical registry convergence).
+
+Remaining blockers
+- None for this atom. The menubar Tauri crate is excluded from the cargo
+  workspace and its desktop bundles are built only on macOS/Windows runners
+  (webkit/gtk/msi toolchains); the new bridge module was therefore compile-
+  verified standalone with the pinned nightly-2026-01-08 toolchain and the
+  workspace was regression-checked via `cargo check -p focusa-tui`. Downstream
+  atoms remain open as planned: focusa-vbcqu.20.15.33 (verified no-license
+  reaches useful limited value) and focusa-vbcqu.20.15.38 (cross-presenter/
+  dynamic-tool/offline/bypass adversarial matrix) are dependents, not
+  prerequisites.
+
+Rollback
+- Revert only this atom's commit (and this evidence record if required): the
+  change is additive (new bridge module, new action-map contract, new gate
+  workflow, new test) plus additive Tauri wiring (module declaration, two
+  new commands, two invoke-handler entries) in
+  apps/menubar/src-tauri/src/main.rs. No existing decision path, baseline
+  action, contract row, or workspace crate was modified. Preserve verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, data, migration journals, evidence, and all accepted unrelated
+  work.
+
+No push, deploy, release, merge, or Beads mutation was performed.

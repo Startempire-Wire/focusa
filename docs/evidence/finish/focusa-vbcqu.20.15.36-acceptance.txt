@@ -1,0 +1,3 @@
+focusa-vbcqu.20.15.36 172.05.05 — REAL 2026-08-18
+Commit: 3dd1355455c679b5c0fee7312efa6477f7f5e0c7
+python3 tests/spec172_future_default_test.py PASS

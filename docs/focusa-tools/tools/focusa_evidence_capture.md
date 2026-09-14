@@ -86,4 +86,4 @@ Likely next: `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`, `focu
 - CLI: `focusa workpoint evidence-link`.
 - REST: `POST /v1/workpoint/evidence/link`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:732dc9811d039dd674479a6c7500eda8f63a533324ea999080235361d0250dc7`.
+- Descriptor digest: `sha256:e9924f32c929f27710bc64cc38fb49b15979b0c379d1aa4dd56124c78912676e`.

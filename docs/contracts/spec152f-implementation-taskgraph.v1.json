@@ -1,0 +1,97 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "downstream_release_edges": [
+    {
+      "blocked": "focusa-vbcqu.20.13.63",
+      "blocker": "focusa-vbcqu.20.14.52"
+    }
+  ],
+  "execution_rule": "Follow dependency edges; one task at a time; never infer closure from parent status, static-only evidence, or adjacent implementation.",
+  "external_dependency_edges": [
+    {
+      "blocked": "focusa-vbcqu.20.14.35",
+      "blocker": "focusa-vbcqu.20.13.59"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.40",
+      "blocker": "focusa-vbcqu.20.13.44"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.40",
+      "blocker": "focusa-vbcqu.20.13.42"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.41",
+      "blocker": "focusa-vbcqu.20.13.31"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.45",
+      "blocker": "focusa-vbcqu.20.13.58"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.46",
+      "blocker": "focusa-vbcqu.20.13.61"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.46",
+      "blocker": "focusa-vbcqu.20.13.56"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.50",
+      "blocker": "focusa-vbcqu.20.13.62"
+    }
+  ],
+  "final_task": "focusa-vbcqu.20.14.52",
+  "first_task": "focusa-vbcqu.20.14.1",
+  "internal_dependency_edge_count": 123,
+  "parent": "focusa-vbcqu.20.14",
+  "phase_counts": {
+    "00": 4,
+    "01": 9,
+    "02": 8,
+    "03": 8,
+    "04": 7,
+    "05": 6,
+    "06": 10
+  },
+  "phase_file_sha256": {
+    "00": "6697b76647dbf5dcfc5f827f97c183dc39de1a85fbc53c14f5bac4ee38222008",
+    "01": "8d7ea462b673c14b6c93bc3e96bcf0ba886c7c2e53b833c614d8af5a95f79baa",
+    "02": "1fa81417a85f93631f99ae1b7937ab09d77447fdebb5f446c87a899d6ebeba94",
+    "03": "808d58d750a84b3700dcd3c5a261c4bc47d8588e80d8d734fb0f56b54b62aa3a",
+    "04": "99961473b098bc7c4a21bef0258debdba1e1b814763177ba4edf99fe0f732132",
+    "05": "df6d29a81f66de43f979aaf139d8cb12eea40ba093ca09af62a776af5af81416",
+    "06": "a397bf448b7bfcd785ab0813c06f326022a41f5215de5884d64dca739a0533e8"
+  },
+  "phase_files": {
+    "00": "docs/contracts/spec152f-taskgraph/spec152f-implementation-phase-00.v1.json",
+    "01": "docs/contracts/spec152f-taskgraph/spec152f-implementation-phase-01.v1.json",
+    "02": "docs/contracts/spec152f-taskgraph/spec152f-implementation-phase-02.v1.json",
+    "03": "docs/contracts/spec152f-taskgraph/spec152f-implementation-phase-03.v1.json",
+    "04": "docs/contracts/spec152f-taskgraph/spec152f-implementation-phase-04.v1.json",
+    "05": "docs/contracts/spec152f-taskgraph/spec152f-implementation-phase-05.v1.json",
+    "06": "docs/contracts/spec152f-taskgraph/spec152f-implementation-phase-06.v1.json"
+  },
+  "schema": "focusa.spec152f_implementation_taskgraph_index.v1",
+  "task_count": 52,
+  "weaker_model_contract": {
+    "before_close": [
+      "write the exact evidence_path",
+      "record commit commands exit codes bounded outputs and rollback",
+      "confirm the done_condition literally",
+      "close only after technical acceptance evidence exists"
+    ],
+    "before_start": [
+      "read the task description and acceptance criteria",
+      "verify every dependency is technically accepted",
+      "inspect git status and preserve unrelated changes",
+      "open only exact surfaces named by the task"
+    ],
+    "during_work": [
+      "implement required steps only",
+      "run the exact verification command",
+      "do not install missing tools or mutate remote/deployed authority without authorization",
+      "preserve recovery and EDD authority invariants"
+    ]
+  }
+}

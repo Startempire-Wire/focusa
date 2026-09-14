@@ -84,4 +84,4 @@ Likely next: `focusa_project_card`, `focusa_project_verify`, `focusa_trajectory_
 - CLI: `focusa project identity`.
 - REST: `GET /v1/project/identity`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9ab9084c2fffa43b71217b9b5a2efb8411437167c96889639a9e5daaad83eee7`.
+- Descriptor digest: `sha256:9b9e418aa491bfdaf48b241d9c5dcaf05b301a5342d2753583c42fff6fd1baf8`.

@@ -1,0 +1,604 @@
+{
+  "schema": "focusa.locked_release_governance_evidence_links.v1",
+  "links": [
+    {
+      "bead_id": "focusa-a6yq6.10.5",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-a6yq6-spec133-final-settlement.txt"
+      ],
+      "proof_scope": "cross-platform and real-Pi lifecycle settlement",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-a6yq6.10.9",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-a6yq6-spec133-final-settlement.txt"
+      ],
+      "proof_scope": "daemon-native Silent Sessions final settlement",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-gkwt",
+      "evidence_refs": [
+        "docs/evidence/scope-isolation/focusa-gkwt-cross-project-context-isolation.txt"
+      ],
+      "proof_scope": "exact project and continuity isolation runtime proof",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-ux2qx.17",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-ux2qx.17-live-bootstrapper-parity.txt"
+      ],
+      "proof_scope": "live bootstrapper parity and public clean-install proof",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.5.7",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.5.7-macos-compaction-recovery.txt"
+      ],
+      "proof_scope": "native macOS compaction overflow and WebSocket recovery E2E",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.7.1",
+      "evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
+      "proof_scope": "locked-scope inventory and ownership settlement",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.7.2",
+      "evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
+      "proof_scope": "archived worktree and ref semantic-diff settlement",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.7.3",
+      "evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
+      "proof_scope": "legacy change integration and evidence supersession",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.7.4",
+      "evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
+      "proof_scope": "original open-Bead settlement",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-w26jj.9.3.5",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "onboarding installer family gate",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-w26jj.9.4.6",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "environment and dependency family gate",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-w26jj.9.6.1",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "Linux customer-path acceptance",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-w26jj.9.6.2",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "macOS customer-path acceptance",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-w26jj.9.6.4",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "offline proxy airgap and interrupted-path acceptance",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-w26jj.9.6.5",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "cross-platform integrated acceptance",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.2.1.1",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "canonical Waypoint model and signed-release persistence proof",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.2.1.2",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "Trajectory Ladder ledger and restart-query survival proof",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.2.1.3",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "project marker integrity and history gate proof",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.2.1.4",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "Trajectory surface parity and current-branch verification",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.5.5",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-macos-ota-run-proof.json"
+      ],
+      "proof_scope": "native macOS updater rollback, ServBay, and nonstandard npm proof",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.5.6",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-macos-ota-run-proof.json"
+      ],
+      "proof_scope": "actual Pi stale-runtime activation and immediate-previous acceptance",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-a6yq6.10.7",
+      "evidence_refs": [
+        "docs/133-silent-sessions-final-release-proof.md",
+        "docs/evidence/spec133-phase0-traceability.md"
+      ],
+      "proof_scope": "Spec133 section 32 criteria and section 33 gap-closure audit",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.1",
+      "evidence_refs": [
+        "docs/142-focusa-release-requirement-trace-matrix.md",
+        "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md"
+      ],
+      "proof_scope": "W0 scope manifest and implementation contract",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.1.1",
+      "evidence_refs": [
+        "docs/142-focusa-release-requirement-trace-matrix.md"
+      ],
+      "proof_scope": "locked requirement-to-issue-to-Bead trace manifest",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.1.2",
+      "evidence_refs": [
+        "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md"
+      ],
+      "proof_scope": "detailed Master Release Cycle and Flow Kernel implementation contract",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.6.2.1",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.6.2-incident-settlement.txt"
+      ],
+      "proof_scope": "installable v0.9.129 superseding incident cycle",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.6.2.1.1",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.6.2-incident-settlement.txt"
+      ],
+      "proof_scope": "visible compaction and release-wait recovery",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.8.1.2",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.8.1-exact-sha-integrated-acceptance.txt"
+      ],
+      "proof_scope": "approved Bun route and exact-SHA final release gap gate",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.9.1",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-scope.json",
+        "release-proof/audit/next-locked-release-governance-inventory.json"
+      ],
+      "proof_scope": "immutable locked issue and specification manifest",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-w26jj.9.7.1",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-d189-final-candidate-acceptance.txt"
+      ],
+      "proof_scope": "requirement-to-code-test-evidence trace acceptance",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-w26jj.9.7.2",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-d189-final-candidate-acceptance.txt"
+      ],
+      "proof_scope": "zero-deferral and forbidden-placeholder acceptance",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-w26jj.9.7.4",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-d189-final-candidate-acceptance.txt"
+      ],
+      "proof_scope": "strict local no-pass decision with publication explicitly remaining",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-n68k.1",
+      "implementation_commit_refs": [
+        "git:4804b78c3987d2f31ad04dc58e8fb5070e216cc7"
+      ],
+      "proof_scope": "API-09 scope-keyed ontology read-index implementation"
+    },
+    {
+      "bead_id": "focusa-n68k.2",
+      "implementation_commit_refs": [
+        "git:17a5bfba2b9b4cc46b90c0d64443e5ca93a7d84f"
+      ],
+      "proof_scope": "PI-06 report singleton removal implementation"
+    },
+    {
+      "bead_id": "focusa-n68k.10",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "PI-C04 awareness scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.11",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "PI-C05 compaction scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.12",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "TOOL-03 project identity scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.13",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "TOOL-06 session identity scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.14",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "TOOL-08 agent prompt scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.15",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "TOOL-09 utility card scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.21",
+      "implementation_commit_refs": [
+        "git:5f3b2d2f14ae9e0489322dd72c667a4613ecb8c0"
+      ],
+      "proof_scope": "MW-03 JSON guard typed-scope validation"
+    },
+    {
+      "bead_id": "focusa-n68k.24",
+      "implementation_commit_refs": [
+        "git:a16f0da30a8650d993ff691b19acd05225820c56"
+      ],
+      "proof_scope": "PI-07 turn-state singleton removal implementation"
+    },
+    {
+      "bead_id": "focusa-n68k.16",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "TRAJ-01 exact root-scoped HLT history",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-n68k.17",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "TRAJ-02 generic HLT rejection and degraded-state warning",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-n68k.18",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "TRAJ-03 scoped HLT history and evidence verification",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-n68k.19",
+      "implementation_commit_refs": [
+        "git:b15dd2403da428a13e71558e04c60690f27da410"
+      ],
+      "proof_scope": "MW-01 authenticated API route-scope enforcement"
+    },
+    {
+      "bead_id": "focusa-n68k.20",
+      "implementation_commit_refs": [
+        "git:46bef4a6c28afc9e850b724042887c162a2c5986"
+      ],
+      "proof_scope": "MW-02 machine-readable global error envelope"
+    },
+    {
+      "bead_id": "focusa-n68k.25",
+      "implementation_commit_refs": [
+        "git:4b9c3f403cf6b706773755fd121aac28891ccc3a"
+      ],
+      "proof_scope": "PI-11 tool-context state scoped-store implementation"
+    },
+    {
+      "bead_id": "focusa-n68k.26",
+      "implementation_commit_refs": [
+        "git:ee569eb1e65eb8baada1000429a7400d46addb41"
+      ],
+      "proof_scope": "PI-14 safe-frame recovery scope hardening"
+    },
+    {
+      "bead_id": "focusa-n68k.27",
+      "implementation_commit_refs": [
+        "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
+      ],
+      "proof_scope": "PI-15 persisted continuity adapter validation"
+    },
+    {
+      "bead_id": "focusa-n68k.28",
+      "implementation_commit_refs": [
+        "git:1def1bd1c5930e4814dee127f844e481678faa6e"
+      ],
+      "proof_scope": "PI-C01 session-scoped state reset and bootstrap"
+    },
+    {
+      "bead_id": "focusa-n68k.29",
+      "implementation_commit_refs": [
+        "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
+      ],
+      "proof_scope": "PI-C02 exact-scope persisted continuity adoption"
+    },
+    {
+      "bead_id": "focusa-n68k.30",
+      "implementation_commit_refs": [
+        "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
+      ],
+      "proof_scope": "PI-C03 scoped restore pipeline without continuity-only authority"
+    },
+    {
+      "bead_id": "focusa-pskm",
+      "evidence_refs": [
+        "tests/spec114_observatory_ui_static_test.py",
+        "tests/spec114_public_benchmark_flywheel_static_test.sh"
+      ],
+      "implementation_commit_refs": [
+        "git:36615bbed7b6af8d368c6502b83cbc5baf821e01"
+      ],
+      "proof_scope": "Spec114 public observatory implementation and regression guards"
+    },
+    {
+      "bead_id": "focusa-vfsrg",
+      "evidence_refs": [
+        "apps/pi-extension/tests/pi-sdk-security.test.mjs"
+      ],
+      "implementation_commit_refs": [
+        "git:36615bbed7b6af8d368c6502b83cbc5baf821e01"
+      ],
+      "proof_scope": "Pi SDK dependency migration and security regression guard"
+    },
+    {
+      "bead_id": "focusa-84px.12",
+      "evidence_refs": [
+        "tests/spec104_bench_run_scope_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "BEN-02 benchmark scope anti-bleed guard"
+    },
+    {
+      "bead_id": "focusa-84px.13",
+      "evidence_refs": [
+        "tests/spec104_proof_lineage_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "BEN-03 public benchmark proof lineage"
+    },
+    {
+      "bead_id": "focusa-84px.14",
+      "evidence_refs": [
+        "tests/spec104_hard_singleton_audit_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "DOC-01 hard singleton audit guard"
+    },
+    {
+      "bead_id": "focusa-84px.15",
+      "evidence_refs": [
+        "tests/spec104_session_identity_envelope_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "DOC-02 session identity envelope guard"
+    },
+    {
+      "bead_id": "focusa-84px.16",
+      "evidence_refs": [
+        "tests/spec104_mismatch_semantic_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "DOC-03 mismatch semantic regression guard"
+    },
+    {
+      "bead_id": "focusa-84px.17",
+      "evidence_refs": [
+        "tests/spec104_tool_contract_static_audit.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "DOC-04 tool contract schema audit"
+    },
+    {
+      "bead_id": "focusa-vbcqu.9.2.1",
+      "evidence_refs": [
+        "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
+      ],
+      "proof_scope": "Spec137 temporal substrate, trusted clock, persistence, and scoped surface foundation",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.9.2.2",
+      "evidence_refs": [
+        "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
+      ],
+      "proof_scope": "Spec137 commitment, deadline, urgency, forecast, and release-gate authority slice",
+      "implementation_commit_refs": []
+    },
+    {
+      "bead_id": "focusa-vbcqu.14",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github106-closure-proof.json",
+        "release-proof/audit/next-locked-release-governance-inventory.json",
+        "release-proof/audit/next-locked-release-governance-reconciliation.json",
+        "release-proof/audit/next-locked-release-technical-closure-gate.json",
+        "release-proof/audit/next-locked-release-candidate-ancestry.json",
+        "release-proof/audit/next-locked-release-governance-receipt.json",
+        "release-proof/audit/next-locked-release-governance-receipt.json.sig",
+        "tests/163_focusa_locked_release_governance_inventory_test.py",
+        "tests/164_focusa_locked_release_governance_reconciliation_test.py",
+        "tests/165_focusa_locked_release_technical_closure_reducer_test.py",
+        "tests/166_focusa_locked_release_candidate_ancestry_test.py",
+        "tests/167_focusa_locked_release_governance_receipt_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c7521ebd22653298a5a11868516cf90835975f32",
+        "git:d418039d3657eff0c690d1b2497a1f253d8ecf09",
+        "git:843df64690efa6c3fdf6dc0482d363a9445b87c7",
+        "git:2d6603365325a63992bbe6a25fb276c87787ab23",
+        "git:616c98a701ece85714237fde8d560004bfcc1e8c"
+      ],
+      "proof_scope": "complete GH#106 immutable inventory, reconciliation, reducer, ancestry, and signed replay-safe governance chain"
+    },
+    {
+      "bead_id": "focusa-8305",
+      "evidence_refs": [
+        "apps/pi-extension/tests/unbound-project-binding-guidance.test.mjs"
+      ],
+      "implementation_commit_refs": [
+        "git:be99f9a168f7f71e0b50c9d66959a54c7468174d"
+      ],
+      "proof_scope": "canonical existing-repository binding guidance, marker verification, and no contradictory deprecation warning"
+    },
+    {
+      "bead_id": "focusa-vbcqu.3.1",
+      "evidence_refs": [
+        "docs/evidence/v0.9.135/50-project-genesis-proof.txt",
+        "tests/spec143_project_genesis_release_gate_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:947164b3c9b2c2ade7238e803aaca4bfd2b6d504",
+        "git:b52d0c41765659fe86d53b3f9ae75f2295267869"
+      ],
+      "proof_scope": "atomic Project Genesis, first Workpoint, alternate provider, resume, coordination, and typed surface acceptance"
+    },
+    {
+      "bead_id": "focusa-vbcqu.4.2",
+      "evidence_refs": [
+        "docs/evidence/v0.9.135/52-onboarding-consolidation-proof.txt",
+        "tests/spec52_onboarding_consolidation_gate.py"
+      ],
+      "implementation_commit_refs": [
+        "git:e6e15f4350132615cb0fe0f3aecb4cd92cda3610"
+      ],
+      "proof_scope": "ten-seam onboarding consolidation and final gate proof"
+    },
+    {
+      "bead_id": "focusa-vbcqu.14.3",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-technical-closure-gate.json",
+        "tests/165_focusa_locked_release_technical_closure_reducer_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:843df64690efa6c3fdf6dc0482d363a9445b87c7"
+      ],
+      "proof_scope": "deterministic fail-closed technical closure reducer and release gate"
+    },
+    {
+      "bead_id": "focusa-vbcqu.14.4",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-candidate-ancestry.json",
+        "release-proof/audit/next-locked-release-v09143-published-assets.json",
+        "tests/166_focusa_locked_release_candidate_ancestry_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:2d6603365325a63992bbe6a25fb276c87787ab23"
+      ],
+      "proof_scope": "immutable tag, candidate ancestry, source version, manifest, PR, and issue-ledger reconciliation"
+    },
+    {
+      "bead_id": "focusa-vbcqu.14.5",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-governance-receipt.json",
+        "release-proof/audit/next-locked-release-governance-receipt.json.sig",
+        "tests/167_focusa_locked_release_governance_receipt_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:616c98a701ece85714237fde8d560004bfcc1e8c"
+      ],
+      "proof_scope": "detached Ed25519 governance integrity seal and canonical mutation-detecting closure replay"
+    }
+  ]
+}

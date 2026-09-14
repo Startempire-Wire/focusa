@@ -1,0 +1,101 @@
+Spec 152E installer convenience URLs and transactional links repair — acceptance evidence
+Work item: focusa-vbcqu.20.13.30
+Title: 152E.03.06 Repair installer convenience URLs and transactional links
+Scope: public /focusa, /bundle, Engine, PowerShell, verify, pay, success, manage,
+recovery routes; installer/email templates
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+(§3.4 deployed installer paths, §16.1 email delivery, §23 acceptance matrix row
+"Broken convenience URL"); Specs 152, 150A, 152A-D; Spec 158 implementation excluded.
+
+Exact surfaces (this atom only)
+- scripts/generate-spec152e-installer-route-manifest.py
+- docs/contracts/spec152e-installer-route-manifest.v1.json
+- tests/spec152e_install_facade_routes_test.py
+- docs/evidence/spec152e/focusa-vbcqu.20.13.30-acceptance.txt
+
+Bounded result
+- Added the Spec 152E installer route/asset manifest
+  (docs/contracts/spec152e-installer-route-manifest.v1.json) that repairs the
+  advertised install.focusa.dev convenience URLs: /focusa -> /installers/install-focusa.sh,
+  /bundle -> /installers/install-bundle.sh, /engine -> /installers/install-engine.sh,
+  /powershell -> /installers/install-focusa.ps1. Each convenience URL carries
+  exact content type (application/x-sh / application/x-powershell) and pinned
+  sha256 trust metadata: repository_verified for install-focusa.sh and
+  install-focusa.ps1 (recomputed against the repo assets and cross-checked with
+  the deployed surface inventory repository digests), deployed_only_pinned for
+  install-engine.sh and install-bundle.sh (pinned to the deployed surface
+  inventory records). Every convenience URL resolves status 200; the previous
+  404 /focusa and /bundle routes are repaired.
+- Transactional links (verify -> /activate/verify, pay -> /activate/checkout,
+  success -> /activate/success, manage -> /account, recovery -> /activate/recovery)
+  are pinned to the exact registered focusa_install_v1 facade paths from the
+  facade registry, resolve 200, and are stable through version changes: facade
+  paths never embed version segments, so a version bump cannot break an
+  advertised link without the registry contract test failing.
+- Removed stale/broken instructions are recorded in the manifest (the 404
+  convenience URLs and versioned/broken installer-email link references), and
+  stability invariants (stable aliases, no version segments, sha256-pinned
+  trust) are asserted by both the generator validator and the regression test.
+- Added the deterministic generator scripts/generate-spec152e-installer-route-manifest.py
+  (with --check) so the generated manifest is always current, mirroring the
+  facade registry generator convention.
+- Added tests/spec152e_install_facade_routes_test.py: an offline, replayable
+  HTTP/browser regression test. It proves the manifest is current, every
+  advertised convenience URL and transactional link resolves 200 to the exact
+  verified asset/page with preserved content type and trust metadata, no 404
+  and no unsafe redirect remains, and negative resolution (unknown URL, non-https
+  origin, external origin, userinfo, query/fragment, path traversal, versioned
+  facade path, unsafe redirect targets) fails closed. No live network or
+  publication was involved.
+
+Exact verification (exit code)
+1. python3 tests/spec152e_install_facade_routes_test.py — exit 0.
+   Bounded result: {"schema":"focusa.spec152e.install_facade_routes_regression.v1","convenience_urls":4,"transactional_links":5,"positive_checks":90,"negative_checks":26,"result":"passed_fail_closed"}
+   Positive: generated contract is current; schema/authority/stability
+   invariants; 4 convenience URLs resolve 200 with exact content type and
+   sha256 trust metadata (repository recompute and deployed inventory
+   cross-check); 5 transactional links equal the registered facade paths and
+   are version-stable; browser GET for every advertised URL returns 200 with
+   no error envelope.
+   Negative: unknown URL 404; unlisted direct asset path 404; non-https origin
+   denied; external origin denied; userinfo denied; query/fragment denied;
+   path traversal denied; versioned facade path 404; no unsafe redirect target
+   exists; all targets are relative paths; no emails, secrets, license-shaped
+   values, or wildcards in the manifest; digest pinning is exact per asset.
+
+Regression checks (exit codes)
+- python3 scripts/generate-spec152e-installer-route-manifest.py --check — exit 0:
+  generated manifest is current
+  ({"convenience_urls":4,"transactional_links":5,"repository_verified":2,"deployed_only_pinned":2,"result":"passed"}).
+- php tests/spec152e_install_facade_test.php — exit 0 (prior atom's install
+  facade test unaffected).
+- python3 tests/spec152e_facade_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_deployed_surface_inventory_test.py — exit 0.
+- python3 tests/spec152e_facade_golden_vector_test.py — exit 0.
+- node tests/spec152e_facade_browser_security_test.mjs — exit 0.
+- node tests/spec152e_website_registration_test.mjs — exit 0.
+
+Tests added
+- tests/spec152e_install_facade_routes_test.py (exact verification; 90 positive
+  / 26 negative checks across 4 convenience URLs and 5 transactional links).
+
+Acceptance criteria
+- Every URL emitted by installer/help/license email returns the intended
+  verified asset/page and no 404 or unsafe redirect: verified (all four
+  convenience URLs and five transactional links resolve 200 to exact verified
+  assets/registered facade pages; negative resolution and relative-path checks
+  prove no 404 or unsafe redirect remains in the repaired surface).
+- All named positive and negative checks pass: verified with the exit codes
+  above; the diff contains only the named surfaces; generated contracts are
+  current (--check passes); secrets and unmasked real email are absent
+  (hygiene checks pass); evidence is replayable from the pinned commit (the
+  test is offline and deterministic).
+
+Rollback
+Revert only this atom's commit: scripts/generate-spec152e-installer-route-manifest.py,
+docs/contracts/spec152e-installer-route-manifest.v1.json,
+tests/spec152e_install_facade_routes_test.py, and this evidence file. Preserve
+EDD customer/order/refund truth, verified identities, licenses, nodes,
+sequences, credentials, Workpoints, Evidence, and migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.

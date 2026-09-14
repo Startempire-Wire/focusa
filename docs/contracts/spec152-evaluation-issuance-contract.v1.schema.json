@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://focusa.dev/contracts/spec152-evaluation-issuance-contract.v1.schema.json",
+  "title": "Focusa Spec 152 Evaluation Issuance Contract",
+  "description": "Public-safe request/response contract consumed by Focusa. The private authority remains the sole issuer of verified identity and signed evaluation leases.",
+  "$defs": {
+    "opaqueRef": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{2,31}_[A-Za-z0-9_-]{12,160}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "marketingConsent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "policy_version", "decided_at"],
+      "properties": {
+        "status": { "enum": ["granted", "declined", "not_asked"] },
+        "policy_version": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "decided_at": {
+          "oneOf": [
+            { "$ref": "#/$defs/timestamp" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "not_asked" } } },
+          "then": { "properties": { "decided_at": { "type": "null" } } },
+          "else": { "properties": { "decided_at": { "$ref": "#/$defs/timestamp" } } }
+        }
+      ]
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "idempotency_key",
+        "account_handle",
+        "email_verification",
+        "agreements",
+        "marketing_consent",
+        "device_code",
+        "redaction_class"
+      ],
+      "properties": {
+        "schema": { "const": "focusa.evaluation_issuance_request.v1" },
+        "idempotency_key": { "type": "string", "pattern": "^[A-Za-z0-9:_-]{16,200}$" },
+        "account_handle": { "$ref": "#/$defs/opaqueRef" },
+        "email_verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "verification_receipt_ref", "verified_at"],
+          "properties": {
+            "state": { "const": "verified" },
+            "verification_receipt_ref": { "$ref": "#/$defs/opaqueRef" },
+            "verified_at": { "$ref": "#/$defs/timestamp" }
+          }
+        },
+        "agreements": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["terms_version", "terms_accepted_at", "privacy_version", "privacy_acknowledged_at"],
+          "properties": {
+            "terms_version": { "type": "string", "minLength": 1, "maxLength": 80 },
+            "terms_accepted_at": { "$ref": "#/$defs/timestamp" },
+            "privacy_version": { "type": "string", "minLength": 1, "maxLength": 80 },
+            "privacy_acknowledged_at": { "$ref": "#/$defs/timestamp" }
+          }
+        },
+        "marketing_consent": { "$ref": "#/$defs/marketingConsent" },
+        "device_code": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["device_code_ref", "state", "approved_at"],
+          "properties": {
+            "device_code_ref": { "$ref": "#/$defs/opaqueRef" },
+            "state": { "const": "approved" },
+            "approved_at": { "$ref": "#/$defs/timestamp" }
+          }
+        },
+        "redaction_class": { "const": "public_safe_no_direct_identifier" }
+      }
+    },
+    "authorityError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "retryable"],
+      "properties": {
+        "code": {
+          "enum": [
+            "email_verification_required",
+            "terms_acceptance_required",
+            "privacy_acknowledgement_required",
+            "device_code_not_approved",
+            "evaluation_already_consumed",
+            "account_ineligible",
+            "idempotency_conflict",
+            "authority_temporarily_unavailable"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "retryable": { "type": "boolean" }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "request_ref", "state", "redaction_class", "lease_envelope", "error"],
+      "properties": {
+        "schema": { "const": "focusa.evaluation_issuance_response.v1" },
+        "request_ref": { "$ref": "#/$defs/opaqueRef" },
+        "state": { "enum": ["issued", "pending", "denied"] },
+        "redaction_class": { "const": "public_safe_no_direct_identifier" },
+        "lease_envelope": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["schema", "signer_key_id", "payload_b64", "signature_b64"],
+              "properties": {
+                "schema": { "const": "focusa.signed_envelope.v1" },
+                "signer_key_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+                "payload_b64": { "type": "string", "minLength": 16 },
+                "signature_b64": { "type": "string", "minLength": 16 }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "error": {
+          "oneOf": [
+            { "$ref": "#/$defs/authorityError" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "issued" } } },
+          "then": {
+            "properties": {
+              "lease_envelope": { "type": "object" },
+              "error": { "type": "null" }
+            }
+          },
+          "else": {
+            "properties": {
+              "lease_envelope": { "type": "null" },
+              "error": { "$ref": "#/$defs/authorityError" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

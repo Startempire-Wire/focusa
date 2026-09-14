@@ -1,0 +1,150 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.29
+Title: 172.04.05 Bind UIAI Cockpit as a mixed-product presenter
+Implementation commit: `51602cb855a1f1ada63abc5572706750a8853b50`
+(feat(spec172): bind UIAI Cockpit as a mixed-product presenter)
+
+Exact surfaces
+- crates/focusa-license/src/cockpit_action_registry.rs (NEW): UIAI Cockpit
+  action registry and product-isolation adapter; Focusa/UIAI operation-map
+  linkage; mixed-product fixtures (Rust unit tests).
+- crates/focusa-license/src/lib.rs (Modified): register the
+  cockpit_action_registry module and its public surface.
+- tests/spec172_cockpit_mixed_product_test.py (NEW): build-independent
+  contract gate (exact verification).
+
+Bounded result
+- Added the canonical Spec 172 Section 11.3 UIAI Cockpit action registry
+  `SPEC172_COCKPIT_ACTION_REGISTRY` (33 server-owned rows,
+  `CockpitActionMapEntry`), each carrying Spec 172 Section 12 trusted
+  operation metadata: action_id / product_owner (registered `focusa` |
+  `uiai_engine`) / operation_class (registered `read` | `value_mutation`) /
+  capability_family / side_effect_class (registered `none` | `local` |
+  `remote` | `external`):
+  - 10 Focusa-owned rows: 5 display/read (`cockpit.focusa.display_mission`,
+    `display_workpoint`, `display_trajectory`, `display_evidence`,
+    `read_projection`) and 5 value-mutation (`mutate_project`,
+    `mutate_mission`, `mutate_workpoint`, `mutate_evidence`,
+    `run_work_loop`), all bound to the `base_focusa` base product gate;
+  - 21 UIAI-owned rows, one-to-one with the canonical
+    `SPEC172_UIAI_OPERATION_MAP` vectors (`cockpit.uiai.public_search` ...
+    `cockpit.uiai.paid_model_calls`), each binding its canonical UIAI
+    operation id so the observe-only limited / paid Operator v1 boundary
+    applies unchanged;
+  - 2 combined workflows (`cockpit.combined.research_apply`,
+    `cockpit.combined.observe_and_capture`), UIAI-owned composites
+    (`combined_workflow: true`, family `combined_focusa_uiai`) that invoke
+    both products.
+- Added `classify_cockpit_action` (exact action-id lookup; unknown, prefixed,
+  aliased, and empty ids fail closed) and the product-isolation adapter
+  `resolve_cockpit_action` — the single entry point every Cockpit action
+  resolves through BEFORE any UI side effect. It consumes only the canonical
+  action id and authority snapshots (`focusa_snapshot`, `uiai_snapshot`,
+  `active_uiai_sessions`, `now`); product, price, License Type, family,
+  feature, limit, node, and commercial rights are never caller-controlled,
+  and no pairing/auth/device input is accepted (pairing proves identity
+  only, Section 11.3).
+- Per-operation behavior by owning product (no window-wide blanket grant):
+  - Focusa read/display: `FocusaDisplay { base }` reachable for Entitled AND
+    Limited (verified no-license) postures; rendering Focusa state in the
+    Cockpit never grants mutation — `permits_focusa_mutation()` is false for
+    every display decision; a UIAI-only account with no Focusa posture gets
+    `FocusaDisplayDenied`; a no-posture account gets the same;
+  - Focusa value mutation: `FocusaMutation { base }` only when the base
+    product gate is Entitled (one usable signed Focusa lease or valid
+    Offline Grace); Limited and Denied postures get `FocusaMutationDenied`;
+  - UIAI observation/action: delegated to the canonical UIAI boundary
+    (`resolve_uiai_operation_capability`), so limited mode yields exactly one
+    foreground ephemeral public-observe session
+    (`VerifiedNoLicensePublicObservation { session_quota: 1 }`; a second
+    concurrent session denies), Focusa-only accounts deny
+    (`FocusaOnlyCannotGrantUiai`), paid UIAI/Bundle proceeds only for granted
+    paid Operator v1 family features bound to the parent Focusa lease and
+    UIAI grant sequence (`PaidFamily`), and hosted/private rights
+    (`premium_proxy`, `hosted_capacity`, `paid_model_calls`,
+    `authenticated_private_dashboard`, `unattended_automation`) carry no
+    canonical paid feature so they fail closed even for paid grants
+    (`FamilyNotGranted`);
+  - Combined workflows: require BOTH the Focusa base grant (Entitled) AND
+    the paid UIAI family (`UiaiOperationClass::RemotePremium` forced, so
+    limited mode and no-grant both deny) — i.e. both grants or the Bundle
+    (the exact union of the two underlying grants, Section 9/20.7). A
+    verified no-license limited Focusa posture denies with
+    `CombinedLimitedModeDenied`; missing Focusa or UIAI grants deny with
+    `CombinedMissingFocusaGrant` / `CombinedMissingUiaiGrant`; cross-account
+    UIAI grants fail closed through the shared same-account binding;
+  - unknown action ids fail before any decision
+    (`CockpitActionError::UnknownAction`).
+- The registry is server-owned static metadata: no anonymous product
+  capability, no local/self-issued grant, no caller-selected product, price,
+  License Type, family, feature, limit, node, or commercial right, and no
+  presenter-owned policy was added; no raw email, key, token, customer row,
+  credential, or card data appears anywhere in the surface; no data deletion
+  and no blocked basic export/repair/rollback/stable security
+  update/uninstall exists in this surface.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_cockpit_mixed_product_test.py` — exit 0.
+   Spec172 UIAI Cockpit mixed-product presenter gate: PASS
+   focusa_actions=10, uiai_actions=21, combined_workflows=2,
+   total_actions=33.
+   Compound `python3 tests/spec172_cockpit_mixed_product_test.py &&
+   python3 tests/spec172_uiai_limited_mode_test.py &&
+   python3 tests/spec152_uiai_child_token_broker_test.py` — exit 0 (all
+   three gates green, prior UIAI surfaces untouched).
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license cockpit_action_registry` — exit 0:
+  7 passed, 0 failed (spec172_cockpit_registry_metadata_conforms_to_section12,
+  spec172_cockpit_focusa_only_account_gets_focusa_but_never_uiai,
+  spec172_cockpit_uiai_only_account_gets_uiai_boundary_but_no_focusa,
+  spec172_cockpit_bundle_account_resolves_exact_union,
+  spec172_cockpit_limited_account_gets_display_and_observe_only,
+  spec172_cockpit_unknown_action_and_no_posture_fail_closed,
+  spec172_cockpit_offline_grace_preserves_display_and_mutation).
+- `cargo test -p focusa-license` — exit 0: 367 passed, 0 failed.
+- `cargo check -p focusa-core` — exit 0, finished cleanly.
+- `rustfmt --check crates/focusa-license/src/cockpit_action_registry.rs` —
+  exit 0 (file formatted; whole-crate fmt drift in other files is
+  pre-existing and untouched).
+- `git diff --check` — exit 0, no whitespace errors.
+
+Tests added
+- Rust unit tests with mixed-product fixtures in cockpit_action_registry.rs
+  (focusa_snapshot / uiai_snapshot / limited_focusa_posture covering
+  Focusa-only, UIAI-only, Bundle, and limited accounts on one node/account):
+  registry Section 12 metadata conformance (registered owners/classes/side
+  effects, unique action ids, UIAI vector linkage one-to-one, combined
+  flags); Focusa-only gets Focusa display+mutation but never UIAI
+  (FocusaOnlyCannotGrantUiai) and never combined; UIAI-only gets the paid
+  UIAI boundary but no Focusa display/mutation and no combined; Bundle
+  resolves the exact union (both standalone grants, combined workflows,
+  hosted rights still denied, cross-account grants fail closed); limited
+  account gets display + exactly one public-observe session and denies
+  mutation/action/combined; unknown action and no-posture fail closed;
+  Offline Grace preserves display and mutation.
+- Python (tests/spec172_cockpit_mixed_product_test.py): registry surface
+  markers; all 33 action rows with exact registered metadata; one-to-one
+  UIAI operation-map linkage (every canonical vector Cockpit-bound, every
+  Cockpit vector canonical); Focusa base gate linkage; resolver signature
+  consumes only action id + snapshots and never caller policy; Section 11.3
+  invariants (display never grants mutation, pairing proves identity only,
+  combined forces paid UIAI via RemotePremium, limited never satisfies
+  combined); fail-closed ordering (registry -> classifier -> resolver); no
+  SigningKey/Signer/self_sign/customer_email/access_token/device_proof/
+  pairing_proof/password/secret_key/private_key anywhere in the surface.
+
+Remaining blockers
+- None for this atom. Downstream atoms (172.05.02 verified no-license first
+  useful value; 172.05.07 cross-presenter, dynamic-tool, offline, and bypass
+  adversarial matrix) build on the Cockpit registry and the shared
+  Focusa/UIAI operation maps.
+
+Rollback
+- Revert only implementation commit `51602cb855a1f1ada63abc5572706750a8853b50`
+  (and this evidence record if removal is required). Preserve verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, customer data, migration journals, evidence, and accepted
+  unrelated work. No data deletion is performed by this atom or its rollback.
+
+No push, deploy, release, merge, or Beads mutation was performed.

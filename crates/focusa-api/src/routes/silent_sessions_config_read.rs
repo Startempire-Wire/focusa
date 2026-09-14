@@ -59,7 +59,18 @@ async fn profiles(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Api
         &state,
         &headers,
         "profiles",
-        json!({"profiles": [], "catalog_source": "not_configured"}),
+        json!({
+            "profiles": [{
+                "profile_id": "local_pi_isolated",
+                "description": "Local Pi RPC session in an isolated worktree",
+                "persistent_defaults": {
+                    "harness": {"kind": "pi"},
+                    "workspace": {"mode": "isolated_worktree"},
+                    "governance": {"destructive_actions_allowed": false}
+                }
+            }],
+            "catalog_source": "builtin_release_defaults"
+        }),
     )
     .await
 }
@@ -69,7 +80,17 @@ async fn presets(State(state): State<Arc<AppState>>, headers: HeaderMap) -> ApiR
         &state,
         &headers,
         "presets",
-        json!({"presets": [], "catalog_source": "not_configured"}),
+        json!({
+            "presets": [{
+                "preset_id": "conservative",
+                "description": "Single bounded worker with destructive actions disabled",
+                "invocation_patch": {
+                    "governance": {"destructive_actions_allowed": false},
+                    "concurrency": {"max_workers": 1}
+                }
+            }],
+            "catalog_source": "builtin_release_defaults"
+        }),
     )
     .await
 }

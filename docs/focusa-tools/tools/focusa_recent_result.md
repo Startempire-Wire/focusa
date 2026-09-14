@@ -76,4 +76,4 @@ Likely next: `focusa_evidence_capture`, `focusa_trajectory_assess`, `focusa_work
 - CLI: `focusa focus update --recent-result`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:38d33be462626c2399ec003a162b6bf29ace9d8e76b758026e500898f6009517`.
+- Descriptor digest: `sha256:556de9c7cef3c162e0ecff5c893a4d699e641a0b6c487e15c76ba64995b33355`.

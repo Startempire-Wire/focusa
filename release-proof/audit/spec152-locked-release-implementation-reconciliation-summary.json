@@ -1,0 +1,259 @@
+{
+  "build_independent_gates": {
+    "governance_inventory": "passed",
+    "governance_reconciliation": "passed_truthfully_blocked",
+    "prelicensing_python": {
+      "evidence": "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt",
+      "failed": 3,
+      "failures": [
+        "tests/spec137a_applicability_decision_gate.py",
+        "tests/spec137_full_conformance_gate.py",
+        "tests/spec150_lifecycle_runtime_gate.py"
+      ],
+      "passed": 20,
+      "total": 23
+    },
+    "spec152_python": {
+      "evidence": "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt",
+      "passed": 19,
+      "total": 19
+    },
+    "spec152_shell": {
+      "evidence": "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt",
+      "passed": 1,
+      "total": 1
+    },
+    "technical_closure_reducer": "passed_no_invalid_closed"
+  },
+  "candidate_head_before_summary": "556e6c99691810b77c3dad4fdaad6824f2c9dd35",
+  "current_frontier": {
+    "action": "Freeze deployed WPUIAI.com EDD and install.focusa.dev authority/facade parity inventory.",
+    "parallel_work_item": "focusa-vbcqu.20.14.2",
+    "publication": "forbidden",
+    "work_item": "focusa-vbcqu.20.13.2"
+  },
+  "environment_or_policy_deferred": [
+    "Cargo fmt/clippy/test gates remain deferred by operator no-Cargo-before-50-percent constraint",
+    "apps/menubar and apps/pi-extension node_modules are absent; no package installation was authorized",
+    "pwsh is unavailable; no installation was authorized",
+    "shellcheck is unavailable; no installation was authorized",
+    "WPUIAI/uiai-engine shared-vector acceptance remains external"
+  ],
+  "generated_at": "2026-08-06T04:13:55.158000Z",
+  "governance": {
+    "admitted_mapping_count": 465,
+    "evidence_state_counts": {
+      "aggregate_child_evidence": 1,
+      "evidence_linked": 190,
+      "exact_duplicate_receipt": 19,
+      "pending_technical_acceptance": 255
+    },
+    "invalid_closed_count": 0,
+    "locked_release_detail_tombstones_excluded": 75,
+    "pending_aggregate_parent_count": 29,
+    "pending_leaf_classification": {
+      "acceptance_verified_but_dependency_blocked": 1,
+      "no_current_evidence": 133,
+      "partial_or_linked_evidence": 92
+    },
+    "pending_leaf_count": 226,
+    "provider_state_counts": {
+      "closed": 210,
+      "in_progress": 53,
+      "open": 202
+    },
+    "repair_overlay_mapping_count": 190,
+    "status": "blocked",
+    "technical_completion_percent": 45.2,
+    "technically_accepted_count": 210,
+    "technically_pending_count": 255,
+    "unresolved_gap_count": 255,
+    "untracked_locked_release_count": 0
+  },
+  "licensing_graph": [
+    {
+      "name": "spec152_granular_legacy",
+      "node_count": 40,
+      "provider_status": {
+        "closed": 1,
+        "open": 39
+      },
+      "reconciliation_classification": {
+        "acceptance_verified_but_dependency_blocked": 1,
+        "closed": 1,
+        "no_current_acceptance_evidence": 7,
+        "partial_with_commit_or_test_evidence": 31
+      }
+    },
+    {
+      "name": "spec152_replay",
+      "node_count": 6,
+      "provider_status": {
+        "closed": 1,
+        "in_progress": 3,
+        "open": 2
+      },
+      "reconciliation_classification": {
+        "closed": 1,
+        "partial_with_commit_or_test_evidence": 5
+      }
+    },
+    {
+      "name": "spec152_protected_distribution",
+      "node_count": 6,
+      "provider_status": {
+        "open": 6
+      },
+      "reconciliation_classification": {
+        "no_current_acceptance_evidence": 6
+      }
+    },
+    {
+      "name": "spec152e_correction_atoms",
+      "node_count": 63,
+      "provider_status": {
+        "closed": 1,
+        "open": 62
+      },
+      "reconciliation_classification": {
+        "closed": 1,
+        "no_current_acceptance_evidence": 62
+      }
+    },
+    {
+      "name": "spec152f_policy_atoms",
+      "node_count": 52,
+      "provider_status": {
+        "closed": 1,
+        "open": 51
+      },
+      "reconciliation_classification": {
+        "closed": 1,
+        "no_current_acceptance_evidence": 51
+      }
+    },
+    {
+      "name": "final_release_milestones",
+      "node_count": 7,
+      "provider_status": {
+        "closed": 3,
+        "open": 4
+      },
+      "reconciliation_classification": {
+        "closed": 3,
+        "no_current_acceptance_evidence": 4
+      }
+    }
+  ],
+  "material_findings": [
+    "Issue 119 and Spec 152E were stale-excluded from governance; now admitted as an operator-authorized release-blocking overlay.",
+    "Six legacy Spec 152 decomposition roots are now admitted explicitly rather than inferred from labels or parentage.",
+    "Seventy-five DETAIL tombstones are excluded from executable scope and completion counts.",
+    "Task-description paths no longer count as evidence; only explicit notes, closure receipts, frozen evidence refs, or evidence-link records do.",
+    "All previously closed admitted nodes now have valid technical evidence; invalid_closed_count is zero.",
+    "No bulk closure was performed: passing static tests do not override unmet Cargo, external, installed, migration, or final-SHA criteria.",
+    "Entitlement coverage remains incomplete: the static ledger reports 395 explicitly unmatched surfaces.",
+    "Spec 137 applicability remains pre-activation and its full-conformance source digest is stale.",
+    "Spec 150 lifecycle runtime gate fails the repository file-size policy: contract_tests.rs is 615 lines and transactions.rs is 520 lines.",
+    "Spec 152F adds 52 atomic policy tasks under focusa-vbcqu.20.14; one governance atom is accepted and 51 implementation/acceptance atoms remain."
+  ],
+  "prelicensing_graph": [
+    {
+      "name": "spec137_core",
+      "node_count": 7,
+      "provider_status": {
+        "in_progress": 7
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 7
+      }
+    },
+    {
+      "name": "spec137a",
+      "node_count": 6,
+      "provider_status": {
+        "in_progress": 6
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 6
+      }
+    },
+    {
+      "name": "spec138",
+      "node_count": 7,
+      "provider_status": {
+        "in_progress": 7
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 7
+      }
+    },
+    {
+      "name": "spec138a",
+      "node_count": 9,
+      "provider_status": {
+        "in_progress": 9
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 9
+      }
+    },
+    {
+      "name": "spec140",
+      "node_count": 7,
+      "provider_status": {
+        "in_progress": 7
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 7
+      }
+    },
+    {
+      "name": "spec144",
+      "node_count": 8,
+      "provider_status": {
+        "in_progress": 2,
+        "open": 6
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 8
+      }
+    },
+    {
+      "name": "spec150",
+      "node_count": 6,
+      "provider_status": {
+        "open": 6
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 6
+      }
+    },
+    {
+      "name": "platform_final_acceptance",
+      "node_count": 6,
+      "provider_status": {
+        "open": 6
+      },
+      "reconciliation_classification": {
+        "linked_evidence_pending_acceptance": 6
+      }
+    },
+    {
+      "name": "dogfood_and_truthful_decision",
+      "node_count": 3,
+      "provider_status": {
+        "open": 3
+      },
+      "reconciliation_classification": {
+        "no_current_acceptance_evidence": 3
+      }
+    }
+  ],
+  "provider_snapshot": {
+    "record_count": 2819,
+    "sha256": "sha256:dcc6c0f56dacd577224a7e1915348de4b9ac7f67eb3aa742931bd5992a6e4b6d",
+    "source": "canonical:.beads/issues.jsonl"
+  },
+  "schema": "focusa.spec152_locked_release_implementation_reconciliation_summary.v1"
+}

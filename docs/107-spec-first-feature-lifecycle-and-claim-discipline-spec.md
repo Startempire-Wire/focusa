@@ -174,7 +174,3 @@ Do not close Spec107 implementation beads until:
 - Evidence citations include actual command/test/API/tool proof.
 - Any remaining partial/surrogate/blocked evidence is named as unfinished, not completed.
 
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-spec-lifecycle -->
-## Spec 137A/138A/144 specification lifecycle integration
-
-Implementation admission for these specifications requires their combined source-coverage artifacts, complete ledgers, delivery DAGs, cross-spec amendment matrix, proof matrices, and zero-omission gates. Documentation architecture closure is distinct from runtime implementation and cannot be reported as feature completion.

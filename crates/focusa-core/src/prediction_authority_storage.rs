@@ -202,6 +202,8 @@ impl PersistentPredictionAuthorityLedger {
         if event.receipt_ref.trim().is_empty() {
             return Err(PredictionStorageError::MissingReceipt);
         }
+        crate::prediction_authority_validation::validate_scoped_authority_event(event)
+            .map_err(PredictionStorageError::InvalidPrimitive)?;
         match &event.event {
             PredictionAuthorityEvent::EpistemicPrimitive(record) => {
                 crate::epistemic_primitives::validate_epistemic_primitive(record).map_err(
@@ -363,11 +365,9 @@ fn atomic_write_rows(
         file.write_all(b"\n").map_err(io_error)?;
     }
     file.sync_all().map_err(io_error)?;
-    fs::rename(&temporary, path).map_err(io_error)?;
+    crate::durable_fs::atomic_replace(&temporary, path).map_err(io_error)?;
     if let Some(parent) = path.parent() {
-        File::open(parent)
-            .and_then(|directory| directory.sync_all())
-            .map_err(io_error)?;
+        crate::durable_fs::sync_directory(parent).map_err(io_error)?;
     }
     Ok(())
 }

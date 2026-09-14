@@ -220,6 +220,48 @@ impl UpdatePolicy {
         }
     }
 
+    /// Spec 152F.04.04: Split stable security maintenance from premium updates.
+    ///
+    /// Returns `None` when the policy uses the stable channel with a manual mode
+    /// (notify, prompt, manual) — these are always-available stable security updates
+    /// and repair paths. Returns `Some(feature)` when the policy requires a premium
+    /// update feature:
+    /// - `focusa.install.channel.preview` for the Preview channel
+    /// - `focusa.install.channel.nightly` for the Nightly channel
+    /// - `focusa.update.unattended` for Automatic or Scheduled modes
+    ///
+    /// Dev mode is a dev-override and does not require premium features.
+    pub fn premium_update_required(&self) -> Option<&'static str> {
+        let dev_mode = self.dev_mode_override || self.license_level == "dev_mode";
+        if dev_mode {
+            return None;
+        }
+        match self.channel {
+            ReleaseChannel::Preview => return Some("focusa.install.channel.preview"),
+            ReleaseChannel::Nightly => return Some("focusa.install.channel.nightly"),
+            _ => {}
+        }
+        match self.mode {
+            UpdateMode::Automatic | UpdateMode::Scheduled => {
+                return Some("focusa.update.unattended");
+            }
+            _ => {}
+        }
+        None
+    }
+
+    /// Returns true when the policy is safe stable security maintenance —
+    /// stable channel + manual mode — that remains available even when
+    /// commercial entitlement is blocked, expired, refunded, or revoked.
+    pub fn is_stable_security_maintenance(&self) -> bool {
+        self.premium_update_required().is_none()
+            && matches!(self.channel, ReleaseChannel::Stable)
+            && matches!(
+                self.mode,
+                UpdateMode::Notify | UpdateMode::Prompt | UpdateMode::Manual
+            )
+    }
+
     pub fn refresh_auto_apply_authority(&mut self, features: &[String], dev_override: bool) {
         let has = |feature: &str| features.iter().any(|value| value == feature);
         let dev_mode = dev_override
@@ -261,6 +303,8 @@ pub struct ReleaseManifest {
     pub commit: String,
     pub channel: ReleaseChannel,
     #[serde(default)]
+    pub publication_status: Option<String>,
+    #[serde(default)]
     pub published_at: Option<String>,
     #[serde(default)]
     pub yanked: bool,
@@ -270,6 +314,8 @@ pub struct ReleaseManifest {
     pub superseded_by: Option<String>,
     #[serde(default)]
     pub gates: ReleaseGates,
+    #[serde(default)]
+    pub compatibility_canary: Option<CompatibilityCanaryAuthorization>,
     pub trust: ReleaseTrust,
     #[serde(default)]
     pub provenance: Option<ReleaseProvenance>,
@@ -282,6 +328,81 @@ pub struct ReleaseManifest {
     pub dev_mode_features: Vec<String>,
     #[serde(default)]
     pub rollback_supported: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompatibilityCanaryAuthorization {
+    pub schema: String,
+    pub status: String,
+    pub environment: String,
+    pub allowed_install_scope: String,
+    pub required_previous_tag: String,
+    /// Historical bytes reauthorized only by this current signed candidate.
+    #[serde(default)]
+    pub baseline_release: Option<CompatibilityBaselineInput>,
+    #[serde(default)]
+    pub required_sequence: Vec<String>,
+    #[serde(default)]
+    pub production_apply_authorized: bool,
+    #[serde(default)]
+    pub system_install_authorized: bool,
+    #[serde(default)]
+    pub service_mutation_authorized: bool,
+    #[serde(default)]
+    pub automatic_apply_authorized: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompatibilityBaselineInput {
+    pub schema: String,
+    pub tag: String,
+    pub source_commit: String,
+    pub provider_release_id: u64,
+    pub checksums_sha256: String,
+    pub assets: BTreeMap<String, String>,
+}
+
+impl CompatibilityBaselineInput {
+    /// Structural validation only; callers must first verify the enclosing
+    /// candidate manifest with a currently valid pinned release key.
+    pub fn validate_for_tag(&self, tag: &str) -> Result<(), String> {
+        if self.schema != "focusa.compatibility_baseline_input.v1"
+            || self.tag != tag
+            || self.provider_release_id == 0
+            || self.source_commit.len() != 40
+            || !self.source_commit.bytes().all(|b| b.is_ascii_hexdigit())
+            || self.source_commit != self.source_commit.to_ascii_lowercase()
+            || !is_sha256_hex(&self.checksums_sha256)
+            || self.checksums_sha256 != self.checksums_sha256.to_ascii_lowercase()
+        {
+            return Err("compatibility baseline identity or checksum binding is invalid".into());
+        }
+        for (name, digest) in &self.assets {
+            if !name
+                .as_bytes()
+                .first()
+                .is_some_and(u8::is_ascii_alphanumeric)
+                || !name
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b"._+-".contains(&b))
+                || !is_sha256_hex(digest)
+                || *digest != digest.to_ascii_lowercase()
+            {
+                return Err("compatibility baseline asset binding is invalid".into());
+            }
+        }
+        let mut required = ["focusa", "focusa-daemon", "focusa-tui"]
+            .map(|binary| format!("{binary}-{tag}-x86_64-unknown-linux-musl"))
+            .to_vec();
+        required.extend([
+            format!("focusa-pi-extension-{tag}.tar.gz"),
+            format!("focusa-agent-context-{tag}.tar.gz"),
+        ]);
+        if required.iter().any(|name| !self.assets.contains_key(name)) {
+            return Err("compatibility baseline lacks a complete canary distribution".into());
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -880,6 +1001,35 @@ fn is_sha256_hex(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compatibility_baseline_binding_rejects_incomplete_or_malformed_inputs() {
+        let baseline: CompatibilityBaselineInput = serde_json::from_str(include_str!(
+            "../../../config/compatibility-canary-baselines/v0.9.177.json"
+        ))
+        .expect("reviewed baseline fixture");
+        assert!(baseline.validate_for_tag("v0.9.177").is_ok());
+        assert!(baseline.validate_for_tag("v0.9.178").is_err());
+        let mut broken = baseline.clone();
+        broken
+            .assets
+            .remove("focusa-daemon-v0.9.177-x86_64-unknown-linux-musl");
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+        let mut broken = baseline.clone();
+        broken
+            .assets
+            .insert("../escape-v0.9.177".into(), "a".repeat(64));
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+        let mut broken = baseline.clone();
+        broken.checksums_sha256 = "invalid".into();
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+        let mut broken = baseline.clone();
+        broken.provider_release_id = 0;
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+        let mut broken = baseline;
+        broken.source_commit = "main".into();
+        assert!(broken.validate_for_tag("v0.9.177").is_err());
+    }
     use ed25519_dalek::{Signer, SigningKey};
 
     fn trusted_key() -> TrustedReleaseKey {
@@ -917,6 +1067,7 @@ mod tests {
             tag: "v0.9.80-dev".into(),
             commit: "8fa6452d".into(),
             channel: ReleaseChannel::Dev,
+            publication_status: Some("published".into()),
             published_at: Some("2026-07-10T00:00:00Z".into()),
             yanked: false,
             revoked: false,
@@ -937,6 +1088,7 @@ mod tests {
                     "https://github.com/Startempire-Wire/focusa/actions/runs/3".into(),
                 ),
             },
+            compatibility_canary: None,
             trust: ReleaseTrust {
                 signing_algorithm: "ed25519".into(),
                 key_id: "focusa-dev-2026".into(),
@@ -1177,5 +1329,256 @@ mod tests {
                 .failures
                 .contains(&"asset_signature_verification_failed".to_string())
         );
+    }
+}
+
+#[cfg(test)]
+mod spec152f_update_entitlement {
+    use super::*;
+
+    /// Helper: build a policy with the given channel and mode.
+    fn policy(channel: ReleaseChannel, mode: UpdateMode) -> UpdatePolicy {
+        let mut p = UpdatePolicy::default_for_license("operator", &[], false);
+        p.channel = channel;
+        p.mode = mode;
+        p
+    }
+
+    fn dev_policy() -> UpdatePolicy {
+        UpdatePolicy::default_for_license(
+            "dev_mode",
+            &["developer_channel".into(), "ota_auto_update".into()],
+            false,
+        )
+    }
+
+    // ── Stable security maintenance is always available ──────────────────
+
+    #[test]
+    fn stable_notify_is_maintenance_not_premium() {
+        let p = policy(ReleaseChannel::Stable, UpdateMode::Notify);
+        assert!(p.is_stable_security_maintenance());
+        assert_eq!(p.premium_update_required(), None);
+    }
+
+    #[test]
+    fn stable_prompt_is_maintenance_not_premium() {
+        let p = policy(ReleaseChannel::Stable, UpdateMode::Prompt);
+        assert!(p.is_stable_security_maintenance());
+        assert_eq!(p.premium_update_required(), None);
+    }
+
+    #[test]
+    fn stable_manual_is_maintenance_not_premium() {
+        let p = policy(ReleaseChannel::Stable, UpdateMode::Manual);
+        assert!(p.is_stable_security_maintenance());
+        assert_eq!(p.premium_update_required(), None);
+    }
+
+    // ── Premium channels require premium features ────────────────────────
+
+    #[test]
+    fn preview_channel_requires_premium_feature() {
+        let p = policy(ReleaseChannel::Preview, UpdateMode::Prompt);
+        assert!(!p.is_stable_security_maintenance());
+        assert_eq!(
+            p.premium_update_required(),
+            Some("focusa.install.channel.preview")
+        );
+    }
+
+    #[test]
+    fn nightly_channel_requires_premium_feature() {
+        let p = policy(ReleaseChannel::Nightly, UpdateMode::Manual);
+        assert!(!p.is_stable_security_maintenance());
+        assert_eq!(
+            p.premium_update_required(),
+            Some("focusa.install.channel.nightly")
+        );
+    }
+
+    // ── Unattended modes require premium features ────────────────────────
+
+    #[test]
+    fn automatic_mode_requires_premium_feature() {
+        let p = policy(ReleaseChannel::Stable, UpdateMode::Automatic);
+        assert!(!p.is_stable_security_maintenance());
+        assert_eq!(
+            p.premium_update_required(),
+            Some("focusa.update.unattended")
+        );
+    }
+
+    #[test]
+    fn scheduled_mode_requires_premium_feature() {
+        let p = policy(ReleaseChannel::Stable, UpdateMode::Scheduled);
+        assert!(!p.is_stable_security_maintenance());
+        assert_eq!(
+            p.premium_update_required(),
+            Some("focusa.update.unattended")
+        );
+    }
+
+    // ── Dev mode overrides premium requirements ──────────────────────────
+
+    #[test]
+    fn dev_mode_does_not_require_premium_features() {
+        let p = dev_policy();
+        assert_eq!(p.premium_update_required(), None);
+        assert!(!p.is_stable_security_maintenance());
+    }
+
+    #[test]
+    fn dev_mode_override_relaxes_premium_requirements() {
+        let mut p = policy(ReleaseChannel::Preview, UpdateMode::Automatic);
+        p.dev_mode_override = true;
+        assert_eq!(p.premium_update_required(), None);
+    }
+
+    // ── Default policies are stable maintenance ──────────────────────────
+
+    #[test]
+    fn default_paid_policy_is_stable_maintenance() {
+        let p = UpdatePolicy::default_for_license("operator", &[], false);
+        assert!(p.is_stable_security_maintenance());
+        assert_eq!(p.premium_update_required(), None);
+    }
+
+    #[test]
+    fn default_evaluation_policy_is_stable_maintenance() {
+        let p = UpdatePolicy::default_for_license("evaluation", &[], false);
+        assert!(p.is_stable_security_maintenance());
+        assert_eq!(p.premium_update_required(), None);
+    }
+
+    // ── Premium update feature IDs are canonical ─────────────────────────
+
+    #[test]
+    fn premium_update_features_match_policy_classification() {
+        let p = policy(ReleaseChannel::Preview, UpdateMode::Prompt);
+        assert_eq!(
+            p.premium_update_required(),
+            Some("focusa.install.channel.preview")
+        );
+        let p = policy(ReleaseChannel::Nightly, UpdateMode::Prompt);
+        assert_eq!(
+            p.premium_update_required(),
+            Some("focusa.install.channel.nightly")
+        );
+        let p = policy(ReleaseChannel::Stable, UpdateMode::Automatic);
+        assert_eq!(
+            p.premium_update_required(),
+            Some("focusa.update.unattended")
+        );
+    }
+
+    // ── Stable security maintenance survives blocked states ──────────────
+
+    #[test]
+    fn stable_maintenance_policy_never_requires_entitlement() {
+        // Stable + notify/prompt/manual policies must remain usable even
+        // when the commercial entitlement state is expired, refunded,
+        // revoked, or missing. The premium_update_required() method
+        // returns None, and the route maps to RecoveryAllowance::StableSecurityUpdate.
+        let modes = [UpdateMode::Notify, UpdateMode::Prompt, UpdateMode::Manual];
+        for mode in modes {
+            let p = policy(ReleaseChannel::Stable, mode);
+            assert!(
+                p.is_stable_security_maintenance(),
+                "stable/{:?} must be maintenance",
+                mode
+            );
+            assert_eq!(
+                p.premium_update_required(),
+                None,
+                "stable/{:?} must not require premium features",
+                mode
+            );
+        }
+    }
+
+    #[test]
+    fn premium_channel_or_mode_policies_require_entitlement() {
+        // Preview/nightly channels and automatic/scheduled modes require
+        // premium features. In blocked states these are denied.
+        let premium_cases: Vec<(&str, UpdatePolicy)> = vec![
+            (
+                "preview",
+                policy(ReleaseChannel::Preview, UpdateMode::Prompt),
+            ),
+            (
+                "nightly",
+                policy(ReleaseChannel::Nightly, UpdateMode::Manual),
+            ),
+            (
+                "automatic",
+                policy(ReleaseChannel::Stable, UpdateMode::Automatic),
+            ),
+            (
+                "scheduled",
+                policy(ReleaseChannel::Stable, UpdateMode::Scheduled),
+            ),
+        ];
+        for (label, p) in premium_cases {
+            assert!(
+                p.premium_update_required().is_some(),
+                "{label} must require premium features"
+            );
+            assert!(
+                !p.is_stable_security_maintenance(),
+                "{label} must not be classified as stable maintenance"
+            );
+        }
+    }
+
+    // ── Default policies produce correct channel and mode ────────────────
+
+    #[test]
+    fn default_policies_produce_expected_update_policy() {
+        let dev = UpdatePolicy::default_for_license(
+            "dev_mode",
+            &["developer_channel".into(), "ota_auto_update".into()],
+            false,
+        );
+        assert_eq!(dev.channel, ReleaseChannel::Dev);
+        assert_eq!(dev.mode, UpdateMode::Automatic);
+        assert!(dev.auto_apply_allowed);
+
+        let eval = UpdatePolicy::default_for_license("evaluation", &[], false);
+        assert_eq!(eval.channel, ReleaseChannel::Stable);
+        assert_eq!(eval.mode, UpdateMode::Notify);
+        assert!(!eval.auto_apply_allowed);
+
+        let paid = UpdatePolicy::default_for_license("operator", &[], false);
+        assert_eq!(paid.channel, ReleaseChannel::Stable);
+        assert_eq!(paid.mode, UpdateMode::Prompt);
+        assert!(!paid.auto_apply_allowed);
+    }
+
+    // ── Channel and mode parsing round-trips ─────────────────────────────
+
+    #[test]
+    fn channel_and_mode_round_trip() {
+        for (label, channel) in [
+            ("stable", ReleaseChannel::Stable),
+            ("preview", ReleaseChannel::Preview),
+            ("dev", ReleaseChannel::Dev),
+            ("nightly", ReleaseChannel::Nightly),
+        ] {
+            let parsed: ReleaseChannel = label.parse().unwrap();
+            assert_eq!(parsed, channel);
+            assert_eq!(parsed.label(), label);
+        }
+        for (label, mode) in [
+            ("notify", UpdateMode::Notify),
+            ("prompt", UpdateMode::Prompt),
+            ("scheduled", UpdateMode::Scheduled),
+            ("automatic", UpdateMode::Automatic),
+            ("manual", UpdateMode::Manual),
+        ] {
+            let parsed: UpdateMode = label.parse().unwrap();
+            assert_eq!(parsed, mode);
+            assert_eq!(parsed.label(), label);
+        }
     }
 }

@@ -64,3 +64,10 @@ docs/evidence/transcripts/
 releases/*/focusa-daemon-linux-*
 releases/*/focusa-cli-linux-*
 releases/*/focusa-tui-linux-*
+
+error_log
+apps/pi-extension/src/*.js
+apps/pi-extension/src/*.js.map
+
+# br doctor per-run artifacts
+.doctor/

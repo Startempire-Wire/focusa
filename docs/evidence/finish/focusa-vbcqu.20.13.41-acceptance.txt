@@ -1,0 +1,3 @@
+focusa-vbcqu.20.13.41 152E.05.03 — REAL 2026-08-18
+Commit: 660b9140c1fbc292cb3c0e74a9ba8f90a71ad06e
+bash tests/spec_focusa_112_shell_ps1_slim_static_test.sh PASS (pwsh not available, static gate PASS)

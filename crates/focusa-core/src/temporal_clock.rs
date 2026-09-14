@@ -106,16 +106,38 @@ impl Default for TemporalActionEnvelope {
 }
 
 pub fn capture_operator_temporal_action_envelope() -> TemporalActionEnvelope {
-    let (timezone, source) = if let Ok(value) = std::env::var("FOCUSA_OPERATOR_TIMEZONE") {
-        (value, "FOCUSA_OPERATOR_TIMEZONE")
-    } else if let Ok(value) = std::env::var("TZ") {
-        (value, "TZ")
+    capture_operator_temporal_action_envelope_from_values(
+        std::env::var("FOCUSA_OPERATOR_TIMEZONE").ok().as_deref(),
+        std::env::var("TZ").ok().as_deref(),
+    )
+}
+
+fn capture_operator_temporal_action_envelope_from_values(
+    configured_timezone: Option<&str>,
+    process_timezone: Option<&str>,
+) -> TemporalActionEnvelope {
+    let (timezone, source, timezone_known) = if let Some(value) = configured_timezone {
+        (value, "FOCUSA_OPERATOR_TIMEZONE", true)
+    } else if let Some(value) = process_timezone {
+        (value, "TZ", true)
     } else {
-        return TemporalActionEnvelope::unavailable("operator_timezone_unavailable");
+        // Operator-local rendering is unavailable, but wall-clock capture is not.
+        // Capture against UTC and preserve that current timestamp rather than
+        // replacing a successful realtime sample with the Unix epoch.
+        ("UTC", "unavailable", false)
     };
-    match capture_temporal_action_envelope(&timezone, None) {
+    match capture_temporal_action_envelope(timezone, None) {
         Ok(mut envelope) => {
             envelope.operator_timezone_source = source.to_string();
+            if !timezone_known {
+                envelope.operator_timezone = "unknown".to_string();
+                envelope.operator_local_rfc3339 = "unavailable".to_string();
+                envelope.capture_failure = Some("operator_timezone_unavailable".to_string());
+                envelope.clock_sample.timezone = "unknown".to_string();
+                envelope
+                    .calibration_lineage
+                    .push("operator_timezone_unavailable:wall_clock_preserved".to_string());
+            }
             envelope
         }
         Err(error) => TemporalActionEnvelope::unavailable(format!(
@@ -264,11 +286,12 @@ pub fn capture_temporal_action_envelope(
     let wall_clock_accuracy_uncertainty_ns =
         calibration.map(|budget| budget.expanded_uncertainty_ns.ceil().max(0.0) as u128);
     let microsecond_representation_supported = realtime_resolution_ns <= 1_000;
-    let microsecond_wall_clock_accuracy_verified = calibration.is_some_and(|budget| {
-        budget.expanded_uncertainty_ns <= 1_000.0
-            && budget.coverage_probability >= 0.95
-            && !budget.calibration_lineage.is_empty()
-    });
+    let microsecond_wall_clock_accuracy_verified = microsecond_representation_supported
+        && calibration.is_some_and(|budget| {
+            budget.expanded_uncertainty_ns <= 1_000.0
+                && budget.coverage_probability >= 0.95
+                && !budget.calibration_lineage.is_empty()
+        });
     let confidence = if microsecond_wall_clock_accuracy_verified {
         TemporalConfidence::Verified
     } else if calibration.is_some() {
@@ -446,6 +469,25 @@ mod tests {
     }
 
     #[test]
+    fn missing_operator_timezone_preserves_current_wall_clock() {
+        let before = Utc::now();
+        let envelope = capture_operator_temporal_action_envelope_from_values(None, None);
+        let after = Utc::now();
+
+        assert!(envelope.captured_at_utc >= before);
+        assert!(envelope.captured_at_utc <= after);
+        assert!(envelope.utc_unix_ns > 0);
+        assert_eq!(envelope.operator_timezone, "unknown");
+        assert_eq!(envelope.operator_timezone_source, "unavailable");
+        assert_eq!(envelope.operator_local_rfc3339, "unavailable");
+        assert_eq!(
+            envelope.capture_failure.as_deref(),
+            Some("operator_timezone_unavailable")
+        );
+        assert_ne!(envelope.clock_source, "unavailable");
+    }
+
+    #[test]
     fn temporal_action_capture_fails_closed_for_unknown_timezone() {
         assert!(matches!(
             capture_temporal_action_envelope("Mars/Olympus_Mons", None),
@@ -478,10 +520,19 @@ mod tests {
     fn calibrated_capture_can_verify_microsecond_wall_clock_accuracy() {
         let calibration = microsecond_calibration();
         let envelope = capture_temporal_action_envelope("UTC", Some(&calibration)).unwrap();
-        assert!(envelope.microsecond_representation_supported);
-        assert!(envelope.microsecond_wall_clock_accuracy_verified);
+        assert_eq!(
+            envelope.microsecond_wall_clock_accuracy_verified,
+            envelope.microsecond_representation_supported
+        );
         assert_eq!(envelope.wall_clock_accuracy_uncertainty_ns, Some(500));
-        assert_eq!(envelope.confidence, TemporalConfidence::Verified);
+        assert_eq!(
+            envelope.confidence,
+            if envelope.microsecond_representation_supported {
+                TemporalConfidence::Verified
+            } else {
+                TemporalConfidence::High
+            }
+        );
         assert_eq!(envelope.calibration_lineage, vec!["ntp-proof:test"]);
         assert_eq!(envelope.operator_utc_offset_seconds, 0);
     }

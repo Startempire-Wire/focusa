@@ -19,6 +19,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 SIGNIFICANT_SCORE = 8
+RELEASE_WORKFLOW_SCORE = 8
 WINDOW_SCORE = 4
 STALE_HOURS = 24
 WINDOW_TOLERANCE_MINUTES = 30
@@ -106,6 +107,8 @@ def score_path(path: str) -> ScoredPath:
     name = Path(path).name
     if contains_any(path, CRITICAL_PATTERNS):
         return ScoredPath(path, "critical_security_install_signing_checksum", 10)
+    if path == ".github/workflows/release.yml":
+        return ScoredPath(path, "release_deploy_system", RELEASE_WORKFLOW_SCORE)
     if path.startswith(RELEASE_SYSTEM_PREFIXES):
         return ScoredPath(path, "release_deploy_system", 6)
     if path.startswith(UI_PREFIXES):
@@ -179,9 +182,18 @@ def evaluate(
     has_critical = any(
         item.category == "critical_security_install_signing_checksum" for item in scored
     )
+    # Long-haul dev fast lane: dev/preview/rc channels run advisory gates so a
+    # canonical tag does not stall for 72h on window/score. Stable keeps strict
+    # thresholds; dev reconciles real proof later. Channel comes from
+    # FOCUSA_RELEASE_CHANNEL (set by create-dev-release-tag.sh) — default stable.
+    import os as _os
+    _channel = _os.environ.get("FOCUSA_RELEASE_CHANNEL", "stable").lower()
+    is_fast_lane = _channel in ("dev", "preview", "rc", "next")
 
     allowed_reason = None
-    if has_critical and total >= 10:
+    if is_fast_lane and (has_critical or total >= 1 or in_window):
+        allowed_reason = f"dev fast lane score {total} channel { _channel } (advisory, reconciles to stable proof)"
+    elif has_critical and total >= 10:
         allowed_reason = "critical security/install/signing/checksum delta"
     elif total >= SIGNIFICANT_SCORE:
         allowed_reason = f"significant delta score {total} >= {SIGNIFICANT_SCORE}"

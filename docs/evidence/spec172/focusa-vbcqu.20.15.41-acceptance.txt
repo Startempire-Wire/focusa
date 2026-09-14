@@ -1,0 +1,207 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.41
+Title: 172.05.10 Run installed exact-SHA cross-platform Spec 172 acceptance
+Implementation commit: `d7763c68` (feat(spec172): run installed exact-SHA
+cross-platform acceptance receipt verification; see git log for this atom)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.15.41 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- tests/spec172_installed_acceptance_receipt_test.py (NEW — the installed
+  exact-SHA cross-platform Spec 172 acceptance receipt test, i.e. the exact
+  verification for 172.05.10)
+- docs/evidence/spec172/focusa-vbcqu.20.15.41-acceptance.txt (this record)
+- No contract, generator, workflow, source, or other test file was modified
+  by this atom; the Spec 172 build-independent gate discovers every
+  tests/spec172_*.py by glob, so the new receipt test joins the gate with
+  zero inventory edits.
+
+Bounded result
+- Added tests/spec172_installed_acceptance_receipt_test.py: one
+  deterministic, stdlib-only, fail-closed receipt test that first proves the
+  complete installed exact-SHA receipt chain in the committed tree, then
+  ACTUALLY RUNS every Spec 172 journey and records its real exit code. It
+  exits 0 only when the chain is complete and all fifteen journeys pass:
+  * Final exact-SHA macOS/Windows/Linux artifacts and release receipts —
+    release.yml locks the release candidate to the exact pipeline SHA
+    (Lock exact release candidate, exact_sha: $exact_sha, jq -e
+    '.exact_sha == env.GITHUB_SHA'), reuses only successful candidate gates
+    for that SHA (headSha == $sha), and binds release trust metadata and
+    release intelligence to "$GITHUB_SHA" (--commit/--sha). The Desktop Spec
+    172 entitlement gate (.github/workflows/desktop-spec172-entitlement-
+    gate.yml) consumes the final candidate Tauri bundles from the
+    locked-release-candidate-artifacts.yml desktop-artifacts job, is a gate
+    only (never builds, signs, deploys, or releases; no cargo build, gh
+    release create, or softprops/action-gh-release), runs the exact desktop
+    verification, the menubar/TUI parity test, the action-map contract
+    validation, the standalone bridge compile, and the artifact-tree
+    shipping check.
+  * Installed CLI/Desktop/menubar/Pi/Cockpit/installer flows — the Desktop
+    bridge (apps/menubar/src-tauri/src/spec172_desktop_bridge.rs) carries
+    the canonical focusa.spec172.presenter_projection.v1 envelope, never
+    mints a License Type, product, price, grant, family, limit, or node, and
+    never caches local commercial policy; it is wired through main.rs
+    (mod spec172_desktop_bridge, focusa_desktop_route_action,
+    focusa_desktop_spec172_posture, registered in the invoke handler). The
+    menubar posture module (apps/menubar/src/lib/spec172Posture.ts) and the
+    TUI presenter (crates/focusa-tui/src/spec172_presenter.rs) share the
+    frozen SPEC172_LICENSE_TYPE_CODES / SPEC172_RETAINED_CONTROLS /
+    presenter-not-product vocabulary; the Pi entitlement adapter
+    (apps/pi-extension/src/entitlement-policy-adapter.ts) projects the same
+    canonical schema (SPEC172_PRESENTER_SCHEMA, spec172PostureForAuthority,
+    spec172DenialAndUpgrade); the Cockpit mixed-product presenter resolves
+    only canonical actions (SPEC172_COCKPIT_ACTION_REGISTRY,
+    resolve_cockpit_action); the CLI/agent presenter fixtures are frozen
+    (focusa.spec172.cli_agent_presenter_fixtures.v1); the installers fail
+    closed (no persist_eval_license / eval-string return, raw keys rejected
+    with E_AUTHORITY_RAW_KEY_FORBIDDEN, DeviceAuthorizationSession +
+    PersistedAuthorityState::from_verified_envelopes, --eval maps to
+    ActivationJourney::LimitedAccess) and the installer entitlement
+    activation gate (tests/170_focusa_installer_entitlement_activation_gate
+    _test.py) is present.
+  * WPUIAI test authority — WPUIAI EDD remains the canonical authority; the
+    bounded redacted live-capture proof
+    (tests/spec172_public_uiai_proof_test.py), the observe-only limited-mode
+    boundary (tests/spec172_uiai_limited_mode_test.py), the WPUIAI EDD
+    operator issuance gate (tests/spec172_uiai_operator_issuance_test.php),
+    the signed limited-access assertion gate
+    (tests/spec172_limited_assertion_test.php), and the public-facade
+    convergence gate (tests/spec172_public_facade_convergence_test.py) are
+    all present and their acceptance records are exact-SHA bound.
+  * Exact-SHA binding of the phase-05 journey evidence chain — the twelve
+    phase-05 journey/installed acceptance records (20.15.24, 20.15.26,
+    20.15.27, 20.15.28, 20.15.29, 20.15.33, 20.15.34, 20.15.35, 20.15.37,
+    20.15.38, 20.15.39, 20.15.40) each bind an exact commit SHA; >= 40
+    closed Spec 172 acceptance records exist (40 at receipt time); the
+    build-independent gate receipt (20.15.40) records the real run
+    (runs=114 passed=114) and the 152F installed acceptance and 152E cutover
+    receipts (20.14.50, 20.13.62) are present.
+  * Fail-closed FORBIDDEN coverage — each forbidden property is asserted by
+    at least one Spec 172 test (no anonymous capability, no local/self-issued
+    grant, no caller-controlled product/price/type/family/feature/limit/node,
+    presenters never own policy, no implicit legacy Download 453 mapping,
+    recovery always available, retained read/export/repair/rollback/update/
+    uninstall never disabled), and no raw email, key, token, customer row,
+    credential, or card data appears anywhere under docs/evidence/spec172
+    (email, payment-key, private-key, AWS, GitHub-token, license-key, and
+    card-like regex scans, all zero matches).
+  * Real journey runs — the receipt test subprocess-runs all fifteen Spec 172
+    journeys and records real exit codes: verified limited
+    (spec172_verified_limited_e2e_test.py), paid standalone
+    (spec172_paid_upgrade_e2e_test.py), Bundle composition
+    (spec172_bundle_composition_test.php) + Bundle E2E
+    (spec172_bundle_e2e_test.py), refund/revoke
+    (spec172_refund_downgrade_test.php), offline runtime policy matrix
+    (spec172_runtime_policy_acceptance_test.py), dynamic-tool
+    (spec172_dynamic_operation_manifest_test.py),
+    recovery/export/update/uninstall (spec172_downgrade_data_preservation_
+    test.py), public facade (spec172_public_facade_convergence_test.py), and
+    the installed-surface gates: installer, desktop, menubar/TUI (node),
+    cockpit, CLI, and cross-surface adversarial. Cargo-invoking journeys
+    route through the canonical OVH build one cargo command at a time (the
+    remote global lock serializes them); the documented random-token
+    card-pattern hygiene flake (refund gate "no card data in any settlement
+    decision" and the EDD commerce matrix "no card data in any matrix
+    decision" — both from the same bin2hex(random_bytes(16)) root cause) is
+    mitigated exactly like the build-independent gate: bounded genuine
+    re-runs (max 4 attempts) ONLY when the exact documented signature
+    appears, every attempt a real full run, recorded exit codes real. Final
+    runs: flake_retries=0.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_installed_acceptance_receipt_test.py` (first run,
+   working tree at HEAD ec29d104 with the receipt test present, before this
+   atom's commits) — exit 0.
+   Receipt: atom=focusa-vbcqu.20.15.41;
+   sha256_head=ec29d10447bbe8ee1ee7a0e08c06aa2027bceb15;
+   journeys=15 journey_exit_codes_all_zero=true flake_retries=0;
+   evidence_records=40. All fifteen journeys exit 0: verified_limited,
+   paid_standalone, bundle_composition, bundle_e2e, refund_revoke,
+   offline_runtime_policy, dynamic_tool, recovery_export_update_uninstall,
+   public_facade, installer_surface, desktop_surface, menubar_tui_surface,
+   cockpit_surface, cli_surface, cross_surface_adversarial.
+   Final line: `✓ spec172_installed_acceptance_receipt PASS`.
+2. Re-run of the exact verification — exit 0 (deterministic; same receipt,
+   flake_retries=0).
+3. Re-run from the committed implementation state (HEAD d7763c68, with this
+   evidence file present in the working tree) — exit 0.
+   Receipt: sha256_head=d7763c682cfb0c5ed84489d2d440a7de79336abf;
+   journeys=15 journey_exit_codes_all_zero=true flake_retries=0;
+   evidence_records=41 (the hygiene scan then covers this acceptance record
+   too). Final line: `✓ spec172_installed_acceptance_receipt PASS`.
+3. Regression: `bash tests/spec172_build_independent_gate.sh` (the complete
+   build-independent Spec 172 gate, which globs the new receipt test) —
+   exit 0. Receipt: sha256 head=ec29d104...; runs=116 passed=116 failed=0
+   flake_retries=0; tests=py:29 php:9 node:1 sh:0 overlay=1
+   contracts=json:16 yaml:5 php_lint:25; final line
+   `✓ spec172_build_independent_gate PASS (zero hidden skips)`.
+4. Fail-closed negative verification (the receipt test cannot pass with a
+   weakened installed acceptance surface): a scratch copy in /tmp with the
+   exact-SHA lock assertion weakened (`.exact_sha == env.GITHUB_SHA` ->
+   `.exact_sha == env.NOT_THE_SHA`) — exit 1, "release candidate not bound
+   to exact SHA"; scratch discarded, committed test untouched.
+5. During a real run, the Bundle E2E journey hit the documented
+   random-token hygiene flake once (its replay of
+   tests/spec172_edd_commerce_acceptance_test.php false-positived on
+   "no card data in any matrix decision"); the bounded genuine re-run
+   passed on the next real attempt and the final recorded run had
+   flake_retries=0. This is the same documented root cause the acceptance
+   lane mitigates at the replay layer (tests/spec172_downgrade_data_
+   preservation_test.py, retries=4) and the build-independent gate mirrors.
+
+Regression checks (exit codes)
+- `python3 -m py_compile tests/spec172_installed_acceptance_receipt_test.py`
+  — exit 0 (syntax valid).
+- `git diff --check` — exit 0, no whitespace errors.
+- The build-independent gate re-ran the entire pre-existing Spec 172 suite
+  with the new receipt test: runs=116 passed=116 failed=0 (see gate receipt
+  above), py:29 (28 prior + this receipt test), all static contract/syntax
+  runs exit 0, generated artifacts regenerate byte-identically, redaction
+  hygiene and forbidden-property coverage pass.
+- `python3 tests/spec172_installed_acceptance_receipt_test.py` twice in a
+  row from the committed tree — exit 0 both times (deterministic, no state
+  mutation).
+
+Tests added
+- tests/spec172_installed_acceptance_receipt_test.py — the installed
+  exact-SHA cross-platform Spec 172 acceptance receipt test: static
+  fail-closed receipt chain (release exact-SHA lock and candidate-gate
+  reuse, desktop gate wiring to the final candidate Tauri bundles with
+  gate-only enforcement, all installed CLI/Desktop/menubar/Pi/Cockpit/
+  installer surfaces with canonical projection and fail-closed authority,
+  WPUIAI test-authority presence, phase-05 journey evidence exact-SHA
+  binding, build-independent gate real-run receipt, forbidden-property
+  coverage tokens, evidence redaction hygiene) PLUS real subprocess runs of
+  all fifteen Spec 172 journeys with recorded real exit codes and bounded
+  genuine re-runs (max 4 attempts, exact documented card-pattern signature
+  only) for the accepted random-token hygiene flake class. Fails closed
+  (exit 1) on any missing receipt, weakened authority, or nonzero journey
+  exit code.
+
+Remaining blockers
+- None for this atom. Downstream atom focusa-vbcqu.20.15.42 (172.05.11 seal
+  Spec 172 closure and wire release dependencies) remains open as a
+  dependent, not a prerequisite. The live public-surface contradictions
+  recorded by focusa-vbcqu.20.15.39 (R01-R09) remain open for the site
+  owners; this receipt test runs the public-facade convergence gate which
+  explicitly does NOT assert live convergence, and it mutates no live
+  surface.
+
+Rollback
+- Revert only this atom: `git revert d7763c68` (drop
+  tests/spec172_installed_acceptance_receipt_test.py) and, if the evidence
+  record itself must be rolled back, the follow-up docs commit. No contract,
+  generator, workflow, source, or other test file was modified by this atom;
+  verified identities, customers, orders, refunds, License Types, keys,
+  nodes, sequences, data, migration journals, evidence, and accepted
+  unrelated work are preserved untouched. This atom verifies installed
+  acceptance receipts and re-runs journeys only; it does not weaken EDD
+  identity/commerce, signed-lease, refund/revoke, node, sequence, or
+  recovery authority.
+
+Note: the OVH build host public endpoint was unreachable from the KH network
+during this run; cargo builds were executed through the equivalent Tailscale
+peer (focusa-build-ovh-ts, 100.69.132.82) with the identical remote build
+pipeline and lock discipline (same note as the 20.15.38 acceptance record).
+
+No push, deploy, release, merge, or Beads mutation was performed.

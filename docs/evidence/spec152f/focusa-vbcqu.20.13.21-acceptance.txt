@@ -1,0 +1,135 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.21
+Title: 152E.02.07 Project EDD refund, revoke, expiry, and subscription truth
+Implementation commit: local (unpushed; see git log for this atom)
+
+Exact surfaces
+- EDD order/license/subscription/refund hooks; Stripe/EDD status adapters; account
+  entitlement sequence:
+  docs/contracts/spec152e-edd-lifecycle-projection.v1.php
+  (FocusaSpec152eEddLifecycleProjectionMigration — durable transactional outbox
+  wp_wpuiai_edd_lifecycle_events recording every order/license/subscription/refund hook
+  in the same transaction as the canonical sequence advance, replay-idempotent;
+  FocusaSpec152eEddStatusAdapter — Stripe/EDD order, Software Licensing license-change,
+  EDD Recurring subscription, and Stripe payment/dispute status adapters that map raw
+  hook statuses to canonical transitions and fail closed with EDD_STATUS_UNKNOWN;
+  FocusaSpec152eEddLifecycleProjector — projects each transition to the exact EDD
+  license state (active/suspended/refunded/revoked/expired/cancelled/superseded) and a
+  strictly monotonic authority sequence on wp_wpuiai_authority_accounts, with
+  idempotent replay, out-of-order denial (ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED), and
+  stale-reactivation denial (LICENSE_TERMINAL_REACTIVATION_DENIED))
+- tests/spec152e_edd_lifecycle_projection_test.php (exact verification)
+
+Bounded result
+- Every authority-relevant EDD transition deterministically changes the projected EDD
+  license state and the account's monotonic authority sequence: order completion ->
+  active/allowed (+1); refund and partly_refunded -> refunded/recovery_only (+1);
+  chargeback (Stripe disputed/lost) -> refunded/recovery_only (+1); manual revoke ->
+  revoked/recovery_only (+1); suspend (EDD SL disabled/inactive, EDD Recurring
+  suspended/failing, Stripe past_due/unpaid) -> suspended/denied (+1); unsuspend
+  (license active, Stripe won) -> active/allowed (+1); expiry -> expired/recovery_only
+  (+1); subscription cancellation -> cancelled/recovery_only (+1); upgrade ->
+  superseded/recovery_only (+1) with the new license completing independently; downgrade
+  -> superseded/allowed (+1); reissue -> active/allowed (+1) from the reversible
+  suspended state only; email_change and deactivate_node are audit-only hooks (+0,
+  sequence unchanged). Applied result sequences are strictly monotonic 1..18 with no
+  duplicates; the final account sequence is 18 after 18 entitlement transitions and 2
+  audit hooks.
+- Stale entitlement can never reactivate: a completion, unsuspend, or reissue event
+  targeting a terminal state (refunded/revoked/expired/superseded/cancelled/denied)
+  is journaled as 'denied' with LICENSE_TERMINAL_REACTIVATION_DENIED and leaves the
+  state and sequence untouched (stale completion after refund, stale completion of a
+  superseded license after upgrade, Stripe dispute-won after refund, reactivation of an
+  expired license). Out-of-order delivery is bounded by the optional authority ordinal:
+  a genuinely new event whose ordinal is not newer than the account's highest sequence
+  is journaled as 'denied' with ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED and can never roll
+  the sequence back; the same event delivered in order applies normally. Duplicate
+  redeliveries of an already-applied state (chargeback after refund, refund redelivery)
+  are journaled as 'replayed' with sequence_increment 0; an identical idempotency-key
+  replay returns the byte-identical decision with no duplicate journal row; the same
+  idempotency key with a different digest throws IDEMPOTENCY_CONFLICT.
+- Preservation-only truth: refund/revoke/expiry/cancel never delete the EDD customer,
+  order, license, subscription, or audit history (row counts identical to the baseline
+  after every transition; the refunded order row and refunded license row are retained).
+  The lifecycle outbox journals exactly one row per hook delivery (27 fixture rows: 20
+  applied incl. 2 audit hooks, 2 replayed, 5 denied), and rollback preservation records
+  a schema event without deleting any journal.
+- No raw email, raw payment/customer secret (stripe customer id), license key material,
+  or unmasked real-email evidence appears in any journal row or decision payload
+  (journal scans assert no '@', no 'cus_*' secret, no key material). No client-controlled
+  price/amount/grants/features/limits/tier/download_id field is accepted
+  (CLIENT_COMMERCIAL_FIELDS_FORBIDDEN); raw email input is rejected
+  (INPUT_RAW_EMAIL_FORBIDDEN); unknown accounts fail closed (ENTITLEMENT_REQUIRED);
+  customer/account mismatch fails closed (EDD_CUSTOMER_RESOLUTION_FAILED); terminal
+  transitions with no prior entitlement (refund/suspend from nothing) are journaled
+  denials (ENTITLEMENT_REQUIRED); unmapped statuses fail closed (EDD_STATUS_UNKNOWN);
+  malformed request/idempotency/UUID/authority-sequence/state-reason inputs are
+  rejected.
+
+Exact verification (exit codes)
+1. `php tests/spec152e_edd_lifecycle_projection_test.php` — exit 0 (run three times;
+   deterministic, byte-identical output).
+   {"schema":"focusa.spec152e.edd_lifecycle_projection_test.v1","positive_checks":249,"negative_checks":27,"events_journaled":27,"applied":20,"replayed":2,"denied":5,"final_sequence":18,"fixtures":["idempotent_replay","idempotency_conflict","out_of_order_stale_event","stale_completion_after_refund","stale_renewal_after_cancel","stripe_dispute_won_after_refund","duplicate_terminal_redelivery","upgrade_supersedes","chargeback_after_refund","expiry_then_reactivation_denied"],"terminal_states":["refunded","revoked","expired","superseded","cancelled"],"history_preserved":["customers","orders","licenses","subscriptions"],"journal_storage":"opaque_refs_only_no_email_no_secrets_no_keys","result":"passed_fail_closed"}
+   Bounded immutable result handle (SHA-256 of the exact output above):
+   b15b776a70e5f824a60356a0f4b6d7975af37378ad215e0753723d62e9069338
+
+Regression checks (exit codes)
+- All 21 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  edd-lifecycle-projection test and all prior EDD order-binding, license-issuance,
+  checkout-intent, product-gate, customer-adapter, promotion, and identity tests.
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry outputs current; 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  (activation contracts current; no error-code changes from this atom).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0.
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom): spec152e
+  document_authority_test.py (exit 1, audit-status wording registered by an
+  earlier atom) and spec152f_surface_reconciliation_contract_test.py (exit 1,
+  Spec 152F reconciliation index stale at the base commit).
+
+Tests added
+- spec152e_edd_lifecycle_projection_test.php: 249 positive + 27 negative checks covering
+  the Stripe/EDD status adapter matrix (EDD order completed/refunded/partly_refunded/
+  revoked/cancelled/failed; EDD SL license active/expired/revoked/disabled/inactive;
+  EDD Recurring active/cancelled/expired/suspended/failing; Stripe paid/refunded/
+  disputed/lost/canceled/void/past_due/unpaid/won; refund refunded/partly_refunded/
+  chargeback/disputed -> exact transition + license state + posture, all +1); the full
+  entitlement lifecycle (order complete -> active/allowed 0->1; refund -> refunded/
+  recovery_only 1->2 with customer/order/license/subscription history preserved;
+  chargeback redelivery replayed at 2; revoke -> revoked/recovery_only; subscription
+  suspend -> suspended/denied, unsuspend -> active/allowed, cancel -> cancelled/
+  recovery_only; expiry -> expired/recovery_only; upgrade supersedes the old license
+  while the new license completes; downgrade -> superseded/allowed; suspend then
+  reissue -> active/allowed); audit-only hooks (email_change, deactivate_node journal
+  with increment 0 and unchanged sequence); the replay/out-of-order fixtures
+  (idempotent replay returns the identical decision with no duplicate row, out-of-order
+  stale ordinal denied with ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED and the in-order
+  delivery applying later, stale completion after refund denied, stale renewal after
+  cancel denied, Stripe dispute-won after refund denied, duplicate terminal redelivery
+  replayed, upgrade supersession cannot be reactivated, expiry reactivation denied);
+  monotonicity (18 applied result sequences 1..18 unique, final sequence 18, exactly one
+  outbox row per delivery with 20 applied / 2 replayed / 5 denied); preservation
+  (history row counts unchanged, refunded order and license rows retained, rollback
+  preservation schema event, journals never deleted); redaction (no raw email, no
+  payment/customer secret, no key material in journals or payloads); and the fail-closed
+  negatives (EDD_STATUS_UNKNOWN for pending/processing/trialling/requires_action and
+  unmapped statuses, EDD_TRANSITION_UNKNOWN, CLIENT_COMMERCIAL_FIELDS_FORBIDDEN,
+  INPUT_RAW_EMAIL_FORBIDDEN, IDEMPOTENCY_CONFLICT, ENTITLEMENT_REQUIRED for unknown
+  account and refund/suspend from nothing, EDD_CUSTOMER_RESOLUTION_FAILED, bounded
+  request/idempotency/UUID/authority-sequence/state-reason validation).
+
+Rollback
+- Revert only this atom's implementation commit (edd-lifecycle-projection contract, its
+  test, and this evidence record if required). Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence,
+  and migration journals; lifecycle journals and EDD license/order/subscription rows are
+  preservation-only and never deleted.
+
+No push, deploy, release, merge, or Beads mutation was performed.

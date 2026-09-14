@@ -63,7 +63,11 @@ require(
         "push_candidate_main_with_auto_rebase",
         "Waiting for exact stamped-candidate preflight before immutable tag",
         "Release surfaces already stamped ${VERSION}; preserving exact retry SHA.",
-        "ensure_source_workflow \"Spec 132 terminal matrix\" \"$HEAD_SHA\"",
+        "STAMPED_SOURCE_SHA=\"$(git rev-parse HEAD)\"",
+        "scripts/generate-locked-release-candidate-ancestry.py",
+        "scripts/generate-locked-release-governance-receipt.py",
+        "CANDIDATE_CHANGED_PATHS=\"$(git diff --name-only",
+        "source_gate_substituted workflow=Spec-132 route=spec178 providers=ovh,appveyor,codemagic",
         "source_gate_dispatch_blocked",
         'git push origin "${TAG}"',
         "scripts/select-release-version.py",
@@ -87,8 +91,13 @@ require(
     ],
     "monotonic release version selection",
 )
-assert TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n") < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
-assert TAG_SCRIPT.index('ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"') < TAG_SCRIPT.index('wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"'), "Spec132 wait begins before missing-run dispatch"
+proof_reseal = TAG_SCRIPT.index("python3 scripts/generate-locked-release-candidate-ancestry.py")
+stamp_commit = TAG_SCRIPT.index('git commit -m "chore: stamp release surfaces ${VERSION}"')
+candidate_push = TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n", proof_reseal)
+benchmark = TAG_SCRIPT.index("journal_client benchmark --tag")
+assert stamp_commit < proof_reseal < benchmark < candidate_push, "benchmark does not use sealed stamped proof"
+assert candidate_push < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
+assert 'wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"' not in TAG_SCRIPT, "billing-locked Spec132 still blocks immutable tag creation"
 require(
     RELEASE_CLI,
     [
@@ -199,25 +208,44 @@ require(
     [
         "tags:",
         "'v*'",
-        "release-${{ github.ref }}",
+        "release-${{ inputs.release_tag || github.ref }}",
         "Swatinem/rust-cache@v2",
         "Lock exact release candidate",
         "focusa.release_candidate.v1",
-        "Upload release candidate lock",
+        "Create GitHub Release and attach candidate lock",
+        "files: release-candidate.json",
+        "fail_on_unmatched_files: true",
         "Release blocked by release-scoped pull requests",
         "unrelated open pull requests remain queued outside the locked candidate",
         "Require exact candidate-SHA preflight receipts",
-        "Exact tag CI proof",
+        "candidate_ci_skipped reason=docs-only",
+        "FOCUSA_CANDIDATE_CI_REQUIRED",
+        "Exact tag CI proof (reused)",
         "tag-ci-proof",
-        "needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]",
+        "needs: rust-check",
+        "needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]",
         "shared-key: release-target-${{ matrix.target }}",
-        "actions/workflows/ci.yml/runs",
-        "2>/dev/null || echo '[]'",
+        "git diff-tree --root --no-commit-id --name-only -r",
     ],
     "Release trigger/cache controls",
 )
 assert "Release cargo test" not in RELEASE, "Release duplicates source/tag CI cargo tests on the critical path"
 assert "Release clippy" not in RELEASE, "Release duplicates source/tag CI clippy on the critical path"
+assert "FOCUSA_GITHUB_MACOS_RESTORED" in CI, "billing-locked macOS must remain skipped until restoration"
+assert "XDG_RUNTIME_DIR" in (ROOT / ".github/workflows/deslop.yml").read_text(), "Deslop must use a runner-owned Podman runtime dir"
+require(
+    RELEASE,
+    [
+        "--json number,mergeCommit,mergedAt,baseRefName",
+        'select(.baseRefName == "main" and .mergedAt > $since and .mergedAt <= $until)',
+        'candidate_changed_paths="$(git diff --name-only',
+    ],
+    "main-scoped PR and Spec132 inclusion gates",
+)
+final_gap = RELEASE[
+    RELEASE.index("final-release-gap-gate:") : RELEASE.index("# Create the GitHub Release")
+]
+assert "fetch-depth: 0" in final_gap, "release final-gap proof checkout lacks full history"
 require(
     SPEC132,
     [
@@ -229,7 +257,7 @@ require(
         "spec132-${{ github.event.pull_request.number || github.ref }}",
         "Swatinem/rust-cache@v2",
         "shared-key: release-target-${{ matrix.target }}",
-        "toolchain: nightly-2026-01-08",
+        "toolchain: nightly-2026-08-28",
     ],
     "Spec132 ownership",
 )

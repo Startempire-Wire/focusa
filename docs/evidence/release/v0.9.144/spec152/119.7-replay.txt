@@ -1,0 +1,1 @@
+119.7 Replace installer eval bypass — authority-backed activation — parent unlock — commit d6aa8dc5e — foreground FINISH

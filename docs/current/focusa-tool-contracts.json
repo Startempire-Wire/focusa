@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 135,
+  "tool_count": 157,
   "contracts": [
     {
       "name": "focusa_agent_runtime_effective",
@@ -570,6 +570,488 @@
       }
     },
     {
+      "name": "focusa_sms_health",
+      "family": "communications",
+      "label": "SMS Broker Health",
+      "purpose": "Read value-free connector and encrypted-checkpoint health.",
+      "ontology_action": "communications.health.read",
+      "ontology_objects": [
+        "CommunicationsConnectorHealth",
+        "EncryptedConnectorCheckpoint"
+      ],
+      "api_routes": [
+        "GET /v1/sms/health"
+      ],
+      "cli_commands": [
+        "focusa sms health"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_health.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_value_free_health",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:health"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/health"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_enrollment",
+      "family": "communications",
+      "label": "SMS Enrollment",
+      "purpose": "Read value-free customer-owned connector enrollment status.",
+      "ontology_action": "communications.enrollment.read",
+      "ontology_objects": [
+        "CommunicationsEnrollment"
+      ],
+      "api_routes": [
+        "GET /v1/sms/enrollment"
+      ],
+      "cli_commands": [
+        "focusa sms enrollment"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_enrollment.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_value_free_enrollment",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:enrollment"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/enrollment"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_threads",
+      "family": "communications",
+      "label": "SMS Threads",
+      "purpose": "List customer-authorized thread summaries under the separate list_threads grant.",
+      "ontology_action": "communications.threads.list",
+      "ontology_objects": [
+        "CommunicationsThread",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "GET /v1/sms/threads"
+      ],
+      "cli_commands": [
+        "focusa sms threads"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_threads.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "authorized_customer_data_read",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:list_threads"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/threads"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_read_thread",
+      "family": "communications",
+      "label": "Read SMS Thread",
+      "purpose": "Read one bounded customer-authorized thread; OTP authority never implies message-read authority.",
+      "ontology_action": "communications.thread.read",
+      "ontology_objects": [
+        "CommunicationsThread",
+        "CommunicationsMessage",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "GET /v1/sms/threads/{thread}/messages"
+      ],
+      "cli_commands": [
+        "focusa sms read <thread-handle>"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_read_thread.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "authorized_customer_data_read",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:read_thread"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/threads/{thread}/messages"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_search",
+      "family": "communications",
+      "label": "Search SMS",
+      "purpose": "Search separately authorized message scope with bounded results.",
+      "ontology_action": "communications.messages.search",
+      "ontology_objects": [
+        "CommunicationsMessage",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "GET /v1/sms/search"
+      ],
+      "cli_commands": [
+        "focusa sms search <query>"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_search.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "authorized_customer_data_read",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:search"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/search"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_send",
+      "family": "communications",
+      "label": "Send SMS",
+      "purpose": "Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution.",
+      "ontology_action": "communications.message.send",
+      "ontology_objects": [
+        "CommunicationsDelivery",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "POST /v1/sms/send"
+      ],
+      "cli_commands": [
+        "focusa sms send <recipient-handle> --confirm"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_send.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_idempotent_message_delivery",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "sms:send"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/send"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_otp_challenge",
+      "family": "communications",
+      "label": "Register SMS OTP Challenge",
+      "purpose": "Register an exact provider and target challenge before OTP delivery.",
+      "ontology_action": "communications.otp_challenge.register",
+      "ontology_objects": [
+        "OtpChallenge",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "POST /v1/sms/otp/challenges"
+      ],
+      "cli_commands": [
+        "focusa sms otp-challenge"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_otp_challenge.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "bounded_challenge_registration",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "sms:otp_challenge"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/otp/challenges"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_otp_inject",
+      "family": "communications",
+      "label": "Inject SMS OTP",
+      "purpose": "Inject one eligible OTP into its exact bound target without exposing the value to model context.",
+      "ontology_action": "communications.otp.inject",
+      "ontology_objects": [
+        "OtpChallenge",
+        "TargetInjectionReceipt"
+      ],
+      "api_routes": [
+        "POST /v1/sms/otp/inject"
+      ],
+      "cli_commands": [
+        "focusa sms otp-inject"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_otp_inject.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "single_use_secret_injection",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "control",
+        "route_family": "sms:inject_otp"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/otp/inject"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_checkpoint",
+      "family": "communications",
+      "label": "Checkpoint SMS Connector",
+      "purpose": "Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata.",
+      "ontology_action": "communications.connector.checkpoint",
+      "ontology_objects": [
+        "EncryptedConnectorCheckpoint"
+      ],
+      "api_routes": [
+        "POST /v1/sms/checkpoint"
+      ],
+      "cli_commands": [
+        "focusa sms checkpoint"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_checkpoint.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_encrypted_checkpoint",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "control",
+        "route_family": "sms:checkpoint"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/checkpoint"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_events",
+      "family": "communications",
+      "label": "SMS Broker Events",
+      "purpose": "Read bounded value-free communications audit events.",
+      "ontology_action": "communications.events.read",
+      "ontology_objects": [
+        "CommunicationsAuditEvent"
+      ],
+      "api_routes": [
+        "GET /v1/sms/events"
+      ],
+      "cli_commands": [
+        "focusa sms events"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_events.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_value_free_audit_events",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "sms:events"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/events"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
+      "name": "focusa_sms_revoke",
+      "family": "communications",
+      "label": "Revoke SMS Connector",
+      "purpose": "Revoke one customer-owned connector and all associated grants with explicit confirmation.",
+      "ontology_action": "communications.connector.revoke",
+      "ontology_objects": [
+        "CommunicationsConnector",
+        "ScopedCapabilityGrant"
+      ],
+      "api_routes": [
+        "POST /v1/sms/revoke"
+      ],
+      "cli_commands": [
+        "focusa sms revoke --confirm"
+      ],
+      "core_surface": "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_sms_revoke.md",
+      "spec_path": "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_connector_and_grant_revocation",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      "scope_requirement": {
+        "kind": "control",
+        "route_family": "sms:revoke"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/sms/revoke"
+      },
+      "operation_policy": {
+        "operation_class": "recovery",
+        "capability_family": "account_recovery",
+        "commercial_treatment": "always_available",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "account_recovery",
+        "source_owner": "communications_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
+      }
+    },
+    {
       "name": "focusa_preload_profiles",
       "family": "preload",
       "label": "Preload Profiles",
@@ -817,6 +1299,39 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/preload/receipt-commit"
+      }
+    },
+    {
+      "name": "focusa_daemon_routing_status",
+      "label": "Daemon Routing Status",
+      "purpose": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
+      "family": "project_identity",
+      "ontology_action": "daemon_routing.resolve",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "DaemonRegistry"
+      ],
+      "api_routes": [
+        "POST /v1/daemon-routing/resolve"
+      ],
+      "cli_commands": [
+        "focusa daemon-routing status"
+      ],
+      "core_surface": "Explicit scoped daemon routing resolution",
+      "doc_path": "docs/focusa-tools/tools/focusa_daemon_routing_status.md",
+      "spec_path": "docs/158-focusa-daemon-routing-surface-parity-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus scoped daemon-routing resolve verification",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "daemon-routing"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/daemon-routing/resolve"
       }
     },
     {
@@ -1379,10 +1894,43 @@
         "POST /v1/temporal/revise",
         "POST /v1/temporal/observe",
         "POST /v1/temporal/forecast",
+        "POST /v1/temporal/preflight",
+        "GET /v1/time/now",
+        "GET /v1/time/awareness",
+        "GET /v1/time/status",
+        "GET /v1/time/trust",
+        "GET /v1/time/samples",
+        "GET /v1/time/capabilities",
+        "GET /v1/time/stream",
+        "POST /v1/deadline/set",
+        "POST /v1/deadline/revise",
+        "POST /v1/deadline/clear",
+        "GET /v1/deadlines",
+        "GET /v1/deadline/{id}",
+        "POST /v1/deadline/resolve-civil",
+        "GET /v1/deadline/conflicts",
+        "POST /v1/deadline/propagate",
+        "POST /v1/temporal/guard/issue",
+        "POST /v1/temporal/guard/validate",
+        "POST /v1/temporal/guard/revoke",
+        "POST /v1/cancellation/request",
+        "GET /v1/cancellation/{id}",
+        "POST /v1/estimate/request",
+        "POST /v1/estimate/validate",
+        "POST /v1/estimate/evaluate",
+        "GET /v1/estimate/{id}",
+        "GET /v1/estimate/history",
+        "POST /v1/response/temporal-claims/validate",
+        "POST /v1/progress/record",
+        "GET /v1/progress/status",
+        "GET /v1/no-progress/incidents",
+        "GET /v1/lost-time/incidents",
+        "GET /v1/opportunities",
         "POST /v1/temporal/preflight"
       ],
       "cli_commands": [
-        "focusa temporal status|commit|revise|observe|forecast|preflight"
+        "focusa temporal status|commit|revise|observe|forecast|preflight",
+        "focusa time|deadline|estimate|progress|no-progress|lost-time|opportunity|cancellation"
       ],
       "core_surface": "Spec137 temporal authority, ledger, claims, preflight, forecasting, and release timing",
       "doc_path": "docs/focusa-tools/tools/focusa_temporal_authority.md",
@@ -1820,6 +2368,304 @@
       "parity_status": "local_only",
       "exemptions": [
         "local_scratchpad_only"
+      ],
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_workset_projection",
+      "label": "Workset Projection",
+      "purpose": "Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger.",
+      "family": "workset",
+      "ontology_action": "workset.projection",
+      "ontology_objects": [
+        "Workset",
+        "CallGraph",
+        "Credential",
+        "BackgroundJob"
+      ],
+      "api_routes": [
+        "/v1/worksets/{workset_id}/projection"
+      ],
+      "cli_commands": [],
+      "core_surface": "workset_ledger/replay_projection",
+      "doc_path": "docs/focusa-tools/tools/focusa_workset_projection.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_projection",
+      "parity_status": "daemon_backed",
+      "exemptions": [
+        "daemon_backed_no_cli"
+      ],
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_callgraph_validate",
+      "label": "CallGraph Validate",
+      "purpose": "validating a CallGraph definition deterministically before any create or dispatch action.",
+      "family": "callgraph",
+      "ontology_action": "callgraph.validate",
+      "ontology_objects": [
+        "Workset",
+        "CallGraph",
+        "Credential",
+        "BackgroundJob"
+      ],
+      "api_routes": [
+        "POST /v1/callgraphs/validate"
+      ],
+      "cli_commands": [],
+      "core_surface": "callgraph/definition validation",
+      "doc_path": "docs/focusa-tools/tools/focusa_callgraph_validate.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_validation",
+      "parity_status": "daemon_backed",
+      "exemptions": [
+        "daemon_backed_no_cli"
+      ],
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_callgraph_observe",
+      "label": "CallGraph Observe",
+      "purpose": "Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation.",
+      "family": "callgraph",
+      "ontology_action": "callgraph.observe",
+      "ontology_objects": [
+        "Workset",
+        "CallGraph",
+        "Credential",
+        "BackgroundJob"
+      ],
+      "api_routes": [
+        "/v1/callgraph-runs/{run_id}/frontier"
+      ],
+      "cli_commands": [],
+      "core_surface": "callgraph_store/run observation",
+      "doc_path": "docs/focusa-tools/tools/focusa_callgraph_observe.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_observation",
+      "parity_status": "daemon_backed",
+      "exemptions": [
+        "daemon_backed_no_cli"
+      ],
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_credentials_verify",
+      "label": "Credentials Verify",
+      "purpose": "Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization.",
+      "family": "credential",
+      "ontology_action": "credential.verify",
+      "ontology_objects": [
+        "Workset",
+        "CallGraph",
+        "Credential",
+        "BackgroundJob"
+      ],
+      "api_routes": [
+        "/v1/credentials/verify-requirement"
+      ],
+      "cli_commands": [],
+      "core_surface": "credential_authority/verify_requirement",
+      "doc_path": "docs/focusa-tools/tools/focusa_credentials_verify.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_verdict",
+      "parity_status": "daemon_backed",
+      "exemptions": [
+        "daemon_backed_no_cli"
+      ],
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_cockpit_projection",
+      "label": "Cockpit Projection",
+      "purpose": "Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work.",
+      "family": "cockpit",
+      "ontology_action": "cockpit.projection",
+      "ontology_objects": [
+        "Workset",
+        "CallGraph",
+        "Credential",
+        "BackgroundJob"
+      ],
+      "api_routes": [
+        "/v1/cockpit/projection"
+      ],
+      "cli_commands": [],
+      "core_surface": "cockpit route projection",
+      "doc_path": "docs/focusa-tools/tools/focusa_cockpit_projection.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_projection",
+      "parity_status": "daemon_backed",
+      "exemptions": [
+        "daemon_backed_no_cli"
+      ],
+      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_bg_run",
+      "label": "BG Run",
+      "purpose": "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
+      "family": "background_job",
+      "ontology_action": "background_job.run",
+      "ontology_objects": [
+        "Workset",
+        "CallGraph",
+        "Credential",
+        "BackgroundJob"
+      ],
+      "api_routes": [
+        "/v1/background-jobs"
+      ],
+      "cli_commands": [
+        "focusa bg run --detach"
+      ],
+      "core_surface": "background_jobs route and CLI monitor",
+      "doc_path": "docs/focusa-tools/tools/focusa_bg_run.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "durable_dispatch",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "dispatch returns a non-empty durable job_id; the same row is observable and completes through SSE",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_bg_run_many",
+      "label": "BG Run Many",
+      "purpose": "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
+      "family": "background_job",
+      "ontology_action": "background_job.run_many",
+      "ontology_objects": [
+        "Workset",
+        "CallGraph",
+        "Credential",
+        "BackgroundJob"
+      ],
+      "api_routes": [
+        "/v1/background-jobs"
+      ],
+      "cli_commands": [
+        "focusa bg run --detach"
+      ],
+      "core_surface": "background_jobs route and CLI monitor",
+      "doc_path": "docs/focusa-tools/tools/focusa_bg_run_many.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "durable_dispatch",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "every successful lane returns a durable job_id; failures name the lane and never claim full dispatch",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_bg_status",
+      "label": "BG Status",
+      "purpose": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+      "family": "background_job",
+      "ontology_action": "background_job.status",
+      "ontology_objects": [
+        "Workset",
+        "CallGraph",
+        "Credential",
+        "BackgroundJob"
+      ],
+      "api_routes": [
+        "/v1/background-jobs"
+      ],
+      "cli_commands": [
+        "focusa bg status --job",
+        "focusa bg list"
+      ],
+      "core_surface": "background_job_store",
+      "doc_path": "docs/focusa-tools/tools/focusa_bg_status.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_status",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "Pi and CLI observe the same durable job row; HTTP, missing-row, and invalid-envelope states fail closed",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_fast_forward",
+      "label": "Fast Forward",
+      "purpose": "Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes.",
+      "family": "session_fanout",
+      "ontology_action": "session.fanout",
+      "ontology_objects": [
+        "Workset",
+        "CallGraph",
+        "Credential",
+        "BackgroundJob"
+      ],
+      "api_routes": [
+        "/v1/silent-sessions/fanout"
+      ],
+      "cli_commands": [],
+      "core_surface": "session_fanout route",
+      "doc_path": "docs/focusa-tools/tools/focusa_fast_forward.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "durable_dispatch",
+      "parity_status": "daemon_backed",
+      "exemptions": [
+        "daemon_backed_no_cli"
       ],
       "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
       "scope_requirement": {
@@ -2451,7 +3297,7 @@
     {
       "name": "focusa_tool_doctor",
       "label": "Focusa Tool Doctor",
-      "purpose": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
+      "purpose": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
       "family": "diagnostics_hygiene",
       "ontology_action": "diagnostics_hygiene.tool_doctor",
       "ontology_objects": [
@@ -4319,6 +5165,63 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_epistemic_operation",
+      "label": "Epistemic Operation",
+      "purpose": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
+      "family": "metacognition",
+      "ontology_action": "epistemic.operation.invoke",
+      "ontology_objects": [
+        "Spec138OperationDescriptor",
+        "ScopedAuthorityEvent"
+      ],
+      "api_routes": [
+        "POST /v1/prediction-questions",
+        "POST /v1/information-sets",
+        "POST /v1/predictions/commit",
+        "POST /v1/predictions/{id}/supersede",
+        "GET /v1/predictions/{id}",
+        "GET /v1/predictions/recent",
+        "POST /v1/outcomes/claim",
+        "POST /v1/outcomes/{id}/dispute",
+        "POST /v1/outcomes/resolve",
+        "POST /v1/outcomes/{id}/correct",
+        "POST /v1/evaluations/predictions",
+        "GET /v1/calibration/reports",
+        "POST /v1/metacognition/signals",
+        "POST /v1/metacognition/reflections",
+        "POST /v1/metacognition/adjustments",
+        "POST /v1/metacognition/evaluations",
+        "POST /v1/learning/candidates/{id}/decide",
+        "POST /v1/learning/{id}/apply",
+        "POST /v1/learning/transfers/resolve",
+        "GET /v1/learning/retrieve",
+        "GET /v1/learning/conflicts",
+        "POST /v1/learning/{id}/expire",
+        "POST /v1/learning/{id}/supersede",
+        "POST /v1/learning/{id}/revoke",
+        "POST /v1/learning/{id}/rollback",
+        "POST /v1/learning/consolidate",
+        "GET /v1/self-model"
+      ],
+      "cli_commands": [
+        "focusa predict operation --operation <operation-id>"
+      ],
+      "core_surface": "Generated Spec 138 operation registry and durable scoped prediction authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_epistemic_operation.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "typed_read_or_canonical_epistemic_mutation",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "generated 27-operation parity gate plus typed API route tests",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "prediction-authority:operation"
+      },
+      "authority_requirement": {
+        "kind": "canonical_write"
       }
     },
     {

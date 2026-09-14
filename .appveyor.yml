@@ -1,0 +1,360 @@
+# AppVeyor stop-gap for Windows builds (Spec 177 addendum, 2026-08-23).
+# Provider authority, release receipts, and all-at-once GitHub restoration:
+# docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
+# Cirrus CI shut down (~May 2026); GH hosted runners are billing-locked.
+# AppVeyor "Open-source" tier: FREE unlimited public projects, 1 concurrent
+# job, real MSVC toolchain. Operator must connect the repo once at
+# https://ci.appveyor.com/projects/new (GitHub OAuth).
+#
+# Full Windows surface coverage:
+#   - Rust binaries (focusa, daemon, TUI, session runner) for x86_64 + aarch64 MSVC
+#   - Menubar Tauri NSIS + MSI bundles (x86_64 + aarch64; tag only)
+#   - tag-gated upload of all artifacts back to the GitHub Release
+# AppVeyor hosted jobs have a hard 60-minute quota. Rust binaries, Rust tests,
+# and Menubar packaging therefore occupy separate serial jobs per architecture.
+#
+# Unplug: delete this file when GH billing is settled and the full
+# canonical Release matrix is restored.
+
+version: "{build}"
+skip_branch_with_pr: true
+
+skip_tags: false
+
+# One hosted Windows job serves the whole account. Admit only canonical release
+# tags or the explicit immutable-candidate recovery controller; ordinary pushes
+# and pull requests use exact-SHA Linux gates and must not flood this serial lane.
+branches:
+  only:
+    - fix/issue-480-appveyor-recovery
+    - /^v\d+\.\d+\.\d+(-dev)?$/
+
+# Target-specific, Cargo.lock-keyed caches are bounded by architecture and never
+# contain release credentials. They avoid full 25–40 minute cold recompilation.
+cache:
+  - '%USERPROFILE%\.cargo\registry -> Cargo.lock'
+  - '%USERPROFILE%\.cargo\git -> Cargo.lock'
+  - 'target\%RUST_TARGET% -> Cargo.lock'
+  - 'apps\menubar\src-tauri\target\%RUST_TARGET% -> apps\menubar\src-tauri\Cargo.lock'
+
+image:
+  - Visual Studio 2022
+
+environment:
+  # AppVeyor's hosted Windows linker cannot complete workspace thin LTO within
+  # its immutable 60-minute job quota. Keep release optimization/profile
+  # semantics while disabling only cross-crate LTO on this provider.
+  CARGO_PROFILE_RELEASE_LTO: "false"
+  # Public authority root (embedded at build time via build.rs/env!).
+  FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
+  matrix:
+    - RUST_TARGET: x86_64-pc-windows-msvc
+      MSVC_ARCH: amd64
+      SURFACE: binaries
+    - RUST_TARGET: x86_64-pc-windows-msvc
+      MSVC_ARCH: amd64
+      SURFACE: tests
+    - RUST_TARGET: x86_64-pc-windows-msvc
+      MSVC_ARCH: amd64
+      SURFACE: menubar
+    - RUST_TARGET: aarch64-pc-windows-msvc
+      MSVC_ARCH: amd64_arm64
+      SURFACE: binaries
+    - RUST_TARGET: aarch64-pc-windows-msvc
+      MSVC_ARCH: amd64_arm64
+      SURFACE: tests
+    - RUST_TARGET: aarch64-pc-windows-msvc
+      MSVC_ARCH: amd64_arm64
+      SURFACE: menubar
+
+install:
+  # A controller commit can recover one immutable tag without retagging. The
+  # provider loads this YAML first, then this step verifies and checks out the
+  # exact candidate before any dependency, build, test, package, or upload.
+  - ps: |
+      $recoveryPath = "config/appveyor-release-recovery.json"
+      if (Test-Path $recoveryPath) {
+        $recovery = Get-Content $recoveryPath -Raw | ConvertFrom-Json
+        $recoveryControllerBranch = "fix/issue-480-appveyor-recovery"
+        $recoveryControllerPullRequest = "482"
+        $recoveryRepository = "Startempire-Wire/focusa"
+        $isControllerBranch = $env:APPVEYOR_REPO_BRANCH -eq $recoveryControllerBranch
+        $isControllerPullRequest = (
+          $env:APPVEYOR_PULL_REQUEST_NUMBER -eq $recoveryControllerPullRequest -and
+          $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -eq $recoveryControllerBranch -and
+          $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_NAME -eq $recoveryRepository -and
+          $env:APPVEYOR_REPO_NAME -eq $recoveryRepository
+        )
+        $isControllerRequest = $isControllerBranch -or $isControllerPullRequest
+        if ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -ne "true" -and $isControllerRequest) {
+          if (-not ($recovery.tag -match '^v[0-9]+\.[0-9]+\.[0-9]+$')) { throw "invalid recovery tag" }
+          if (-not ($recovery.sha -match '^[0-9a-f]{40}$')) { throw "invalid recovery SHA" }
+          git fetch --force origin "refs/tags/$($recovery.tag):refs/tags/$($recovery.tag)"
+          if ($LASTEXITCODE -ne 0) { throw "failed to fetch immutable recovery tag" }
+          $tagSha = (git rev-parse "$($recovery.tag)^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0 -or $tagSha -ne $recovery.sha) {
+            throw "recovery tag/SHA mismatch tag=$($recovery.tag) actual=$tagSha expected=$($recovery.sha)"
+          }
+          git checkout --detach $recovery.sha
+          if ($LASTEXITCODE -ne 0) { throw "failed to checkout recovery candidate" }
+          $headSha = (git rev-parse HEAD).Trim()
+          if ($headSha -ne $recovery.sha) { throw "recovery checkout mismatch" }
+          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_TAG -Value $recovery.tag
+          Set-AppveyorBuildVariable -Name FOCUSA_RECOVERY_SHA -Value $recovery.sha
+          $controllerRoute = if ($isControllerPullRequest) { "same_repo_pr" } else { "branch" }
+          Write-Host "appveyor_recovery_identity=passed tag=$($recovery.tag) sha=$headSha route=$controllerRoute"
+        } elseif ($recovery.enabled -eq $true -and $env:APPVEYOR_REPO_TAG -eq "true") {
+          Write-Host "appveyor_recovery_ignored_for_tag=true tag=$env:APPVEYOR_REPO_TAG_NAME"
+        } elseif ($recovery.enabled -eq $true) {
+          Write-Host "appveyor_recovery_ignored_for_branch=true branch=$env:APPVEYOR_REPO_BRANCH controller=$recoveryControllerBranch"
+          Write-Host "appveyor_noncontroller_build_stopped_before_dependencies=true"
+          Exit-AppveyorBuild
+        }
+      }
+  - powershell -NoProfile -File tests/appveyor_release_lookup_test.ps1
+  - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
+  - rustup-init.exe -y --default-toolchain nightly-2026-08-28 --target %RUST_TARGET%
+  - set PATH=%USERPROFILE%\.cargo\bin;%PATH%
+  - rustc --version && cargo --version
+
+build_script:
+  # Keep vcvarsall and Cargo in one process: AppVeyor command-list entries do
+  # not preserve a prior batch block's environment (GH#382).
+  - ps: |
+      if ($env:SURFACE -ne "binaries") {
+        Write-Host "appveyor_surface_skipped=binaries-build selected=$env:SURFACE"
+        return
+      }
+      $vcvarsCandidates = @(
+        "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
+        "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+      )
+      $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if (-not $vcvars) { throw "vcvarsall.bat not found" }
+      # Branch/PR validation must not spend the provider's 60-minute budget on
+      # release optimization. Exact tags/recovery build canonical artifacts;
+      # ordinary commits use the same four-package target check.
+      $isReleaseCandidate = $env:APPVEYOR_REPO_TAG -eq "true" -or [bool]$env:FOCUSA_RECOVERY_TAG
+      $cargoAction = if ($isReleaseCandidate) { "build --release" } else { "check" }
+      Write-Host "appveyor_binary_cargo_action=$cargoAction target=$env:RUST_TARGET"
+      # Cargo writes progress to stderr. Redirect inside cmd.exe so AppVeyor's
+      # PowerShell host does not convert a successful build into NativeCommandError.
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && cargo $cargoAction --target $env:RUST_TARGET -p focusa-cli -p focusa-api -p focusa-session-runner -p focusa-tui 2>&1"
+      & cmd.exe /d /s /c $command
+      if ($LASTEXITCODE -ne 0) { throw "Rust build failed with exit code $LASTEXITCODE" }
+
+after_build:
+  - mkdir artifacts
+  # Canonical asset names required by verify-canonical-release-assets.py:
+  #   {surface}-{tag}-{target}.exe
+  - ps: |
+      if ($env:SURFACE -ne "binaries") {
+        Write-Host "appveyor_surface_skipped=binaries-copy selected=$env:SURFACE"
+        return
+      }
+      if ($env:APPVEYOR_REPO_TAG -ne "true" -and -not $env:FOCUSA_RECOVERY_TAG) {
+        Write-Host "appveyor_branch_artifact_copy_skipped=true"
+        return
+      }
+      $releaseTag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } elseif ($env:APPVEYOR_REPO_TAG -eq "true") { $env:APPVEYOR_REPO_TAG_NAME } else { "branch-$($env:APPVEYOR_REPO_COMMIT.Substring(0, 8))" }
+      $authorityBinaries = @()
+      foreach ($bin in @("focusa-daemon", "focusa", "focusa-session-runner", "focusa-tui")) {
+        $source = "target\$env:RUST_TARGET\release\$bin.exe"
+        if (-not (Test-Path $source)) { throw "missing release binary $source" }
+        $destination = "artifacts\$bin-$releaseTag-$env:RUST_TARGET.exe"
+        Move-Item $source $destination
+        if ($bin -in @("focusa-daemon", "focusa")) {
+          $authorityBinaries += $destination
+        }
+      }
+      python scripts/verify-embedded-authority-root.py @authorityBinaries
+      if ($LASTEXITCODE -ne 0) { throw "production authority root embedding proof failed" }
+  # Menubar Tauri NSIS + MSI for both Windows targets (tag or exact recovery).
+  - ps: |
+      if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG)) {
+        if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw "missing base64 Tauri updater signing key payload" }
+        if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { throw "missing Tauri updater signing password" }
+        $repoRoot = (Resolve-Path .).Path
+        $originalCi = $env:CI
+        $env:CI = "true"
+        Write-Host "appveyor_tauri_ci_normalized=$env:CI"
+        try {
+          $keyText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY))
+          $keyLines = @($keyText -split "`r?`n" | Where-Object { $_ })
+          if ($keyLines.Length -ne 2 -or -not $keyLines[0].StartsWith("untrusted comment:")) {
+            throw "invalid Tauri signing key payload structure"
+          }
+          [Convert]::FromBase64String($keyLines[1]) | Out-Null
+
+          # The immutable candidate carries an authenticated legacy Minisign
+          # envelope whose 1 GiB scrypt parameters exceed current Tauri limits.
+          # Convert it in memory with a pinned official libsodium runtime; never
+          # write decoded or converted key material to disk or logs.
+          $sodiumUrl = "https://download.libsodium.org/libsodium/releases/libsodium-1.0.21-stable-msvc.zip"
+          $sodiumSha256 = "b19069c44c3875a2d9b46123bee3200cdc26eb9514c296b13cf91e96f1175269"
+          $sodiumZip = Join-Path $env:TEMP "libsodium-1.0.21-stable-msvc.zip"
+          $sodiumRoot = Join-Path $env:TEMP "focusa-libsodium-1.0.21"
+          appveyor DownloadFile $sodiumUrl -FileName $sodiumZip
+          if ($LASTEXITCODE -ne 0) { throw "failed to download pinned libsodium runtime" }
+          $actualSodiumSha256 = (Get-FileHash -Algorithm SHA256 $sodiumZip).Hash.ToLowerInvariant()
+          if ($actualSodiumSha256 -ne $sodiumSha256) { throw "libsodium archive checksum mismatch" }
+          Expand-Archive -Path $sodiumZip -DestinationPath $sodiumRoot -Force
+          # The converter runs under the host Python architecture, independent
+          # of the Rust target. Probe only the two pinned archive candidates and
+          # select the first runtime Python can load; never guess from RUST_TARGET.
+          $sodiumDll = $null
+          foreach ($candidate in @(
+            (Join-Path $sodiumRoot "libsodium\x64\Release\v143\dynamic\libsodium.dll"),
+            (Join-Path $sodiumRoot "libsodium\Win32\Release\v143\dynamic\libsodium.dll")
+          )) {
+            if (-not (Test-Path $candidate) -or (Get-Item $candidate).Length -le 0) { continue }
+            $env:FOCUSA_SODIUM_PROBE = $candidate
+            $probeOutput = & python -c "import ctypes, os; ctypes.CDLL(os.environ['FOCUSA_SODIUM_PROBE'])" 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              $sodiumDll = $candidate
+              break
+            }
+          }
+          $env:FOCUSA_SODIUM_PROBE = $null
+          $probeOutput = $null
+          if (-not $sodiumDll) { throw "pinned libsodium runtime is not loadable by host Python" }
+          $converter = Join-Path $repoRoot "scripts\ci\convert-legacy-tauri-signing-key.py"
+          if (-not (Test-Path $converter)) { throw "legacy Tauri key converter is unavailable" }
+          $env:FOCUSA_SODIUM_LIBRARY = $sodiumDll
+          $env:FOCUSA_TAURI_KEY_CONVERTER = $converter
+          $converterDriverPath = Join-Path $env:TEMP "focusa-tauri-key-converter-driver.py"
+          @'
+      import importlib.util
+      import os
+      spec = importlib.util.spec_from_file_location("focusa_tauri_key_converter", os.environ["FOCUSA_TAURI_KEY_CONVERTER"])
+      module = importlib.util.module_from_spec(spec)
+      spec.loader.exec_module(module)
+      module.ctypes.util.find_library = lambda _name: os.environ["FOCUSA_SODIUM_LIBRARY"]
+      module.main()
+      '@ | Set-Content -Path $converterDriverPath -Encoding UTF8
+          $convertedKey = & python $converterDriverPath
+          if ($LASTEXITCODE -ne 0 -or -not $convertedKey) { throw "legacy Tauri key conversion failed" }
+          $env:TAURI_SIGNING_PRIVATE_KEY = $convertedKey.Trim()
+          Write-Host "appveyor_tauri_signer_normalized=EdScB2"
+
+          npm install -g bun
+          $npmRoot = (& npm root -g).Trim()
+          if ($LASTEXITCODE -ne 0 -or -not $npmRoot) { throw "npm global root unavailable" }
+          $bunExe = Join-Path $npmRoot "bun\bin\bun.exe"
+          if (-not (Test-Path $bunExe)) { throw "Bun executable missing under npm global root" }
+          Set-Location apps/menubar
+          bun install
+          bun run build
+          $vcvarsCandidates = @(
+            "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
+            "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+          )
+          $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $vcvars) { throw "vcvarsall.bat not found" }
+          $tauriCli = "node_modules\@tauri-apps\cli\tauri.js"
+          if (-not (Test-Path $tauriCli)) { throw "package-owned Tauri CLI missing at $tauriCli" }
+          $command = "call `"$vcvars`" $env:MSVC_ARCH && `"$bunExe`" $tauriCli --version && `"$bunExe`" $tauriCli build --target $env:RUST_TARGET --bundles nsis,msi 2>&1"
+          & cmd.exe /d /s /c $command
+          if ($LASTEXITCODE -ne 0) { throw "Tauri build failed with exit code $LASTEXITCODE" }
+          $bundle = "src-tauri/target/$env:RUST_TARGET/release/bundle"
+          Get-ChildItem -Recurse -File $bundle | Where-Object { $_.Extension -in ".exe", ".msi", ".sig" } | ForEach-Object {
+            Copy-Item $_.FullName (Join-Path $repoRoot "artifacts")
+          }
+        } finally {
+          Set-Location $repoRoot
+          $env:CI = $originalCi
+          $convertedKey = $null
+          $env:FOCUSA_TAURI_KEY_CONVERTER = $null
+          $env:FOCUSA_SODIUM_LIBRARY = $null
+          $env:FOCUSA_SODIUM_PROBE = $null
+          $env:TAURI_SIGNING_PRIVATE_KEY = $null
+          if ($converterDriverPath -and (Test-Path $converterDriverPath)) {
+            Remove-Item -Force $converterDriverPath
+          }
+        }
+      }
+
+test_script:
+  - ps: |
+      if ($env:SURFACE -ne "tests") {
+        Write-Host "appveyor_surface_skipped=tests selected=$env:SURFACE"
+        return
+      }
+      # Recovery runs the same actual candidate tests as a normal tag build.
+      $vcvarsCandidates = @(
+        "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat",
+        "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
+      )
+      $vcvars = $vcvarsCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+      if (-not $vcvars) { throw "vcvarsall.bat not found" }
+      $mode = if ($env:RUST_TARGET -eq "aarch64-pc-windows-msvc") { "--no-run" } else { "" }
+      $coreFilters = @("background_job", "callgraph", "release_adapters", "install_lifecycle", "installation_convergence", "license::tests", "runtime::backup_tests::filesystem_space")
+      $coreCommands = $coreFilters | ForEach-Object { "cargo test --release $mode --target $env:RUST_TARGET -p focusa-core --lib $_" }
+      $testCommands = @(
+        "cargo test --release $mode --target $env:RUST_TARGET -p focusa-license",
+        "cargo test --release $mode --target $env:RUST_TARGET -p focusa-cli --test distribution_manifest_portability"
+      ) + $coreCommands
+      $command = "call `"$vcvars`" $env:MSVC_ARCH && ($($testCommands -join ' && ')) 2>&1"
+      & cmd.exe /d /s /c $command
+      if ($LASTEXITCODE -ne 0) { throw "Rust tests failed with exit code $LASTEXITCODE" }
+
+# Tag pushes upload every artifact only after the canonical GitHub workflow
+# creates its gated draft Release. Provider adapters never create Releases.
+on_success:
+  - ps: |
+      if (($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG) -and $env:SURFACE -in @("binaries", "menubar")) {
+        $uploadToken = @($env:GH_TOKEN, $env:GITHUB_RELEASE_TOKEN) | Where-Object { $_ } | Select-Object -First 1
+        if (-not $uploadToken) { throw "missing GitHub release upload credential" }
+        $tag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } else { $env:APPVEYOR_REPO_TAG_NAME }
+        $repo = "Startempire-Wire/focusa"
+        $headers = @{ Authorization = "Bearer $uploadToken"; "User-Agent" = "appveyor"; "Accept" = "application/vnd.github+json" }
+        $repositoryAccess = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo" -Headers $headers
+        if (-not $repositoryAccess.permissions.push) { throw "GitHub release upload credential lacks repository push authority" }
+        $release = $null
+        $lastLookupError = "not_started"
+        for ($attempt = 1; $attempt -le 80; $attempt++) {
+          $releases = $null
+          try {
+            # GitHub's tag endpoint returns 404 for draft releases. Enumerate the
+            # authenticated release collection so Windows assets can reach the
+            # exact gated draft that must remain unpublished until settlement.
+            $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases?per_page=100" -Headers $headers
+          } catch {
+            $statusCode = $null
+            if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+              $statusCode = [int]$_.Exception.Response.StatusCode
+            }
+            if ($statusCode -eq 401 -or $statusCode -eq 403) {
+              throw "GitHub draft Release lookup authorization failed status=$statusCode"
+            }
+            $lastLookupError = if ($statusCode) { "http_$statusCode" } else { $_.Exception.Message }
+          }
+          if ($null -ne $releases) {
+            $matches = @($releases | Where-Object { $_.tag_name -eq $tag })
+            if ($matches.Count -gt 1) { throw "ambiguous GitHub draft Release tag=$tag count=$($matches.Count)" }
+            if ($matches.Count -eq 1) {
+              if ($matches[0].draft -ne $true) { throw "GitHub Release must remain draft before AppVeyor upload tag=$tag" }
+              $release = $matches[0]
+              break
+            }
+            $lastLookupError = "draft_not_found"
+          }
+          if ($attempt -lt 80) { Start-Sleep -Seconds 30 }
+        }
+        if (-not $release) { throw "canonical GitHub draft Release did not appear within 40 minutes tag=$tag last=$lastLookupError" }
+        Get-ChildItem artifacts | ForEach-Object {
+          $name = $_.Name
+          Invoke-RestMethod -Method Post -Uri "https://uploads.github.com/repos/$repo/releases/$($release.id)/assets?name=$name" `
+            -Headers @{ Authorization = "Bearer $uploadToken"; "Content-Type" = "application/octet-stream"; "User-Agent" = "appveyor" } `
+            -InFile $_.FullName | Out-Null
+          Write-Host "uploaded $name"
+        }
+        $headers = $null
+        $uploadToken = $null
+      }
+
+artifacts:
+  - path: artifacts\*
+
+# Tag pushes also build here so release packaging can pull the artifacts.
+deploy: off

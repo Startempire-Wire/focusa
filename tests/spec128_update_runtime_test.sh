@@ -44,41 +44,7 @@ for attempt in 1 2 3; do
 done
 # Before deployment, the newest release cannot possess deploy-success proof yet;
 # both fully trusted and explicitly fail-closed states are valid CI outcomes.
-jq -e '
-  .schema=="focusa.update_plan.v1" and
-  .latest.trust.key_revoked==false and
-  (.safety.staging.verify_before_promote | index("asset_sha256")) and
-  (.safety.staging.verify_before_promote | index("release_manifest_signature")) and
-  (.safety.no_half_written_executable_rule | test("never write directly")) and
-  (
-    (
-      .latest.trust.release_resolved==true and
-      .latest.trust.signature_verified==true and
-      .latest.trust.manifest_signature_verified==true and
-      .latest.trust.provenance_verified==true and
-      .latest.trust.deploy_proof_verified==true and
-      (.latest.trust.blockers|length)==0 and
-      .apply_allowed==true
-    )
-    or
-    (
-      .apply_allowed==false and
-      (.apply_blocked_until|length)>0 and
-      (
-        (
-          .latest.trust.release_resolved==false and
-          (.apply_blocked_until|index("latest_release_manifest_resolver_not_wired"))
-        )
-        or
-        (
-          (.latest.trust.blockers|length)>0 and
-          (. as $plan | $plan.latest.trust.blockers as $blockers |
-            all($blockers[]; . as $blocker | $plan.apply_blocked_until | index($blocker)))
-        )
-      )
-    )
-  )
-' <<<"$plan" >/dev/null || fail "plan is neither fully trusted nor explicitly fail-closed after bounded retries"
+jq -e '.schema=="focusa.update_plan.v1" and .latest.trust.release_resolved==true and .latest.trust.key_revoked==false and (.safety.staging.verify_before_promote | index("asset_sha256")) and (.safety.staging.verify_before_promote | index("release_manifest_signature")) and (.safety.no_half_written_executable_rule | test("never write directly")) and (((.latest.trust.signature_verified==true) and (.latest.trust.manifest_signature_verified==true) and (.latest.trust.provenance_verified==true) and (.latest.trust.deploy_proof_verified==true) and ((.latest.trust.blockers|length)==0)) or ((.latest.trust.signature_verified==false) and (.apply_blocked_until|index("release_signature_not_verified"))))' <<<"$plan" >/dev/null || fail "plan is neither fully trusted nor explicitly fail-closed after bounded retries"
 
 apply_same="$(FOCUSA_FOCUSA_PATH="$TMP/bin/focusa" "$BIN" --json update apply --latest-version 0.9.80-dev)"
 jq -e '.schema=="focusa.update_apply.v1" and .status=="blocked_read_only" and .apply_executed==false and .daemon_restart.allowed==false and .data_safety.overwrite_data==false and .data_safety.overwrite_env==false and .data_safety.overwrite_license==false' <<<"$apply_same" >/dev/null || fail "guarded apply failed no-mutation/data-safety assertions"

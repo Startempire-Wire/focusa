@@ -1,0 +1,128 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.43
+Title: 152F.06.01 Run complete entitlement-state grid acceptance
+
+Implementation commit: `e9b0f24d` (feat(spec152f): add complete
+entitlement-state grid acceptance)
+
+Exact surfaces
+- policy golden vectors:
+  tests/fixtures/spec152f-entitlement-policy-cases.v1.json (read-only
+  replay of the committed 7-state × 9-family fixture, schema
+  focusa.spec152f.entitlement_policy_cases.v1, grid_case_count 63,
+  state_count 7, family_count 9)
+- canonical resolver:
+  focusa-license `reduce_entitlement_state` (read-only; the acceptance
+  drives every grid cell through it)
+- API/core guards:
+  crates/focusa-api/src/middleware/entitlement.rs (one additive 4-line
+  #[cfg(test)] module hook at end of file; no behavior change) and the new
+  test module crates/focusa-api/src/middleware/spec152f_state_grid_acceptance.rs
+  (child module with full access to the middleware route gate, the
+  focusa-core execution guard, and the focusa-license resolver)
+- recovery matrix:
+  middleware route recovery allowances (read-only) replayed against every
+  blocked entitlement state
+
+Bounded result
+- Replayed all 63 golden-vector cells against the canonical resolver: every
+  fixture state/family pair (case_id `state::family`, exactly once) resolves
+  to the frozen posture/reason pair, including the Spec 172-bound
+  `verified_no_license` row (base_focusa = allow_verified_limited; all four
+  optional premium families = deny) and the `internal_maintenance` inherit
+  rows.
+- Proved the resolver is deterministic and fails closed: repeated reductions
+  are identical for all 7 states × 9 families; internal maintenance without
+  an initiating posture is MissingInitiatingPolicy/Deny and with one
+  inherits it; serde rejects `"evaluation"` and `"unknown"` state spellings
+  while `"verified_no_license"` round-trips as a first-class posture.
+- Proved API/core parity: for every guard-representable state
+  (PendingUnverified, ActivePaid, OfflineGrace, RefundedOrRevoked,
+  MissingOrCorrupt) × all 9 families, the focusa-core execution guard
+  (`evaluate_entitlement_execution`) returns exactly the resolver's posture
+  and reason for allow/read/base/feature cells and fails closed with the
+  matching code for denied cells (ENTITLEMENT_BASE_REQUIRED for base_focusa,
+  ENTITLEMENT_REQUIRED otherwise, ENTITLEMENT_ROUTE_UNCLASSIFIED for
+  missing-initiator internal maintenance). The API route gate matches the
+  same grid: base mutation POST /v1/workpoint/checkpoint passes only with a
+  valid signed lease (Active or Offline Grace), premium routes
+  (/v1/silent-sessions, /v1/connect/room/create, /v1/release/proof/status,
+  /v1/update/scheduler) are denied for blocked states and for active-without-
+  grant (ENTITLEMENT_FEATURE_REQUIRED) and pass only with the exact
+  authority-owned feature grant; expired leases are denied at the lease
+  validation boundary exactly like the resolver's Expired row.
+- Proved premium grant isolation: a caller can never separately purchase or
+  self-issue a premium family — without the snapshot grant the core guard and
+  API gate deny, with it they resolve to Feature; stored premium feature
+  claims never widen the base gate (only product + policy state decide;
+  wrong products and non-usable postures stay Limited/Denied).
+- Replayed the recovery matrix: stable update, repair, rollback, export
+  (run/status/history/manifest), node deactivation, pairing status,
+  diagnostics, and license status routes are never denied in missing,
+  unactivated, refunded_or_revoked, or expired states, matching the
+  resolver's AccountRecovery/CustomerDataExport Allow and ReadProjection
+  Read rows (pending_unverified read_projection is Deny — unverified
+  accounts get no read projection).
+- Spec 172 overlay: the grid is bound to `verified_no_license` (an
+  account/runtime posture, not a license, not Evaluation) and to Operator
+  License Types only — focusa_operator_lifetime_v1 and
+  uiai_operator_lifetime_v1 are the only LicenseTypeCodes, Operator v1 freezes
+  ten capability families, the verified-no-license allowlist is the six
+  explicit manual families, the blocked set is exactly the four optional
+  premium families, and the core ActiveProjectGuard enforces the one-project
+  mutation subset on the resolver's Limited decision. Self-issued Evaluation
+  carries no signed entitlement and fails closed at resolver, core, and API
+  (ENTITLEMENT_BASE_REQUIRED).
+- No raw keys, tokens, customer identifiers, or prices appear in the tests;
+  all snapshots are synthetic acceptance fixtures. No policy, resolver,
+  guard, route, or presenter behavior was changed — the atom adds only the
+  replayable acceptance receipt.
+
+Exact verification (exit codes)
+1. `cargo test -p focusa-license --test entitlement_policy_grid` — exit 0.
+   test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+2. `cargo test --workspace spec152f_state_grid_acceptance` — exit 0.
+   focusa-daemon binary: test result: ok. 8 passed; 0 failed; 0 ignored;
+   0 measured; 475 filtered out (all 8 acceptance tests). Every other
+   workspace test binary matched 0 tests and exited 0; the workspace command
+   overall exits 0.
+3. Combined `cargo test -p focusa-license --test entitlement_policy_grid &&
+   cargo test --workspace spec152f_state_grid_acceptance` — exit 0
+   (EXIT_CODE=0), 8 + 8 tests passed, 0 failed.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-api middleware` — exit 0: 37 passed; 0 failed,
+  including the 8 new acceptance tests.
+- `cargo test -p focusa-api` — exit 101 only from the 12 documented
+  pre-existing failures in routes::reflection and routes::turn
+  (reflect_history_*, scheduler_tick_respects_enable_and_cooldown,
+  reflect_run_is_idempotent_by_key_and_window,
+  turn_complete_is_idempotent_by_turn_id); 471 passed; 12 failed. This exact
+  failure set is documented as pre-existing and byte-identical on the
+  pristine baseline in docs/evidence/spec152e/focusa-vbcqu.20.13.37-
+  acceptance.txt (459-460 passed / 12 failed without any entitlement changes;
+  target files reflection.rs and turn.rs are untouched by this atom).
+
+Tests added
+- crates/focusa-api/src/middleware/spec152f_state_grid_acceptance.rs (8):
+  spec152f_state_grid_acceptance_golden_vectors_replay_all_63_cells,
+  spec152f_state_grid_acceptance_resolver_is_deterministic_and_fails_closed,
+  spec152f_state_grid_acceptance_core_guard_identical_to_resolver,
+  spec152f_state_grid_acceptance_internal_maintenance_core_guard_matches_resolver,
+  spec152f_state_grid_acceptance_premium_grant_isolation_matches_resolver,
+  spec152f_state_grid_acceptance_api_route_gate_identical_to_resolver,
+  spec152f_state_grid_acceptance_recovery_matrix_matches_resolver_rows,
+  spec152f_state_grid_acceptance_spec172_overlay_verified_no_license_and_operator_types.
+
+Rollback
+- Revert only implementation commit `e9b0f24d` (the two middleware files:
+  crates/focusa-api/src/middleware/entitlement.rs module hook and the new
+  crates/focusa-api/src/middleware/spec152f_state_grid_acceptance.rs test
+  module) and this evidence record if required. That reverts only the
+  replayable state-grid acceptance receipt; no policy, resolver, guard,
+  route, presenter, or fixture behavior is reverted because none was changed.
+  Preserve customers, orders, refunds, licenses, nodes, sequences, customer
+  data, migration journals, evidence, and already accepted authority
+  behavior. No other atom's files were modified.
+
+No push, deploy, release, merge, or Beads mutation was performed.

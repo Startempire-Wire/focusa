@@ -139,7 +139,7 @@ fn profile_and_preset_lists_have_redacted_human_json_parity() {
     let fixtures = [
         (
             "profile",
-            "/silent-sessions/profiles",
+            "/v1/silent-sessions/profiles",
             "local_pi_isolated",
             envelope(
                 "observed",
@@ -156,7 +156,7 @@ fn profile_and_preset_lists_have_redacted_human_json_parity() {
         ),
         (
             "preset",
-            "/silent-sessions/presets",
+            "/v1/silent-sessions/presets",
             "audit",
             envelope(
                 "observed",
@@ -263,7 +263,7 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
         let (output, server) = run_mocked(
             &cli_args,
             "POST",
-            "/silent-sessions/config/resolve",
+            "/v1/silent-sessions/config/resolve",
             "200 OK",
             envelope("resolved", effective_data.clone(), json!([])),
             move |body| assert_eq!(body.unwrap(), expected),
@@ -301,7 +301,7 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
             ],
         );
         let expected = json!({"config": preview_request.clone(), "layers": [], "run_id": run_id, "generation": generation});
-        let target = format!("/silent-sessions/{session_id}/config/preview");
+        let target = format!("/v1/silent-sessions/{session_id}/config/preview");
         let (output, server) = run_mocked(
             &cli_args,
             "POST",
@@ -358,7 +358,7 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
             ],
         );
         let expected = json!({"config": apply_request.clone(), "layers": [], "run_id": run_id, "generation": generation, "approval_id": "approval:config-apply", "idempotency_key": "idem-config-apply"});
-        let target = format!("/silent-sessions/{session_id}/config/revisions");
+        let target = format!("/v1/silent-sessions/{session_id}/config/revisions");
         let (output, server) = run_mocked(
             &cli_args,
             "POST",
@@ -425,7 +425,7 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
             ],
         );
         let expected = json!({"run_id": run_id, "generation": generation, "approval_id": "approval:config-rollback", "target_revision_id": rollback_target_id.clone(), "idempotency_key": "idem-config-rollback"});
-        let target = format!("/silent-sessions/{session_id}/config/rollback");
+        let target = format!("/v1/silent-sessions/{session_id}/config/rollback");
         let (output, server) = run_mocked(
             &cli_args,
             "POST",
@@ -517,7 +517,7 @@ fn config_cas_conflicts_are_stable_and_secret_free_in_human_and_json() {
             ],
         );
         let expected = json!({"config": request.clone(), "layers": [], "run_id": run_id, "generation": generation, "approval_id": "approval:stale-config", "idempotency_key": "idem-stale-config"});
-        let target = format!("/silent-sessions/{session_id}/config/revisions");
+        let target = format!("/v1/silent-sessions/{session_id}/config/revisions");
         let (output, server) = run_mocked(
             &cli_args,
             "POST",

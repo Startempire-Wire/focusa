@@ -77,4 +77,4 @@ Likely next: `focusa_state_hygiene_doctor`, `focusa_workpoint_resume`, `focusa_t
 - CLI: none.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:8a3e850d9866454adfc7e8205689d91529a142d94f58cdaeabf2ba08cfd74055`.
+- Descriptor digest: `sha256:ea38e320aa3fe4d3c7f31cd7359034dec7340dbf9bc9b34396c7e080ec138e89`.

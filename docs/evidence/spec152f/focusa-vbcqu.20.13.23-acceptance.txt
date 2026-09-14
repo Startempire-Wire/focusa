@@ -1,0 +1,150 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.23
+Title: 152E.02.09 Reconcile EDD, accounts, registrations, licenses, nodes, and leases
+Implementation commit: local (unpushed; see git log for this atom)
+
+Exact surfaces
+- Bounded reconciliation command/job; EDD and authority repositories; discrepancy
+  classifier:
+  docs/contracts/spec152e-authority-reconciliation.v1.php
+  (FocusaSpec152eAuthorityReconciliationMigration — durable reconciliation schema:
+  wp_wpuiai_reconciliation_runs (per-run typed summary and immutable result handle),
+  wp_wpuiai_reconciliation_findings, wp_wpuiai_reconciliation_repairs (bounded
+  evidence-safe repair journal), wp_wpuiai_reconciliation_quarantine (unique per
+  entity type/ref/reason, never deleted), plus schema migration and rollback-
+  preservation journals;
+  FocusaSpec152eDiscrepancyClassifier — bounded discrepancy classifier: 11 categories
+  across the 8 reconcilable entity surfaces, 5 classifications (repair_projection,
+  repair_outbox, quarantine_evidence_required, quarantine_conflict,
+  quarantine_ambiguous), bounded severities, exact bounded reasons with no raw email,
+  and fail-closed codes (RECONCILIATION_CATEGORY_UNKNOWN, RECONCILIATION_ENTITY_UNKNOWN,
+  RECONCILIATION_SEVERITY_UNKNOWN, RECONCILIATION_SEVERITY_MISMATCH,
+  RECONCILIATION_RAW_EMAIL_FORBIDDEN, RECONCILIATION_EVIDENCE_REQUIRED,
+  RECONCILIATION_REASON_TOO_LONG);
+  FocusaSpec152eAuthorityReconciler — the bounded reconciliation job: compares EDD
+  customers/orders/licenses/subscriptions against the authority account registry, the
+  lifecycle projections, the signed outbox event journal, and the verified-access
+  lease/node registries; dry-run/apply; bounded scope; deterministic immutable result
+  handle; converges on repeated runs)
+- tests/spec152e_authority_reconciliation_test.php (exact verification)
+
+Bounded result
+- Missing callbacks cannot leave stale access permanently active: canonical terminal
+  transitions with no matching lifecycle projection (o1002 refunded, o1003 revoked,
+  o1004 cancelled, L8 revoked, s2001 cancelled) and canonical completions with no
+  projection (o1005 order, s2002 subscription) are projected through the Spec 152E
+  lifecycle projector — 7 projection repairs, strictly monotonic sequence (advanced by
+  exactly 7, never lowered), terminal states never reactivate. Missing signed outbox
+  events are appended from canonical rows only (7 missing events: refund_issued,
+  license_revoked x2, order_failed, order_completed, subscription_cancelled,
+  subscription_reactivated), stale leases bound to terminal licenses are superseded or
+  revoked with exact signed events (P301 -> lease_superseded on refunded L2; P302 ->
+  lease_revoked on revoked L3), and stale nodes with terminal postures are deactivated
+  (N401 revoked, N402 superseded) — 11 outbox repairs in total, each a bounded signed
+  envelope with opaque refs, no email, no secrets, no key material.
+- Ambiguous/conflicting records are quarantined with exact reasons and stay stable:
+  c102 (customer with no verified account — never promoted; raw email match alone
+  never transfers ownership), c103 (legacy install-site duplicate link —
+  ACCOUNT_MERGE_REVIEW_REQUIRED), A4a/A4b (shared stripe link — ACCOUNT_MERGE_REVIEW_
+  REQUIRED), o1007 (canonical completed row would reactivate a terminal refunded
+  projection — LICENSE_TERMINAL_REACTIVATION_DENIED; projection stays refunded),
+  L5 (synthetic license without a canonical order), and P303 (lease with no signed
+  issuance event). Exactly 7 quarantine rows on the first apply; 0 new rows and 7
+  stable acknowledgements on every later run. Repair denials fail closed into
+  quarantine (the canonical projector's own denial codes are carried into the exact
+  quarantine reason; the conflicting o1007 row proves the terminal-reactivation guard).
+- Convergence and idempotency: dry-run applies nothing (0 repairs, 0 outbox/lifecycle
+  rows, sequence untouched, would_repair=18); the first apply repairs all 18 safe
+  fixtures (converged=true); the second apply repairs 0 (converged=true); a post-apply
+  dry-run reports 0 would-be repairs (converged=true). Scoped runs honor the bounded
+  entity surface (customer-only scope repairs nothing and sees exactly the 4
+  account-link quarantines).
+- Refund/revoke/sequence truth is never rolled back: canonical EDD rows (customers,
+  orders, licenses, subscriptions) are preserved byte-for-byte across every run; the
+  conflicted o1007 projection remains terminal refunded and is never reactivated;
+  the authority sequence only advances (7 steps) and never changes after convergence;
+  quarantine, findings, and repair journals are never deleted; rollback is
+  preservation-only (schema event recorded; all reconciliation journals retained).
+- Redaction: no raw email, no payment/customer secret (cus_test_*), no license key
+  material (FOCUSA-REC-*), no unmasked email evidence, no signing secret, and no
+  migration provenance leaks into any reconciliation storage, finding, repair,
+  quarantine row, or report. The result handle is a bounded SHA-256 over the
+  semantic report (deterministic across identical runs).
+
+Exact verification (exit codes)
+1. `php tests/spec152e_authority_reconciliation_test.php` — exit 0 (run three times;
+   deterministic, byte-identical output, md5 45dc6689bf57e001b31f180f09b6f2da).
+   {"schema":"focusa.spec152e.authority_reconciliation_test.v1","positive_checks":70,
+   "negative_checks":12,"categories":11,"classifications":5,"entity_types":8,
+   "dry_run_findings":25,"dry_run_would_repair":18,"dry_run_applied":0,
+   "apply_findings":25,"repairable":18,"repairs_applied":18,"projection_repairs":7,
+   "outbox_repairs":11,"quarantined_new":7,"stable_quarantine":7,
+   "converged_apply1":true,"converged_apply2":true,"converged_dry_after":true,
+   "sequence_advance":7,"outbox_appended":11,"lifecycle_applied":7,
+   "terminal_conflict_quarantined":true,"canonical_truth_preserved":["customers",
+   "orders","licenses","subscriptions"],"storage":"opaque_refs_only_no_email_no_secrets_no_keys",
+   "result_handle":"264a674f9ff3aa9d120a8b4c8e3bd69ee93e0c932a595d68c1858f6ff4845f98",
+   "result":"passed_fail_closed"}
+   Bounded immutable result handle (SHA-256 of the exact output above):
+   264a674f9ff3aa9d120a8b4c8e3bd69ee93e0c932a595d68c1858f6ff4845f98
+
+Regression checks (exit codes)
+- All 24 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  authority-reconciliation test and all prior authority-outbox, lifecycle-projection,
+  evaluation-issuance, order-binding, license-issuance, checkout-intent, product-gate,
+  customer-adapter, promotion, verification, registration, and identity tests.
+- `cargo check --workspace` (routed to the remote OVH build, one build at a time) —
+  exit 0, finished cleanly in 38.71s.
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry current: 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  (activation contracts current; no error-code changes from this atom).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0.
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0.
+- `python3 tests/spec172_limited_access_contract_test.py` — exit 0.
+- `git diff --check` — exit 0, no whitespace errors.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom): spec152e
+  document_authority_test.py (exit 1, spec152-final-audit-status.v1.yaml missing a
+  publication-rule token for later atoms) and spec152f_surface_reconciliation_
+  contract_test.py (exit 1, Spec 152F reconciliation index stale at the base commit).
+
+Tests added
+- spec152e_authority_reconciliation_test.php: 70 positive + 12 negative checks covering
+  the bounded classifier registry (11 categories, 5 classifications, 8 entity types,
+  derived classification/severity, fail-closed unknown category/entity/severity,
+  severity mismatch, empty/overlong reason, raw-email reason, non-opaque entity and
+  evidence refs); dry-run semantics (zero applied repairs, exact would-repair set,
+  no outbox/lifecycle writes, sequence untouched, no quarantine rows inserted, 25
+  bounded findings, 7 would-be quarantines); first apply (18 evidence-safe repairs:
+  7 lifecycle projections + 11 signed outbox events incl. stale-lease supersede/
+  revoke and stale-node deactivation; 7 quarantine rows; sequence advances by exactly
+  7; converged); repaired projection truth (refunded/revoked/cancelled visible in the
+  lifecycle journal) and appended signed events (lease_superseded on refunded license,
+  lease_revoked on revoked license, node_deactivated on terminal posture); repeated
+  apply convergence and idempotency (0 repairs, 0 new quarantine, 7 stable
+  acknowledgements, converged); post-apply dry-run convergence (0 would-repair);
+  exact quarantine reasons and stability; terminal truth never rolled back or
+  reactivated (o1007 stays refunded, LICENSE_TERMINAL_REACTIVATION_DENIED quarantined,
+  sequence unchanged after convergence, canonical EDD rows byte-for-byte preserved,
+  refund/revoke row statuses untouched); bounded scope (customer-only and license-only
+  runs); fail-closed negatives (unknown mode, unknown scope, client commerce fields in
+  scope); redaction (no email, no payment/customer secret, no license key material,
+  no unmasked email evidence, no signing secret, no provenance leakage in any
+  reconciliation table or report); deterministic immutable result handle; rollback
+  preservation (schema event recorded; runs/findings/repairs/quarantine never
+  deleted).
+
+Rollback
+- Revert only this atom's implementation commit (authority-reconciliation contract,
+  its test, and this evidence record if required). Preserve EDD customer/order/refund
+  truth, verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals; reconciliation runs, findings, repair journals,
+  and quarantine rows are preservation-only and never deleted.
+
+No push, deploy, release, merge, or Beads mutation was performed.

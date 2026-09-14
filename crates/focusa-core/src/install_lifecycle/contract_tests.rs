@@ -17,6 +17,55 @@ fn project_scope() -> LifecycleScope {
     }
 }
 
+fn first_mission_entitlement() -> FirstMissionEntitlementReservation {
+    let now = Utc::now();
+    let digest = |byte: char| format!("sha256:{}", byte.to_string().repeat(64));
+    FirstMissionEntitlementReservation {
+        schema_version: "focusa.first_mission_entitlement_reservation.v1".into(),
+        entitlement: LifecycleEntitlementDecision {
+            binding: LifecycleEntitlementBinding {
+                schema_version: "focusa.lifecycle_entitlement_binding.v1".into(),
+                state: LifecycleEntitlementState::ActiveVerifiedLimited,
+                lease_id: "lease:first-mission".into(),
+                lease_sequence: 4,
+                lease_payload_digest: digest('a'),
+                product_grants_digest: digest('b'),
+                feature_grants_digest: digest('c'),
+                node_id: "node:first-mission".into(),
+                license_class: "verified_limited".into(),
+                refresh_after: now + chrono::Duration::hours(1),
+                offline_valid_until: now + chrono::Duration::days(1),
+                expires_at: Some(now + chrono::Duration::days(7)),
+                authority_key_id: "authority-2026".into(),
+                signature_verified: true,
+            },
+            granted_products: ["focusa".into()].into_iter().collect(),
+            granted_features: [
+                "focusa.core.mission".into(),
+                "focusa.core.workpoint".into(),
+                "focusa.core.evidence".into(),
+            ]
+            .into_iter()
+            .collect(),
+            remaining_limits: [
+                ("missions".into(), 1),
+                ("workpoints".into(), 1),
+                ("evidence_records".into(), 1),
+            ]
+            .into_iter()
+            .collect(),
+            evidence_refs: vec!["evidence:signed-first-mission-lease".into()],
+        },
+        reserved_limits: [
+            ("missions".into(), 1),
+            ("workpoints".into(), 1),
+            ("evidence_records".into(), 1),
+        ]
+        .into_iter()
+        .collect(),
+    }
+}
+
 fn versions() -> Vec<ComponentVersion> {
     vec![ComponentVersion {
         component: "focusa".into(),
@@ -213,6 +262,7 @@ fn typed_transactions_validate_and_resume_idempotently() {
             exact_scope: project_scope(),
             bootstrap_preview_ref: "preview:1".into(),
             mutation_confirmation_ref: Some("confirmation:1".into()),
+            first_mission_entitlement: None,
         },
         persisted: persisted(LifecycleTransactionKind::ProjectOnboarding, project_scope()),
     };
@@ -283,6 +333,7 @@ fn project_transaction_rejects_scope_and_confirmation_gaps() {
             exact_scope: project_scope(),
             bootstrap_preview_ref: "preview:1".into(),
             mutation_confirmation_ref: None,
+            first_mission_entitlement: None,
         },
         persisted: persisted(LifecycleTransactionKind::ProjectOnboarding, project_scope()),
     };
@@ -295,6 +346,24 @@ fn project_transaction_rejects_scope_and_confirmation_gaps() {
     assert_eq!(
         transaction.validate(),
         Err(InstallLifecycleValidationError::MutationConfirmationRequired)
+    );
+    transaction.intent.mutation_confirmation_ref = Some("confirmation:1".into());
+    assert_eq!(
+        transaction.validate(),
+        Err(InstallLifecycleValidationError::FirstMissionEntitlementRequired)
+    );
+    transaction.intent.first_mission_entitlement = Some(first_mission_entitlement());
+    assert_eq!(transaction.validate(), Ok(()));
+    transaction
+        .intent
+        .first_mission_entitlement
+        .as_mut()
+        .unwrap()
+        .reserved_limits
+        .insert("workpoints".into(), 2);
+    assert_eq!(
+        transaction.validate(),
+        Err(InstallLifecycleValidationError::FirstMissionLimitReservationInvalid)
     );
 }
 
@@ -388,4 +457,161 @@ fn uninstall_and_recovery_boundaries_fail_closed() {
         recovery.validate(),
         Err(InstallLifecycleValidationError::UnknownCompletionRequiresInspection)
     );
+}
+
+fn entitlement_time(value: &str) -> chrono::DateTime<Utc> {
+    chrono::DateTime::parse_from_rfc3339(value)
+        .expect("valid fixture timestamp")
+        .with_timezone(&Utc)
+}
+
+fn digest(byte: char) -> String {
+    format!("sha256:{}", byte.to_string().repeat(64))
+}
+
+fn evaluation_entitlement() -> LifecycleEntitlementBinding {
+    LifecycleEntitlementBinding {
+        schema_version: "focusa.lifecycle_entitlement_binding.v1".into(),
+        state: LifecycleEntitlementState::ActiveVerifiedLimited,
+        lease_id: "lease:limited:001".into(),
+        lease_sequence: 7,
+        lease_payload_digest: digest('a'),
+        product_grants_digest: digest('b'),
+        feature_grants_digest: digest('c'),
+        node_id: "node:limited:001".into(),
+        license_class: "verified_limited".into(),
+        refresh_after: entitlement_time("2026-08-05T13:00:00Z"),
+        offline_valid_until: entitlement_time("2026-08-06T12:00:00Z"),
+        expires_at: Some(entitlement_time("2026-08-12T12:00:00Z")),
+        authority_key_id: "authority-lease-2026-01".into(),
+        signature_verified: true,
+    }
+}
+
+#[test]
+fn lifecycle_entitlement_binding_round_trips_with_versioned_authority_fields() {
+    let binding = evaluation_entitlement();
+    binding.validate().expect("valid signed binding");
+    assert_eq!(
+        binding.receipt_class(),
+        LifecycleEntitlementReceiptClass::LimitedAccessReady
+    );
+
+    let encoded = serde_json::to_value(&binding).expect("serialize binding");
+    for forbidden in ["email", "token", "key", "licensed", "eval"] {
+        assert!(
+            !encoded
+                .as_object()
+                .expect("binding object")
+                .contains_key(forbidden),
+            "forbidden shortcut or secret field: {forbidden}"
+        );
+    }
+    let decoded: LifecycleEntitlementBinding =
+        serde_json::from_value(encoded.clone()).expect("deserialize binding");
+    assert_eq!(decoded, binding);
+
+    let mut legacy_without_schema = encoded;
+    legacy_without_schema
+        .as_object_mut()
+        .expect("binding object")
+        .remove("schema_version");
+    let decoded_legacy: LifecycleEntitlementBinding = serde_json::from_value(legacy_without_schema)
+        .expect("v1 default for pre-version field data");
+    assert_eq!(
+        decoded_legacy.schema_version,
+        "focusa.lifecycle_entitlement_binding.v1"
+    );
+}
+
+#[test]
+fn lifecycle_entitlement_receipt_classes_never_collapse_to_boolean_status() {
+    let mut binding = evaluation_entitlement();
+    let cases = [
+        (
+            LifecycleEntitlementState::ActiveVerifiedLimited,
+            LifecycleEntitlementReceiptClass::LimitedAccessReady,
+        ),
+        (
+            LifecycleEntitlementState::ActivePaid,
+            LifecycleEntitlementReceiptClass::PaidReady,
+        ),
+        (
+            LifecycleEntitlementState::OfflineGrace,
+            LifecycleEntitlementReceiptClass::RecoveryReady,
+        ),
+        (
+            LifecycleEntitlementState::Expired,
+            LifecycleEntitlementReceiptClass::BlockedEntitlement,
+        ),
+        (
+            LifecycleEntitlementState::Revoked,
+            LifecycleEntitlementReceiptClass::BlockedEntitlement,
+        ),
+        (
+            LifecycleEntitlementState::Invalid,
+            LifecycleEntitlementReceiptClass::BlockedEntitlement,
+        ),
+    ];
+    for (state, expected) in cases {
+        binding.state = state;
+        binding.license_class = "verified_limited".into();
+        assert_eq!(binding.receipt_class(), expected);
+    }
+    binding.state = LifecycleEntitlementState::OfflineGrace;
+    binding.license_class = "authorized_development".into();
+    assert_eq!(
+        binding.receipt_class(),
+        LifecycleEntitlementReceiptClass::DevelopmentReady
+    );
+}
+
+#[test]
+fn lifecycle_entitlement_binding_rejects_unverified_or_unbound_authority() {
+    let mut binding = evaluation_entitlement();
+    binding.signature_verified = false;
+    assert_eq!(
+        binding.validate(),
+        Err(InstallLifecycleValidationError::EntitlementBindingIncomplete)
+    );
+    binding.signature_verified = true;
+    binding.lease_sequence = 0;
+    assert_eq!(
+        binding.validate(),
+        Err(InstallLifecycleValidationError::EntitlementBindingIncomplete)
+    );
+    binding.lease_sequence = 7;
+    binding.feature_grants_digest = "not-a-digest".into();
+    assert_eq!(
+        binding.validate(),
+        Err(InstallLifecycleValidationError::EntitlementBindingIncomplete)
+    );
+}
+
+#[test]
+fn adapter_capability_or_health_cannot_imply_entitlement() {
+    let mut posture = AdapterEntitlementPosture {
+        schema_version: "focusa.adapter_entitlement_posture.v1".into(),
+        product: "uiai-engine".into(),
+        lease_id: "lease:limited:001".into(),
+        lease_sequence: 7,
+        product_granted: true,
+        required_features_granted: false,
+        parent_lease_digest: digest('a'),
+        child_token_id: "child-token:001".into(),
+        child_token_audience: Some("uiai-engine:node:limited:001".into()),
+        child_token_expires_at: Some(entitlement_time("2026-08-05T12:15:00Z")),
+        entitlement_digest: digest('d'),
+        account_id: None,
+        edd_customer_id: None,
+    };
+    posture.validate().expect("typed adapter posture");
+    assert!(!posture.is_entitled());
+    posture.required_features_granted = true;
+    assert!(posture.is_entitled());
+
+    let decoded: AdapterEntitlementPosture =
+        serde_json::from_value(serde_json::to_value(&posture).expect("serialize adapter posture"))
+            .expect("deserialize adapter posture");
+    assert_eq!(decoded, posture);
 }

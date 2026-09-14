@@ -1,0 +1,6 @@
+focusa-vbcqu.20.13.39 — REAL 2026-08-18 FINISH foreground
+Commit: 86e865073420bc1c57f19b486ffd2aa85bb77cc3
+cargo fmt --all -- --check PASS
+cargo clippy -p focusa-core -p focusa-api --all-targets -- -D warnings PASS
+cargo test -p focusa-api entitlement PASS (29)
+python3 tests/spec152e_activation_client_contract_test.py — verify shared activation client reducer (presenter-neutral) if present

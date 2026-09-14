@@ -32,11 +32,14 @@ pub enum UpdateCmd {
     Check(UpdateStatusArgs),
     /// Read-only update plan. Shows what would change, prompts, compatibility gates, and restart impact.
     Plan(UpdateStatusArgs),
-    /// Guarded update apply surface. Defaults to dry-run/blocked; no mutation until all gates are wired.
+    /// Guarded update apply. Mutates only with explicit consent and complete signed-release trust.
     Apply(UpdateApplyArgs),
+    /// Bootstrap the signed historical baseline into an empty isolated canary root.
+    /// Uses the current candidate's authority and the canonical install transaction.
+    CompatibilityBootstrap(UpdateApplyArgs),
     /// Read-only update history/observability view.
     History(UpdateHistoryArgs),
-    /// Read-only rollback plan. Does not restore binaries unless future gates are wired.
+    /// Guarded rollback. Defaults to dry-run and restores only SHA-verified backups with consent.
     Rollback(UpdateRollbackArgs),
     /// Read-only admin control preview: pin/skip/pause/resume/force-check/trusted-dev-force-latest.
     Admin(UpdateAdminArgs),
@@ -155,7 +158,7 @@ pub struct UpdateApplyArgs {
     #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
     pub dry_run: bool,
 
-    /// Explicit operator consent for future apply. Still blocked until implementation gates pass.
+    /// Explicit operator consent. Required with --allow-apply and --dry-run=false.
     #[arg(long)]
     pub yes: bool,
 
@@ -170,9 +173,10 @@ pub struct UpdateApplyArgs {
 
 #[derive(Args, Debug, Clone)]
 pub struct UpdateStatusArgs {
-    /// Release channel to compare against.
-    #[arg(long, default_value = "dev")]
-    pub channel: String,
+    /// Release channel to compare against. Defaults to the update policy
+    /// channel when omitted.
+    #[arg(long)]
+    pub channel: Option<String>,
 
     /// Latest eligible version/tag override. Defaults to FOCUSA_LATEST_VERSION,
     /// then FOCUSA_UPDATE_LATEST_TAG, then this CLI package version.
@@ -182,6 +186,11 @@ pub struct UpdateStatusArgs {
     /// Daemon health URL used for safe daemon version probing.
     #[arg(long, default_value = "http://127.0.0.1:8787/v1/health")]
     pub daemon_health_url: String,
+
+    /// Explicit isolated preproduction root allowed to consume a signed
+    /// compatibility-canary candidate. Never authorizes production apply.
+    #[arg(long, value_name = "ABSOLUTE_PATH", requires = "latest_version")]
+    pub compatibility_canary_root: Option<PathBuf>,
 }
 
 #[derive(Debug, Serialize)]
@@ -539,8 +548,16 @@ struct ReleaseTrustSummary {
     manifest_signature_verified: bool,
     provenance_verified: bool,
     deploy_proof_verified: bool,
+    compatibility_canary_proof_verified: bool,
+    compatibility_canary_root: Option<String>,
+    required_previous_tag: Option<String>,
+    production_apply_authorized: bool,
     trusted_key_id: Option<String>,
     trusted_key_fingerprint: Option<String>,
+    #[serde(skip)]
+    candidate_asset_digests: Option<crate::commands::install::VerifiedInstallDigests>,
+    #[serde(skip)]
+    baseline_asset_digests: Option<crate::commands::install::VerifiedInstallDigests>,
     key_revoked: bool,
     ci_proof_required: bool,
     signature_required: bool,
@@ -638,15 +655,26 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
                 print_plan_human(&plan);
             }
         }
+        UpdateCmd::CompatibilityBootstrap(args) => {
+            run_compatibility_bootstrap(args, json_mode).await?;
+        }
         UpdateCmd::Apply(args) => {
             let dry_run = args.dry_run;
             let yes = args.yes;
             let allow_apply = args.allow_apply;
             let automatic = args.automatic || std::env::var_os("INVOCATION_ID").is_some();
+            let compatibility_canary_requested = args.status.compatibility_canary_root.is_some();
             let envelope = build_inventory("apply", args.status).await?;
             let plan = build_update_plan(envelope);
             let mut apply = build_apply_envelope(plan, dry_run, yes, allow_apply);
-            if automatic && !apply.plan.policy.auto_apply_allowed {
+            if automatic && compatibility_canary_requested {
+                apply.consent.effective = false;
+                apply.plan.apply_allowed = false;
+                apply
+                    .blocked_reason
+                    .push("compatibility_canary_automatic_apply_forbidden".into());
+                apply.recovery_hint = "Compatibility canary apply is explicit and manual-only; no scheduler or service invocation may use it.".into();
+            } else if automatic && !apply.plan.policy.auto_apply_allowed {
                 apply.consent.effective = false;
                 apply.plan.apply_allowed = false;
                 apply
@@ -709,7 +737,7 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             let part = args.part;
             let mut rollback = build_rollback_envelope(args);
             if execute {
-                match execute_verified_rollback(part) {
+                match execute_verified_rollback(part).await {
                     Ok(restored) => {
                         rollback.status = "completed";
                         rollback.read_only = false;
@@ -768,20 +796,97 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn run_compatibility_bootstrap(args: UpdateApplyArgs, json_mode: bool) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        !args.automatic && std::env::var_os("INVOCATION_ID").is_none(),
+        "compatibility bootstrap is explicit and manual-only"
+    );
+    let configured_root = args
+        .status
+        .compatibility_canary_root
+        .as_deref()
+        .context("compatibility bootstrap requires an isolated canary root")?;
+    let candidate_tag = args
+        .status
+        .latest_version
+        .as_deref()
+        .context("compatibility bootstrap requires an exact current candidate tag")?;
+    let latest = resolve_latest("stable", Some(candidate_tag), Some(configured_root)).await;
+    let root = validate_compatibility_canary_root_binding(&latest)?;
+    let previous_tag = latest
+        .trust
+        .required_previous_tag
+        .as_deref()
+        .context("signed baseline tag is missing")?;
+    let digests = latest
+        .trust
+        .baseline_asset_digests
+        .clone()
+        .context("current-signer baseline asset digests are missing")?;
+    validate_canary_mutation_target(&root, &root.join(".focusa"))?;
+    anyhow::ensure!(
+        !root.join(".focusa/bin/focusa").exists(),
+        "compatibility bootstrap requires an empty installation; use the guarded rollback path for an installed candidate"
+    );
+    if !args.dry_run {
+        anyhow::ensure!(
+            args.yes && args.allow_apply,
+            "compatibility bootstrap requires --yes --allow-apply with --dry-run=false"
+        );
+        let mut install =
+            exact_release_install_args(previous_tag, &latest.github_repo, false, true, true);
+        install.verified_asset_digests = Some(digests);
+        crate::commands::install::run(install)
+            .await
+            .context("current-authorized compatibility baseline installation failed")?;
+    }
+    let result = serde_json::json!({
+        "schema": "focusa.compatibility_baseline_bootstrap.v1",
+        "status": if args.dry_run { "planned" } else { "completed" },
+        "candidate_tag": latest.tag,
+        "baseline_tag": previous_tag,
+        "read_only": args.dry_run,
+        "mutations_performed": !args.dry_run,
+        "production_apply_authorized": false,
+    });
+    if json_mode {
+        println!("{}", serde_json::to_string_pretty(&result)?);
+    } else {
+        println!(
+            "Compatibility baseline {}: {}",
+            previous_tag, result["status"]
+        );
+    }
+    Ok(())
+}
+
 async fn build_inventory(
     command_name: &'static str,
     args: UpdateStatusArgs,
 ) -> anyhow::Result<UpdateInventoryEnvelope> {
-    let latest = resolve_latest(&args.channel, args.latest_version.as_deref()).await;
+    let channel = args.channel.clone().unwrap_or_else(effective_channel);
+    let latest = resolve_latest(
+        &channel,
+        args.latest_version.as_deref(),
+        args.compatibility_canary_root.as_deref(),
+    )
+    .await;
     let daemon_health = probe_daemon_health(&args.daemon_health_url).await;
-    let parts = vec![
+    let mut parts = vec![
         inspect_cli(&latest.version).await?,
-        inspect_daemon(&latest.version, daemon_health).await?,
         inspect_tui(&latest.version).await?,
+    ];
+    if crate::commands::install::release_requires_distribution_manifest(&latest.version) {
+        parts.push(inspect_session_runner(&latest.version).await?);
+        parts.push(inspect_distribution_manifest(&latest.version));
+        parts.push(inspect_agent_context(&latest.version));
+    }
+    parts.extend([
         inspect_pi_extension(&latest.version),
         inspect_menubar(&latest.version),
         inspect_installer(&latest.version),
-    ];
+        inspect_daemon(&latest.version, daemon_health).await?,
+    ]);
     let stale_parts = parts
         .iter()
         .filter(|part| part.stale == Some(true))
@@ -816,7 +921,7 @@ async fn build_inventory(
         command: command_name,
         read_only: true,
         mutations_performed: false,
-        channel: args.channel,
+        channel,
         latest,
         policy: update_policy_summary(),
         license: license_summary(),
@@ -827,8 +932,224 @@ async fn build_inventory(
     })
 }
 
+fn validate_isolated_canary_root_binding(
+    configured_root: &str,
+    release_tag: &str,
+    required_previous_tag: Option<&str>,
+) -> anyhow::Result<PathBuf> {
+    anyhow::ensure!(
+        !is_root(),
+        "compatibility canary must run as a non-root user"
+    );
+
+    let root = std::fs::canonicalize(configured_root)
+        .with_context(|| format!("canonicalize compatibility canary root {configured_root}"))?;
+    anyhow::ensure!(
+        root.file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with("focusa-compatibility-canary-")),
+        "compatibility canary root name is not isolated"
+    );
+    let parent = std::env::var_os("FOCUSA_COMPATIBILITY_CANARY_PARENT")
+        .map(PathBuf::from)
+        .context("FOCUSA_COMPATIBILITY_CANARY_PARENT is required")?;
+    let parent = std::fs::canonicalize(&parent)
+        .with_context(|| format!("canonicalize canary parent {}", parent.display()))?;
+    anyhow::ensure!(
+        root != parent && root.starts_with(&parent),
+        "canary root escapes its parent"
+    );
+
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .context("HOME is required for compatibility canary")?;
+    let home = std::fs::canonicalize(&home)
+        .with_context(|| format!("canonicalize canary HOME {}", home.display()))?;
+    anyhow::ensure!(home == root, "compatibility canary root must equal HOME");
+
+    for variable in [
+        "XDG_CONFIG_HOME",
+        "XDG_DATA_HOME",
+        "XDG_STATE_HOME",
+        "XDG_CACHE_HOME",
+        "FOCUSA_DATA_DIR",
+        "FOCUSA_PI_EXT_DIR",
+        "PI_CODING_AGENT_DIR",
+    ] {
+        let path = std::env::var_os(variable)
+            .map(PathBuf::from)
+            .with_context(|| format!("{variable} is required for compatibility canary"))?;
+        let path = std::fs::canonicalize(&path)
+            .with_context(|| format!("canonicalize {variable} path {}", path.display()))?;
+        anyhow::ensure!(
+            path != root && path.starts_with(&root),
+            "{variable} escapes compatibility canary root"
+        );
+    }
+
+    let marker_path = root.join(".focusa-compatibility-canary-scope.json");
+    let marker: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(&marker_path)
+            .with_context(|| format!("read canary marker {}", marker_path.display()))?,
+    )
+    .context("parse compatibility canary marker")?;
+    anyhow::ensure!(
+        marker["schema"].as_str() == Some("focusa.compatibility_canary_scope.v1")
+            && marker["release_tag"].as_str() == Some(release_tag)
+            && marker["root"].as_str() == Some(root.to_string_lossy().as_ref())
+            && marker["production"].as_bool() == Some(false)
+            && required_previous_tag
+                .map(|tag| marker["required_previous_tag"].as_str() == Some(tag))
+                .unwrap_or(true),
+        "compatibility canary marker identity mismatch"
+    );
+
+    let current_exe = std::fs::canonicalize(std::env::current_exe()?)?;
+    anyhow::ensure!(
+        current_exe.starts_with(&root),
+        "compatibility canary updater executable is outside isolated root"
+    );
+    let config_home = std::fs::canonicalize(
+        std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .context("XDG_CONFIG_HOME is required")?,
+    )?;
+    anyhow::ensure!(
+        config_home.join("focusa/license.json").is_file(),
+        "compatibility canary signed lease fixture is missing"
+    );
+    let data_root = std::fs::canonicalize(
+        std::env::var_os("FOCUSA_DATA_DIR")
+            .map(PathBuf::from)
+            .context("FOCUSA_DATA_DIR is required")?,
+    )?;
+    anyhow::ensure!(
+        data_root.join("focusa.sqlite").is_file(),
+        "compatibility canary legacy database fixture is missing"
+    );
+    let pi_package = std::env::var_os("FOCUSA_PI_EXTENSION_PACKAGE_JSON")
+        .map(PathBuf::from)
+        .context("FOCUSA_PI_EXTENSION_PACKAGE_JSON is required")?;
+    let pi_package = std::fs::canonicalize(&pi_package).with_context(|| {
+        format!(
+            "canonicalize FOCUSA_PI_EXTENSION_PACKAGE_JSON {}",
+            pi_package.display()
+        )
+    })?;
+    anyhow::ensure!(
+        pi_package.starts_with(&root) && pi_package.is_file(),
+        "FOCUSA_PI_EXTENSION_PACKAGE_JSON escapes compatibility canary root"
+    );
+    anyhow::ensure!(
+        root.join("user-sentinel.txt").is_file(),
+        "compatibility canary user sentinel is missing"
+    );
+    Ok(root)
+}
+
+fn validate_compatibility_canary_root_binding(latest: &LatestVersion) -> anyhow::Result<PathBuf> {
+    let configured_root = latest
+        .trust
+        .compatibility_canary_root
+        .as_deref()
+        .context("explicit compatibility canary root is missing")?;
+    anyhow::ensure!(
+        latest.trust.compatibility_canary_proof_verified,
+        "signed compatibility canary authorization is not verified"
+    );
+    anyhow::ensure!(
+        !latest.trust.production_apply_authorized,
+        "compatibility canary proof must never authorize production apply"
+    );
+    validate_isolated_canary_root_binding(
+        configured_root,
+        &latest.tag,
+        latest.trust.required_previous_tag.as_deref(),
+    )
+}
+
+fn validate_canary_mutation_target(root: &Path, target: &Path) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        target.is_absolute()
+            && !target
+                .components()
+                .any(|component| matches!(component, std::path::Component::ParentDir)),
+        "compatibility canary mutation target is not a normalized absolute path: {}",
+        target.display()
+    );
+    let target_exists = target.exists();
+    let resolved = if target_exists {
+        std::fs::canonicalize(target)
+            .with_context(|| format!("canonicalize canary mutation target {}", target.display()))?
+    } else {
+        let mut ancestor = target.parent();
+        loop {
+            let candidate = ancestor.context("canary mutation target has no existing ancestor")?;
+            if candidate.exists() {
+                break std::fs::canonicalize(candidate).with_context(|| {
+                    format!(
+                        "canonicalize canary mutation target ancestor {}",
+                        candidate.display()
+                    )
+                })?;
+            }
+            ancestor = candidate.parent();
+        }
+    };
+    anyhow::ensure!(
+        target != root && resolved.starts_with(root) && (!target_exists || resolved != root),
+        "compatibility canary mutation target escapes isolated root: {}",
+        target.display()
+    );
+    Ok(())
+}
+
+fn validate_compatibility_canary_environment(
+    latest: &LatestVersion,
+    parts: &[InstalledPart],
+) -> anyhow::Result<PathBuf> {
+    let root = validate_compatibility_canary_root_binding(latest)?;
+    let required_previous = normalize_version(
+        latest
+            .trust
+            .required_previous_tag
+            .as_deref()
+            .context("compatibility canary prior release is missing")?,
+    );
+    for required_part in ["cli", "tui", "daemon"] {
+        let part = parts
+            .iter()
+            .find(|part| part.part == required_part)
+            .with_context(|| format!("compatibility canary {required_part} inventory missing"))?;
+        anyhow::ensure!(
+            part.version
+                .as_deref()
+                .is_some_and(|version| normalize_version(version) == required_previous),
+            "compatibility canary {required_part} is not exact prior release {required_previous}"
+        );
+        let path = part
+            .resolved_path
+            .as_deref()
+            .with_context(|| format!("compatibility canary {required_part} path missing"))?;
+        let path = std::fs::canonicalize(path)
+            .with_context(|| format!("canonicalize compatibility canary {required_part}"))?;
+        anyhow::ensure!(
+            path.starts_with(root.join(".focusa/bin")),
+            "compatibility canary {required_part} resolves outside isolated install"
+        );
+    }
+    Ok(root)
+}
+
 fn build_update_plan(inventory: UpdateInventoryEnvelope) -> UpdatePlanEnvelope {
     let mut blockers = inventory.latest.trust.blockers.clone();
+    if inventory.latest.trust.compatibility_canary_root.is_some() {
+        if let Err(error) =
+            validate_compatibility_canary_environment(&inventory.latest, &inventory.parts)
+        {
+            blockers.push(format!("compatibility_canary_scope_invalid:{error}"));
+        }
+    }
     if read_update_admin_state()
         .map(|state| state.paused)
         .unwrap_or(false)
@@ -1152,17 +1473,28 @@ fn is_root() -> bool {
 
 fn build_notifications_envelope(inventory: UpdateInventoryEnvelope) -> UpdateNotificationsEnvelope {
     let admin = read_update_admin_state().unwrap_or_default();
+    // 320: channel mismatch + inversion do not use stale_parts alone; policy channel is the source of truth.
+    let policy_channel = inventory.policy.channel.clone();
+    let effective_channel = if policy_channel.is_empty() {
+        inventory.channel.clone()
+    } else {
+        policy_channel.clone()
+    };
+    let channel_mismatch = !policy_channel.is_empty() && policy_channel != inventory.channel;
+    let inversion = inventory.parts.iter().any(|part| {
+        part.version
+            .as_deref()
+            .map(|installed| installed > inventory.latest.version.as_str())
+            .unwrap_or(false)
+    });
     let stale_parts = if admin.paused {
         Vec::new()
     } else {
         inventory.stale_parts
     };
-    let severity = if stale_parts.is_empty() {
-        "none"
-    } else {
-        "warning"
-    };
-    let body = if stale_parts.is_empty() {
+    let has_warning = !stale_parts.is_empty() || channel_mismatch || inversion;
+    let severity = if has_warning { "warning" } else { "none" };
+    let mut body = if stale_parts.is_empty() {
         "Focusa surfaces are current or unknown; no update warning is required.".to_string()
     } else {
         format!(
@@ -1170,6 +1502,20 @@ fn build_notifications_envelope(inventory: UpdateInventoryEnvelope) -> UpdateNot
             stale_parts.join(", ")
         )
     };
+    if channel_mismatch {
+        body = format!(
+            "{} Policy channel '{}' mismatches inventory channel '{}'; nightly is blocked until channels align.",
+            body, policy_channel, inventory.channel
+        );
+    }
+    if inversion {
+        body = format!(
+            "{} Installed newer than Latest {} on channel '{}' (version inversion: no downgrade offered).",
+            body,
+            inventory.latest.version.as_str(),
+            effective_channel
+        );
+    }
     UpdateNotificationsEnvelope {
         schema: "focusa.update_notifications.v1",
         status: "completed",
@@ -1310,9 +1656,16 @@ struct RollbackManifestEntry {
 #[derive(Deserialize)]
 struct RollbackManifest {
     entries: Vec<RollbackManifestEntry>,
+    strategy: Option<String>,
+    release_tag: Option<String>,
+    system_install: Option<bool>,
+    github_repo: Option<String>,
+    compatibility_canary_root: Option<String>,
+    compatibility_canary_tag: Option<String>,
+    compatibility_canary_previous_tag: Option<String>,
 }
 
-fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> {
+async fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> {
     let backups = update_state_root().join("backups");
     let manifest = std::fs::read_dir(&backups)?
         .filter_map(Result::ok)
@@ -1323,6 +1676,67 @@ fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> 
         .max_by_key(|path| path.metadata().and_then(|m| m.modified()).ok())
         .context("no rollback manifest available")?;
     let manifest: RollbackManifest = serde_json::from_slice(&std::fs::read(&manifest)?)?;
+    if manifest.strategy.as_deref() == Some("exact_release_reinstall") {
+        anyhow::ensure!(
+            part == RollbackPart::All,
+            "manifest-bound updates roll back as one full release; use --part all"
+        );
+        let tag = manifest
+            .release_tag
+            .as_deref()
+            .context("manifest-bound rollback release tag is missing")?;
+        let compatibility_canary = manifest.compatibility_canary_root.is_some();
+        let mut verified_asset_digests = None;
+        if let Some(root) = manifest.compatibility_canary_root.as_deref() {
+            anyhow::ensure!(
+                !manifest.system_install.unwrap_or(false),
+                "compatibility canary rollback cannot target a system install"
+            );
+            let candidate_tag = manifest
+                .compatibility_canary_tag
+                .as_deref()
+                .context("compatibility canary rollback candidate tag is missing")?;
+            let previous_tag = manifest
+                .compatibility_canary_previous_tag
+                .as_deref()
+                .context("compatibility canary rollback prior tag is missing")?;
+            anyhow::ensure!(
+                previous_tag == tag,
+                "compatibility canary rollback target differs from signed prior tag"
+            );
+            validate_isolated_canary_root_binding(root, candidate_tag, Some(previous_tag))?;
+            // A local rollback journal is routing information, not signing authority.
+            // Reverify the current candidate before accepting any historical digest.
+            let latest = resolve_latest("stable", Some(candidate_tag), Some(Path::new(root))).await;
+            validate_compatibility_canary_root_binding(&latest)?;
+            anyhow::ensure!(
+                latest.trust.required_previous_tag.as_deref() == Some(tag),
+                "rollback baseline differs from current signed authorization"
+            );
+            verified_asset_digests = Some(
+                latest
+                    .trust
+                    .baseline_asset_digests
+                    .clone()
+                    .context("signed rollback baseline asset binding is missing")?,
+            );
+        }
+        let mut args = exact_release_install_args(
+            tag,
+            manifest
+                .github_repo
+                .as_deref()
+                .unwrap_or("Startempire-Wire/focusa"),
+            manifest.system_install.unwrap_or(false),
+            compatibility_canary,
+            true,
+        );
+        args.verified_asset_digests = verified_asset_digests;
+        crate::commands::install::run(args)
+            .await
+            .context("exact prior-release reinstall failed")?;
+        return Ok(vec!["full_release".into()]);
+    }
     let wanted = |name: &str| match part {
         RollbackPart::All => true,
         RollbackPart::Cli => name == "cli",
@@ -1338,6 +1752,23 @@ fn execute_verified_rollback(part: RollbackPart) -> anyhow::Result<Vec<String>> 
         .entries
         .iter()
         .any(|entry| wanted(&entry.part) && entry.part == "daemon");
+    #[cfg(target_os = "linux")]
+    let _system_deploy_lock = if let Some(daemon_path) = manifest
+        .entries
+        .iter()
+        .find(|entry| wanted(&entry.part) && entry.part == "daemon")
+        .map(|entry| entry.target.as_path())
+        .filter(|path| crate::commands::system_service::is_canonical_system_daemon(path))
+    {
+        let system_bin = daemon_path
+            .parent()
+            .context("canonical daemon rollback target has no parent")?;
+        let lock = crate::commands::system_service::acquire_system_deploy_lock(system_bin)?;
+        crate::commands::system_service::preflight_system_install()?;
+        Some(lock)
+    } else {
+        None
+    };
     if restoring_daemon {
         stop_daemon_before_promotion()?;
     }
@@ -1411,7 +1842,17 @@ fn build_rollback_envelope(args: UpdateRollbackArgs) -> UpdateRollbackEnvelope {
         ],
         restore_order: match args.part {
             RollbackPart::Daemon => vec!["daemon", "restart_daemon_after_health_contract_check"],
-            RollbackPart::All => vec!["daemon", "tui", "cli", "health_contract_check"],
+            RollbackPart::All => vec![
+                "full_release",
+                "daemon",
+                "session_runner",
+                "tui",
+                "cli",
+                "distribution_manifest",
+                "agent_context",
+                "health_contract_check",
+                "callgraph_contract_check",
+            ],
             RollbackPart::Cli => vec!["cli"],
             RollbackPart::Tui => vec!["tui"],
         },
@@ -1753,18 +2194,17 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
         spawn_daemon_detached_with_retry(daemon_path)?;
         return Ok(());
     } else {
-        for args in [
-            vec!["--user", "restart", "focusa-daemon.service"],
-            vec!["restart", "focusa-daemon.service"],
-        ] {
-            if std::process::Command::new("systemctl")
-                .args(&args)
-                .status()
-                .map(|status| status.success())
-                .unwrap_or(false)
-            {
-                return Ok(());
-            }
+        #[cfg(target_os = "linux")]
+        if crate::commands::system_service::is_canonical_system_daemon(daemon_path) {
+            return crate::commands::system_service::restart_existing_system_service();
+        }
+        if std::process::Command::new("systemctl")
+            .args(["--user", "restart", "focusa-daemon.service"])
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false)
+        {
+            return Ok(());
         }
     }
     terminate_portable_daemon_from_lock();
@@ -1772,6 +2212,9 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
 }
 
 fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<String>> {
+    if promoted.iter().any(|(part, _, _, _)| part == "daemon") {
+        stop_daemon_before_promotion().context("stop promoted daemon before rollback")?;
+    }
     let mut restored = Vec::new();
     for (part, target, backup, _) in promoted.iter().rev() {
         if !backup.exists() {
@@ -1799,22 +2242,216 @@ fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<Stri
     Ok(restored)
 }
 
+fn exact_release_install_args(
+    tag: &str,
+    github_repo: &str,
+    system_install: bool,
+    compatibility_canary: bool,
+    allow_verified_rollback: bool,
+) -> crate::commands::install::InstallArgs {
+    let channel = if tag.contains("-nightly.") {
+        crate::commands::install::Channel::Nightly
+    } else if tag.contains('-') {
+        crate::commands::install::Channel::Preview
+    } else {
+        crate::commands::install::Channel::Stable
+    };
+    crate::commands::install::InstallArgs {
+        target: crate::commands::install::InstallTarget::Auto,
+        channel,
+        dry_run: false,
+        preflight: false,
+        no_animation: true,
+        quiet: true,
+        install_dependencies: false,
+        assume_yes: false,
+        license_key: None,
+        eval: false,
+        accept_license: true,
+        no_service: compatibility_canary,
+        reuse_existing_license: true,
+        suppress_completion_output: true,
+        release_tag_override: Some(tag.to_string()),
+        allow_verified_rollback,
+        compatibility_canary,
+        verified_asset_digests: None,
+        system_install,
+        persist_path: false,
+        no_persist_path: true,
+        on_shell: crate::commands::install::ShellFamily::Auto,
+        json: false,
+        github_repo: Some(github_repo.to_string()),
+    }
+}
+
+async fn execute_manifest_bound_apply(
+    plan: &UpdatePlanEnvelope,
+    state: &Path,
+    backup_root: &Path,
+) -> anyhow::Result<Vec<String>> {
+    let mutable_parts = plan
+        .parts
+        .iter()
+        .filter(|part| {
+            matches!(
+                part.action,
+                "would_update" | "would_install" | "would_update_package" | "would_install_package"
+            )
+        })
+        .map(|part| part.part.to_string())
+        .collect::<Vec<_>>();
+    if mutable_parts.is_empty() {
+        return Ok(Vec::new());
+    }
+    let compatibility_canary_root = plan.latest.trust.compatibility_canary_root.as_deref();
+    if compatibility_canary_root.is_some() {
+        let root = validate_compatibility_canary_root_binding(&plan.latest)?;
+        for part in plan.parts.iter().filter(|part| {
+            matches!(
+                part.action,
+                "would_update" | "would_install" | "would_update_package" | "would_install_package"
+            )
+        }) {
+            let target = part.target_path.as_deref().with_context(|| {
+                format!(
+                    "compatibility canary mutation target is missing for {}",
+                    part.part
+                )
+            })?;
+            validate_canary_mutation_target(&root, Path::new(target))?;
+        }
+    }
+    // Issue #593: the install mode must follow the running executable's
+    // actual surface, not any-part target paths. Auxiliary plan parts
+    // (session_runner, installer) carry canonical /usr/local fallback paths
+    // even on per-user installs, which promoted every macOS user update to
+    // system-install mode and failed the transaction at install.rs.
+    let system_install = compatibility_canary_root.is_none()
+        && std::env::current_exe()
+            .ok()
+            .map(|exe| {
+                let exe = std::fs::canonicalize(&exe).unwrap_or(exe);
+                running_surface_is_system(&exe)
+            })
+            .unwrap_or(false);
+    let mut args = exact_release_install_args(
+        &plan.latest.tag,
+        &plan.latest.github_repo,
+        system_install,
+        compatibility_canary_root.is_some(),
+        false,
+    );
+    args.verified_asset_digests = Some(
+        plan.latest
+            .trust
+            .candidate_asset_digests
+            .clone()
+            .context("manifest-bound install lacks authenticated asset digests")?,
+    );
+    let journal = state.join("update-journal.json");
+    match crate::commands::install::run(args).await {
+        Ok(()) => {
+            if let Some(previous_version) = plan
+                .parts
+                .iter()
+                .find(|part| part.part == "cli")
+                .and_then(|part| part.current_version.as_deref())
+                .or_else(|| {
+                    plan.parts
+                        .iter()
+                        .find(|part| part.part == "daemon")
+                        .and_then(|part| part.current_version.as_deref())
+                })
+                .filter(|version| normalize_version(version) != plan.latest.version)
+            {
+                std::fs::write(
+                    backup_root.join("rollback-manifest.json"),
+                    serde_json::to_vec_pretty(&json!({
+                        "schema": "focusa.update_rollback_manifest.v1",
+                        "strategy": "exact_release_reinstall",
+                        "release_tag": release_tag_for_version(previous_version),
+                        "system_install": system_install,
+                        "github_repo": plan.latest.github_repo,
+                        "compatibility_canary_root": compatibility_canary_root,
+                        "compatibility_canary_tag": compatibility_canary_root.map(|_| plan.latest.tag.as_str()),
+                        "compatibility_canary_previous_tag": plan.latest.trust.required_previous_tag.as_deref(),
+                        "entries": [],
+                    }))?,
+                )?;
+            }
+            std::fs::write(
+                &journal,
+                serde_json::to_vec_pretty(&json!({
+                    "schema": "focusa.update_journal.v1",
+                    "state": "completed",
+                    "tag": plan.latest.tag,
+                    "lifecycle_owner": "focusa_install",
+                    "promoted": mutable_parts,
+                }))?,
+            )?;
+            Ok(mutable_parts)
+        }
+        Err(error) => {
+            std::fs::write(
+                &journal,
+                serde_json::to_vec_pretty(&json!({
+                    "schema": "focusa.update_journal.v1",
+                    "state": "failed_rolled_back",
+                    "tag": plan.latest.tag,
+                    "lifecycle_owner": "focusa_install",
+                    "error": error.to_string(),
+                }))?,
+            )?;
+            Err(error.context("canonical manifest-bound install transaction failed"))
+        }
+    }
+}
+
 async fn execute_verified_apply_locked(
     plan: &UpdatePlanEnvelope,
     state: &Path,
 ) -> anyhow::Result<Vec<String>> {
+    let manifest_bound =
+        crate::commands::install::release_requires_distribution_manifest(&plan.latest.version);
+    #[cfg(target_os = "linux")]
+    let _system_deploy_lock = if manifest_bound {
+        // The one canonical install lifecycle acquires this same lock. Never
+        // acquire it twice through the OTA compatibility adapter.
+        None
+    } else if let Some(daemon_path) = plan
+        .parts
+        .iter()
+        .find(|part| part.part == "daemon")
+        .and_then(|part| part.target_path.as_deref())
+        .map(Path::new)
+        .filter(|path| crate::commands::system_service::is_canonical_system_daemon(path))
+    {
+        let system_bin = daemon_path
+            .parent()
+            .context("canonical daemon target has no parent")?;
+        let lock = crate::commands::system_service::acquire_system_deploy_lock(system_bin)?;
+        crate::commands::system_service::preflight_system_install()?;
+        Some(lock)
+    } else {
+        None
+    };
     let stamp = format!("{}-{}", std::process::id(), chrono_like_timestamp());
     let stage = state.join("staging").join(&stamp);
     let backup_root = state.join("backups").join(&stamp);
     std::fs::create_dir_all(&stage)?;
     std::fs::create_dir_all(&backup_root)?;
     let journal = state.join("update-journal.json");
+    let progress = state.join("update-progress.txt");
+    std::fs::write(&progress, "staging")?;
     std::fs::write(
         &journal,
         serde_json::to_vec_pretty(&json!({
             "schema":"focusa.update_journal.v1", "state":"staging", "tag":plan.latest.tag, "started_at":stamp
         }))?,
     )?;
+    if manifest_bound {
+        return execute_manifest_bound_apply(plan, state, &backup_root).await;
+    }
     let daemon_health_url = std::env::var("FOCUSA_DAEMON_HEALTH_URL")
         .unwrap_or_else(|_| "http://127.0.0.1:8787/v1/health".into());
     let daemon_was_running = probe_daemon_health(&daemon_health_url).await.is_some();
@@ -1827,6 +2464,7 @@ async fn execute_verified_apply_locked(
             .iter()
             .filter(|part| matches!(part.action, "would_update" | "would_install"))
         {
+            std::fs::write(&progress, format!("binary:{}:download", part.part))?;
             let url = part
                 .download_url
                 .as_deref()
@@ -1879,6 +2517,7 @@ async fn execute_verified_apply_locked(
             if part.part == "daemon" {
                 stop_daemon_before_promotion()?;
             }
+            std::fs::write(&progress, format!("binary:{}:promote", part.part))?;
             let backup = backup_root.join(target.file_name().context("target filename missing")?);
             let backup_sha256 = if target.exists() {
                 let digest = sha256_file(&target)?;
@@ -1934,6 +2573,7 @@ async fn execute_verified_apply_locked(
         if let Some((_, daemon_path, _, _)) =
             promoted.iter().find(|(part, _, _, _)| part == "daemon")
         {
+            std::fs::write(&progress, "daemon:restart_and_health")?;
             restart_daemon_service(daemon_path)?;
             let mut observed_version = None;
             for _ in 0..20 {
@@ -1958,6 +2598,7 @@ async fn execute_verified_apply_locked(
                 "would_update_package" | "would_install_package"
             )
         }) {
+            std::fs::write(&progress, format!("package:{}:download", part.part))?;
             let url = part
                 .download_url
                 .as_deref()
@@ -1972,7 +2613,13 @@ async fn execute_verified_apply_locked(
                 anyhow::bail!("Pi extension staged checksum mismatch");
             }
             std::fs::write(&archive, &bytes)?;
-            std::fs::File::open(&archive)?.sync_all()?;
+            std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&archive)
+                .context("open staged Pi extension archive for durable flush")?
+                .sync_all()
+                .context("durably flush staged Pi extension archive")?;
             let package_json = PathBuf::from(
                 part.target_path
                     .as_deref()
@@ -1989,12 +2636,19 @@ async fn execute_verified_apply_locked(
                 sha256: expected.to_string(),
                 install_path: archive.display().to_string(),
             };
+            std::fs::write(&progress, format!("package:{}:activate", part.part))?;
             crate::commands::install::integrate_pi_extension(
                 &installed,
                 &stage,
                 Some(extension_root),
                 None,
-            )?;
+            )
+            .with_context(|| {
+                format!(
+                    "activate verified Pi extension package in {}",
+                    extension_root.display()
+                )
+            })?;
             std::fs::write(
                 state.join("pi-extension-silent-restart-required.json"),
                 serde_json::to_vec_pretty(&json!({
@@ -2010,6 +2664,9 @@ async fn execute_verified_apply_locked(
     }
     .await;
     if let Err(error) = operation {
+        let failed_phase = std::fs::read_to_string(&progress)
+            .unwrap_or_else(|_| "unknown_transaction_phase".into());
+        let error = error.context(format!("update transaction phase {failed_phase}"));
         let rollback_result = rollback_promoted_parts(&promoted);
         let daemon_was_touched = promoted.iter().any(|(part, _, _, _)| part == "daemon")
             || (cfg!(target_os = "windows") && plan.parts.iter().any(|part| part.part == "daemon"));
@@ -2236,12 +2893,11 @@ fn build_apply_envelope(
             note: "consent allows verified promotion only after release trust and policy gates pass",
         },
         execution_order: vec![
-            "cli",
-            "tui",
-            "installer",
-            "pi_extension_package",
-            "daemon_last",
-            "restart_daemon_only_if_changed_and_allowed",
+            "verify_exact_release_and_every_manifest_asset",
+            "focusa_install_full_transaction",
+            "cli_tui_session_runner_daemon_manifest_agent_context_pi",
+            "daemon_restart_health_and_callgraph_acceptance",
+            "rollback_entire_release_on_any_failure",
             "pi_extension_runtime_auto_reload",
             "menubar_signed_updater_auto_install_and_relaunch",
         ],
@@ -2261,11 +2917,15 @@ fn build_apply_envelope(
             "release_manifest_signature_verified",
             "asset_sha256_verified",
             "cli_version_matches_target",
-            "tui_version_matches_target_or_not_installed",
+            "tui_version_matches_target_for_manifest_bound_release",
+            "session_runner_version_matches_target_for_manifest_bound_release",
             "daemon_health_version_matches_target_when_daemon_changed",
             "daemon_api_contract_matches_target_when_daemon_changed",
+            "distribution_manifest_matches_signed_release",
+            "agent_context_matches_distribution_manifest",
+            "installed_callgraph_acceptance_passes",
             "installer_version_matches_target_or_not_installed",
-            "pi_extension_activation_receipt_matches_target_or_not_installed",
+            "pi_extension_activation_receipt_matches_target_for_manifest_bound_release",
             "menubar_signed_updater_install_and_relaunch_or_not_installed",
             "no_data_env_license_overwrite",
             "rollback_journal_written",
@@ -2321,6 +2981,8 @@ fn build_safety_plan() -> UpdateSafetyPlan {
                 "asset_size",
                 "version_eligibility",
                 "platform_triple_match",
+                "distribution_manifest_full_tree_contract",
+                "agent_context_and_pi_archive_contracts",
                 "executable_smoke_test",
             ],
         },
@@ -2347,6 +3009,8 @@ fn build_safety_plan() -> UpdateSafetyPlan {
                 "promoting_cli",
                 "promoting_tui",
                 "promoting_daemon",
+                "promoting_manifest_bound_full_release",
+                "systemd_health_and_callgraph_acceptance",
                 "smoke_testing",
                 "rollback_required",
             ],
@@ -2361,6 +3025,8 @@ fn build_safety_plan() -> UpdateSafetyPlan {
         },
         preserves: vec![
             "license.json",
+            "signed_authority_leases",
+            "focusa.sqlite",
             ".env",
             "projects",
             "workpoints",
@@ -2498,7 +3164,7 @@ fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> Pa
 fn print_plan_human(plan: &UpdatePlanEnvelope) {
     println!("Focusa update plan (read-only)");
     println!("channel: {} target: {}", plan.channel, plan.latest.version);
-    println!("apply_allowed: false");
+    println!("apply_allowed: {}", plan.apply_allowed);
     println!("compatibility: {}", plan.compatibility.status);
     if !plan.apply_blocked_until.is_empty() {
         println!("blocked_until: {}", plan.apply_blocked_until.join(", "));
@@ -2524,7 +3190,11 @@ fn print_plan_human(plan: &UpdatePlanEnvelope) {
     }
 }
 
-async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVersion {
+async fn resolve_latest(
+    channel: &str,
+    override_value: Option<&str>,
+    compatibility_canary_root: Option<&Path>,
+) -> LatestVersion {
     let explicit_version = override_value
         .filter(|value| !value.trim().is_empty())
         .map(normalize_version)
@@ -2546,7 +3216,14 @@ async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVe
     } else {
         (admin.pinned_version, admin.skipped_versions)
     };
-    match resolve_latest_github(channel, pinned.as_deref(), &skipped).await {
+    match resolve_latest_github(
+        channel,
+        pinned.as_deref(),
+        &skipped,
+        compatibility_canary_root,
+    )
+    .await
+    {
         Ok(latest) => latest,
         Err(error) => {
             let fallback_version =
@@ -2586,8 +3263,14 @@ fn unresolved_latest(version: String, source: &str) -> LatestVersion {
             manifest_signature_verified: false,
             provenance_verified: false,
             deploy_proof_verified: false,
+            compatibility_canary_proof_verified: false,
+            compatibility_canary_root: None,
+            required_previous_tag: None,
+            production_apply_authorized: false,
             trusted_key_id: None,
             trusted_key_fingerprint: None,
+            candidate_asset_digests: None,
+            baseline_asset_digests: None,
             key_revoked: false,
             ci_proof_required: true,
             signature_required: true,
@@ -2601,56 +3284,101 @@ async fn resolve_latest_github(
     channel: &str,
     pinned_version: Option<&str>,
     skipped_versions: &[String],
+    compatibility_canary_root: Option<&Path>,
 ) -> anyhow::Result<LatestVersion> {
     let repo = github_repo();
     let triple = target_triple();
-    let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
     let client = reqwest::Client::new();
-    let mut request = client
-        .get(&url)
-        .header("User-Agent", "focusa-update-resolver");
-    if let Some(token) = std::env::var("GITHUB_TOKEN")
+    let token = std::env::var("GITHUB_TOKEN")
         .ok()
         .or_else(|| std::env::var("GH_TOKEN").ok())
-        .filter(|value| !value.trim().is_empty())
-    {
-        request = request.bearer_auth(token);
-    }
-    let releases = request
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<Vec<GithubRelease>>()
-        .await?;
+        .filter(|value| !value.trim().is_empty());
+    let request = |url: String| {
+        let request = client
+            .get(url)
+            .header("User-Agent", "focusa-update-resolver");
+        if let Some(token) = token.as_deref() {
+            request.bearer_auth(token)
+        } else {
+            request
+        }
+    };
+    let releases = if let Some(pinned) = pinned_version {
+        let tag = release_tag_for_version(pinned);
+        let url = format!("https://api.github.com/repos/{repo}/releases/tags/{tag}");
+        vec![
+            request(url)
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<GithubRelease>()
+                .await?,
+        ]
+    } else {
+        let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
+        request(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Vec<GithubRelease>>()
+            .await?
+    };
     for release in releases {
         let normalized_tag = normalize_version(&release.tag_name);
         if release.draft
-            || !release_tag_matches_channel(&release.tag_name, channel)
+            || !(release_tag_matches_channel(&release.tag_name, channel)
+                || (channel != "stable"
+                    && release_tag_matches_channel(&release.tag_name, "stable")))
             || pinned_version.is_some_and(|pinned| normalize_version(pinned) != normalized_tag)
             || skipped_versions.contains(&normalized_tag)
         {
             continue;
         }
-        if let Some(latest) = build_latest_from_release(repo.clone(), triple.clone(), release) {
+        if let Some(latest) = build_latest_from_release(
+            repo.clone(),
+            triple.clone(),
+            release,
+            compatibility_canary_root,
+        ) {
             return Ok(latest);
         }
     }
     anyhow::bail!("no complete release found for channel={channel} target={triple}")
 }
 
+fn release_tag_for_version(version: &str) -> String {
+    let normalized = normalize_version(version);
+    format!("v{normalized}")
+}
+
+fn release_binary_asset_name(prefix: &str, tag: &str, triple: &str) -> String {
+    let suffix = if triple.ends_with("-pc-windows-msvc") {
+        ".exe"
+    } else {
+        ""
+    };
+    format!("{prefix}-{tag}-{triple}{suffix}")
+}
+
 fn build_latest_from_release(
     repo: String,
     triple: String,
     release: GithubRelease,
+    compatibility_canary_root: Option<&Path>,
 ) -> Option<LatestVersion> {
     let tag = release.tag_name.clone();
     let mut assets = Vec::new();
-    for (part, prefix) in [
+    let requires_manifest = crate::commands::install::release_requires_distribution_manifest(&tag);
+    let mut rust_surfaces = vec![
         ("cli", "focusa"),
         ("daemon", "focusa-daemon"),
         ("tui", "focusa-tui"),
-    ] {
-        let name = format!("{prefix}-{tag}-{triple}");
+    ];
+    if requires_manifest {
+        rust_surfaces.push(("session_runner", "focusa-session-runner"));
+    }
+    for (part, prefix) in rust_surfaces {
+        let name = release_binary_asset_name(prefix, &tag, &triple);
         let gh_asset = release.assets.iter().find(|asset| asset.name == name)?;
         assets.push(ReleaseAssetRef {
             part,
@@ -2670,6 +3398,26 @@ fn build_latest_from_release(
         download_url: pi_extension.browser_download_url.clone(),
         sha256: None,
     });
+    if requires_manifest {
+        for (part, name) in [
+            (
+                "distribution_manifest",
+                "distribution-manifest.json".to_string(),
+            ),
+            (
+                "agent_context",
+                format!("focusa-agent-context-{tag}.tar.gz"),
+            ),
+        ] {
+            let asset = release.assets.iter().find(|asset| asset.name == name)?;
+            assets.push(ReleaseAssetRef {
+                part,
+                name,
+                download_url: asset.browser_download_url.clone(),
+                sha256: None,
+            });
+        }
+    }
     let installer_name = format!("focusa-installer-{tag}.sh");
     if let Some(installer) = release
         .assets
@@ -2688,7 +3436,20 @@ fn build_latest_from_release(
         .iter()
         .any(|asset| asset.name == "SHA256SUMS.txt");
     let mut blockers = Vec::new();
-    let trust_result = update_trust::verify_release_metadata(&release, &mut assets);
+    let trust_mode = if compatibility_canary_root.is_some() {
+        update_trust::ReleaseMetadataMode::CompatibilityCanary
+    } else {
+        update_trust::ReleaseMetadataMode::Production
+    };
+    let trust_result = update_trust::verify_release_metadata(&release, &mut assets, trust_mode);
+    let candidate_asset_digests = trust_result
+        .as_ref()
+        .ok()
+        .map(|verified| verified.candidate_asset_digests.clone());
+    let baseline_asset_digests = trust_result
+        .as_ref()
+        .ok()
+        .and_then(|verified| verified.baseline_asset_digests.clone());
     let checksums_resolved =
         trust_result.is_ok() && assets.iter().all(|asset| asset.sha256.is_some());
     let signature_verified = trust_result.is_ok();
@@ -2704,6 +3465,8 @@ fn build_latest_from_release(
         manifest_signature_verified,
         provenance_verified,
         deploy_proof_verified,
+        compatibility_canary_proof_verified,
+        required_previous_tag,
         trusted_key_id,
         trusted_key_fingerprint,
     ) = match trust_result {
@@ -2711,10 +3474,12 @@ fn build_latest_from_release(
             verified.manifest_signature_verified,
             verified.provenance_verified,
             verified.deploy_proof_verified,
+            verified.compatibility_canary_proof_verified,
+            verified.required_previous_tag,
             Some(verified.trusted_key_id),
             Some(verified.trusted_key_fingerprint),
         ),
-        Err(_) => (false, false, false, None, None),
+        Err(_) => (false, false, false, false, None, None, None),
     };
     if !manifest_signature_verified {
         blockers.push("release_manifest_signature_not_verified".into());
@@ -2722,8 +3487,11 @@ fn build_latest_from_release(
     if !provenance_verified {
         blockers.push("release_provenance_not_verified".into());
     }
-    if !deploy_proof_verified {
+    if !deploy_proof_verified && compatibility_canary_root.is_none() {
         blockers.push("release_deploy_proof_not_verified".into());
+    }
+    if compatibility_canary_root.is_some() && !compatibility_canary_proof_verified {
+        blockers.push("release_compatibility_canary_proof_not_verified".into());
     }
     Some(LatestVersion {
         version: normalize_version(&tag),
@@ -2736,9 +3504,13 @@ fn build_latest_from_release(
             && signature_verified
             && manifest_signature_verified
             && provenance_verified
-            && deploy_proof_verified
+            && (deploy_proof_verified || compatibility_canary_proof_verified)
         {
-            "eligible_signed_manifest"
+            if compatibility_canary_proof_verified {
+                "eligible_signed_compatibility_canary"
+            } else {
+                "eligible_signed_manifest"
+            }
         } else {
             "blocked_untrusted_release"
         },
@@ -2752,8 +3524,15 @@ fn build_latest_from_release(
             manifest_signature_verified,
             provenance_verified,
             deploy_proof_verified,
+            compatibility_canary_proof_verified,
+            compatibility_canary_root: compatibility_canary_root
+                .map(|root| root.display().to_string()),
+            required_previous_tag,
+            production_apply_authorized: deploy_proof_verified,
             trusted_key_id,
             trusted_key_fingerprint,
+            candidate_asset_digests,
+            baseline_asset_digests,
             key_revoked,
             ci_proof_required: true,
             signature_required: true,
@@ -2919,10 +3698,11 @@ fn target_triple() -> String {
     match (std::env::consts::OS, std::env::consts::ARCH) {
         // Musl assets avoid stale glibc floors on long-lived AlmaLinux/RHEL hosts.
         ("linux", "x86_64") => "x86_64-unknown-linux-musl".into(),
-        ("linux", "aarch64") => "aarch64-unknown-linux-musl".into(),
+        ("linux", "aarch64") => "aarch64-unknown-linux-gnu".into(),
         ("macos", "x86_64") => "x86_64-apple-darwin".into(),
         ("macos", "aarch64") => "aarch64-apple-darwin".into(),
-        ("windows", "x86_64") => "x86_64-pc-windows-msvc.exe".into(),
+        ("windows", "x86_64") => "x86_64-pc-windows-msvc".into(),
+        ("windows", "aarch64") => "aarch64-pc-windows-msvc".into(),
         _ => format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS),
     }
 }
@@ -2996,6 +3776,16 @@ fn default_policy_from_license() -> UpdatePolicy {
             UpdatePolicy::default_for_license(status.tier, &status.features, dev_override)
         }
         Err(_) => UpdatePolicy::default_for_license("evaluation", &[], false),
+    }
+}
+
+/// Default update channel: the policy file's channel when present, else the
+/// license-derived default. Replaces the historical hardcoded "dev" default
+/// that made status/check disagree with the configured policy channel.
+fn effective_channel() -> String {
+    match read_update_policy() {
+        Ok(policy) => policy.channel.label().to_string(),
+        Err(_) => default_policy_from_license().channel.label().to_string(),
     }
 }
 
@@ -3178,7 +3968,7 @@ fn pi_extension_package_from_agent_dir(agent_dir: &Path) -> Option<PathBuf> {
     if let Some(package) = pi_extension_package_from_settings(&settings) {
         return Some(package);
     }
-    ["focusa-runtime", "focusa-pi-bridge"]
+    ["focusa", "focusa-runtime", "focusa-pi-bridge"]
         .iter()
         .map(|name| agent_dir.join("extensions").join(name).join("package.json"))
         .find(|package| {
@@ -3205,10 +3995,9 @@ fn configured_pi_extension_package_json() -> PathBuf {
     {
         return package;
     }
-    configured_package_json(
-        "FOCUSA_PI_EXTENSION_PACKAGE_JSON",
-        "apps/pi-extension/package.json",
-    )
+    agent_dir
+        .unwrap_or_else(|| PathBuf::from(".pi/agent"))
+        .join("extensions/focusa/package.json")
 }
 
 fn inspect_package_part(
@@ -3245,14 +4034,15 @@ fn inspect_package_part(
     let sha256 = sha256_file(&package_json).ok();
     let stale = version
         .as_deref()
-        .map(|installed| normalize_version(installed) != normalize_version(latest));
+        .map(|installed| version_is_stale(installed, latest));
     let stale_reason = match (&version, stale) {
         (Some(installed), Some(true)) => {
-            format!("installed {part} version {installed} differs from latest {latest}")
+            format!("installed {part} version {installed} is behind latest {latest}")
         }
-        (Some(installed), Some(false)) => {
-            format!("installed {part} version {installed} matches latest {latest}")
-        }
+        (Some(installed), Some(false)) => format!(
+            "installed {part} version {installed} {} latest {latest}",
+            version_relation(installed, latest)
+        ),
         _ => format!("{part} package.json does not expose a valid version"),
     };
 
@@ -3300,7 +4090,7 @@ fn inspect_installer(latest: &str) -> InstalledPart {
         .filter(|version| !version.is_empty());
     let stale = version
         .as_deref()
-        .map(|current| normalize_version(current) != normalize_version(latest));
+        .map(|current| version_is_stale(current, latest));
     InstalledPart {
         part: "installer",
         expected_path: expected.display().to_string(),
@@ -3348,16 +4138,17 @@ async fn inspect_tui(latest: &str) -> anyhow::Result<InstalledPart> {
     // the old binary for rollback, avoiding a permanent probe_required state.
     let stale = version
         .as_ref()
-        .map(|version| version != latest)
+        .map(|version| version_is_stale(version, latest))
         .or_else(|| sha256.as_ref().map(|_| true));
     let stale_reason = match (&version, stale, &path) {
         (_, _, None) => "tui binary not found".into(),
         (Some(version), Some(true), _) => {
-            format!("installed tui version {version} differs from latest {latest}")
+            format!("installed tui version {version} is behind latest {latest}")
         }
-        (Some(version), Some(false), _) => {
-            format!("installed tui version {version} matches latest {latest}")
-        }
+        (Some(version), Some(false), _) => format!(
+            "installed tui version {version} {} latest {latest}",
+            version_relation(version, latest)
+        ),
         _ => "tui headless version probe unavailable".into(),
     };
     Ok(InstalledPart {
@@ -3375,6 +4166,100 @@ async fn inspect_tui(latest: &str) -> anyhow::Result<InstalledPart> {
     })
 }
 
+async fn inspect_session_runner(latest: &str) -> anyhow::Result<InstalledPart> {
+    let path = resolve_path(
+        "focusa-session-runner",
+        "/usr/local/bin/focusa-session-runner",
+    );
+    inspect_executable_part(
+        "session_runner",
+        "/usr/local/bin/focusa-session-runner",
+        path,
+        latest,
+        true,
+    )
+    .await
+}
+
+fn inspect_manifest_part(
+    part: &'static str,
+    expected: PathBuf,
+    latest: &str,
+    notes: Vec<String>,
+) -> InstalledPart {
+    let exists = expected.is_file();
+    let version = std::fs::read(&expected)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+        .and_then(|value| {
+            value
+                .get("release_version")
+                .and_then(serde_json::Value::as_str)
+                .map(normalize_version)
+        });
+    let stale = version
+        .as_deref()
+        .map(|installed| version_is_stale(installed, latest));
+    InstalledPart {
+        part,
+        expected_path: expected.display().to_string(),
+        resolved_path: exists.then(|| expected.display().to_string()),
+        exists,
+        version,
+        version_source: "distribution_manifest_release_version",
+        version_probe_safe: true,
+        sha256: exists.then(|| sha256_file(&expected).ok()).flatten(),
+        stale,
+        stale_reason: if exists {
+            format!("{part} must match the complete signed distribution")
+        } else {
+            format!("{part} is not installed")
+        },
+        notes,
+    }
+}
+
+fn inspect_distribution_manifest(latest: &str) -> InstalledPart {
+    let expected = std::env::var_os("FOCUSA_DISTRIBUTION_MANIFEST")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            if resolve_path("focusa", "/usr/local/bin/focusa").as_deref()
+                == Some("/usr/local/bin/focusa")
+            {
+                PathBuf::from("/usr/local/lib/focusa/distribution-manifest.json")
+            } else {
+                std::env::var_os("HOME")
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| PathBuf::from("."))
+                    .join(".focusa/distribution-manifest.json")
+            }
+        });
+    inspect_manifest_part(
+        "distribution_manifest",
+        expected,
+        latest,
+        vec!["promoted only by the canonical manifest-bound install transaction".into()],
+    )
+}
+
+fn inspect_agent_context(latest: &str) -> InstalledPart {
+    let expected = std::env::var_os("FOCUSA_AGENT_CONTEXT_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            std::env::var_os("HOME")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join(".focusa/agent-context")
+        })
+        .join("distribution-manifest.json");
+    inspect_manifest_part(
+        "agent_context",
+        expected,
+        latest,
+        vec!["skills, current docs, and generated clients move with the signed release".into()],
+    )
+}
+
 async fn inspect_daemon(latest: &str, health: Option<String>) -> anyhow::Result<InstalledPart> {
     let path = resolve_path("focusa-daemon", "/usr/local/bin/focusa-daemon");
     let sha256 = path.as_deref().and_then(|p| sha256_file(Path::new(p)).ok());
@@ -3390,10 +4275,15 @@ async fn inspect_daemon(latest: &str, health: Option<String>) -> anyhow::Result<
             None => None,
         },
     };
-    let stale = version.as_ref().map(|v| v != latest);
+    let stale = version.as_ref().map(|v| version_is_stale(v, latest));
     let stale_reason = match (&version, stale) {
-        (Some(v), Some(true)) => format!("running daemon health version {v} differs from latest {latest}"),
-        (Some(v), Some(false)) => format!("running daemon health version {v} matches latest {latest}"),
+        (Some(v), Some(true)) => {
+            format!("running daemon health version {v} is behind latest {latest}")
+        }
+        (Some(v), Some(false)) => format!(
+            "running daemon health version {v} {} latest {latest}",
+            version_relation(v, latest)
+        ),
         _ => "daemon version unknown; safe probe uses /v1/health because focusa-daemon --version starts the server".into(),
     };
     Ok(InstalledPart {
@@ -3431,15 +4321,16 @@ async fn inspect_executable_part(
     } else {
         None
     };
-    let stale = version.as_ref().map(|v| v != latest);
+    let stale = version.as_ref().map(|v| version_is_stale(v, latest));
     let stale_reason = match (&version, stale, &path) {
         (_, _, None) => format!("{part} binary not found"),
         (Some(v), Some(true), _) => {
-            format!("installed {part} version {v} differs from latest {latest}")
+            format!("installed {part} version {v} is behind latest {latest}")
         }
-        (Some(v), Some(false), _) => {
-            format!("installed {part} version {v} matches latest {latest}")
-        }
+        (Some(v), Some(false), _) => format!(
+            "installed {part} version {v} {} latest {latest}",
+            version_relation(v, latest)
+        ),
         _ => format!("{part} version probe unavailable"),
     };
     Ok(InstalledPart {
@@ -3455,6 +4346,10 @@ async fn inspect_executable_part(
         stale_reason,
         notes: Vec::new(),
     })
+}
+
+fn running_surface_is_system(exe: &std::path::Path) -> bool {
+    exe.starts_with("/usr/local/bin/") || exe.starts_with("/usr/local/lib/focusa/")
 }
 
 fn resolve_path(command: &str, canonical: &str) -> Option<String> {
@@ -3599,6 +4494,33 @@ fn normalize_version(raw: &str) -> String {
     last.trim_start_matches('v').to_string()
 }
 
+fn version_parts(raw: &str) -> Option<(u64, u64, u64)> {
+    let cleaned = normalize_version(raw);
+    let base = cleaned.split(['-', '+']).next().unwrap_or(&cleaned);
+    let mut parts = base.split('.');
+    let major = parts.next()?.trim().parse().ok()?;
+    let minor = parts.next()?.trim().parse().ok()?;
+    let patch = parts.next()?.trim().parse().ok()?;
+    Some((major, minor, patch))
+}
+
+/// Numeric ordering; when either side cannot be parsed, fall back to the
+/// historical string-inequality semantics (any difference is stale).
+fn version_is_stale(installed: &str, latest: &str) -> bool {
+    match (version_parts(installed), version_parts(latest)) {
+        (Some(installed), Some(latest)) => installed < latest,
+        _ => normalize_version(installed) != normalize_version(latest),
+    }
+}
+
+/// "is ahead of" when installed is numerically newer, else "matches".
+fn version_relation(installed: &str, latest: &str) -> &'static str {
+    match (version_parts(installed), version_parts(latest)) {
+        (Some(installed), Some(latest)) if installed > latest => "is ahead of",
+        _ => "matches",
+    }
+}
+
 fn print_human(envelope: &UpdateInventoryEnvelope) {
     println!("Focusa update {} (read-only)", envelope.command);
     println!("channel: {}", envelope.channel);
@@ -3640,9 +4562,11 @@ fn print_human(envelope: &UpdateInventoryEnvelope) {
 #[cfg(test)]
 mod tests {
     use super::{
-        DaemonRestoreAction, PromotedPart, daemon_restore_action, inspect_package_part,
-        normalize_version, path_is_git_managed, pi_extension_package_from_agent_dir,
-        pi_extension_package_from_settings, rollback_promoted_parts,
+        DaemonRestoreAction, PromotedPart, daemon_restore_action, exact_release_install_args,
+        inspect_package_part, normalize_version, path_is_git_managed,
+        pi_extension_package_from_agent_dir, pi_extension_package_from_settings,
+        release_binary_asset_name, release_tag_for_version, rollback_promoted_parts,
+        running_surface_is_system, validate_canary_mutation_target,
     };
     #[cfg(target_os = "macos")]
     use super::{restart_daemon_service, stop_daemon_service};
@@ -3652,6 +4576,85 @@ mod tests {
         assert_eq!(normalize_version("focusa 0.9.74-dev"), "0.9.74-dev");
         assert_eq!(normalize_version("v0.9.80-dev"), "0.9.80-dev");
         assert_eq!(normalize_version("0.9.80-dev"), "0.9.80-dev");
+    }
+
+    #[test]
+    fn exact_release_version_normalizes_to_tag_endpoint_identity() {
+        assert_eq!(release_tag_for_version("0.9.117-dev"), "v0.9.117-dev");
+        assert_eq!(release_tag_for_version("v0.9.117-dev"), "v0.9.117-dev");
+    }
+
+    #[test]
+    fn compatibility_canary_mutation_targets_cannot_escape_root() {
+        let parent =
+            std::env::temp_dir().join(format!("focusa-canary-targets-{}", uuid::Uuid::now_v7()));
+        let root = parent.join("root");
+        let outside = parent.join("outside");
+        std::fs::create_dir_all(root.join("existing")).unwrap();
+        std::fs::create_dir_all(&outside).unwrap();
+        assert!(validate_canary_mutation_target(&root, &root.join("existing")).is_ok());
+        assert!(validate_canary_mutation_target(&root, &root.join("new/path")).is_ok());
+        assert!(validate_canary_mutation_target(&root, &root).is_err());
+        assert!(validate_canary_mutation_target(&root, &outside).is_err());
+        assert!(
+            validate_canary_mutation_target(&root, &root.join("existing/../../outside")).is_err()
+        );
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(&outside, root.join("escape-link")).unwrap();
+            assert!(validate_canary_mutation_target(&root, &root.join("escape-link")).is_err());
+        }
+        std::fs::remove_dir_all(parent).unwrap();
+    }
+
+    #[test]
+    fn manifest_bound_update_and_rollback_reuse_exact_install_lifecycle() {
+        let stable =
+            exact_release_install_args("v0.9.188", "Startempire-Wire/focusa", true, false, false);
+        assert_eq!(stable.release_tag_override.as_deref(), Some("v0.9.188"));
+        assert_eq!(stable.channel, crate::commands::install::Channel::Stable);
+        assert!(stable.system_install && stable.reuse_existing_license);
+        assert!(!stable.allow_verified_rollback);
+        assert!(!stable.compatibility_canary);
+        assert!(!stable.no_service);
+        assert!(stable.suppress_completion_output);
+
+        let legacy =
+            exact_release_install_args("v0.9.177", "Startempire-Wire/focusa", true, false, true);
+        assert_eq!(legacy.release_tag_override.as_deref(), Some("v0.9.177"));
+        assert!(legacy.allow_verified_rollback);
+        assert!(!legacy.compatibility_canary);
+
+        let canary =
+            exact_release_install_args("v0.9.188", "Startempire-Wire/focusa", false, true, false);
+        assert!(!canary.system_install);
+        assert!(canary.no_service);
+        assert!(!canary.allow_verified_rollback);
+        assert!(canary.compatibility_canary);
+    }
+
+    #[test]
+    fn release_binary_asset_names_cover_native_windows_targets_once() {
+        assert_eq!(
+            release_binary_asset_name("focusa", "v0.9.117-dev", "x86_64-pc-windows-msvc"),
+            "focusa-v0.9.117-dev-x86_64-pc-windows-msvc.exe"
+        );
+        assert_eq!(
+            release_binary_asset_name("focusa-daemon", "v0.9.117-dev", "aarch64-pc-windows-msvc"),
+            "focusa-daemon-v0.9.117-dev-aarch64-pc-windows-msvc.exe"
+        );
+        assert_eq!(
+            release_binary_asset_name("focusa-tui", "v0.9.117-dev", "aarch64-apple-darwin"),
+            "focusa-tui-v0.9.117-dev-aarch64-apple-darwin"
+        );
+        assert_eq!(
+            release_binary_asset_name(
+                "focusa-session-runner",
+                "v0.9.188",
+                "aarch64-pc-windows-msvc"
+            ),
+            "focusa-session-runner-v0.9.188-aarch64-pc-windows-msvc.exe"
+        );
     }
 
     #[test]
@@ -3750,7 +4753,7 @@ mod tests {
         std::fs::write(root.join("settings.json"), br#"{"extensions":[]}"#)
             .expect("write settings fixture");
         std::fs::write(
-            runtime.join("package.json"),
+            root.join("extensions/focusa-runtime/package.json"),
             br#"{"name":"focusa-pi-bridge","version":"0.9.143"}"#,
         )
         .expect("write runtime package");
@@ -3915,5 +4918,70 @@ mod tests {
         assert_eq!(restored, vec!["cli"]);
         assert!(!target.exists());
         std::fs::remove_dir_all(root).expect("remove rollback fixture");
+    }
+}
+
+#[cfg(test)]
+mod version_staleness_tests {
+    use super::*;
+
+    #[test]
+    fn behind_is_stale_ahead_and_current_are_not() {
+        assert!(version_is_stale("0.9.151", "0.9.152"));
+        assert!(
+            !version_is_stale("0.9.153", "0.9.152"),
+            "ahead must not be stale"
+        );
+        assert!(!version_is_stale("0.9.152", "0.9.152"));
+    }
+
+    #[test]
+    fn channel_suffixes_do_not_fabricate_staleness() {
+        assert!(!version_is_stale("0.9.152", "0.9.152-dev"));
+        assert!(!version_is_stale("0.9.152-dev", "0.9.152"));
+        assert!(
+            !version_is_stale("v0.9.152", "0.9.152"),
+            "v prefix is cosmetic"
+        );
+    }
+
+    #[test]
+    fn relation_words_distinguish_ahead_from_match() {
+        assert_eq!(version_relation("0.9.153", "0.9.152"), "is ahead of");
+        assert_eq!(version_relation("0.9.152", "0.9.152-dev"), "matches");
+    }
+
+    #[test]
+    fn unparseable_versions_fall_back_to_string_compare() {
+        // When either side cannot be parsed, any string difference is stale
+        // (historical behavior preserved for unknown version shapes).
+        assert!(version_is_stale("current", "0.9.152"));
+        assert!(version_is_stale("0.9.152", "current"));
+        assert!(!version_is_stale("current", "current"));
+    }
+
+    #[test]
+    fn running_surface_distinguishes_system_from_user_install() {
+        // Issue #593 regression: user-installed update binaries (~/.focusa,
+        // ~/.local/bin) must never promote to system-install mode, while the
+        // canonical /usr/local surfaces must.
+        assert!(running_surface_is_system(std::path::Path::new(
+            "/usr/local/bin/focusa"
+        )));
+        assert!(running_surface_is_system(std::path::Path::new(
+            "/usr/local/lib/focusa/bin/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "/Users/barry/.focusa/bin/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "/home/lucy/.local/bin/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "/home/dev/target/debug/focusa"
+        )));
+        assert!(!running_surface_is_system(std::path::Path::new(
+            "C:\\Users\\lucy\\AppData\\Local\\focusa\\focusa.exe"
+        )));
     }
 }

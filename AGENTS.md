@@ -1,74 +1,101 @@
 # Agent Instructions
 
-## P0 architecture transition — mandatory first read
-
-Before broad Focusa changes, after context loss, or when resuming Mission Canvas/Pi/core/daemon/Desktop work, read in order:
-
-1. `docs/agent/00-p0-transition-bootstrap.md`
-2. `docs/158-workstream-rooted-cognitive-runtime-foundation-migration-spec.md`
-3. `docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md`
-4. `docs/transitions/FOCUSA-TRANSITION-001-preview-build-and-release-milestones.md`
-5. `docs/transitions/FOCUSA-TRANSITION-001-task-graph.yaml`
-6. `docs/transitions/FOCUSA-TRANSITION-001-desktop-milestones.yaml`
-
-The active P0 foundation is:
-
-- Workstream is the durable cognitive workspace;
-- Thread is legacy terminology;
-- Continuity is lineage inside a Workstream, not Workstream identity;
-- no canonical cognitive object exists outside exact Scope + Workstream;
-- the daemon-global cognitive singleton must be removed;
-- Focusa Desktop becomes the primary rich Mission Canvas environment;
-- Pi remains a standalone/embedded Work Surface and bounded terminal compatibility projection;
-- GUI, CLI and agent tools share one semantic command graph.
-
-Do not add new daemon-global cognitive selectors. Do not use `project_root + continuity_id` as complete permanent canonical identity. Do not continue expanding the full rich Mission Canvas inside Pi before completing the transition preservation report.
-
-## Mission Canvas/Desktop MacBook exception
-
-The agent refactoring the current Mission Canvas worktree on the MacBook follows a narrow exception to the normal “push before stopping” rule until operator approval:
-
-- local commits and a preservation checkpoint are mandatory;
-- do not commit or push directly to `origin/main`;
-- do not push onto the existing shared Mission Canvas branches;
-- do not push tags or create releases from the MacBook;
-- do not force-push;
-- publish only an explicitly approved dedicated review branch or patch set.
-
-This exception prevents the transition agent from mutating shared upstream authority before preservation, review and milestone proof. It does not permit uncommitted work.
-
-## Desktop preview/build/release rule
-
-- Focusa Desktop is the primary application, not a side dashboard.
-- Use one pinned local Rust toolchain; do not install multiple toolchains or repeatedly bootstrap Rust.
-- Preview the shared SvelteKit application continuously in a browser.
-- Use UIAI Engine for browser interaction, screenshots, responsive checks, console/network diagnostics and Evidence.
-- Do not add Playwright or another browser authority.
-- Build and open the full Tauri shell at 5%, 25%, 50%, 75% and 100% milestones.
-- Do not create shipping artifacts with local `cargo build --release`.
-- At 75%, after operator approval, connect from the MacBook to the approved KnownHost release host through the private approved Tailscale or direct SSH path and initiate the canonical release pipeline there.
-- Do not commit private hostnames, IPs, credentials or SSH details to this public repository.
-
 ## Agent-KB API Default Reference
 
 For KH/OVH/operator policy, inherit `/root/AGENTS.md`: query `agent-kb-api` first, verify freshness, use exact document lookup after empty searches, and treat local Agent KB files as read-only fallback.
 
+## Agent communications + GitHub 2FA (mandatory, cross-platform)
+
+- The immediate communications use case is authorized completion of an active `github.com` login with a renewable SMS OTP so build/release work can proceed. It does not grant ambient inbox, thread, notification, or phone access.
+- **GitHub MFA workflow is SMS-first:** use the authorized broker `inject_otp` path for active GitHub challenges. If the connector/pairing is unhealthy, repair or re-establish the private SMS connector before changing MFA methods. GitHub Mobile, passkey, authenticator app, or other renewable methods are not automatic substitutes; use them only when Sir V3 explicitly directs.
+- Route OTP retrieval through the daemon-owned credential/communications broker under Spec 156: bind provider=`github.com`, enrolled phone identity, expected sender/message class, active challenge, and short expiry. Prefer one-time broker injection; plaintext reveal requires a separate explicit grant. Never place OTP values in model context, CLI arguments, logs, receipts, screenshots, evidence, or persisted Focusa state.
+- Expose revocable capability actions (`read_otp`/`inject_otp`, health, enrollment status, revoke) through consistent CLI, HTTP, MCP, Pi, OpenClaw, and generic-agent `tool_result_v1` adapters. Thin clients never receive browser cookies, Google/Apple credentials, or paired-profile state. Enforce attribution, audit, redaction, replay protection, rate limits, and deny-by-default policy.
+- GitHub OTP is the first bounded, release-critical slice—not the final product boundary. Preserve a versioned customer-authorized SMS API for thread listing, bounded reads, sending, and events. Every broader action needs a separate explicit grant, scope, redaction policy, prompt-injection defense, idempotency/rate controls, and audit; OTP permission never becomes general SMS permission.
+- Android/Google Messages may bootstrap the connector, but shared broker and adapter contracts must be transport-neutral. Do not encode Google Messages, Chromium profile details, Android identifiers, or Android-only semantics into canonical domain types.
+- **iPhone/iOS is an urgent first-class implementation track, not a later port.** Use a versioned connector boundary and preserve equivalent customer-owned enrollment, consent, GitHub OTP scoping/injection, restart recovery, health, revoke/re-pair, audit, and zero-residue teardown on Android and iPhone. Use only Apple-supported/user-consented paths; never assume private iMessage/SMS APIs or weaken controls to claim parity.
+- Cross-platform done means shared contract tests plus real-device proof per supported platform. Android-only work must remain an explicitly bounded bootstrap with an active iPhone task and no architecture that blocks or materially delays iPhone delivery. Recovery codes remain forbidden.
+
 ## Focusa agent docs entry point
 
-Before broad Focusa code changes or after context loss, read `docs/agent/00-p0-transition-bootstrap.md`, then `docs/agent/01-focusa-agent-docs-index.md`.
+Before broad Focusa code changes or after context loss, read `docs/agent/01-focusa-agent-docs-index.md`. It is the bounded, public-safe architecture/commands/API/Workpoint/Trajectory/private-boundary guide for agents.
 
 ## Current agent-readiness fast path
 
-1. Resolve exact `ScopeRef + WorkstreamId`; verify ProjectRootKey and exact Attachment where runtime mutation matters. A Git worktree is a typed working subpath, not authority by itself.
-2. Resume the Workstream-owned tactical Trajectory and canonical Workpoint before acting; transcript tails, cached aliases, predictions, CWD and UI selection do not grant authority.
+1. Verify `project_root + continuity_id` with `focusa_project_identity`/`focusa_project_verify`; a Git worktree is a typed working subpath under that authority.
+2. Resume Trajectory and the canonical Workpoint before acting; transcript tails, cached aliases, and predictions do not grant authority.
 3. Discover capabilities progressively: `focusa_agent_card` → `focusa_tool_search` → `focusa_tool_describe`/`focusa_tool_graph`.
 4. All Focusa Pi tools must remain one-to-one across runtime registration, `docs/contracts/spec141/generated-capability-v2/pi-tools.json`, capability descriptors, and `docs/focusa-tools/tools/`.
 5. Load the matching `.pi/skills/<name>/SKILL.md`, then its numbered runbook only when the workflow requires detail. Packaged copies live under `apps/pi-extension/skills/` and must be byte-identical.
-6. For durable background execution, use daemon-native Silent Sessions with exact Workstream, Attachment, session/run/generation and approval/idempotency fields—never raw tmux or shell aliases.
-7. For context pressure, preserve Workstream-owned Workpoint/Trajectory state and governed auto-rollover; do not treat transcript compaction as authority.
+6. For durable background execution, use daemon-native Silent Sessions with exact session/run/generation and approval/idempotency fields—never raw tmux or shell aliases.
+7. For context pressure, preserve canonical Workpoint/Trajectory state and governed auto-rollover; do not treat transcript compaction as authority.
 8. Customer lifecycle changes must prove install or repair/rerun, trusted OTA/update rollback, and uninstall with user data preserved unless purge is explicit.
 
-Current surfaces: Workstream-rooted reducer migration (`docs/158-workstream-rooted-cognitive-runtime-foundation-migration-spec.md`), Mission Canvas/Desktop transition (`docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md`), Silent Sessions (`docs/133-silent-sessions-final-release-proof.md`), all-tool/skill machine contracts (`docs/contracts/spec141/generated-capability-v2/`), and public onboarding (`README.md`, `docs/current/FOCUSA_FRIENDLY_ONBOARDING.md`).
+Current surfaces: Mission Canvas/Work Rail and generated UI (`docs/135-series-current-manifest.md`), Silent Sessions (`docs/133-silent-sessions-final-release-proof.md`), all-tool/skill machine contracts (`docs/contracts/spec141/generated-capability-v2/`), and public onboarding (`README.md`, `docs/current/FOCUSA_FRIENDLY_ONBOARDING.md`).
+
+## Terminal-blocking queries (TBQs) must run asynchronously (mandatory)
+
+The operator terminal must never stop flowing. Any terminal-blocking query —
+builds, test suites, migrations, long scans, waits for remote jobs — MUST be
+dispatched through the canonical background-execution surface, and the agent
+must continue other work immediately. Blocking is allowed only for
+sub-second commands and commands with an explicit short bound whose output
+is required immediately.
+
+CANONICAL DISPATCH — `focusa bg` is the ONLY background-execution
+mechanism. No raw shells, no alternatives:
+
+```bash
+setsid nohup /usr/local/bin/focusa bg run --name <job> -- <command...> &
+```
+
+(the setsid/nohup above only detaches the bg monitor itself from the
+terminal; the JOB runs through focusa bg.)
+
+- `focusa bg run` creates the durable job row, executes detached,
+  streams output to the job log, records completion durably, then
+  broadcasts `background_job_completion` with the bounded output_tail
+  on the daemon SSE stream.
+- The Pi extension delivers completion + output tail INTO the agent's
+  front terminal (notify + appendEntry). `focusa bg wait --job <id>`
+  long-polls for harnesses without SSE. `bg status`/`bg list` are the
+  only status queries.
+- BANNED: raw `setsid nohup ... > log &` job dispatch, `tail` polling,
+  `sleep N; tail` chains, and treating the envelope as advisory.
+  Completion + output_tail IS the delivery path (docs/165).
+- Multi-agent work = N workloop-bound SILENT SESSIONS with the existing
+  completion stream + bg receipts (docs/168) — never raw shells.
+- Fast-forward multiplier (2x/4x/6x/8x…): operator-conceived #312 —
+  FanoutPlan divides work items round-robin across parallel sessions;
+  per-lane policy budgets, wait-for-all join (docs/169).
+
+## Production consistency (mandatory default for every feature)
+
+Every Focusa feature ships only when all five proofs exist: versioned
+contract, producer tests, CONSUMER-side tests (producer-green is not
+delivery-green), cross-version interop, and the live e2e proof across
+supported environments. Policy:
+docs/current/PRODUCTION_CONSISTENCY_POLICY.md. The bg-notification
+feature is the reference implementation of the policy.
+
+## Disk headroom (mandatory)
+
+Never allow the operator filesystem or user quota to reach capacity.
+Always remove safe removables **first and proactively**: build caches
+(`target/`, `node_modules/`), toolchain caches, age-bounded rollback
+backups, staging clones, and temp artifacts. Check `df` and user quota
+before and after large operations; when headroom drops, free rebuildable
+space immediately — never reactively under pressure. Live data (daemon
+databases, evidence, ledgers, user files) is never a removable.
+
+## De-duplication discipline (deslop, mandatory)
+
+Before writing a new helper, envelope block, or test setup, check the
+deslop analysis for an existing similar implementation (`deslop` CLI in
+CI reports; the Deslop MCP `find-similar` when connected). Renamed
+copies of existing helpers are rejected in review; converge intentional
+boilerplate (error envelopes, tool results) through the canonical
+constructors (focusa_core::error_envelope, tool_result_v1) instead of
+re-typing them. The duplication ceiling lives in `.deslop.toml`.
 
 ## Pre-work rule: always check remote first (mandatory)
 
@@ -76,22 +103,29 @@ Before any durable state change (commit, push, branch switch, merge, rebase, tag
 
 1. `git fetch origin` to discover remote commits you do not yet have locally.
 2. `git status` to see local uncommitted work and any rebase-incompatibility risk.
-3. If you have unstaged changes and the remote has moved, preserve first. Do not blindly stash/rebase a divergent Mission Canvas worktree; follow the preservation checkpoint and migration-ledger process in FOCUSA-TRANSITION-001.
+3. If you have unstaged changes and the remote has moved, **stash first**, then `git pull --rebase`, then `git stash pop`. Resolve any conflicts before continuing.
 4. Only then proceed to the canonical build/deploy chain below.
 
-Why: shipping from a stale local head duplicates or reverts remote work, and creates phantom commits in the operator's log. The discipline is: **see and preserve the world before you change it.**
+Why: shipping from a stale local head duplicates or reverts remote work, and creates
+phantom commits in the operator's log. The discipline is: **see the world before you change it.**
+
+## Release vocabulary (mandatory, plain language)
+
+- **Release** = full canonical stable. All surfaces, all operating systems, all artifacts. Shows as **Latest** on the repo sidebar and makes the green CI badge. This is the only thing that counts as "shipped."
+- **Dev release** = nightly/development channel. Same full surfaces and operating systems, but marked prerelease. Early adopters can opt in. It is still full — no missing OS, no missing surface.
+- **No partial releases.** Do not ship an OS or a surface by itself. If you think you need one, write a one-line reason and get explicit approval. Default is no.
 
 ## Canonical build/deploy rule (mandatory)
 
 **Build and deploy ONLY through the full live GitHub release pipeline.**
 
-- Canonical command: `scripts/create-dev-release-tag.sh --base 0.9 --push`
-- Required chain: `CI` → `Release` → `Deploy Live Daemon` → audit/self-heal/watchdog.
-- For the Desktop transition, initiate this command from the approved KnownHost release host at the 75% milestone after operator approval.
+- Canonical command: `scripts/create-dev-release-tag.sh --push` (for stable) or `scripts/create-dev-release-tag.sh --base 0.9 --push` (auto-picks next patch). For an exact stable: `scripts/create-dev-release-tag.sh --tag v0.9.177 --push`.
+- Required chain: `CI` → `Release` → `Deploy Live Daemon` → audit/self-heal/watchdog. The release is not done until `gh release view vX.Y.Z` exists and CI is green.
 - Do **not** build release artifacts locally with `cargo build --release`.
 - Do **not** deploy from `target/release` or call `install-daemon.sh --binary target/release/...`.
 - Do **not** run only a partial deploy workflow as a shortcut.
-- If the pipeline fails, fix the pipeline/system through the reviewed branch and rerun from the approved host.
+- Do **not** hand-edit `distribution-manifest.json` or version files. Use the stamp script — it is the single source of truth.
+- If the pipeline fails, fix the pipeline/system and push; Auto Heal + Watchdog must recover future failures.
 
 See `docs/canonical-live-release-pipeline.md` before any build/deploy work.
 
@@ -100,43 +134,102 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 ## Commit message policy
 
 Run `scripts/dev.sh hooks` after cloning or after any Beads hook reinstall.
-Commit subjects must remain meaningful Conventional Commit descriptions because GitHub changelogs and tagged release summaries use the first line. Bead IDs may appear only below the subject as a `Beads:` body trailer; ID-only subjects are rejected by local hooks, CI, and the release-tag gate.
+Commit subjects must remain meaningful Conventional Commit descriptions because
+GitHub changelogs and tagged release summaries use the first line. Bead IDs may
+appear only below the subject as a `Beads:` body trailer; ID-only subjects are
+rejected by local hooks, CI, and the release-tag gate.
+
+## One canonical Focusa Pi package (mandatory)
+
+Exactly **one canonical Focusa Pi package** may be loadable from each Pi
+extension discovery root (`~/.pi/agent/extensions/`, or `FOCUSA_PI_EXT_DIR`).
+Backup, stage, legacy, rollback, disabled, and quarantine copies must live
+under the sibling non-discovery root `~/.pi/agent/retired-extensions/`.
+Compatibility symlinks may resolve only to that same canonical target without
+duplicate registration. Starting Pi with `-ne`/`--no-extensions` never
+satisfies acceptance: a fresh Pi process must start with zero duplicate tool
+and zero duplicate flag errors. Install and OTA activation flow through the
+typed receipt in `crates/focusa-cli/src/commands/pi_package.rs`.
+
+## Per-turn metacognition + prediction loop (mandatory)
+
+Every turn ends with the learning loop, recorded through Focusa itself:
+
+1. **Reflect** — capture what worked and what failed that turn (`POST /v1/metacognition/capture`, or the `focusa_metacog_capture` tool) with kind `reflection` + a strategy_class.
+2. **Predict** — record a bounded prediction for the next task (`POST /v1/predictions`: predicted_outcome, confidence, recommended_action, why).
+3. **Evaluate** — on the next turn, evaluate the prior prediction against the actual outcome (`POST /v1/predictions/capture-outcome`).
+4. **Retrieve** — before a related ask, `POST /v1/metacognition/retrieve` so prior lessons apply.
+
+Predictions use a typed scope body (`scope.root_scope.scope_kind` = `Project`/`Host`).
+
+## Tool flywheel + health discipline (mandatory)
+
+Every tool family must close the loop with the others — no isolated tool, no broken tool. Before any feature work on tooling, and after any route/guard change, run `scripts/audit-route-health.mjs` and require a healthy sweep. Broken-tool reports are release blockers, not backlog. The ecosystem audit (docs/170) orders the cross-family work.
+
+## Dynamic scope discipline
+
+No hard-coded paths or magic roots anywhere in requests, tests, or fixtures. Scopes derive from the caller's actual project root; safety classification lives in one place (`scope_safety.rs`) and the json_guard accepts both the typed ScopeKind enum and query scope kinds.
+
+## Turn closure
+
+Every turn ends with the suggested next logical step, stated in one line.
 
 ## Quick Reference
 
 ```bash
-bd ready
-bd show <id>
-bd update <id> --status in_progress
-bd close <id>
-bd sync
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --status in_progress  # Claim work
+bd close <id>         # Complete work
+bd sync               # Sync with git
 ```
 
 ## Public / Private Docs Boundary
 
 Private operator docs may exist locally at `.focusa-private/`.
 
-Agents must read `.focusa-private/INDEX.md` before touching SaaS strategy, SignalOS, commercial pricing/caps, install/purchase backend, raw proof, launch planning, vendor/license registry work or private release-host details.
+Agents must read `.focusa-private/INDEX.md` before touching SaaS strategy, SignalOS, commercial pricing/caps, install/purchase backend, raw proof, launch planning, or vendor/license registry work.
 
-Agents must never commit `.focusa-private/`, raw transcripts, runtime objects, local host paths, admin URLs, customer data, license data, private hostnames, IP addresses or credentials.
+Agents must never commit `.focusa-private/`, raw transcripts, runtime objects, local host paths, admin URLs, customer data, or license data.
 
 ## Landing the Plane (Session Completion)
 
-For ordinary work, work is not complete until the approved branch is pushed. For the MacBook Mission Canvas/Desktop transition exception, local commits and checkpointing are required, but upstream publication waits for explicit operator approval.
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
 
-1. File issues for remaining work.
-2. Run quality gates if code changed.
-3. Update issue/task status, milestone Evidence and migration ledger.
-4. Follow the publication policy for the active workstream:
-   - ordinary approved branch: pull/rebase, `bd sync`, push and verify;
-   - MacBook transition branch before approval: keep all work locally committed and report exact commit/checkpoint; do not push shared upstream refs.
-5. Clean up only safe temporary state; never delete preservation checkpoints or migration evidence prematurely.
-6. Verify all intended changes are committed.
-7. Hand off exact Workstream, task-graph node, milestone, Evidence, risks and next safe action.
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+
+   ```bash
+   git pull --rebase
+   bd sync
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
 
-- Never leave intentional work uncommitted.
-- Never push directly to `main` or shared Mission Canvas branches during the transition.
-- Never publish tags/releases from the MacBook.
-- If an approved push or release pipeline fails, resolve and retry through the governed path.
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
+
+## RELEASE STRATEGY & VERSIONING
+
+- Canonical policy: `docs/release-strategy.md` — read it before any release work.
+- Three lanes: **0.9.x = patch** (security/critical only), **0.10.x = minor**
+  (batched features, on cadence), **>= 1.0 = major** (breaking + migration notes).
+- Pre-1.0 rule: breaking changes bump MINOR (`0.10.0`), never a `0.9.x` patch.
+- Before tagging, classify the range: `python3 scripts/next-version.py`
+  (used by CI in `.github/workflows/release-version-policy.yml`).
+- Never tag outside the canonical pipeline
+  (`scripts/create-dev-release-tag.sh --base <MAJOR.MINOR> --push`).
+- Issue triage: `security` + `lane:patch` for security/critical;
+  `lane:minor` for features/non-critical; `lane:major` for breaking plans.

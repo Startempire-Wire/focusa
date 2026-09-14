@@ -1,0 +1,3 @@
+focusa-vbcqu.20.15.16 172.02.07 — REAL 2026-08-18
+Commit: 18f5ba9663d435a0eddc1b1385ffd4bae7009ce2
+php tests/spec172_refund_downgrade_test.php PASS

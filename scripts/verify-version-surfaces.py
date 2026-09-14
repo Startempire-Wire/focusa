@@ -20,6 +20,8 @@ PACKAGE_RE = re.compile(r'^name\s*=\s*"([^"]+)"\s*$')
 LOCK_VERSION_RE = re.compile(r'^version\s*=\s*"([^"]+)"\s*$')
 
 ROOT_RUST_PACKAGES = {
+    "agent-stateful-cognitive-runtime",
+    "cognitive-state-projection",
     "focusa-api",
     "focusa-bench",
     "focusa-cli",
@@ -29,6 +31,8 @@ ROOT_RUST_PACKAGES = {
     "focusa-session-runner",
     "focusa-terminal-ui",
     "focusa-tui",
+    "letta-adapter",
+    "pi-client-tool-gateway",
 }
 MENUBAR_RUST_PACKAGES = {"focusa-menubar"}
 
@@ -41,18 +45,18 @@ def parse_version(raw: str) -> str:
 
 
 def read_toml_version(path: str) -> str:
-    for line in (ROOT / path).read_text().splitlines():
+    for line in (ROOT / path).read_text(encoding="utf-8").splitlines():
         if line.startswith("version = "):
             return line.split('"')[1]
     raise SystemExit(f"version key not found: {path}")
 
 
 def read_json_version(path: str) -> str:
-    return json.loads((ROOT / path).read_text())["version"]
+    return json.loads((ROOT / path).read_text(encoding="utf-8"))["version"]
 
 
 def read_settings_version(path: str) -> str:
-    text = (ROOT / path).read_text()
+    text = (ROOT / path).read_text(encoding="utf-8")
     match = re.search(r"v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?", text)
     if not match:
         raise SystemExit(f"display version not found: {path}")
@@ -60,7 +64,7 @@ def read_settings_version(path: str) -> str:
 
 
 def read_extension_build_version(path: str, package_name: str) -> str:
-    text = (ROOT / path).read_text()
+    text = (ROOT / path).read_text(encoding="utf-8")
     match = re.search(
         rf'const EXTENSION_BUILD = "{re.escape(package_name)}@'
         r'(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)"',
@@ -71,10 +75,18 @@ def read_extension_build_version(path: str, package_name: str) -> str:
     return match.group(1)
 
 
+def read_installer_version(path: str) -> str:
+    text = (ROOT / path).read_text(encoding="utf-8")
+    match = re.search(r'(?m)^FOCUSA_INSTALLER_VERSION="([^"]+)"$', text)
+    if not match:
+        raise SystemExit(f"installer version not found: {path}")
+    return match.group(1)
+
+
 def read_lock_versions(path: str, package_names: set[str]) -> dict[str, str]:
     current_name: str | None = None
     versions: dict[str, str] = {}
-    for line in (ROOT / path).read_text().splitlines():
+    for line in (ROOT / path).read_text(encoding="utf-8").splitlines():
         name_match = PACKAGE_RE.match(line)
         if name_match:
             current_name = name_match.group(1)
@@ -118,6 +130,16 @@ def main() -> int:
             read_json_version(
                 "docs/contracts/spec141/generated-capability-v2/agent-card.json"
             ),
+        ),
+        (
+            "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json::release_version",
+            json.loads(
+                (ROOT / "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json").read_text(encoding="utf-8")
+            )["release_version"],
+        ),
+        (
+            "scripts/install-focusa.sh::FOCUSA_INSTALLER_VERSION",
+            read_installer_version("scripts/install-focusa.sh"),
         ),
         ("apps/menubar/package.json", read_json_version("apps/menubar/package.json")),
         (

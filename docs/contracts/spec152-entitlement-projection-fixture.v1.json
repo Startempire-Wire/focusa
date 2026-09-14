@@ -1,0 +1,31 @@
+{
+  "schema": "focusa.spec152.entitlement_projection_fixture.v1",
+  "source_fixture": "crates/focusa-license/tests/fixtures/spec152-authority-golden-vector.json",
+  "expected_projection": {
+    "schema": "focusa.entitlement_projection.v1",
+    "state": "active",
+    "product": "focusa",
+    "node_id": "node-golden-001",
+    "lease_id": "lease-golden-0001",
+    "lease_sequence": 42,
+    "lease_digest": "sha256:9c743760745a7365932a5096de5167f7d3b8d9b795f027d5ddaecbfc31684d29",
+    "expires_at": "2026-09-01T00:00:00+00:00",
+    "offline_grace_until": "2026-10-01T00:00:00+00:00",
+    "features": {
+      "agent_runtime": true,
+      "mission_canvas": true,
+      "release": false
+    },
+    "limits": {
+      "active_sessions": 4,
+      "monthly_agent_turns": 10000
+    },
+    "recovery_reason": null
+  },
+  "required_consumers": {
+    "core": "LicenseStatus.authority",
+    "api": "GET /v1/license/status authority",
+    "cli": "focusa license status --json authority"
+  },
+  "missing_snapshot_error": "ENTITLEMENT_SNAPSHOT_MISSING"
+}

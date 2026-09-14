@@ -7,7 +7,12 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-spec130a-runtime.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 cd "$PI_EXT"
-npx tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
+if [[ -x /opt/cpanel/ea-nodejs20/bin/npx ]]; then
+  NPX=/opt/cpanel/ea-nodejs20/bin/npx
+else
+  NPX="$(command -v npx)"
+fi
+"$NPX" --no-install tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
 ln -s "$PI_EXT/node_modules" "$TMP/build/node_modules"
 
 cat >"$TMP/runtime.mjs" <<'EOF'
@@ -18,6 +23,7 @@ import {
   proactiveCompactionDecision,
   registerAutoCompaction,
 } from "./build/auto-compaction.js";
+import { resetCompactionLeaseForTest } from "./build/auto-compaction.js";
 const duplicateModule = await import("./build/auto-compaction.js?duplicate-install");
 const thirdModule = await import("./build/auto-compaction.js?third-install");
 
@@ -48,8 +54,14 @@ function harness(
   const compactCalls = [];
   const sentMessages = [];
   const pi = {
+    getAllTools() {
+      return [];
+    },
     on(name, handler) {
       handlers.set(name, handler);
+    },
+    registerCommand(_command, _handler) {
+      /* extension command registration is exercised by the command-hierarchy tests */
     },
     appendEntry(type, data) {
       events.push({ type, data });
@@ -99,7 +111,10 @@ assert.equal(
 const completed = harness(largeBranch);
 const duplicateWarnings = [];
 const originalWarn = console.warn;
-console.warn = (...args) => duplicateWarnings.push(args.map(String).join(" "));
+const originalInfo = console.info;
+const captureDiagnostic = (...args) => duplicateWarnings.push(args.map(String).join(" "));
+console.warn = captureDiagnostic;
+console.info = captureDiagnostic;
 const duplicate = harness(
   largeBranch,
   DEFAULT_PROACTIVE_COMPACTION_POLICY,
@@ -111,10 +126,11 @@ const third = harness(
   thirdModule.registerAutoCompaction,
 );
 console.warn = originalWarn;
+console.info = originalInfo;
 assert.equal(duplicate.handlers.size, 0, "duplicate extension must not register any handlers");
 assert.equal(third.handlers.size, 0, "every additional extension must register no handlers");
 assert.equal(duplicateWarnings.length, 1, "duplicates must emit one bounded diagnostic");
-assert.match(duplicateWarnings[0], /active compaction owner=.*Remove the duplicate Focusa installation/);
+assert.match(duplicateWarnings[0], /duplicate extension suppressed/);
 await Promise.all([
   completed.handlers.get("agent_settled")({ type: "agent_settled" }, completed.ctx),
   completed.handlers.get("agent_settled")({ type: "agent_settled" }, completed.ctx),
@@ -141,11 +157,19 @@ completed.compactCalls[0].onComplete({
 });
 assert.deepEqual(
   completed.events.map((entry) => entry.data.kind),
-  ["attempt_started", "attempt_completed"],
+  [
+    "pressure_observed",
+    "native_compaction_requested",
+    "attempt_started",
+    "outcome_baseline_recorded",
+    "outcome_evaluated",
+    "attempt_completed",
+  ],
 );
 assert.ok(completed.statuses.some((entry) => entry.text === undefined));
 await completed.handlers.get("session_shutdown")({ type: "session_shutdown" }, completed.ctx);
 
+resetCompactionLeaseForTest();
 const rejected = harness(largeBranch);
 await rejected.handlers.get("agent_settled")({ type: "agent_settled" }, rejected.ctx);
 const exactReject = await rejected.handlers.get("session_before_compact")(
@@ -165,6 +189,7 @@ assert.ok(rejected.events.some((entry) => entry.data.kind === "eligibility_rejec
 assert.ok(!rejected.events.some((entry) => entry.data.kind === "retry_scheduled"));
 await rejected.handlers.get("session_shutdown")({ type: "session_shutdown" }, rejected.ctx);
 
+resetCompactionLeaseForTest();
 const terminal = harness([]);
 await terminal.handlers.get("agent_settled")({ type: "agent_settled" }, terminal.ctx);
 await terminal.handlers.get("agent_settled")({ type: "agent_settled" }, terminal.ctx);
@@ -176,6 +201,7 @@ assert.equal(
 assert.equal(terminal.notices.length, 1);
 await terminal.handlers.get("session_shutdown")({ type: "session_shutdown" }, terminal.ctx);
 
+resetCompactionLeaseForTest();
 const nativeAutomatic = harness(largeBranch);
 const nativeAutomaticReject = await nativeAutomatic.handlers.get("session_before_compact")(
   {
@@ -190,16 +216,20 @@ const nativeAutomaticReject = await nativeAutomatic.handlers.get("session_before
   },
   nativeAutomatic.ctx,
 );
-assert.deepEqual(nativeAutomaticReject, { cancel: true });
+assert.equal(nativeAutomaticReject, undefined, "native threshold/overflow recovery is never vetoed");
 assert.equal(nativeAutomatic.compactCalls.length, 0);
 assert.ok(
   nativeAutomatic.events.some((entry) => entry.data.kind === "native_invocation_observed"),
+);
+assert.ok(
+  nativeAutomatic.events.some((entry) => entry.data.kind === "native_eligibility_observed"),
 );
 await nativeAutomatic.handlers.get("session_shutdown")(
   { type: "session_shutdown" },
   nativeAutomatic.ctx,
 );
 
+resetCompactionLeaseForTest();
 const nativeManual = harness(largeBranch);
 const nativeManualResult = await nativeManual.handlers.get("session_before_compact")(
   {
@@ -224,6 +254,7 @@ await nativeManual.handlers.get("session_shutdown")(
   nativeManual.ctx,
 );
 
+resetCompactionLeaseForTest();
 const terminalTransport = harness(largeBranch, {
   ...DEFAULT_PROACTIVE_COMPACTION_POLICY,
   cooldownMs: 20,

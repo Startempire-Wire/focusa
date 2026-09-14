@@ -3612,13 +3612,9 @@ mod tests {
 
     #[test]
     fn trajectory_view_syncs_focus_current_focus_and_short_term_goal_projection() {
-        let mut state = state_with_workpoint("/tmp/focusa-test");
-        add_active_frame(
-            &mut state,
-            "/tmp/focusa-test",
-            "cont-a",
-            "Frame title fallback",
-        );
+        let root = format!("/tmp/focusa-test-{}", uuid::Uuid::now_v7());
+        let mut state = state_with_workpoint(&root);
+        add_active_frame(&mut state, &root, "cont-a", "Frame title fallback");
         if let Some(frame) = state.focus_stack.frames.last_mut() {
             frame.focus_state.current_state =
                 "Focus State current focus drives short term".to_string();
@@ -3626,7 +3622,7 @@ mod tests {
         let payload = trajectory_view_payload(
             &state,
             &TrajectoryViewQuery {
-                project_root: Some("/tmp/focusa-test".to_string()),
+                project_root: Some(root.clone()),
                 continuity_id: Some("cont-a".to_string()),
                 session_id: None,
                 mode: None,
@@ -3640,12 +3636,12 @@ mod tests {
             Some("none")
         );
 
-        let mut state = state_with_workpoint("/tmp/focusa-test");
-        add_defined_trajectory(&mut state, "/tmp/focusa-test", "cont-a");
+        let mut state = state_with_workpoint(&root);
+        add_defined_trajectory(&mut state, &root, "cont-a");
         let payload = trajectory_view_payload(
             &state,
             &TrajectoryViewQuery {
-                project_root: Some("/tmp/focusa-test".to_string()),
+                project_root: Some(root.clone()),
                 continuity_id: Some("cont-a".to_string()),
                 session_id: None,
                 mode: None,
@@ -3668,14 +3664,15 @@ mod tests {
 
     #[test]
     fn trajectory_view_prefers_scoped_workpoint_over_stale_global_active() {
-        let mut state = state_with_workpoint("/tmp/focusa-test");
+        let root = format!("/tmp/focusa-trajectory-scoped-{}", Uuid::now_v7());
+        let mut state = state_with_workpoint(&root);
         let scoped_id = Uuid::now_v7();
         state.workpoint.records.push(WorkpointRecord {
             workpoint_id: scoped_id,
             work_item_id: Some("focusa-scoped".to_string()),
             session_id: Some("session-b".to_string()),
             continuity_id: Some("cont-b".to_string()),
-            project_root: Some("/tmp/focusa-test".to_string()),
+            project_root: Some(root.clone()),
             status: WorkpointStatus::Active,
             checkpoint_reason: WorkpointCheckpointReason::Manual,
             confidence: WorkpointConfidence::Verified,
@@ -3684,12 +3681,12 @@ mod tests {
             next_slice: Some("Keep trajectory view canonical".to_string()),
             ..WorkpointRecord::default()
         });
-        add_defined_trajectory(&mut state, "/tmp/focusa-test", "cont-b");
+        add_defined_trajectory(&mut state, &root, "cont-b");
 
         let payload = trajectory_view_payload(
             &state,
             &TrajectoryViewQuery {
-                project_root: Some("/tmp/focusa-test".to_string()),
+                project_root: Some(root),
                 session_id: Some("session-after-compact".to_string()),
                 continuity_id: Some("cont-b".to_string()),
                 mode: None,

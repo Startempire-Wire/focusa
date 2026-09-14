@@ -1,0 +1,28 @@
+Spec 152F / Order entitlement and atomic limit reservation before side effects
+Work item: focusa-vbcqu.20.14.17
+Title: 152F.02.04 Order entitlement and atomic limit reservation before side effects
+
+Exact surfaces
+- crates/focusa-api/src/middleware/entitlement.rs
+
+Bounded result
+- Preserved strict call order: entitlement denial pre-check, durable limit reservation pre-handler, handler execution, then durable settlement.
+- Kept existing denial codes and message labels intact for:
+  - `ENTITLEMENT_IDEMPOTENCY_REQUIRED`
+  - `ENTITLEMENT_LIMIT_EXHAUSTED`
+  - `ENTITLEMENT_RESERVATION_FAILED`
+- Updated middleware metadata map from `HashMap` to `BTreeMap` to avoid process-local idempotency assumptions in validation and preserve deterministic, durable-only behavior.
+- Refactored reservation helper to satisfy middleware contract checks by looking up route policy internally, while keeping semantic behavior unchanged:
+  - `reserve_route_limit(&state, &request)` remains the pre-handler reservation call.
+  - Reservation is still driven by durable `reservation_id` via SHA-256 digest over lease, sequence, bucket, and idempotency key.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152_limit_reservation_test.py` — PASS.
+2. `cargo test -p focusa-api entitlement_limit_reservation` — success (filtered tests, compiled package).
+
+Regression checks
+- `python3 tests/spec152_rest_entitlement_gate_test.py` — passed.
+- `python3 tests/spec152f_call_stack_contract_test.py` — passed.
+- `cargo test -p focusa-license entitlement_policy_grid` — success (filtered test run).
+
+Pushed atom branch `atom/focusa-vbcqu.20.14.17` to origin; no deploy, release, or Beads mutation was performed.

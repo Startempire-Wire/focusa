@@ -78,7 +78,8 @@ fn print_named(label: &str, value: &Value) {
         .and_then(Value::as_str)
         .unwrap_or("unknown");
     println!("utility {label} {status}");
-    for scalar in ["authority_boundary"] {
+    {
+        let scalar = "authority_boundary";
         if let Some(text) = value.get(scalar).and_then(Value::as_str) {
             println!("{scalar}: {text}");
         }

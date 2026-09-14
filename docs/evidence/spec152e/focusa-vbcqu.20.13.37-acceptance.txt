@@ -1,0 +1,182 @@
+Spec 152E cross-surface recovery-only contract — acceptance evidence
+Work item: focusa-vbcqu.20.13.37
+Title: 152E.04.06 Bind entitlement denial to recovery-only surfaces
+Scope: authority denial envelopes (API/CLI/TUI/menubar/agent); daemon
+middleware; export/diagnostics/repair/update-for-recovery/uninstall routes;
+presenters
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§18 refund/revoke/recovery-only preservation,
+§20 stable failure semantics with safe next actions, §21 surface
+consolidation, §23 acceptance matrix "Refund", "Revocation", "Terminal
+delivery loss", "Node limit"); Specs 152, 150A, 152A-D; Spec 158
+implementation excluded.
+
+Exact surfaces (this atom only)
+- Authority denial envelopes: the daemon middleware denial response body and
+  the agent (pi-extension) presenter's 403 projection fallback.
+- Daemon middleware: crates/focusa-api/src/middleware/entitlement.rs
+  (recovery-only surface contract embedding, denial-code -> recovery-action
+  binding, preserved recovery routes, protected-mutation sentinel matrices).
+- export/diagnostics/repair/update-for-recovery/uninstall routes: the
+  preserved recovery surfaces declared in the contract and enforced by
+  route_recovery_allowance / read exemptions.
+- Presenters: CLI (crates/focusa-cli/src/commands/license.rs), TUI
+  (crates/focusa-tui/src/api.rs), menubar
+  (apps/menubar/src/lib/entitlementPosture.ts), agent
+  (apps/pi-extension/src/state.ts + its entitlement gate test).
+- Cross-surface contract: docs/contracts/spec152e-recovery-only-surface.v1.json
+- Exact verification: tests/spec152e_recovery_only_surface_test.py
+
+Implementation commit: `001408136c9456b2da43ea434bca262f34e961b8`
+
+Bounded result
+- Added the canonical cross-surface recovery-only contract
+  focusa.spec152e.recovery_only_surface.v1 binding every Spec 152E stable
+  failure to exactly one denial class (email, account, payment, license,
+  node, lease, activation_mechanics) with an exact recovery action and
+  bounded safe_next_action sets, plus runtime denial bindings for the daemon
+  (ENTITLEMENT_BASE_REQUIRED -> reactivate_or_repair_lease,
+  ENTITLEMENT_FEATURE_REQUIRED -> manage_license,
+  ENTITLEMENT_LIMIT_EXHAUSTED -> manage_limit,
+  ENTITLEMENT_ROUTE_UNCLASSIFIED -> recovery_only, etc.) and a fail-closed
+  default. Invariants hold: recovery never grants entitlement; denials
+  return safe next actions only; protected mutations are denied before side
+  effects; no raw authority/email/payment/credential data; no unverified
+  email promotion; no local/self-issued entitlement; Spec 158 excluded.
+- Preserved recovery surfaces exactly match Spec 152E §18: account
+  verification (/v1/device/pair/status, /v1/device/pair/revoke), license
+  status and management (/v1/license/status), export (/v1/export/run,
+  /v1/export/status, /v1/export/history, /v1/export/manifest/{export_id}),
+  diagnostics (/v1/doctor, /v1/doctor/closure), repair (/v1/project/
+  bootstrap/repair, /v1/update/rollback), update needed for recovery
+  (/v1/update/apply, /v1/update/check, /v1/update/plan), and uninstall
+  (presenter-only local lifecycle surface backed by
+  RecoveryAllowance::Uninstall; user data preserved; never grants
+  entitlement). Forbidden protected mutations (workpoint/evidence/turn/
+  metacog/silent-session/project/connect/constitution mutation routes) are
+  disjoint from recovery routes and denied by the middleware sentinel
+  matrices (evidence_capture added to both matrices).
+- Daemon middleware now embeds the contract (include_str!) and every denial
+  envelope carries the bound `recovery.action` plus the preserved
+  `recovery.allowed` surface list (health, version, license_status, export,
+  diagnostics, repair, update_for_recovery, uninstall, safe_read) alongside
+  status_path /v1/license/status. Unknown runtime codes fail closed to the
+  contract default (recovery_only) with the full preserved list; an
+  unparseable embedded contract yields the same fail-closed default rather
+  than an envelope without recovery guidance.
+- Presenters are consistent: CLI, TUI, and menubar surface "recovery,
+  export, repair, and uninstall remain available"; the agent presenter's
+  403 projection fallback carries the same status_path, action, and allowed
+  surface list (its entitlement-gate test updated from the stale
+  license_recovery token to the contract envelope). The activation state
+  machine still lands denied/refunded/revoked/superseded/expired in the
+  terminal recovery_only state.
+- No raw email, secret, unmasked license key, or unmasked real-email
+  evidence appears in the contract or any output; only the six denial
+  classes plus activation mechanics are bound, and recovery actions never
+  invent or self-issue entitlement.
+
+Exact verification (exit codes)
+1. python3 tests/spec152e_recovery_only_surface_test.py — exit 0 (run three
+   times; deterministic, byte-identical output, sha256
+   5a0cecddc530e5a28ec07030742f5a09850f8ad2da4b5d6477949229a49b3132).
+   Bounded result:
+   {"schema":"focusa.spec152e.recovery_only_surface_validation.v1",
+   "denial_classes":7,"bound_codes":33,"recovery_surfaces":7,
+   "forbidden_protected_mutations":12,"runtime_denial_bindings":7,
+   "consistency_surfaces":["agent","api","cli","menubar","tui"],
+   "result":"passed_fail_closed"}
+   Positive: contract schema/authority/invariants; all 33 activation-error
+   codes bound to exactly one denial class with per-code safe_next_action
+   consistent with the class action set; REFUNDED/REVOKED/EDD_LICENSE_UNUSABLE
+   map to recovery_only; runtime bindings complete with fail-closed default;
+   the seven §18 recovery surfaces preserved with disjoint routes; uninstall
+   presenter-only with user-data preservation; forbidden mutations disjoint
+   from recovery routes; middleware embeds the contract, emits
+   recovery.action and recovery.allowed, declares every recovery path in
+   route_recovery_allowance or read exemption, and denies every forbidden
+   mutation in its sentinel matrices; CLI/TUI/menubar/agent presenters carry
+   the same recovery message and envelope; state machine lands every
+   terminal denial in recovery_only; hygiene scans find no raw email,
+   secret prefix, or unmasked license key.
+   Negative (fail-closed): unknown runtime codes default to recovery_only;
+   an unparseable embedded contract falls back to the default guidance;
+   recovery surfaces are disjoint from forbidden protected mutations; no
+   denial binding is duplicated; no registry code is unbound.
+2. cargo test -p focusa-api middleware — exit 0: 29 passed; 0 failed,
+   including the new recovery_guidance_is_contract_bound test and the
+   recovery-only sentinel matrices with the added evidence_capture entry.
+
+Regression checks (exit codes)
+- cargo test -p focusa-api — exit 101 only from 12 pre-existing failures in
+  routes::reflection and routes::turn (reflect_history_*, scheduler_tick_*,
+  reflect_run_is_idempotent_by_key_and_window, turn_complete_is_idempotent_
+  by_turn_id); reproduced byte-identically on the pristine baseline
+  (0e8e282d, git stash): 459 passed / 12 failed without this atom, 460
+  passed / 12 failed with it. Their target files are not touched by this
+  atom.
+- python3 tests/spec152e_state_machine_contract_test.py — exit 0.
+- python3 tests/spec152e_api_contract_test.py — exit 0 (generated activation
+  contracts unchanged and current).
+- python3 tests/spec152e_facade_acceptance_test.py — exit 0.
+- python3 tests/spec152e_facade_golden_vector_test.py — exit 0.
+- python3 tests/spec152e_lease_golden_vector_test.py — exit 0.
+- python3 tests/spec152e_terminal_envelope_vector_test.py — exit 0.
+- python3 tests/spec152e_facade_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_migration_inventory_test.py — exit 0.
+- python3 tests/spec152e_deployed_surface_inventory_test.py — exit 0.
+- python3 tests/spec152e_product_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_document_authority_test.py — exit 0.
+- python3 tests/spec152f_call_stack_contract_test.py — exit 0.
+- python3 tests/spec152f_document_authority_test.py — exit 0.
+- python3 tests/spec152_entitlement_coverage_test.py — exit 0.
+- php tests/spec152e_lease_refresh_lifecycle_test.php — exit 0.
+- php tests/spec152e_terminal_envelope_test.php — exit 0.
+- php tests/spec152e_edd_checkout_intent_test.php — exit 0.
+- node apps/pi-extension/tests/pi-entitlement-gate.test.mjs — exit 0
+  (agent presenter 403 projection gate).
+
+Tests added
+- tests/spec152e_recovery_only_surface_test.py (exact verification; 33 bound
+  codes / 7 denial classes / 7 recovery surfaces / 12 forbidden mutations /
+  7 runtime bindings) covering contract self-consistency, per-code
+  safe_next_action binding against the activation-errors registry, preserved
+  recovery routes against the middleware, forbidden-mutation disjointness and
+  sentinel coverage, presenter consistency across API/CLI/TUI/menubar/agent,
+  state-machine recovery_only terminal binding, and hygiene scans.
+- crates/focusa-api/src/middleware/entitlement.rs: recovery_guidance_is_
+  contract_bound (denial code -> recovery action and preserved list,
+  fail-closed default for unknown codes); evidence_capture added to both
+  protected-mutation sentinel matrices.
+- apps/pi-extension/tests/pi-entitlement-gate.test.mjs: updated to assert
+  the contract-derived recovery envelope (update_for_recovery, uninstall,
+  safe_read, status_path) instead of the stale license_recovery token.
+
+Acceptance criteria
+- Every denial is consistent across API/CLI/TUI/menubar/agent and recovery
+  never grants entitlement: verified — the cross-surface contract binds all
+  33 stable failures to exact recovery actions, the daemon middleware
+  embeds it and emits the bound action + preserved surface list in every
+  denial envelope, and all four presenters carry the same recovery message,
+  status path, and allowed surfaces; recovery surfaces map only to
+  RecoveryAllowance paths or read exemptions and never to entitlement
+  evaluation.
+- All named positive and negative checks pass (exit 0, byte-identical across
+  runs, sha256 5a0cecddc530e5a28ec07030742f5a09850f8ad2da4b5d6477949229a49b3132);
+  diff contains only the named surfaces (middleware, agent presenter + gate
+  test, recovery-only contract, exact verification test); generated
+  contracts are current (api_contract_test.py, facade, product-registry,
+  state-machine, and coverage suites exit 0; no generated contract file was
+  modified); secrets and unmasked real email are absent (hygiene scans pass);
+  evidence is replayable from the pinned commit (offline, deterministic,
+  byte-identical output).
+
+Rollback
+- Revert only this atom's commits: implementation commit
+  001408136c9456b2da43ea434bca262f34e961b8 and the evidence commit containing
+  this file. Preserve EDD customer/order/refund truth, verified identities,
+  licenses, nodes, sequences, credentials, Workpoints, Evidence, and
+  migration journals; rollback is preservation-only — no EDD truth,
+  identity, license, node, sequence, credential, or journal is deleted.
+
+No push, deploy, release, merge, or Beads mutation was performed.

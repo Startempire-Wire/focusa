@@ -1,0 +1,887 @@
+{
+  "bound_contract": "focusa.spec152e.activation_internal.v1",
+  "error_cases": [
+    {
+      "code": "ACCOUNT_EMAIL_MISMATCH",
+      "http_status": 403,
+      "operation": "activation.checkout",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "verify_account_email"
+    },
+    {
+      "code": "ACCOUNT_MERGE_REVIEW_REQUIRED",
+      "http_status": 409,
+      "operation": "activation.verify",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "contact_support"
+    },
+    {
+      "code": "AUTHORITY_UNAVAILABLE",
+      "http_status": 503,
+      "operation": "activation.start",
+      "retry_posture": "safe_retry",
+      "retryable": true,
+      "safe_next_action": "retry_or_use_recovery"
+    },
+    {
+      "code": "EDD_CHECKOUT_REQUIRED",
+      "http_status": 409,
+      "operation": "activation.checkout",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "open_checkout"
+    },
+    {
+      "code": "EDD_CUSTOMER_RESOLUTION_FAILED",
+      "http_status": 503,
+      "operation": "activation.verify",
+      "retry_posture": "none",
+      "retryable": true,
+      "safe_next_action": "retry_or_use_recovery"
+    },
+    {
+      "code": "EDD_LICENSE_PENDING",
+      "http_status": 202,
+      "operation": "activation.existing_license",
+      "retry_posture": "safe_retry",
+      "retryable": true,
+      "safe_next_action": "poll_after_retry_after"
+    },
+    {
+      "code": "EDD_LICENSE_UNUSABLE",
+      "http_status": 403,
+      "operation": "activation.existing_license",
+      "retry_posture": "recovery_only",
+      "retryable": false,
+      "safe_next_action": "recovery_only"
+    },
+    {
+      "code": "EDD_ORDER_PENDING",
+      "http_status": 202,
+      "operation": "activation.poll",
+      "retry_posture": "safe_retry",
+      "retryable": true,
+      "safe_next_action": "poll_after_retry_after"
+    },
+    {
+      "code": "EDD_ORDER_UNVERIFIED",
+      "http_status": 409,
+      "operation": "activation.checkout",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "verify_checkout_identity"
+    },
+    {
+      "code": "EMAIL_DELIVERY_FAILED",
+      "http_status": 503,
+      "operation": "activation.start",
+      "retry_posture": "none",
+      "retryable": true,
+      "safe_next_action": "retry_or_use_recovery"
+    },
+    {
+      "code": "EMAIL_REQUIRED",
+      "http_status": 400,
+      "operation": "activation.start",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "provide_email"
+    },
+    {
+      "code": "EMAIL_VERIFICATION_EXPIRED",
+      "http_status": 410,
+      "operation": "activation.verify",
+      "retry_posture": "restart",
+      "retryable": false,
+      "safe_next_action": "restart_verification"
+    },
+    {
+      "code": "EMAIL_VERIFICATION_FAILED",
+      "http_status": 403,
+      "operation": "activation.verify",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "retry_verification_within_budget"
+    },
+    {
+      "code": "EMAIL_VERIFICATION_REQUIRED",
+      "http_status": 403,
+      "operation": "activation.verify",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "verify_email"
+    },
+    {
+      "code": "ENTITLEMENT_FEATURE_REQUIRED",
+      "http_status": 403,
+      "operation": null,
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "manage_license"
+    },
+    {
+      "code": "ENTITLEMENT_LIMIT_EXHAUSTED",
+      "http_status": 429,
+      "operation": null,
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "manage_limit"
+    },
+    {
+      "code": "ENTITLEMENT_REQUIRED",
+      "http_status": 403,
+      "operation": "lease.refresh",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "activate_or_manage_license"
+    },
+    {
+      "code": "EVALUATION_NOT_ELIGIBLE",
+      "http_status": 403,
+      "operation": "activation.select_offer",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "select_paid_or_limited_access"
+    },
+    {
+      "code": "FACADE_ORIGIN_DENIED",
+      "http_status": 403,
+      "operation": "activation.start",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "use_registered_facade"
+    },
+    {
+      "code": "FACADE_PRODUCT_DENIED",
+      "http_status": 403,
+      "operation": "activation.start",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "select_supported_product"
+    },
+    {
+      "code": "IDEMPOTENCY_CONFLICT",
+      "http_status": 409,
+      "operation": "activation.start",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "use_original_request_or_new_key"
+    },
+    {
+      "code": "IDEMPOTENCY_KEY_REQUIRED",
+      "http_status": 400,
+      "operation": "activation.start",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "send_idempotency_key"
+    },
+    {
+      "code": "LICENSE_ACCOUNT_MISMATCH",
+      "http_status": 403,
+      "operation": "activation.existing_license",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "verify_license_owner"
+    },
+    {
+      "code": "LICENSE_DELIVERY_FAILED",
+      "http_status": 503,
+      "operation": "activation.poll",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "authenticated_recovery"
+    },
+    {
+      "code": "LICENSE_DELIVERY_PENDING",
+      "http_status": 202,
+      "operation": "activation.poll",
+      "retry_posture": "safe_retry",
+      "retryable": true,
+      "safe_next_action": "poll_after_retry_after"
+    },
+    {
+      "code": "NODE_LIMIT_EXHAUSTED",
+      "http_status": 409,
+      "operation": "activation.existing_license",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "manage_nodes"
+    },
+    {
+      "code": "POLL_CREDENTIAL_EXPIRED",
+      "http_status": 401,
+      "operation": "activation.poll",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "restart_or_recover_activation"
+    },
+    {
+      "code": "POLL_CREDENTIAL_REQUIRED",
+      "http_status": 401,
+      "operation": "activation.poll",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "restart_or_recover_activation"
+    },
+    {
+      "code": "PRODUCT_MAPPING_REQUIRED",
+      "http_status": 409,
+      "operation": "activation.start",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "wait_for_product_mapping"
+    },
+    {
+      "code": "REFUNDED",
+      "http_status": 403,
+      "operation": "lease.refresh",
+      "retry_posture": "recovery_only",
+      "retryable": false,
+      "safe_next_action": "recovery_only"
+    },
+    {
+      "code": "REQUEST_ID_REQUIRED",
+      "http_status": 400,
+      "operation": "activation.start",
+      "retry_posture": "none",
+      "retryable": false,
+      "safe_next_action": "send_new_request_id"
+    },
+    {
+      "code": "REQUEST_IN_PROGRESS",
+      "http_status": 409,
+      "operation": "activation.poll",
+      "retry_posture": "retry_same_idempotency_key",
+      "retryable": true,
+      "safe_next_action": "retry_same_idempotency_key"
+    },
+    {
+      "code": "REVOKED",
+      "http_status": 403,
+      "operation": "lease.refresh",
+      "retry_posture": "recovery_only",
+      "retryable": false,
+      "safe_next_action": "recovery_only"
+    }
+  ],
+  "fixture_version": 1,
+  "initial_state": "attempt_created",
+  "negative_transcripts": [
+    {
+      "event": "account_promoted",
+      "from": "attempt_created",
+      "id": "no_unverified_email_promotion",
+      "reason": "mailbox_verification_precedes_account_customer_order_key_node_or_lease"
+    },
+    {
+      "event": "entitlement_issued",
+      "from": "email_challenge_sent",
+      "id": "no_entitlement_before_verification",
+      "reason": "mailbox_verification_precedes_account_customer_order_key_node_or_lease"
+    },
+    {
+      "event": "checkout_started",
+      "from": "attempt_created",
+      "id": "no_checkout_from_unverified_attempt",
+      "reason": "facade_and_client_have_zero_identity_commerce_or_entitlement_authority"
+    },
+    {
+      "event": "lease_issued",
+      "from": "email_challenge_sent",
+      "id": "no_lease_without_verified_device",
+      "reason": "mailbox_verification_precedes_account_customer_order_key_node_or_lease"
+    },
+    {
+      "event": "device_registered",
+      "from": "attempt_created",
+      "id": "no_node_without_verification",
+      "reason": "mailbox_verification_precedes_account_customer_order_key_node_or_lease"
+    },
+    {
+      "event": "delivered",
+      "from": "recovery_only",
+      "id": "recovery_never_regrants",
+      "reason": "edd_order_license_and_refund_truth_is_never_rolled_back"
+    },
+    {
+      "event": "entitlement_issued",
+      "from": "recovery_only",
+      "id": "recovery_never_reissues",
+      "reason": "unknown_operation_state_transition_or_error_fails_closed"
+    },
+    {
+      "event": "limited_access_chosen",
+      "from": "device_registered",
+      "id": "paid_never_downgraded_to_limited_access",
+      "reason": "paid_accounts_are_never_downgraded_by_limited_access_activation"
+    },
+    {
+      "event": "email_verified",
+      "from": "offer_selected",
+      "id": "no_backward_transition_from_selected",
+      "reason": "unknown_operation_state_transition_or_error_fails_closed"
+    }
+  ],
+  "polling": {
+    "binding": [
+      "registration_id",
+      "facade_id",
+      "action",
+      "expiry"
+    ],
+    "credential": "opaque_poll_credential",
+    "default_retry_after_seconds": 3,
+    "maximum_retry_after_seconds": 30,
+    "response": "bounded_state_snapshot",
+    "retry_rules": {
+      "do_not_retry_unchanged": [
+        "ACCOUNT_EMAIL_MISMATCH",
+        "FACADE_ORIGIN_DENIED",
+        "FACADE_PRODUCT_DENIED",
+        "PRODUCT_MAPPING_REQUIRED",
+        "EVALUATION_NOT_ELIGIBLE",
+        "LICENSE_ACCOUNT_MISMATCH",
+        "NODE_LIMIT_EXHAUSTED"
+      ],
+      "recovery_only": [
+        "EDD_LICENSE_UNUSABLE",
+        "REFUNDED",
+        "REVOKED"
+      ],
+      "restart_verification": [
+        "EMAIL_VERIFICATION_EXPIRED"
+      ],
+      "retry_with_same_idempotency_key": [
+        "REQUEST_IN_PROGRESS"
+      ],
+      "safe_retry": [
+        "EDD_ORDER_PENDING",
+        "EDD_LICENSE_PENDING",
+        "LICENSE_DELIVERY_PENDING",
+        "AUTHORITY_UNAVAILABLE"
+      ]
+    },
+    "stored_as": "keyed_hash_only",
+    "terminal_states": [
+      "activated",
+      "denied",
+      "recovery_only"
+    ]
+  },
+  "positive_transcripts": [
+    {
+      "description": "Paid Focusa terminal journey: verified email promotes an EDD customer, server-owned offer leads to checkout, poll receives the one-time key envelope, device registers, signed lease issues and delivery completes.",
+      "from": "attempt_created",
+      "id": "paid_terminal_focusa",
+      "steps": [
+        {
+          "event": "challenge_delivered",
+          "from": "attempt_created",
+          "to": "email_challenge_sent"
+        },
+        {
+          "event": "email_verified",
+          "from": "email_challenge_sent",
+          "to": "email_verified"
+        },
+        {
+          "event": "account_promoted",
+          "from": "email_verified",
+          "to": "account_promoted"
+        },
+        {
+          "event": "offer_selected",
+          "from": "account_promoted",
+          "to": "offer_selected"
+        },
+        {
+          "event": "checkout_started",
+          "from": "offer_selected",
+          "to": "checkout_pending"
+        },
+        {
+          "event": "entitlement_issued",
+          "from": "checkout_pending",
+          "to": "entitlement_issued"
+        },
+        {
+          "event": "terminal_delivery_ready",
+          "from": "entitlement_issued",
+          "to": "terminal_delivery_ready"
+        },
+        {
+          "event": "device_registered",
+          "from": "terminal_delivery_ready",
+          "to": "device_registered"
+        },
+        {
+          "event": "lease_issued",
+          "from": "device_registered",
+          "to": "lease_issued"
+        },
+        {
+          "event": "delivered",
+          "from": "lease_issued",
+          "to": "delivered"
+        }
+      ]
+    },
+    {
+      "description": "Existing EDD Software Licensing key: verified owner email binds the registration, key review resolves the license, node registers and a signed lease issues.",
+      "from": "attempt_created",
+      "id": "existing_key_journey",
+      "steps": [
+        {
+          "event": "challenge_delivered",
+          "from": "attempt_created",
+          "to": "email_challenge_sent"
+        },
+        {
+          "event": "email_verified",
+          "from": "email_challenge_sent",
+          "to": "email_verified"
+        },
+        {
+          "event": "account_promoted",
+          "from": "email_verified",
+          "to": "account_promoted"
+        },
+        {
+          "event": "existing_key_chosen",
+          "from": "account_promoted",
+          "to": "existing_key_review"
+        },
+        {
+          "event": "entitlement_issued",
+          "from": "existing_key_review",
+          "to": "entitlement_issued"
+        },
+        {
+          "event": "terminal_delivery_ready",
+          "from": "entitlement_issued",
+          "to": "terminal_delivery_ready"
+        },
+        {
+          "event": "device_registered",
+          "from": "terminal_delivery_ready",
+          "to": "device_registered"
+        },
+        {
+          "event": "lease_issued",
+          "from": "device_registered",
+          "to": "lease_issued"
+        },
+        {
+          "event": "delivered",
+          "from": "lease_issued",
+          "to": "delivered"
+        }
+      ]
+    },
+    {
+      "description": "Spec 172 overlay journey (Evaluation replacement): verified account chooses limited access, the bounded subset registers a device and receives a signed lease without any EDD key.",
+      "from": "attempt_created",
+      "id": "limited_access_spec172_overlay",
+      "steps": [
+        {
+          "event": "challenge_delivered",
+          "from": "attempt_created",
+          "to": "email_challenge_sent"
+        },
+        {
+          "event": "email_verified",
+          "from": "email_challenge_sent",
+          "to": "email_verified"
+        },
+        {
+          "event": "account_promoted",
+          "from": "email_verified",
+          "to": "account_promoted"
+        },
+        {
+          "event": "limited_access_chosen",
+          "from": "account_promoted",
+          "to": "limited_access_review"
+        },
+        {
+          "event": "device_registered",
+          "from": "limited_access_review",
+          "to": "device_registered"
+        },
+        {
+          "event": "lease_issued",
+          "from": "device_registered",
+          "to": "lease_issued"
+        },
+        {
+          "event": "delivered",
+          "from": "lease_issued",
+          "to": "delivered"
+        }
+      ]
+    },
+    {
+      "description": "EDD refund after full delivery: the lease sequence is superseded by recovery-only and refresh is denied; recovery preserves account truth but never re-grants.",
+      "from": "delivered",
+      "id": "refund_recovery",
+      "steps": [
+        {
+          "event": "refunded",
+          "from": "delivered",
+          "to": "refunded"
+        },
+        {
+          "event": "recovery_only",
+          "from": "refunded",
+          "to": "recovery_only"
+        }
+      ]
+    },
+    {
+      "description": "Authority revocation after lease issuance: the runtime enters recovery_only with no local re-issuance.",
+      "from": "lease_issued",
+      "id": "revocation_recovery",
+      "steps": [
+        {
+          "event": "revoked",
+          "from": "lease_issued",
+          "to": "revoked"
+        },
+        {
+          "event": "recovery_only",
+          "from": "revoked",
+          "to": "recovery_only"
+        }
+      ]
+    },
+    {
+      "description": "Lease supersession (sequence advance on entitlement change) settles to recovery_only until refresh re-issues from the authority.",
+      "from": "lease_issued",
+      "id": "supersession_recovery",
+      "steps": [
+        {
+          "event": "superseded",
+          "from": "lease_issued",
+          "to": "superseded"
+        },
+        {
+          "event": "recovery_only",
+          "from": "superseded",
+          "to": "recovery_only"
+        }
+      ]
+    },
+    {
+      "description": "A checkout that is never paid expires; the bounded attempt settles to recovery_only without ever minting a license.",
+      "from": "checkout_pending",
+      "id": "checkout_expiry_recovery",
+      "steps": [
+        {
+          "event": "expired",
+          "from": "checkout_pending",
+          "to": "expired"
+        },
+        {
+          "event": "recovery_only",
+          "from": "expired",
+          "to": "recovery_only"
+        }
+      ]
+    },
+    {
+      "description": "A verification challenge that expires before mailbox control restarts verification; no account, order, license, node, or lease was created.",
+      "from": "email_challenge_sent",
+      "id": "verification_expiry_recovery",
+      "steps": [
+        {
+          "event": "expired",
+          "from": "email_challenge_sent",
+          "to": "expired"
+        },
+        {
+          "event": "recovery_only",
+          "from": "expired",
+          "to": "recovery_only"
+        }
+      ]
+    }
+  ],
+  "presenter_by_state": {
+    "account_promoted": "selection_required",
+    "attempt_created": "email_required",
+    "checkout_pending": "payment_pending",
+    "delivered": "activated",
+    "denied": "denied",
+    "device_registered": "license_delivery_ready",
+    "email_challenge_sent": "email_verification_pending",
+    "email_verified": "email_verified",
+    "entitlement_issued": "license_delivery_ready",
+    "existing_key_review": "selection_required",
+    "expired": "denied",
+    "lease_issued": "activated",
+    "limited_access_review": "selection_required",
+    "offer_selected": "checkout_required",
+    "recovery_only": "recovery_only",
+    "refunded": "recovery_only",
+    "revoked": "recovery_only",
+    "superseded": "recovery_only",
+    "terminal_delivery_ready": "license_delivery_ready"
+  },
+  "presenter_states": [
+    "email_required",
+    "email_verification_pending",
+    "email_verified",
+    "selection_required",
+    "checkout_required",
+    "payment_pending",
+    "license_delivery_ready",
+    "activated",
+    "denied",
+    "recovery_only"
+  ],
+  "schema": "focusa.spec152e.activation_transcript_fixtures.v1",
+  "state_machine": [
+    {
+      "event": "offer_selected",
+      "from": "account_promoted",
+      "to": "offer_selected"
+    },
+    {
+      "event": "limited_access_chosen",
+      "from": "account_promoted",
+      "to": "limited_access_review"
+    },
+    {
+      "event": "existing_key_chosen",
+      "from": "account_promoted",
+      "to": "existing_key_review"
+    },
+    {
+      "event": "denied",
+      "from": "account_promoted",
+      "to": "denied"
+    },
+    {
+      "event": "challenge_delivered",
+      "from": "attempt_created",
+      "to": "email_challenge_sent"
+    },
+    {
+      "event": "expired",
+      "from": "attempt_created",
+      "to": "expired"
+    },
+    {
+      "event": "denied",
+      "from": "attempt_created",
+      "to": "denied"
+    },
+    {
+      "event": "entitlement_issued",
+      "from": "checkout_pending",
+      "to": "entitlement_issued"
+    },
+    {
+      "event": "denied",
+      "from": "checkout_pending",
+      "to": "denied"
+    },
+    {
+      "event": "expired",
+      "from": "checkout_pending",
+      "to": "expired"
+    },
+    {
+      "event": "superseded",
+      "from": "delivered",
+      "to": "superseded"
+    },
+    {
+      "event": "refunded",
+      "from": "delivered",
+      "to": "refunded"
+    },
+    {
+      "event": "revoked",
+      "from": "delivered",
+      "to": "revoked"
+    },
+    {
+      "event": "recovery_only",
+      "from": "delivered",
+      "to": "recovery_only"
+    },
+    {
+      "event": "recovery_only",
+      "from": "denied",
+      "to": "recovery_only"
+    },
+    {
+      "event": "lease_issued",
+      "from": "device_registered",
+      "to": "lease_issued"
+    },
+    {
+      "event": "denied",
+      "from": "device_registered",
+      "to": "denied"
+    },
+    {
+      "event": "refunded",
+      "from": "device_registered",
+      "to": "refunded"
+    },
+    {
+      "event": "revoked",
+      "from": "device_registered",
+      "to": "revoked"
+    },
+    {
+      "event": "email_verified",
+      "from": "email_challenge_sent",
+      "to": "email_verified"
+    },
+    {
+      "event": "expired",
+      "from": "email_challenge_sent",
+      "to": "expired"
+    },
+    {
+      "event": "denied",
+      "from": "email_challenge_sent",
+      "to": "denied"
+    },
+    {
+      "event": "account_promoted",
+      "from": "email_verified",
+      "to": "account_promoted"
+    },
+    {
+      "event": "denied",
+      "from": "email_verified",
+      "to": "denied"
+    },
+    {
+      "event": "terminal_delivery_ready",
+      "from": "entitlement_issued",
+      "to": "terminal_delivery_ready"
+    },
+    {
+      "event": "device_registered",
+      "from": "entitlement_issued",
+      "to": "device_registered"
+    },
+    {
+      "event": "refunded",
+      "from": "entitlement_issued",
+      "to": "refunded"
+    },
+    {
+      "event": "revoked",
+      "from": "entitlement_issued",
+      "to": "revoked"
+    },
+    {
+      "event": "entitlement_issued",
+      "from": "existing_key_review",
+      "to": "entitlement_issued"
+    },
+    {
+      "event": "denied",
+      "from": "existing_key_review",
+      "to": "denied"
+    },
+    {
+      "event": "recovery_only",
+      "from": "expired",
+      "to": "recovery_only"
+    },
+    {
+      "event": "delivered",
+      "from": "lease_issued",
+      "to": "delivered"
+    },
+    {
+      "event": "superseded",
+      "from": "lease_issued",
+      "to": "superseded"
+    },
+    {
+      "event": "refunded",
+      "from": "lease_issued",
+      "to": "refunded"
+    },
+    {
+      "event": "revoked",
+      "from": "lease_issued",
+      "to": "revoked"
+    },
+    {
+      "event": "recovery_only",
+      "from": "lease_issued",
+      "to": "recovery_only"
+    },
+    {
+      "event": "device_registered",
+      "from": "limited_access_review",
+      "to": "device_registered"
+    },
+    {
+      "event": "denied",
+      "from": "limited_access_review",
+      "to": "denied"
+    },
+    {
+      "event": "checkout_started",
+      "from": "offer_selected",
+      "to": "checkout_pending"
+    },
+    {
+      "event": "limited_access_chosen",
+      "from": "offer_selected",
+      "to": "limited_access_review"
+    },
+    {
+      "event": "existing_key_chosen",
+      "from": "offer_selected",
+      "to": "existing_key_review"
+    },
+    {
+      "event": "denied",
+      "from": "offer_selected",
+      "to": "denied"
+    },
+    {
+      "event": "recovery_only",
+      "from": "refunded",
+      "to": "recovery_only"
+    },
+    {
+      "event": "recovery_only",
+      "from": "revoked",
+      "to": "recovery_only"
+    },
+    {
+      "event": "recovery_only",
+      "from": "superseded",
+      "to": "recovery_only"
+    },
+    {
+      "event": "device_registered",
+      "from": "terminal_delivery_ready",
+      "to": "device_registered"
+    },
+    {
+      "event": "refunded",
+      "from": "terminal_delivery_ready",
+      "to": "refunded"
+    },
+    {
+      "event": "revoked",
+      "from": "terminal_delivery_ready",
+      "to": "revoked"
+    }
+  ]
+}

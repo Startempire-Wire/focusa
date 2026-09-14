@@ -1,8 +1,34 @@
 schema: focusa.spec152.release_blocker_summary.v1
-status: blocked_for_new_evaluator_and_customer_distribution
+authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+simplification_authority: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+work_item_root: focusa-vbcqu.20.13
+simplification_work_item_root: focusa-vbcqu.20.14
+simplification_final_work_item: focusa-vbcqu.20.14.52
+simplification_closure_status: accepted_with_receipts
+simplification_closure_receipt: docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt
+spec152e_final_closure_blocked_by: focusa-vbcqu.20.14.52
+spec152e_correction_status: closed_with_receipts
+spec152e_closure_receipt: docs/evidence/spec152f/focusa-vbcqu.20.13.63-acceptance.txt
+spec152e_closure_atom: focusa-vbcqu.20.13.63
+spec152e_remaining_release_blocker: >-
+  REL.4-REL.7 governance acceptance and live-server deployment verification at
+  the final exact SHA; publication stays forbidden until those close
+status: blocked_for_new_evaluator_customer_and_stable_distribution
+spec_158: excluded
 blockers:
+  - one canonical base entitlement gate for value-producing Focusa operations
+  - four optional premium family boundaries for automation team/remote release proof and premium updates
+  - permanent account read export recovery repair stable security update rollback and uninstall paths
+  - inherited REST CLI desktop TUI Pi agent installer worker scheduler UIAI and facade policy with no independent presenter paywalls
+  - all 395 baseline surfaces reconciled without converting the inventory into SKUs or route-local product policy
+  - dormant future-granularity dimensions that cannot alter runtime authorization without explicit activation
   - authority repository/live parity and rollback proof
-  - verified account/email device-code flow
+  - verified mailbox pending-registration and atomic EDD customer promotion
+  - verified-registration-gated EDD checkout and checkout-email integrity
+  - explicit server-owned EDD product price grant and commercial-right mappings
+  - one EDD Software Licensing human key delivered through email and one-time terminal envelope
+  - canonical account node sequence outbox and signed device-bound lease services
+  - registered facade exact-origin redirect and bounded-proxy enforcement
   - signed lease schema and cross-language golden vectors
   - one canonical Focusa verifier and recovery-mode gate
   - removal of self-issued Bash/PowerShell Evaluation
@@ -11,13 +37,17 @@ blockers:
   - complete CLI/API/Pi/TUI/menubar/worker feature and limit coverage
   - UIAI independent entitlement and child-token enforcement
   - protected worker/capsule proof for selected features
-  - existing paid/evaluator migration
+  - evidence-backed paid/evaluator migration and split-registry retirement
   - refund/revoke/expiry/offline/node/limit E2E
+  - facade and installer presenter parity across official and source builds
   - green documentation consistency workflows
+  - exact-SHA all-platform signed candidate and final publication evidence after correction closure
 approved_before_entitlement:
+  - pending registration without canonical customer or entitlement creation
   - non-mutating preflight
   - health/version and license recovery
   - safe backup/export and repair
+  - account management and node deactivation
   - data-preserving uninstall
   - explicit separately confirmed purge
 legacy_not_approved:
@@ -26,3 +56,6 @@ legacy_not_approved:
   - local or pairing token as entitlement
   - loopback UIAI Evaluation
   - source checkout as official product grant
+  - direct install-site or facade license issuance
+  - caller-supplied EDD product price tier feature limit or commercial grant
+  - canonical customer checkout Evaluation license node or lease before mailbox verification

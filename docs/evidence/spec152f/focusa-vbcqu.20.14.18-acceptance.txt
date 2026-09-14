@@ -1,0 +1,27 @@
+Spec 152F / Revalidate workers and schedulers at dispatch
+Work item: focusa-vbcqu.20.14.18
+Title: 152F.02.05 Revalidate workers and schedulers at dispatch
+
+Exact surfaces
+- crates/focusa-core/src/silent_session_scheduler.rs
+- Reconciliation-discovered worker/scheduler call sites (implemented by context-bearing dispatch candidates in this surface update)
+
+Bounded result
+- Added per-candidate entitlement context propagation surfaces in silent-session dispatch candidates:
+  - `SilentSessionDispatchEntitlementContext` with dispatch policy, initiating policy, and reservation id.
+  - `entitlement_context` field on `SilentSessionDispatchCandidate`.
+- Extended dispatch selection to perform entitlement revalidation per-candidate at dispatch time.
+  - For context-bearing candidates, both dispatch and initiating policies are re-read from the current guard.
+  - Entitlement-denied candidates are deferred with reason `DispatchDeferralReason::EntitlementDenied` and are not selected.
+- Extended entitlement error payload with `reservation_id` and added `EntitlementDenied` deferral reason.
+- Added scheduler test cases under `scheduler_entitlement_revalidation` that assert:
+  - active entitlement allows queued dispatch,
+  - revoked/recovery-only entitlement denies queued dispatch without selecting it,
+  - offline grace expiry for premium feature posture denies dispatch when grace has passed.
+
+Exact verification (exit codes)
+1. `cargo test -p focusa-core scheduler_entitlement_revalidation` — exit 0.
+   Result: 2 matching tests passed, 0 failed (`scheduler_entitlement_revalidation_stops_when_entitlement_is_recovered_or_revoked`, `scheduler_entitlement_revalidation_refuses_past_offline_grace_for_features`).
+2. `cargo fmt --all` — exit 0.
+
+Note: No push, release, or deploy actions were performed in this verification run.

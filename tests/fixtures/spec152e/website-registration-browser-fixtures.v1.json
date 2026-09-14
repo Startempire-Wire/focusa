@@ -1,0 +1,49 @@
+{
+  "schema": "focusa.spec152e.website_registration_browser_fixtures.v1",
+  "synthetic_only": true,
+  "flow": ["start", "verify", "select", "pay", "pending", "success", "manage", "recovery"],
+  "facades": [
+    {
+      "facade_id": "focusa_marketing_v1",
+      "brand": "Focusa",
+      "origin": "https://focusa.dev",
+      "product_code": "focusa_operator_lifetime_v1"
+    },
+    {
+      "facade_id": "focusa_forge_v1",
+      "brand": "Focusa Forge",
+      "origin": "https://forge.focusa.dev",
+      "product_code": "focusa_operator_lifetime_v1"
+    },
+    {
+      "facade_id": "focusa_arena_v1",
+      "brand": "Focusa Arena",
+      "origin": "https://arena.focusa.dev",
+      "product_code": "focusa_operator_lifetime_v1"
+    },
+    {
+      "facade_id": "wpuiai_public_v1",
+      "brand": "WPUIAI",
+      "origin": "https://wpuiai.com",
+      "product_code": "uiai_operator_lifetime_v1"
+    }
+  ],
+  "positive_checks": [
+    "identical_semantic_flow",
+    "opaque_continuation_memory_only",
+    "masked_email_only",
+    "fixed_same_origin_actions",
+    "keyboard_and_screen_reader_labels",
+    "authority_presenter_disclosure"
+  ],
+  "negative_checks": [
+    "unknown_facade_denied",
+    "unknown_page_denied",
+    "invalid_transition_denied",
+    "arbitrary_product_denied",
+    "arbitrary_redirect_denied",
+    "plaintext_email_envelope_denied",
+    "authority_secret_envelope_denied",
+    "malformed_continuation_denied"
+  ]
+}

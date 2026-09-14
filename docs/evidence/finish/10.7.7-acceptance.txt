@@ -1,0 +1,11 @@
+# 152.03.05 Bash bootstrapper entitlement-first — evidence 10.7.7
+commit: ad09f3c03ac89370ef93324cda1c42c20670db9c
+verification: bash -n scripts/install-focusa.sh; bash tests/spec152_installer_shell_static_test.sh; cargo fmt --all -- --check; cargo clippy --workspace --all-targets -- -D warnings; php -l wpuiai-plugin
+bash -n: ok
+shellcheck: unavailable in AlmaLinux repo (MariaDB106 404, dnf fails) — waived per bead notes "shellcheck is unavailable"; static gate covers authority contract
+bash tests/spec152_installer_shell_static_test.sh: PASS (Spec152 installer shell authority contract: PASS)
+cargo fmt: ok (1.91.0)
+cargo clippy --workspace: ok 0 warnings (after tui fix)
+php -l wpuiai-plugin: 3 ok
+evidence_ref: evidence:bash-bootstrapper-entitlement-first-10.7.7
+sha256: ad09f3c03

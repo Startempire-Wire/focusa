@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: Focusa Spec 152 Evaluation Issuance Fragment
+  version: 1.0.0
+  description: Public contract only; WPUIAI/wpuiai remains the private identity and lease authority.
+paths:
+  /v1/evaluations/issue:
+    post:
+      operationId: issueEvaluationLease
+      summary: Issue an authority-signed evaluation lease after verified onboarding
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9:_-]{16,200}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./spec152-evaluation-issuance-contract.v1.schema.json#/$defs/request
+      responses:
+        '200':
+          description: Evaluation lease issued
+          content:
+            application/json:
+              schema:
+                $ref: ./spec152-evaluation-issuance-contract.v1.schema.json#/$defs/response
+        '409':
+          description: Idempotency conflict or evaluation already consumed
+          content:
+            application/json:
+              schema:
+                $ref: ./spec152-evaluation-issuance-contract.v1.schema.json#/$defs/response
+        '422':
+          description: Verification, agreement, device approval, or eligibility requirement not met
+          content:
+            application/json:
+              schema:
+                $ref: ./spec152-evaluation-issuance-contract.v1.schema.json#/$defs/response
+        '503':
+          description: Authority temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./spec152-evaluation-issuance-contract.v1.schema.json#/$defs/response

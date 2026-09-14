@@ -1,23 +1,38 @@
 #!/usr/bin/env python3
+import ast
+import os
+import tomllib
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-release = (ROOT / ".github/workflows/release.yml").read_text()
+from install_target_contract import assert_linux_install_target_contract
+
+ROOT = Path(os.environ.get("FOCUSA_SPEC143_ROOT", Path(__file__).resolve().parents[1]))
+release_path = Path(
+    os.environ.get("FOCUSA_RELEASE_WORKFLOW_PATH", ROOT / ".github/workflows/release.yml")
+)
+release = release_path.read_text()
 deploy = (ROOT / ".github/workflows/deploy-live-daemon.yml").read_text()
 installer = (ROOT / "scripts/install-focusa.sh").read_text()
+installer_ps1 = (ROOT / "scripts/install-focusa.ps1").read_text()
 install_rs = (ROOT / "crates/focusa-cli/src/commands/install.rs").read_text()
 update = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
 trust = (ROOT / "crates/focusa-cli/src/commands/update_trust.rs").read_text()
 stamper = (ROOT / "scripts/stamp-menubar-version.py").read_text()
 version_verifier = (ROOT / "scripts/verify-version-surfaces.py").read_text()
 
+assert 'git show "${CONTROLLER_SHA}:tests/install_target_contract.py" > "${RUNNER_TEMP}/install_target_contract.py"' in release
 assert "target: x86_64-unknown-linux-musl" in release
 assert "musl: true" in release
 assert '-f asset_suffix="x86_64-unknown-linux-musl"' in release
 assert '-f asset_suffix="x86_64-unknown-linux-gnu"' not in release
-assert "cross build --release --target ${{ matrix.target }}" in release
-assert "if: ${{ startsWith(github.ref, 'refs/tags/') }}" in release
+assert "scripts/ci/run-cancellation-safe-cross.sh build --release --target ${{ matrix.target }}" in release
+assert "target: aarch64-unknown-linux-gnu" in release
+assert "matrix.musl == true || matrix.cross == true" in release
+assert "startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'" in release
 assert "startsWith(github.ref, refs/tags/)" not in release
+assert "NODE_OPTIONS: --use-system-ca" in release
+rust_release = release[release.index("  rust-release:") : release.index("  pi-extension-release:")]
+assert "timeout-minutes: 30" in rust_release
 
 assert "deploy-success.json deploy-success.json.sig" in deploy
 assert "Gate OTA installability against signed deployed release" in deploy
@@ -25,9 +40,31 @@ assert "ota-update-plan.json" in deploy
 assert ".latest.trust.deploy_proof_verified == true" in deploy
 assert ".apply_allowed == true" in deploy
 assert "ota-installability-proof-${{ steps.cfg.outputs.tag }}" in deploy
+assert "Gate published bootstrapper asset resolution" in deploy
+assert 'PUBLISHED_INSTALLER="focusa-installer-${TAG}.sh"' in deploy
+assert 'PUBLISHED_PS1="focusa-installer-${TAG}.ps1"' in deploy
+assert 'ASSET="focusa-${TAG}-${triple}"' in deploy
+assert "x86_64-unknown-linux-musl" in deploy
+assert "aarch64-apple-darwin" in deploy
+assert "x86_64-pc-windows-msvc" in deploy
+assert "curl --http1.1 -fsSIL" in deploy
+assert "/home/focusadev/install.focusa.dev/public_html/focusa" in deploy
+assert 'curl -fsSL "https://install.focusa.dev/focusa?deploy_run=${GITHUB_RUN_ID}"' in deploy
+sync_installer = (ROOT / "scripts/sync-install-bootstrapper.sh").read_text()
+assert 'ALIAS="${DOCROOT}/focusa"' in sync_installer
+assert 'as_focusadev install -m 0755 "$SRC" "$ALIAS"' in sync_installer
+assert 'for target in "$LIVE" "$ALIAS"' in sync_installer
 
-assert 'Linux-x86_64)   TRIPLE="x86_64-unknown-linux-musl"' in installer
-assert 'InstallTarget::Linux => "x86_64-unknown-linux-musl".to_string()' in install_rs
+assert 'Linux:x86_64|Linux:amd64) TRIPLE="x86_64-unknown-linux-musl"' in installer
+assert 'x86_64|amd64) TRIPLE="x86_64-unknown-linux-musl"' in installer
+assert 'ASSET="focusa-${RELEASE_TAG}-${TRIPLE}"' in installer
+assert 'ASSET="focusa-${TRIPLE}"' not in installer
+assert 'export FOCUSA_RELEASE_TAG="$RELEASE_TAG"' in installer
+assert 'export FOCUSA_RELEASE_BASE_URL="$RELEASE_BASE_URL"' in installer
+assert 'return "focusa-$Tag-$Triple.exe"' in installer_ps1
+assert '$AssetName = "focusa-$Triple.exe"' not in installer_ps1
+assert '$env:FOCUSA_RELEASE_TAG = $Tag' in installer_ps1
+assert_linux_install_target_contract(install_rs)
 assert '"deploy-success.json"' in trust
 assert '"deploy-success.json.sig"' in trust
 assert "verify_deploy_proof" in trust
@@ -47,15 +84,80 @@ assert "refresh_apply_summary(&mut apply);" in update
 assert "do not bypass trust" in update
 
 stamp = (ROOT / "scripts/stamp-menubar-version.py").read_text()
+stamp_tree = ast.parse(stamp)
+root_package_assignment = next(
+    node
+    for node in stamp_tree.body
+    if isinstance(node, ast.Assign)
+    and any(
+        isinstance(target, ast.Name) and target.id == "ROOT_RUST_PACKAGES"
+        for target in node.targets
+    )
+)
+stamped_root_packages = ast.literal_eval(root_package_assignment.value)
+workspace = tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))
+workspace_package_names = set()
+for member in workspace["workspace"]["members"]:
+    manifest = tomllib.loads(
+        (ROOT / member / "Cargo.toml").read_text(encoding="utf-8")
+    )
+    package = manifest["package"]
+    if package.get("version", {}).get("workspace") is True:
+        workspace_package_names.add(package["name"])
+assert stamped_root_packages == workspace_package_names, (
+    "root lockfile stamp allowlist must equal all version.workspace packages: "
+    f"missing={sorted(workspace_package_names - stamped_root_packages)} "
+    f"extra={sorted(stamped_root_packages - workspace_package_names)}"
+)
 verify = (ROOT / "scripts/verify-version-surfaces.py").read_text()
+verify_tree = ast.parse(verify)
+verify_root_package_assignment = next(
+    node
+    for node in verify_tree.body
+    if isinstance(node, ast.Assign)
+    and any(
+        isinstance(target, ast.Name) and target.id == "ROOT_RUST_PACKAGES"
+        for target in node.targets
+    )
+)
+verified_root_packages = ast.literal_eval(verify_root_package_assignment.value)
+assert verified_root_packages == workspace_package_names, (
+    "root lockfile verification allowlist must equal all version.workspace packages: "
+    f"missing={sorted(workspace_package_names - verified_root_packages)} "
+    f"extra={sorted(verified_root_packages - workspace_package_names)}"
+)
 tag_script = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
 assert "replace_extension_build" in stamp
 assert "apps/pi-extension/src/auto-compaction.ts" in stamp
 assert "read_extension_build_version" in verify
 assert "replace_agent_card_version" in stamp
 assert "docs/contracts/spec141/generated-capability-v2/agent-card.json" in verify
+text_io_calls = [
+    node
+    for node in ast.walk(ast.parse(stamp))
+    if isinstance(node, ast.Call)
+    and isinstance(node.func, ast.Attribute)
+    and node.func.attr in {"read_text", "write_text"}
+]
+assert text_io_calls
+assert all(
+    any(
+        keyword.arg == "encoding"
+        and getattr(keyword.value, "value", None) == "utf-8"
+        for keyword in node.keywords
+    )
+    for node in text_io_calls
+), "release stamper text I/O must be explicit UTF-8 for Windows runners"
+assert "replace_installer_version" in stamp
+assert 'replace_installer_version("scripts/install-focusa.sh", version)' in stamp
+assert "read_installer_version" in verify
+assert "scripts/install-focusa.sh::FOCUSA_INSTALLER_VERSION" in verify
+assert 'sed -i "s/FOCUSA_INSTALLER_VERSION=' not in release
+assert 'find bundle/focusa-agent-context/skills -name SKILL.md -type f | grep -q .' not in release
+assert 'find bundle/focusa-agent-context/skills -name SKILL.md -type f -print -quit' in release
 assert tag_script.count("apps/pi-extension/src/auto-compaction.ts") >= 2
 assert tag_script.count("docs/contracts/spec141/generated-capability-v2/agent-card.json") >= 2
+assert tag_script.count("scripts/install-focusa.sh") >= 2
 assert "scripts/stamp-release-version" in tag_script
 assert "scripts/verify-doc-version-consistency" in tag_script
 assert "validate-docs-runtime-parity.mjs" in tag_script

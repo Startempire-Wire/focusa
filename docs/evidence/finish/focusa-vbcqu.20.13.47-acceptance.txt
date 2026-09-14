@@ -1,0 +1,3 @@
+focusa-vbcqu.20.13.47 152E.05.09 — REAL 2026-08-18
+Commit: a7ac615aeee707192fd859b1942bb21b794a7b80
+python3 tests/spec152e_bundle_activation_test.py PASS

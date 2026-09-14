@@ -1,0 +1,91 @@
+Spec 172 / Spec 152E overlay acceptance record
+Work item: focusa-vbcqu.20.15.10
+Title: 172.02.01 Add verified-no-license authority-account posture and assertion schema
+Lane / owner: spec152e / WPUIAI/wpuiai
+Implementation commit: `201a600a3f31eaf67874bdd05bc43142843cb32a`
+
+Exact surfaces
+- docs/contracts/spec172-verified-access-posture.v1.php
+  (WPUIAI private authority account/identity/registration migrations for the
+  verified_no_license posture)
+- docs/contracts/spec172-signed-access-assertion.v1.php
+  (signed-access-assertion schema/repository)
+- tests/spec172_verified_access_schema_test.php
+
+Bounded result
+- Verified promotion creates exactly one account posture: `recordPosture()`
+  accepts only `mailbox_verified` / `account_promoted` input with a canonical
+  `verified_at`; identical replays return the same posture row and never create
+  a duplicate (one posture per account, product scope, and node). Unverified,
+  pending, or missing-verification input fails closed with
+  `EMAIL_VERIFICATION_REQUIRED` and creates no posture and no node row.
+- The posture row binds the promoted authority account, the verified email
+  identity, the verified registration, product scope (`focusa` | `uiai_engine`,
+  server-owned), registered operator node (opaque node id + canonical digest),
+  explicit family allowlist (canonical sorted JSON, validated against the
+  server-owned Spec 172 limited-mode registry), monotonic authority sequence,
+  issue/refresh times (canonical UTC), server-owned signer, and status.
+- Caller-controlled product codes (`focusa_evaluation`), blocked paid families
+  (`automation`, `release_proof`), and unknown families all fail closed with
+  `PRODUCT_NOT_INCLUDED` / `CAPABILITY_FAMILY_NOT_INCLUDED` and create no rows.
+- The signed-access-assertion repository records an authority-signed
+  limited-access envelope from an active verified posture: wrong product scope
+  (`ENTITLEMENT_PRODUCT_MISMATCH`), unbound node (`NODE_LIMIT_REACHED`), paid or
+  unknown families outside the posture allowlist (`CAPABILITY_FAMILY_NOT_INCLUDED`),
+  non-positive and stale non-existent lower sequences
+  (`ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED`), missing posture
+  (`EMAIL_VERIFICATION_REQUIRED`), and revoked/superseded posture
+  (`VERIFIED_LIMITED_ACCESS`) all fail closed with zero rows. Replays with the
+  same (posture, sequence) or the same refresh idempotency key return the same
+  assertion.
+- Bounded-credential refresh rotates sequence and refresh window without
+  imposing any access expiry on the permanent posture; revoke is
+  preservation-only (status flip, never deletion). Rollback contract is
+  preservation-only for both schemas.
+- No EDD Software Licensing key and no zero-dollar fake license is created:
+  the fixture asserts `wp_edd_licenses` stays at zero, and `assertEddFree()`
+  introspects both schemas and proves no assertion or posture row contains any
+  EDD license/order/customer/product, key, price, amount, total, currency,
+  License Type, download, or grant column.
+
+Exact verification (exit codes)
+1. `php tests/spec172_verified_access_schema_test.php` — exit 0.
+   Bounded result (single JSON line):
+   {"schema":"focusa.spec172.verified_access_schema_validation.v1","postures":2,
+   "assertions":4,"unverified_created":0,"edd_licenses":0,"edd_free":true,
+   "posture_bindings":["account","identity","registration","product_scope",
+   "node","family_allowlist","sequence","issued_at","refresh_at","signer",
+   "status"],"checks":66,"result":"passed_fail_closed"}
+   - postures=2 (one per verified account), unverified_created=0,
+     edd_licenses=0, edd_free=true, checks=66 (positive + negative vectors).
+
+Regression checks (exit codes)
+- `git diff --check` — exit 0, no whitespace errors.
+- `python3 tests/spec172_limited_access_contract_test.py` — exit 0
+  (cases=30, postures=unverified,verified_no_license).
+- `php tests/spec152e_authority_account_schema_test.php` — exit 0.
+- `php tests/spec152e_account_promotion_test.php` — exit 0.
+- `php tests/spec152e_edd_order_binding_test.php` — exit 0.
+
+Tests added
+- tests/spec172_verified_access_schema_test.php (66 checks): verified promotion
+  creates exactly one posture; unverified input creates none; replay and
+  migration idempotency; caller-controlled product/family/scope denial; no EDD
+  key / zero-dollar license; EDD-free schema introspection; assertion issuance,
+  tampered/wrong-node/wrong-product/paid-family/stale-sequence fail-closed
+  vectors; bounded-credential refresh without access expiry; preservation-only
+  revoke and rollback.
+
+Remaining blockers
+- None for this schema atom. Cryptographic assertion issuance, refresh, revoke,
+  recovery, and verifier client/service work remain the downstream atom
+  focusa-vbcqu.20.15.11 (172.02.02), which depends on this atom.
+
+Rollback
+- Revert only implementation commit `201a600a3f31eaf67874bdd05bc43142843cb32a`
+  (and this evidence record if removal is required). Preserve verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, customer data, migration journals, and accepted unrelated work.
+  No data deletion is performed by this atom or its rollback.
+
+No push, deploy, release, merge, or Beads mutation was performed.

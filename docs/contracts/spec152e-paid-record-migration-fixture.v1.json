@@ -1,0 +1,421 @@
+{
+ "authority": {
+  "canonical": "WPUIAI.com EDD",
+  "install_site_role": "noncanonical migration input",
+  "spec158": "excluded"
+ },
+ "edd_mappings": [
+  {
+   "account_uuid": "acc_pr_0001",
+   "edd_customer_handle": "edd_cust_0001",
+   "edd_license_handle": "edd_lic_0001",
+   "edd_order_handle": "edd_order_0001",
+   "record_handle": "rec_pr_imp_0001"
+  },
+  {
+   "account_uuid": "acc_pr_0002",
+   "edd_customer_handle": "edd_cust_0002",
+   "edd_license_handle": "edd_lic_0002",
+   "edd_order_handle": "edd_order_0002",
+   "record_handle": "rec_pr_imp_0002"
+  },
+  {
+   "account_uuid": "acc_pr_0003",
+   "edd_customer_handle": "edd_cust_0003",
+   "edd_license_handle": "edd_lic_0003",
+   "edd_order_handle": "edd_order_0003",
+   "record_handle": "rec_pr_imp_0003"
+  },
+  {
+   "account_uuid": "acc_pr_0004",
+   "edd_customer_handle": "edd_cust_0004",
+   "edd_license_handle": "edd_lic_0004",
+   "edd_order_handle": "edd_order_0004",
+   "record_handle": "rec_pr_imp_0004"
+  },
+  {
+   "account_uuid": "acc_pr_0005",
+   "edd_customer_handle": "edd_cust_0005",
+   "edd_license_handle": "edd_lic_0005",
+   "edd_order_handle": "edd_order_0005",
+   "record_handle": "rec_pr_imp_0005"
+  }
+ ],
+ "expectations": {
+  "accepted_records": 5,
+  "accepted_records_match_mappings": true,
+  "adverse_state_preserved": true,
+  "apply_idempotent_single_entitlement": true,
+  "dry_run_zero_writes": true,
+  "one_entitlement_per_accepted_record": true,
+  "refunded_revoked_never_reactivated": true,
+  "rollback_preservation_only": true,
+  "verified_identity_required_before_delivery": true
+ },
+ "fixture_id": "focusa-vbcqu.20.13.50",
+ "install_registry": [
+  {
+   "adverse_state": "none",
+   "digest": "88e5c21f5af86de1896e91971d03e7059d80e4b191528651abf58b07fc0eea61",
+   "evidence_handle": "ev_pr_pay_0001",
+   "masked_key": "fl_****_0001",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "record_handle": "rec_pr_imp_0001",
+   "record_status": "active",
+   "registry_handle": "rg_pr_0001",
+   "sequence": 1,
+   "surface": "install_site_license"
+  },
+  {
+   "adverse_state": "none",
+   "digest": "53ea73c9047c50f84f960ea224d02e0728d90ec17ddb9ccfe36e01b4b065b6a7",
+   "evidence_handle": "ev_pr_pay_0002",
+   "masked_key": "fl_****_0002",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "record_handle": "rec_pr_imp_0002",
+   "record_status": "active",
+   "registry_handle": "rg_pr_0002",
+   "sequence": 2,
+   "surface": "install_site_license"
+  },
+  {
+   "adverse_state": "none",
+   "digest": "a137789c8a1f9c9a824f266993d5dc0a366297b8f7d41a80138425c38971463c",
+   "evidence_handle": "ev_pr_pay_0003",
+   "masked_key": "fl_****_0003",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "uiai_engine_operator",
+   "record_handle": "rec_pr_imp_0003",
+   "record_status": "active",
+   "registry_handle": "rg_pr_0003",
+   "sequence": 3,
+   "surface": "install_site_license"
+  },
+  {
+   "adverse_state": "none",
+   "digest": "9d84796a94adf4e54bff1682c24c28fbb4ba0082dac9a8abbeb780dc488da622",
+   "evidence_handle": "ev_pr_pay_0004",
+   "masked_key": "fl_****_0004",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_uiai_bundle",
+   "record_handle": "rec_pr_imp_0004",
+   "record_status": "active",
+   "registry_handle": "rg_pr_0004",
+   "sequence": 4,
+   "surface": "install_site_license"
+  },
+  {
+   "adverse_state": "none",
+   "digest": "6c921bd189fff240429b6216cc485eef9a678ca7640876416f5fc85732984e42",
+   "evidence_handle": "ev_pr_pay_0005",
+   "masked_key": "fl_****_0005",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "record_handle": "rec_pr_imp_0005",
+   "record_status": "active",
+   "registry_handle": "rg_pr_0005",
+   "sequence": 5,
+   "surface": "install_site_license"
+  },
+  {
+   "adverse_state": "refunded",
+   "digest": "2900407d65e24d0e6d7c7006a4cf27cb0e51859f71d7a5a0a5fe00105d23b687",
+   "evidence_handle": "ev_pr_ref_0001",
+   "masked_key": "fl_****_1001",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "record_handle": "rec_pr_rfd_0001",
+   "record_status": "refunded",
+   "registry_handle": "rg_pr_0101",
+   "sequence": 1,
+   "surface": "install_site_license"
+  },
+  {
+   "adverse_state": "revoked",
+   "digest": "8d6b4c9d8af2950017a1ffd46bae1e32f600f04055aefc1998609dc4f98fb2c1",
+   "evidence_handle": "ev_pr_pay_0006",
+   "masked_key": "fl_****_1002",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_uiai_bundle",
+   "record_handle": "rec_pr_rvk_0001",
+   "record_status": "revoked",
+   "registry_handle": "rg_pr_0102",
+   "sequence": 1,
+   "surface": "install_site_license"
+  },
+  {
+   "adverse_state": "none",
+   "digest": "35e5b93f0c8ec7a3dd099e8ff9f2c7717329a9701cc7940a90146904d55117d5",
+   "evidence_handle": "ev_pr_pay_0007",
+   "masked_key": "fl_****_2001",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "uiai_engine_operator",
+   "record_handle": "rec_pr_vfy_0001",
+   "record_status": "active",
+   "registry_handle": "rg_pr_0103",
+   "sequence": 1,
+   "surface": "install_site_audit_receipt"
+  }
+ ],
+ "journal_vectors": {
+  "apply": {
+   "imports": 5,
+   "journal_entries": 7,
+   "mappings": 5
+  },
+  "dry_run": {
+   "mutates_edd_truth": false,
+   "rows_written": 0
+  },
+  "replay": {
+   "result_identical": true,
+   "second_entitlement": false
+  },
+  "rollback": {
+   "delete_methods": 0,
+   "preservation_only": true
+  }
+ },
+ "policy": "evidence_backed_paid_import_only",
+ "product_allowlist": [
+  "focusa_operator",
+  "uiai_engine_operator",
+  "focusa_uiai_bundle",
+  "focusa_evaluation"
+ ],
+ "records": [
+  {
+   "disposition": "evidence_backed_import",
+   "evidence_handle": "ev_pr_pay_0001",
+   "handle": "rec_pr_imp_0001",
+   "identity_lookup_digest": "a1420fbc844df92a4908bf19ffd99c3956ecd21ca656d75ae829e61aabdbfce7",
+   "masked_key": "fl_****_0001",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "surface": "install_site_license"
+  },
+  {
+   "disposition": "evidence_backed_import",
+   "evidence_handle": "ev_pr_pay_0002",
+   "handle": "rec_pr_imp_0002",
+   "identity_lookup_digest": "d3b34020c7da97d5131a81767ec8fb773f2a267945da38ccb15fae12072df02f",
+   "masked_key": "fl_****_0002",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "surface": "install_site_license"
+  },
+  {
+   "disposition": "evidence_backed_import",
+   "evidence_handle": "ev_pr_pay_0003",
+   "handle": "rec_pr_imp_0003",
+   "identity_lookup_digest": "75b94e73549fe7435e22be16c555a88915e34d94774912a76644ccd082188a36",
+   "masked_key": "fl_****_0003",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "uiai_engine_operator",
+   "surface": "install_site_license"
+  },
+  {
+   "disposition": "evidence_backed_import",
+   "evidence_handle": "ev_pr_pay_0004",
+   "handle": "rec_pr_imp_0004",
+   "identity_lookup_digest": "98d7661933f2268812109ad6e752552a0f047982dfd2d044daadc04255103423",
+   "masked_key": "fl_****_0004",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_uiai_bundle",
+   "surface": "install_site_license"
+  },
+  {
+   "disposition": "evidence_backed_import",
+   "evidence_handle": "ev_pr_pay_0005",
+   "handle": "rec_pr_imp_0005",
+   "identity_lookup_digest": "bde8cdb25dd98646338708a10b1b2cb0c3c8f86c2fa305aacf4ed9a4abc4ebc8",
+   "masked_key": "fl_****_0005",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "surface": "install_site_license"
+  },
+  {
+   "adverse_state": "refunded",
+   "disposition": "refunded_revoked",
+   "evidence_handle": "ev_pr_ref_0001",
+   "handle": "rec_pr_rfd_0001",
+   "masked_key": "fl_****_1001",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "surface": "install_site_license"
+  },
+  {
+   "adverse_state": "revoked",
+   "disposition": "refunded_revoked",
+   "evidence_handle": "ev_pr_pay_0006",
+   "handle": "rec_pr_rvk_0001",
+   "masked_key": "fl_****_1002",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_uiai_bundle",
+   "surface": "install_site_license"
+  },
+  {
+   "disposition": "verify_first",
+   "evidence_handle": "ev_pr_pay_0007",
+   "handle": "rec_pr_vfy_0001",
+   "identity_lookup_digest": "385b4fa2c182aa54fae89882947aa815bbef0abeba15f41e8d1d17472cecdcd5",
+   "masked_key": "fl_****_2001",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "uiai_engine_operator",
+   "surface": "install_site_audit_receipt"
+  },
+  {
+   "disposition": "unresolved",
+   "handle": "rec_pr_unr_0001",
+   "masked_key": "fl_****_3001",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "surface": "install_site_license"
+  },
+  {
+   "disposition": "unresolved",
+   "handle": "rec_pr_unr_0002",
+   "masked_key": "fl_****_3002",
+   "migration_provenance": {
+    "run": "install-inventory-2026-07",
+    "source": "install_site_reconciliation"
+   },
+   "product_code": "focusa_operator",
+   "surface": "install_site_license"
+  }
+ ],
+ "redaction": {
+  "payment_id_stored": false,
+  "raw_email": "absent",
+  "raw_key": "absent",
+  "secret_material": "absent"
+ },
+ "schema": "focusa.spec152e.paid_record_migration_fixture.v1",
+ "stripe_evidence": [
+  {
+   "digest": "83bc9235871b8e8bb6c235338a310403d02449cca97c18b5bea634599f4d4d63",
+   "evidence_handle": "ev_pr_pay_0001",
+   "kind": "payment_evidence",
+   "occurred_at": "2026-07-01T10:00:00Z",
+   "record_handle": "rec_pr_imp_0001",
+   "source": "stripe_reconciliation",
+   "status": "succeeded"
+  },
+  {
+   "digest": "1e83db3642dce1995a0de158bd6d00c3a5bdecae6d3b396884edd13c55087a7c",
+   "evidence_handle": "ev_pr_pay_0002",
+   "kind": "payment_evidence",
+   "occurred_at": "2026-07-01T10:00:00Z",
+   "record_handle": "rec_pr_imp_0002",
+   "source": "stripe_reconciliation",
+   "status": "succeeded"
+  },
+  {
+   "digest": "0ff7bacaecf67b4508ae74e94735921b40f70c17634ff4c3d166344efdcc44f3",
+   "evidence_handle": "ev_pr_pay_0003",
+   "kind": "payment_evidence",
+   "occurred_at": "2026-07-01T10:00:00Z",
+   "record_handle": "rec_pr_imp_0003",
+   "source": "stripe_reconciliation",
+   "status": "succeeded"
+  },
+  {
+   "digest": "7111f193707986b68b49a0438b4527d6b8bfa62ebd66ab672772aa345d3260c5",
+   "evidence_handle": "ev_pr_pay_0004",
+   "kind": "payment_evidence",
+   "occurred_at": "2026-07-01T10:00:00Z",
+   "record_handle": "rec_pr_imp_0004",
+   "source": "stripe_reconciliation",
+   "status": "succeeded"
+  },
+  {
+   "digest": "1e8ffd0a0f40afc662eb7de8139e117767369257e3bf10ef5b9cb033db31fd61",
+   "evidence_handle": "ev_pr_pay_0005",
+   "kind": "payment_evidence",
+   "occurred_at": "2026-07-01T10:00:00Z",
+   "record_handle": "rec_pr_imp_0005",
+   "source": "stripe_reconciliation",
+   "status": "succeeded"
+  },
+  {
+   "digest": "2396fe2e3a8e62bb8fe60b363834eb1f42eccade3e682eb46979ada8b5f6df14",
+   "evidence_handle": "ev_pr_ref_0001",
+   "kind": "refund_evidence",
+   "occurred_at": "2026-07-02T09:00:00Z",
+   "record_handle": "rec_pr_rfd_0001",
+   "source": "stripe_reconciliation",
+   "status": "refunded"
+  },
+  {
+   "digest": "d71414d476bbbc5c4db9145b72396d77da069cd6f5c41a49ee5304d5f0a19096",
+   "evidence_handle": "ev_pr_pay_0006",
+   "kind": "payment_evidence",
+   "occurred_at": "2026-07-03T08:00:00Z",
+   "record_handle": "rec_pr_rvk_0001",
+   "source": "stripe_reconciliation",
+   "status": "succeeded"
+  },
+  {
+   "digest": "92d0a25b6faee0061cd7dcdf3847bf5fe8735bcc52a15a59ce4f65aebfad7222",
+   "evidence_handle": "ev_pr_pay_0007",
+   "kind": "payment_evidence",
+   "occurred_at": "2026-07-04T07:00:00Z",
+   "record_handle": "rec_pr_vfy_0001",
+   "source": "stripe_reconciliation",
+   "status": "succeeded"
+  }
+ ]
+}

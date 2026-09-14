@@ -1,0 +1,7 @@
+Spec 152.01.04 Replay recovery-only middleware — REAL verification 2026-08-18 foreground
+Commit: 12eb58f59bac80cc9a6465456eaf73bc8ad9a258
+Verification:
+cargo fmt --all -- --check PASS
+cargo clippy -p focusa-api --all-targets -- -D warnings PASS
+cargo test -p focusa-api entitlement PASS (29 passed)
+Required behavior: public/recovery/safe-read/entitled-mutation/execution classification, lease binding before handler, missing/invalid/expired/revoked permits only declared recovery surfaces with zero mutation sentinels — verified.

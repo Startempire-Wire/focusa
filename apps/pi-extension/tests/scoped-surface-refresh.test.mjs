@@ -22,6 +22,17 @@ test("successful mutations publish exact-scope refresh receipts", () => {
   assert.match(tools, /responseContinuity === requestedContinuity/);
 });
 
+test("tool blocked text renders structured daemon errors, never [object Object]", () => {
+  // #266: the entitlement middleware returns "error" as a structured object;
+  // template interpolation used to flatten it into [object Object], hiding
+  // the real denial (code/message). safeErrorText must be used everywhere.
+  assert.match(tools, /function safeErrorText/);
+  assert.match(tools, /safeErrorText\(result\.body\?\.error\)/);
+  assert.match(tools, /safeErrorText\(result\.body\?\.reason\)/);
+  assert.doesNotMatch(tools, /\$\{result\.body\?\.error/);
+  assert.doesNotMatch(tools, /String\(result\.body\?\.reason/);
+});
+
 test("Mission Canvas subscribes independently and polls only when stale", () => {
   assert.match(widget, /subscribeScopedStateChanges/);
   assert.match(widget, /scopedReceiptMatchesCurrentScope/);
@@ -35,9 +46,11 @@ test("Mission Canvas subscribes independently and polls only when stale", () => 
   assert.match(widget, /truthfulStatusLines/);
   assert.match(widget, /startup_cwd/);
   assert.match(widget, /last_refresh_status/);
-  assert.match(widget, /semanticSupported/);
-  assert.match(widget, /semanticSchemaOnly/);
-  assert.match(widget, /semanticSurfaceTruth/);
+  // #138: the always-on widget must NOT render the semantic registry summary
+  // or operation rows; those details stay behind diagnostics.
+  assert.doesNotMatch(widget, /semantic pair/);
+  assert.doesNotMatch(widget, /semanticSupported/);
+  assert.doesNotMatch(widget, /semanticSurfaceTruth/);
   assert.match(semantic, /operation\.availability \|\| "unknown"/);
   assert.doesNotMatch(widget + semantic, /unsupported on this Pi surface/);
 });

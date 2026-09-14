@@ -1,0 +1,4 @@
+focusa-vbcqu.20.13.42 152E.05.04 — REAL 2026-08-18
+Commit: df8b9776f67783eebc8d983e61bb1bc2df61d825
+python3 tests/spec152e_installer_activation_test.py PASS
+python3 tests/spec152e_cli_activation_test.py PASS

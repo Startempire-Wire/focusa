@@ -114,7 +114,7 @@ Next Workpoint candidate: `focusa-vbcqu.2.1` — implement Trajectory Ladder int
 | W2 | `focusa-vbcqu.3` | Genesis/bootstrap/onboarding/first Workpoint | W0 | BLOCKED |
 | W3 | `focusa-vbcqu.4` | Flow Kernel/Canvas/surface parity/Spec135 compatibility | W0 | BLOCKED |
 | W4 | `focusa-vbcqu.5` | Pi UX/contracts/runtime regressions | W0 | BLOCKED |
-| W5 | `focusa-vbcqu.6` | Release orchestrator/incident closure | W0 | IN PROGRESS — v0.9.129 immutable Focusa proof green; overall critical path not yet faster and generic cross-project acceptance remains |
+| W5 | `focusa-vbcqu.6` | Release orchestrator/incident closure | W0 | BLOCKED |
 | W6 | `focusa-vbcqu.7` | Organizational ownership for all open-at-lock Beads | W0; leaf completion enforced by W7 acceptance | BLOCKED |
 | W7 | `focusa-vbcqu.8` | Acceptance/dogfood/speed/final decision | W0 final review + every locked implementation/open-at-lock leaf | BLOCKED |
 | Release | `focusa-vbcqu` | Locked next-dev train | W7 | BLOCKED |
@@ -135,8 +135,8 @@ Next Workpoint candidate: `focusa-vbcqu.2.1` — implement Trajectory Ladder int
 | #52 Consolidation/dead-road removal | `focusa-vbcqu.4.2`, `focusa-vbcqu.4.4` | W3 | Consolidate, protect/amend Spec135 dependencies, remove dead roads, prove, close | OPEN |
 | #53 Canvas-off terminal mode/toggle | `focusa-vbcqu.4.1` | W3 | Implement shared-state toggle/parity, close | OPEN |
 | #54 Temporal authority | `focusa-vbcqu.2.2` | W1 | Implement across flow/release, prove, close | OPEN |
-| #55 v0.9.121 incident | `focusa-vbcqu.6.2` | W5 | Root causes preserved and superseded by v0.9.129 CI/Spec132/Release/Deploy/all-surface OTA proof | COMPLETE |
-| #56 Reusable release orchestrator | `focusa-vbcqu.6.1`, `focusa-vbcqu.6.3` | W5 | Focusa v0.9.129 candidate proof complete; Release remains 1044 s bottleneck, cross-project profiles and measured end-to-end improvement pending | IN PROGRESS |
+| #55 v0.9.121 incident | `focusa-vbcqu.6.2` | W5 | Preserve truth, close root causes with new release proof | OPEN |
+| #56 Reusable release orchestrator | `focusa-vbcqu.6.1`, `focusa-vbcqu.6.3` | W5 | Implement generic kernel/adapters/metrics plus intelligent evidence-backed release pages, close | OPEN |
 | #58 HLT/spec/tasks to first Workpoint | `focusa-vbcqu.3.1` | W2 | Implement atomic Project Genesis, close | OPEN |
 | #59 Trajectory Ladder integrity | `focusa-vbcqu.2.1` | W1 | Implement complete closure/migration, close | OPEN |
 
@@ -322,8 +322,3 @@ The release is not done if any of these is true:
 | New candidate | NOT CREATED |
 | Live deployment truth | NOT PROVEN |
 | Final release decision | BLOCKED |
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-release-nonadmission -->
-## Post-release non-admission of Specs 137A, 138A, and 144
-
-Specs 137A, 138A, and 144 are not silently admitted into the locked current release implementation. They remain documentation architecture with runtime implementation open unless an explicit post-Spec-143 activation record exists. Current release claims MUST NOT imply combined 137+137A, full-profile 138+138A, or Spec 144 conformance.

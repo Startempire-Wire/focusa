@@ -813,8 +813,3 @@ Spec109 is accepted when:
 > Focusa should expose powerful agent primitives directly — but every primitive must be discoverable, typed, scoped, budgeted, idempotent where mutating, observable, recoverable, and safe under retry.
 
 Spec109 does not make Focusa less powerful. It makes Focusa's power easier for agents to use correctly.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-operation-surface -->
-## Spec 144 agent-first operation integration
-
-The Operation Registry and generated clients MUST expose bounded operations for Work Contract validation, obligation compilation, plan validation, snapshot freeze, finding/disposition, reroute, dispute/appeal, placement inspection, settlement evaluation, and revalidation. Clients request and project; they do not reproduce routing, authority, or settlement rules.

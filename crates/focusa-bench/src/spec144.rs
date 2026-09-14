@@ -52,17 +52,44 @@ impl PromotionThresholds {
         let checks = [
             (value.precision >= self.precision_min, "precision_min"),
             (value.recall >= self.recall_min, "recall_min"),
-            (value.false_positive_rate <= self.false_positive_rate_max, "false_positive_rate_max"),
-            (value.false_negative_rate <= self.false_negative_rate_max, "false_negative_rate_max"),
+            (
+                value.false_positive_rate <= self.false_positive_rate_max,
+                "false_positive_rate_max",
+            ),
+            (
+                value.false_negative_rate <= self.false_negative_rate_max,
+                "false_negative_rate_max",
+            ),
             (value.coverage >= self.coverage_min, "coverage_min"),
-            (value.calibration_ece <= self.calibration_ece_max, "calibration_ece_max"),
-            (value.p95_latency_ms <= self.p95_latency_ms_max, "p95_latency_ms_max"),
-            (value.resource_units <= self.resource_units_max, "resource_units_max"),
-            (value.replay_equivalence == self.replay_equivalence_required, "replay_equivalence_required"),
-            (value.golden_pass_rate >= self.golden_pass_rate_min, "golden_pass_rate_min"),
-            (value.blocking_failures <= self.blocking_failures_max, "blocking_failures_max"),
+            (
+                value.calibration_ece <= self.calibration_ece_max,
+                "calibration_ece_max",
+            ),
+            (
+                value.p95_latency_ms <= self.p95_latency_ms_max,
+                "p95_latency_ms_max",
+            ),
+            (
+                value.resource_units <= self.resource_units_max,
+                "resource_units_max",
+            ),
+            (
+                value.replay_equivalence == self.replay_equivalence_required,
+                "replay_equivalence_required",
+            ),
+            (
+                value.golden_pass_rate >= self.golden_pass_rate_min,
+                "golden_pass_rate_min",
+            ),
+            (
+                value.blocking_failures <= self.blocking_failures_max,
+                "blocking_failures_max",
+            ),
         ];
-        checks.into_iter().filter_map(|(pass, name)| (!pass).then_some(name)).collect()
+        checks
+            .into_iter()
+            .filter_map(|(pass, name)| (!pass).then_some(name))
+            .collect()
     }
 
     pub fn eligible(&self, value: &EvaluationMetrics) -> bool {

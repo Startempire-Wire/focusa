@@ -1,0 +1,6 @@
+focusa-vbcqu.20.13.59 — REAL 2026-08-18 FINISH foreground loop iter 8
+Commit: ff521442d4e52ffae5cbe158c24bad410d33ecdf
+cargo fmt --all -- --check PASS
+cargo clippy -p focusa-core -p focusa-api --all-targets -- -D warnings PASS
+cargo test -p focusa-api entitlement PASS (29)
+cargo test -p focusa-core --lib install_lifecycle PASS (34)

@@ -1,0 +1,39 @@
+Spec 152E EDD product, price, grant, and legacy-record registry acceptance
+Work item: focusa-vbcqu.20.13.3
+Binding overlay: Spec 172
+Implementation commit: 7a389cf53d0be54783fdf4abba4aca107e2ed72d
+Exact verified repository commit: 235d5d27415121113d0460862a5cf7bf70639476
+
+EXACT VERIFICATION
+Run from the repository root at the exact verified commit:
+  python3 scripts/generate-spec152e-product-registry.py --check && php tests/spec152e_product_registry_test.php && python3 tests/spec152e_product_registry_contract_test.py
+Exit code: 0
+
+BOUNDED RESULTS
+- Generator: assigned_edd_downloads=0; checkout_enabled=0; protected_offers=3; catalog_entries=14; legacy classes migrate=3, quarantine=5, retire=2.
+- PHP: passed; protected_offers=3; blocked_unassigned=3; forbidden_caller_fields=19; legacy_classes=10.
+- Python: passed_fail_closed_pending_operator_mapping with the same registry counts.
+- The allowlist contains exactly Focusa Operator Lifetime v1 at USD 697.00, UIAI Engine Operator Lifetime v1 at USD 697.00, and their exact-union USD 1,254.60 Bundle.
+- verified_no_license is a non-license account posture: no EDD Download, price, checkout, or Software Licensing key.
+- Download 453 remains quarantined and cannot resolve as protected-offer authority.
+- All 10 legacy classes have exactly one migrate, quarantine, or retire disposition.
+- Caller-controlled product, price, grant, family, feature, limit, node, sale, refund, upgrade, and commercial-right fields fail closed.
+- Dedicated EDD IDs remain null and checkout remains disabled pending separately approved mapping work; this is intentional, not implicit Download 453 authority.
+
+PINNED OUTPUT DIGESTS
+- docs/contracts/spec152e-edd-product-registry.v1.yaml sha256:5142c6cf9b9fbdc3236146ae1fed3cb2af02efe767676795cbbb8d61ce99a3bb
+- docs/contracts/spec152e-edd-product-registry.v1.json sha256:c42c13cd943055433a7cc5104a6bdc7494701512f74fa95c04b738bc6e239904
+- docs/contracts/spec152e-edd-product-registry.v1.php sha256:a798bc60393af6478bcdee476a608cc33d27ec1d65386ce10a9ba455f4a810cd
+- scripts/generate-spec152e-product-registry.py sha256:2c2f5d485410424e5e0ec7b061b3fb8ae183ace510dfd829140e84b3eecb5384
+- tests/spec152e_product_registry_test.php sha256:e52e21d8818772bd680549af29b01dc616154ee40599ef20bc442b796ece88d6
+- tests/spec152e_product_registry_contract_test.py sha256:8e6e94dd91de8998fa7369390337dbed9ca47c5fc35bbd93f80cf7bb4e476e7e
+
+PUBLIC-SAFETY BOUNDARY
+This record contains aggregate synthetic/public contract facts only. It contains no secrets, unmasked customer email, key, customer record, administrative URL, or raw authority proof.
+
+ROLLBACK
+Revert implementation commit 7a389cf53d0be54783fdf4abba4aca107e2ed72d and the commit containing this evidence update only. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals. Rollback must not restore Evaluation, USD 1,097, implicit Download 453 authority, or caller-selected grants.
+
+RESULT
+TECHNICAL_ACCEPTANCE: PASSED
+The deterministic registry and validators satisfy the binding Spec 172 overlay. This evidence path is the bounded replay handle for the exact verified commit above.

@@ -1,0 +1,153 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.37
+Title: 172.05.06 Prove refund downgrade, data preservation, and operator
+selection
+Implementation commit: `0ae8b647` (multi-project paid fixture vectors +
+downgrade receipt gate; evidence record follows in this commit)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.15.37 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- Multi-project paid fixture (NEW — embedded synthetic fixture in
+  crates/focusa-core/tests/spec172_downgrade_data_preservation.rs: one
+  verified account, three paid projects project-alpha / project-beta /
+  project-gamma, each with retained mission/workpoint/evidence data rows)
+- Refund/revoke sequence (replays the accepted gate
+  tests/spec172_refund_downgrade_test.php: whole-order 30-day refund,
+  chargeback, and revoke settle once; both underlying Bundle grants revoke
+  together; the still-mailbox-verified account returns to
+  verified_no_license limited mode; monotonic authority sequence)
+- Active-project selection (explicit operator selection persisted as
+  focusa.active_project_selection.v1; the guard is a pure function of the
+  persisted selection — no activity heuristics, no manufactured selection)
+- Read/export/recovery (reducer keeps ReadProjection Read and
+  AccountRecovery/CustomerDataExport Allow in refunded/revoked posture;
+  permanent allowances read_projection, basic_customer_data_export,
+  account_control, device_control, license_status, diagnostics, repair,
+  rollback, stable_security_update, uninstall stay available)
+- tests/spec172_downgrade_data_preservation_test.py (NEW — exact
+  verification)
+
+Bounded result
+- Added `crates/focusa-core/tests/spec172_downgrade_data_preservation.rs`:
+  six live Rust vectors over the synthetic multi-project paid fixture
+  proving (1) while paid (Entitled) every project is mutable and the
+  one-project guard never restricts paid entitlement, (2) after an explicit
+  selection the refund/revoke downgrade leaves the selected project mutable
+  under the limited policy while every other retained project denies
+  mutation with DeniedSecondProject (active project preserved, recovery
+  action carried), (3) without any explicit selection every project denies
+  with DeniedNoSelection and the operator is told to select explicitly, (4)
+  zero deletion — every project's exact retained data counts are identical
+  before and after the downgrade and all three projects remain retained,
+  (5) read projection / basic export / account recovery never blocked in
+  the refunded/revoked posture (reducer Read/Allow) and the guard never
+  interferes with them, and (6) switching the active project never deletes
+  and the guard is a pure function of the persisted selection. The vectors
+  also pin the canonical base-product boundary: the settled posture is
+  verified_no_license -> Limited, while a stale RefundedOrRevoked lease
+  fails closed to Denied and is never re-granted.
+- Added `tests/spec172_downgrade_data_preservation_test.py`: a
+  deterministic downgrade/recovery receipt (`focusa.spec172.downgrade_data_preservation.v1`)
+  with 89 positive checks, 0 negative, one bounded redacted JSON line, and
+  real exit codes. It mirrors the multi-project paid fixture (three
+  projects, 16 retained data rows), proves explicit operator selection
+  through the persisted-selection guard surface, replays the accepted
+  refund/revoke gate (php tests/spec172_refund_downgrade_test.php — exit 0,
+  refund_policy whole_order_30_days, component_refunds_allowed false,
+  grants_revoked_per_settlement 2, limited_posture verified_no_license,
+  reconciliation_converged true, preserved 9 customers / 9 orders / 9
+  licenses / 6 refunds / 9 projections / 9 accounts / 9 registrations),
+  proves zero deletion (before/after data counts identical; all three
+  projects retained), proves the selected project mutates while others are
+  read/export only (DeniedSecondProject), proves no-selection requires
+  operator choice with zero mutation (DeniedNoSelection), proves
+  read/export/recovery never blocked, and runs the live Rust vectors via
+  `cargo` (spec172_downgrade_data_preservation: 6 passed; verified_limited_project:
+  17 lib + 1 integration passed; all exit 0). The refund/revoke gate replay
+  is bounded-retried (up to 5 real runs) only against the accepted gate's
+  pre-existing hygiene false-positive where its random opaque settlement
+  token (bin2hex(random_bytes(16))) occasionally contains a 16-digit run
+  that trips its card-data regex; every recorded exit code is a real run
+  result and the attempt count is journaled (this run: 1 attempt).
+- No heuristic selection, deletion, trapped export, stale paid mutation, or
+  customer-rights regression occurs: selection is always explicit and
+  persisted, never heuristic; all retained data survives the downgrade;
+  read/export/recovery/repair/rollback/stable security update/uninstall are
+  never blocked; a stale refunded lease fails closed and the settled account
+  returns to the frozen verified_no_license limited mode.
+
+Exact verification (exit codes)
+`python3 tests/spec172_downgrade_data_preservation_test.py` — exit 0.
+  - Replay gates (all exit 0):
+    php tests/spec172_refund_downgrade_test.php — exit 0 (1 attempt).
+  - Cargo runs (all exit 0):
+    cargo test -p focusa-core spec172_downgrade_data_preservation —
+      test result: ok. 6 passed; 0 failed; 0 ignored (0 filtered out):
+      multi_project_paid_fixture_all_mutable_while_paid,
+      explicit_selection_binds_limited_mutation_after_refund_revoke,
+      without_explicit_selection_requires_operator_choice,
+      preserves_all_project_data_zero_deletion,
+      read_export_recovery_never_blocked,
+      switch_preserves_and_never_uses_heuristics.
+    cargo test -p focusa-core verified_limited_project — test result: ok.
+      17 passed; 0 failed (900 filtered out) + 1 integration passed; 0
+      failed.
+  - Receipt: focusa.spec172.downgrade_data_preservation.v1,
+    positive_checks 89, negative_checks 0, multi_project_fixture
+    {projects 3, retained_data_rows 16, paid_posture_all_mutable true,
+    explicitly_selected /synthetic/operator/projects/project-beta,
+    selected_remains_mutable_after_downgrade true,
+    others_read_export_only true, no_selection_denies_mutation
+    DeniedNoSelection, second_project_denial DeniedSecondProject,
+    zero_deletion true, activity_heuristic_selection 0},
+    refund_revoke_gate {schema focusa.spec172.refund_downgrade_test.v1,
+    exit 0, attempts 1, refund_policy whole_order_30_days,
+    component_refunds_allowed false, grants_revoked_per_settlement 2,
+    limited_posture verified_no_license, preserved {customers 9, orders 9,
+    order_items 9, licenses 9, refunds 6, projections 9, accounts 9,
+    registrations 9}, reconciliation_converged true},
+    replay_gate_exit_codes_all_zero true, cargo_runs_all_zero true,
+    result passed_fail_closed.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license spec172` — exit 0. All vectors green:
+  16 lib (119 filtered) + integration suites 12/12/7/7 passed; 0 failed.
+- `cargo test -p focusa-core` — exit 101 on a PRE-EXISTING failure only:
+  `work_item::lifecycle::tests::spec79_canary_advances_ordered_bd_graph_without_manual_reprompt`
+  fails identically on the pristine base commit `441badbe` (verified in a
+  throwaway worktree before this atom's files existed) — a time-dependent
+  core work-item lifecycle test unrelated to Spec 172 surfaces; this atom
+  modifies no lib code. All 916 other focusa-core tests pass, including the
+  new 6-vector integration suite and the verified_limited_project vectors.
+- No existing source file was modified; the new files only read
+  contracts/sources and replay the accepted refund gate.
+
+Tests added
+- crates/focusa-core/tests/spec172_downgrade_data_preservation.rs — six
+  runtime vectors with the embedded multi-project paid fixture:
+  multi_project_paid_fixture_all_mutable_while_paid,
+  explicit_selection_binds_limited_mutation_after_refund_revoke,
+  without_explicit_selection_requires_operator_choice,
+  preserves_all_project_data_zero_deletion,
+  read_export_recovery_never_blocked,
+  switch_preserves_and_never_uses_heuristics.
+- tests/spec172_downgrade_data_preservation_test.py — deterministic
+  downgrade/recovery receipt in eight stages:
+  1_multi_project_paid_fixture, 2_explicit_operator_selection,
+  3_refund_revoke_sequence, 4_zero_deletion,
+  5_selected_project_mutable_others_read_export_only,
+  6_without_selection_operator_choice_required,
+  7_read_export_recovery_never_blocked, 8_live_rust_vectors.
+
+Rollback
+- Revert only this atom: `git revert 0ae8b647` (the multi-project paid
+  fixture vectors + downgrade receipt gate) and drop
+  `docs/evidence/spec172/focusa-vbcqu.20.15.37-acceptance.txt` if
+  required. Preserve verified identities, customers, orders, refunds,
+  License Types, keys, nodes, sequences, data, migration journals,
+  evidence, and accepted unrelated work (atoms 20.15.16/20.15.19/20.15.22/
+  20.15.24/20.15.35 and all prior spec152/152E/152F work remain untouched;
+  no contract or lib source was modified).
+
+No push, deploy, release, merge, or Beads mutation was performed.

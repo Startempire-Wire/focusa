@@ -60,6 +60,10 @@ export interface FocusaConfig {
   autoCompactionReserveTokens: number;
   autoCompactionReservePct: number;
   autoCompactionCooldownMs: number;
+  compactionPolicyMode: "fixed" | "shadow" | "canary" | "adaptive";
+  compactionCanaryEnrollment: "off" | "operator-dev-fleet";
+  compactionAdaptiveMinSamples: number;
+  compactionAdaptiveConfidence: number;
   contextStatusMode: "off" | "actionable" | "all";
   agentReminderMode: "off" | "shell";
   agentReminderShellFrequency: number;
@@ -142,19 +146,19 @@ const BLOATGAURD_PROFILE_PRESETS: Record<FocusaBloatgaurdProfileName, Partial<Fo
     ...PRESETS.conservative,
     externalizeThresholdBytes: 16_384,
     externalizeThresholdTokens: 1_600,
-    microCompactEveryNTurns: 8,
+    microCompactEveryNTurns: 0,
   },
   speedy: {
     ...PRESETS.aggressive,
     externalizeThresholdBytes: 4_096,
     externalizeThresholdTokens: 400,
-    microCompactEveryNTurns: 3,
+    microCompactEveryNTurns: 0,
   },
   tightwad: {
     ...PRESETS.aggressive,
     externalizeThresholdBytes: 2_048,
     externalizeThresholdTokens: 200,
-    microCompactEveryNTurns: 2,
+    microCompactEveryNTurns: 0,
   },
 };
 
@@ -171,6 +175,10 @@ const DEFAULTS: FocusaConfig = {
   autoCompactionReserveTokens: 16_384,
   autoCompactionReservePct: 10,
   autoCompactionCooldownMs: 60_000,
+  compactionPolicyMode: "shadow",
+  compactionCanaryEnrollment: "off",
+  compactionAdaptiveMinSamples: 20,
+  compactionAdaptiveConfidence: 0.95,
   contextStatusMode: "actionable",
   agentReminderMode: "shell",
   agentReminderShellFrequency: 3,
@@ -229,7 +237,7 @@ const DEFAULTS: FocusaConfig = {
   wikiUrl: "http://127.0.0.1:7325",
   focusaToken: "",
   registerProxyProvider: false,
-  microCompactEveryNTurns: 5,
+  microCompactEveryNTurns: 0,
   bloatgaurdProfile: "daily_driver",
 };
 
@@ -244,6 +252,10 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_AUTO_COMPACTION_RESERVE_TOKENS: "autoCompactionReserveTokens",
   FOCUSA_PI_AUTO_COMPACTION_RESERVE_PCT: "autoCompactionReservePct",
   FOCUSA_PI_AUTO_COMPACTION_COOLDOWN_MS: "autoCompactionCooldownMs",
+  FOCUSA_PI_COMPACTION_POLICY_MODE: "compactionPolicyMode",
+  FOCUSA_PI_COMPACTION_CANARY_ENROLLMENT: "compactionCanaryEnrollment",
+  FOCUSA_PI_COMPACTION_ADAPTIVE_MIN_SAMPLES: "compactionAdaptiveMinSamples",
+  FOCUSA_PI_COMPACTION_ADAPTIVE_CONFIDENCE: "compactionAdaptiveConfidence",
   FOCUSA_PI_INTERACTION_MODE: "interactionMode",
   FOCUSA_PI_MISSION_CANVAS_WORKSPACE_PROFILE: "missionCanvasWorkspaceProfile",
   FOCUSA_PI_MISSION_CANVAS_VISUAL_VARIANT: "missionCanvasVisualVariant",
@@ -317,6 +329,26 @@ function validate(cfg: FocusaConfig): string[] {
     errs.push(`autoCompactionReservePct(${cfg.autoCompactionReservePct}) must be in 1..50`);
   if (cfg.autoCompactionCooldownMs < 10_000)
     errs.push(`autoCompactionCooldownMs(${cfg.autoCompactionCooldownMs}) must be >= 10000`);
+  if (!["fixed", "shadow", "canary", "adaptive"].includes(cfg.compactionPolicyMode)) {
+    errs.push(`compactionPolicyMode(${cfg.compactionPolicyMode}) is invalid; using shadow`);
+    cfg.compactionPolicyMode = "shadow";
+  }
+  if (!["off", "operator-dev-fleet"].includes(cfg.compactionCanaryEnrollment)) {
+    errs.push(`compactionCanaryEnrollment(${cfg.compactionCanaryEnrollment}) is invalid; using off`);
+    cfg.compactionCanaryEnrollment = "off";
+  }
+  if (!Number.isInteger(cfg.compactionAdaptiveMinSamples) || cfg.compactionAdaptiveMinSamples < 1) {
+    errs.push(`compactionAdaptiveMinSamples(${cfg.compactionAdaptiveMinSamples}) must be >= 1`);
+    cfg.compactionAdaptiveMinSamples = 20;
+  }
+  if (
+    !Number.isFinite(cfg.compactionAdaptiveConfidence) ||
+    cfg.compactionAdaptiveConfidence < 0.5 ||
+    cfg.compactionAdaptiveConfidence > 0.999
+  ) {
+    errs.push(`compactionAdaptiveConfidence(${cfg.compactionAdaptiveConfidence}) must be 0.5..0.999`);
+    cfg.compactionAdaptiveConfidence = 0.95;
+  }
   if (!["canvas-guided", "terminal-guided", "headless"].includes(cfg.interactionMode))
     errs.push(
       `interactionMode(${cfg.interactionMode}) must be one of: canvas-guided, terminal-guided, headless`

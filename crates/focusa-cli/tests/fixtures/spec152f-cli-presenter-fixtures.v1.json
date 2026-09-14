@@ -1,0 +1,230 @@
+{
+  "schema": "focusa.spec152f.cli_presenter_fixtures.v1",
+  "contract_version": 1,
+  "description": "Deterministic CLI presenter fixtures for Spec 152F.05.01 (focusa-vbcqu.20.14.37): the canonical base/premium/recovery decisions projected through `focusa license status` and `focusa license preflight`. Each entry is a synthetic, authority-shaped entitlement snapshot plus the expected canonical decision envelope. Synthetic identifiers only: no real customers, keys, tokens, or PII.",
+  "envelope_keys": [
+    "schema",
+    "authority",
+    "entitlement_decision",
+    "base_product",
+    "premium",
+    "recovery_allowance",
+    "recovery_policy",
+    "marketing_preference"
+  ],
+  "premium_families": [
+    "automation",
+    "team_remote",
+    "release_proof",
+    "premium_updates",
+    "customer_data_export"
+  ],
+  "fixtures": [
+    {
+      "id": "active-paid",
+      "presenter_state": "activated",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-cli-fixture-0001",
+        "subject_id": "account-cli-fixture-0001",
+        "lease_id": "lease-cli-fixture-0001",
+        "sequence": 41,
+        "lease_digest": "sha256:fixture-cli-active",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": null,
+        "features": {
+          "focusa.agent.silent_sessions": true,
+          "focusa.team.multi_operator": true,
+          "focusa.release.proof": true,
+          "focusa.update.unattended": true,
+          "focusa.export.packaged": true
+        },
+        "limits": {
+          "concurrent_agents": 4,
+          "scheduled_runs": 8
+        },
+        "recovery_reason": null
+      },
+      "expected": {
+        "base_product": "entitled",
+        "premium": {
+          "automation": "feature",
+          "team_remote": "feature",
+          "release_proof": "feature",
+          "premium_updates": "feature",
+          "customer_data_export": "feature"
+        },
+        "recovery_available": true,
+        "preflight_base": "entitled"
+      }
+    },
+    {
+      "id": "offline-grace-cached",
+      "presenter_state": "offline_grace",
+      "snapshot": {
+        "state": "offline_grace",
+        "product": "focusa",
+        "node_id": "node-cli-fixture-0002",
+        "subject_id": "account-cli-fixture-0002",
+        "lease_id": "lease-cli-fixture-0002",
+        "sequence": 42,
+        "lease_digest": "sha256:fixture-cli-offline-grace",
+        "expires_at": null,
+        "offline_grace_until": "2030-01-15T00:00:00Z",
+        "features": {
+          "focusa.agent.silent_sessions": true,
+          "focusa.team.multi_operator": true,
+          "focusa.release.proof": true,
+          "focusa.update.unattended": true,
+          "focusa.export.packaged": true
+        },
+        "limits": {
+          "concurrent_agents": 2,
+          "scheduled_runs": 4
+        },
+        "recovery_reason": "lease_refresh_pending"
+      },
+      "expected": {
+        "base_product": "entitled",
+        "premium": {
+          "automation": "feature",
+          "team_remote": "feature",
+          "release_proof": "feature",
+          "premium_updates": "feature",
+          "customer_data_export": "feature"
+        },
+        "recovery_available": true,
+        "preflight_base": "entitled"
+      }
+    },
+    {
+      "id": "active-partial-premium",
+      "presenter_state": "activated",
+      "snapshot": {
+        "state": "active",
+        "product": "focusa",
+        "node_id": "node-cli-fixture-0003",
+        "subject_id": "account-cli-fixture-0003",
+        "lease_id": "lease-cli-fixture-0003",
+        "sequence": 43,
+        "lease_digest": "sha256:fixture-cli-partial",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": null,
+        "features": {
+          "focusa.agent.silent_sessions": true
+        },
+        "limits": {
+          "concurrent_agents": 1,
+          "scheduled_runs": 2
+        },
+        "recovery_reason": null
+      },
+      "expected": {
+        "base_product": "entitled",
+        "premium": {
+          "automation": "feature",
+          "team_remote": "denied",
+          "release_proof": "denied",
+          "premium_updates": "denied",
+          "customer_data_export": "denied"
+        },
+        "recovery_available": true,
+        "preflight_base": "entitled"
+      }
+    },
+    {
+      "id": "unactivated",
+      "presenter_state": "email_required",
+      "snapshot": {
+        "state": "unactivated",
+        "product": "focusa",
+        "node_id": "node-cli-fixture-0004",
+        "subject_id": null,
+        "lease_id": null,
+        "sequence": null,
+        "lease_digest": null,
+        "expires_at": null,
+        "offline_grace_until": null,
+        "features": {},
+        "limits": {},
+        "recovery_reason": "authority_lease_missing"
+      },
+      "expected": {
+        "base_product": "denied",
+        "premium": {
+          "automation": "denied",
+          "team_remote": "denied",
+          "release_proof": "denied",
+          "premium_updates": "denied",
+          "customer_data_export": "denied"
+        },
+        "recovery_available": true,
+        "preflight_base": "denied"
+      }
+    },
+    {
+      "id": "recovery-only",
+      "presenter_state": "recovery_only",
+      "snapshot": {
+        "state": "recovery_only",
+        "product": "focusa",
+        "node_id": "node-cli-fixture-0005",
+        "subject_id": "account-cli-fixture-0005",
+        "lease_id": "lease-cli-fixture-0005",
+        "sequence": 45,
+        "lease_digest": "sha256:fixture-cli-recovery",
+        "expires_at": null,
+        "offline_grace_until": null,
+        "features": {},
+        "limits": {},
+        "recovery_reason": "refunded_or_revoked"
+      },
+      "expected": {
+        "base_product": "denied",
+        "premium": {
+          "automation": "denied",
+          "team_remote": "denied",
+          "release_proof": "denied",
+          "premium_updates": "denied",
+          "customer_data_export": "denied"
+        },
+        "recovery_available": true,
+        "preflight_base": "denied"
+      }
+    },
+    {
+      "id": "wrong-product",
+      "presenter_state": "email_required",
+      "snapshot": {
+        "state": "active",
+        "product": "uiai_engine",
+        "node_id": "node-cli-fixture-0006",
+        "subject_id": "account-cli-fixture-0006",
+        "lease_id": "lease-cli-fixture-0006",
+        "sequence": 46,
+        "lease_digest": "sha256:fixture-cli-wrong-product",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "offline_grace_until": null,
+        "features": {
+          "focusa.agent.silent_sessions": true,
+          "focusa.export.packaged": true
+        },
+        "limits": {},
+        "recovery_reason": null
+      },
+      "expected": {
+        "base_product": "denied",
+        "premium": {
+          "automation": "denied",
+          "team_remote": "denied",
+          "release_proof": "denied",
+          "premium_updates": "denied",
+          "customer_data_export": "denied"
+        },
+        "recovery_available": true,
+        "preflight_base": "denied"
+      }
+    }
+  ]
+}

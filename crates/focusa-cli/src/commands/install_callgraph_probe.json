@@ -1,0 +1,39 @@
+{
+  "schema": "focusa.callgraph.v1",
+  "graph_id": "install-probe",
+  "revision": 1,
+  "scope": {
+    "project_root": "/runtime-probe",
+    "continuity_id": "install-probe"
+  },
+  "mission_ref": "install-probe",
+  "title": "Installed CallGraph validator probe",
+  "description": "Proves the installed daemon exposes canonical validation.",
+  "entry_frame_ids": ["probe"],
+  "frames": [
+    {
+      "frame_id": "probe",
+      "name": "probe",
+      "purpose": "Validate one side-effect-free frame.",
+      "kind": "agent",
+      "input_schema": {},
+      "return_schema": {},
+      "preconditions": [],
+      "postconditions": [],
+      "side_effect_class": "none",
+      "capability_refs": [],
+      "acceptance": {
+        "acceptance_atoms": ["probe-valid"],
+        "verifier": null
+      }
+    }
+  ],
+  "edges": [],
+  "policies": {},
+  "required_evidence": [],
+  "created_at": "install-probe",
+  "created_by": {
+    "authority_kind": "operator",
+    "reference": "install-probe"
+  }
+}

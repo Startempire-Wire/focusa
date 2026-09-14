@@ -924,7 +924,7 @@ mod tests {
             created_by_actor_ref: "actor:pi".into(),
             operator_principal_ref: "operator:test".into(),
             os_execution_user: "test".into(),
-            project_root: PathBuf::from("/tmp/focusa"),
+            project_root: crate::test_support::absolute_path("silent-session-project"),
             project_identity_ref: "project:focusa".into(),
             continuity_id: "workloop-completion".into(),
             trajectory_ref: None,
@@ -1014,7 +1014,8 @@ mod tests {
     #[test]
     fn config_edit_cannot_change_project_or_continuity_scope() {
         let session = sample_session();
-        let mut config = sample_config("/tmp/focusa");
+        let project_root = crate::test_support::absolute_path_string("silent-session-project");
+        let mut config = sample_config(&project_root);
         assert!(session.scope_matches_config(&config));
         config.identity.continuity_id = "other".into();
         assert!(!session.scope_matches_config(&config));

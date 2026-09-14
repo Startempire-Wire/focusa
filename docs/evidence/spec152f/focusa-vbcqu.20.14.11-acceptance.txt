@@ -1,0 +1,52 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.11
+Title: 152F.01.07 Preserve dormant future-granularity dimensions
+Implementation commit: `6401c693938ba3c284c351d3c05c6c20659cd62e`
+
+Exact surfaces
+- crates/focusa-license/src/entitlement_policy.rs
+- docs/contracts/spec152f-entitlement-policy.v1.yaml
+
+Bounded result
+- Added a closed, observable future-granularity model for operation,
+  sub-capability, role, origin, channel, plan, limit, and time dimensions.
+  Each projection carries an explicit active/dormant policy activation, and
+  the canonical YAML records explicit active/dormant status for all ten
+  registered future-dimension rows.
+- Added the embedded-policy activation guard. Dormant claims, including
+  observed values, resolve to `IgnoredDormant` and cannot change a commercial
+  decision. Active claims require a matching closed registered policy and a
+  non-empty authority-backed claim; activation of dormant dimensions fails
+  closed, and role/operator authority cannot be granted by licensing.
+- Bound the runtime registry load to the explicit future-dimension contract
+  metadata and added focused dormant-granularity tests. No new product,
+  price, grant, local Evaluation, presenter policy, or authority fallback was
+  introduced.
+
+Exact verification (exit codes)
+1. `cargo test -p focusa-license dormant_granularity` — exit 0.
+   Test result: 6 passed; 0 failed; 0 ignored; 35 filtered out in the unit
+   test target. The package integration targets also completed with exit 0
+   and no matching tests.
+
+Regression checks (exit codes)
+- `git diff --check` — exit 0.
+- The required package test also rebuilt the embedded policy registry and
+  passed its existing runtime registry validation and digest checks.
+
+Tests added
+- dormant_granularity_fields_are_observable_but_ignored
+- active_granularity_requires_registered_authority_claims
+- registered_authority_claims_activate_only_active_dimensions
+- unapproved_runtime_activation_is_rejected
+- licensing_cannot_grant_roles_or_operator_authority
+- policy_contract_embeds_explicit_dimension_statuses
+
+Rollback
+- Revert implementation commit `6401c693938ba3c284c351d3c05c6c20659cd62e`
+  and this evidence record only. Preserve customers, orders, refunds,
+  licenses, nodes, sequences, customer data, migration journals, and prior
+  accepted authority/evidence state. Rollback must not enable local grants,
+  alter signed-lease authority, or remove recovery and customer-control paths.
+
+No push, deploy, release, merge, or Beads mutation was performed.

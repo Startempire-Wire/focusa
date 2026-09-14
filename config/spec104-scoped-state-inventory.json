@@ -203,6 +203,16 @@
       "acceptance_test": "client contains no canonical scope state"
     },
     {
+      "annex_id": "API-11",
+      "path": "crates/focusa-api/src/routes/sms.rs",
+      "symbol": "CLIENT",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Shared stateless HTTP connection pool for the private communications broker",
+      "acceptance_test": "client contains no scope connector token credential message or customer state"
+    },
+    {
       "annex_id": "API-07",
       "path": "crates/focusa-api/src/routes/snapshots.rs",
       "symbol": "SNAPSHOTS",
@@ -596,6 +606,16 @@
       "acceptance_test": "context retrieval unit tests plus Spec104 singleton inventory gate"
     },
     {
+      "annex_id": "INF-18",
+      "path": "crates/focusa-core/src/runtime/backup.rs",
+      "symbol": "VERIFICATION_CACHE",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Bounded 64-entry metadata-keyed optimization for status reads; deep verification, restore authority, durable backups, manifests, and receipts never depend on cache retention",
+      "acceptance_test": "backup cryptographic verification tests plus Spec104 singleton inventory gate"
+    },
+    {
       "annex_id": "INF-01",
       "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
       "symbol": "SPEC141_CAPABILITY_REGISTRY",
@@ -644,6 +664,146 @@
       "status": "infra_allowed",
       "target": "Process-local immutable monotonic origin used only by non-Unix temporal fallback sampling",
       "acceptance_test": "cross-platform temporal clock compilation plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-12",
+      "path": "crates/focusa-api/src/middleware/entitlement.rs",
+      "symbol": "ENTITLEMENT_METADATA",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Validated immutable embedded route and operation metadata; signed request snapshots remain the only entitlement authority",
+      "acceptance_test": "entitlement metadata cache determinism unit test plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-12",
+      "path": "crates/focusa-api/src/middleware/entitlement.rs",
+      "symbol": "GUIDANCE",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Validated immutable recovery-guidance metadata; it formats denials without granting request authority",
+      "acceptance_test": "recovery guidance contract test plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-09",
+      "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
+      "symbol": "CANONICAL_OPERATION_REGISTRY",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Generated immutable Spec135 operation registry; execution authority remains request-scoped",
+      "acceptance_test": "Spec135 operation registry parity plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-14",
+      "path": "crates/focusa-api/src/routes/compaction_policy.rs",
+      "symbol": "STORE_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Synchronization-only lock for atomic policy-status file I/O; typed ScopeKey records remain authoritative",
+      "acceptance_test": "compaction policy scope-isolation tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-13",
+      "path": "crates/focusa-api/src/routes/compaction_policy_store.rs",
+      "symbol": "STORE_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Synchronization-only lock for atomic controller-store I/O; scope-keyed records remain authoritative",
+      "acceptance_test": "compaction controller concurrency tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-01",
+      "path": "crates/focusa-cli/src/commands/install.rs",
+      "symbol": "ENV_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Cfg-Windows-test-only process environment serialization lock",
+      "acceptance_test": "Windows dependency preflight test plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-16",
+      "path": "crates/focusa-license/src/denial_ux.rs",
+      "symbol": "CATALOG",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Immutable embedded presenter catalog; upstream entitlement decisions remain authoritative",
+      "acceptance_test": "denial UX catalog tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-15",
+      "path": "crates/focusa-license/src/entitlement_policy.rs",
+      "symbol": "REGISTRY",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Digest-validated immutable entitlement-policy registry; signed snapshots and authority sequence remain request-specific",
+      "acceptance_test": "embedded policy registry validation tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "path": "crates/focusa-cli/src/commands/install_pi_package_transaction_tests.rs",
+      "symbol": "PI_TEST_ENV_LOCK",
+      "classification": "infra_allowlist",
+      "status": "infra_allowed",
+      "annex_id": "INF-01",
+      "target": "test-only async env lock, no authority-bearing state",
+      "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
+      "authority_bearing": false
+    },
+    {
+      "path": "crates/focusa-license/src/developer_origin.rs",
+      "symbol": "CACHE",
+      "classification": "infra_allowlist",
+      "status": "infra_allowed",
+      "annex_id": "INF-01",
+      "target": "license cache, non-authority infra memo",
+      "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
+      "authority_bearing": false
+    },
+    {
+      "path": "crates/focusa-license/src/developer_origin.rs",
+      "symbol": "TEST_MUTEX",
+      "classification": "infra_allowlist",
+      "status": "infra_allowed",
+      "annex_id": "INF-01",
+      "target": "test-only serialization lock for license origin probe, no authority-bearing state",
+      "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
+      "authority_bearing": false
+    },
+    {
+      "path": "crates/focusa-core/src/install_lifecycle/orchestrator_tests.rs",
+      "symbol": "TEST_MUTEX",
+      "classification": "infra_allowlist",
+      "status": "infra_allowed",
+      "annex_id": "INF-01",
+      "target": "test-only serialization lock for orchestrator tests, no authority-bearing state",
+      "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
+      "authority_bearing": false
+    },
+    {
+      "annex_id": "INF-19",
+      "path": "crates/focusa-api/src/routes/screenshot_settings.rs",
+      "symbol": "WRITE_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Synchronization-only lock for atomic screenshot-evidence-share settings file I/O; typed ScopeKey records remain authoritative (Spec 185 settings authority lives in the daemon reducer, never in this route)",
+      "acceptance_test": "screenshot settings route tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-20",
+      "path": "crates/focusa-core/src/temporal_integrity.rs",
+      "symbol": "ENV_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Test-only mutex serializing process env mutation in temporal keystore regression tests",
+      "acceptance_test": "cfg-test-only static classification"
     }
   ]
 }

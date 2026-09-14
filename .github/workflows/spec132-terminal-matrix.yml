@@ -60,6 +60,9 @@ jobs:
           path: ${{ runner.temp }}/focusa-132-e5-proof
           if-no-files-found: warn
 
+  # TEMPORARY: retain the macOS row as the GitHub restoration target. During
+  # GitHub hosted-macOS billing lock, Codemagic is the authoritative menubar
+  # package proof; see docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
   unix-terminal:
     strategy:
       matrix:
@@ -115,6 +118,7 @@ jobs:
         with:
           tool: cross
       - name: Build release binaries for spec132 musl proof
+        id: cross_build
         shell: bash
         run: |
           set -euo pipefail
@@ -125,8 +129,11 @@ jobs:
           EOF
           export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
           trap 'rm -f Cross.toml' EXIT
-          cross build --release --target x86_64-unknown-linux-musl --package focusa-cli --bin focusa
-          cross build --release --target x86_64-unknown-linux-musl --package focusa-tui --bin focusa-tui
+          scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl --package focusa-cli --bin focusa
+          scripts/ci/run-cancellation-safe-cross.sh build --release --target x86_64-unknown-linux-musl --package focusa-tui --bin focusa-tui
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target x86_64-unknown-linux-musl
       - name: Package release artifact and compute hash
         id: bundle
         shell: bash
@@ -218,7 +225,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2026-01-08
+          toolchain: nightly-2026-08-28
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
@@ -229,6 +236,7 @@ jobs:
         with:
           tool: cross
       - name: Build all release binaries without publishing
+        id: cross_build
         shell: bash
         run: |
           set -euo pipefail
@@ -239,10 +247,14 @@ jobs:
           EOF
             export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
             trap 'rm -f Cross.toml' EXIT
-            cross build --release --target "${{ matrix.target }}" --bins
+            scripts/ci/run-cancellation-safe-cross.sh build --release --target "${{ matrix.target }}" --bins
           else
             cargo build --release --target "${{ matrix.target }}" --bins
           fi
+      - name: Finalize exact-owned cross containers
+        if: ${{ always() && contains(matrix.target, 'linux') && steps.cross_build.outcome != 'skipped' && steps.cross_build.outcome != '' }}
+        shell: bash
+        run: scripts/ci/run-cancellation-safe-cross.sh cleanup-owned --target "${{ matrix.target }}"
       - name: Execute linux-musl runtime proof
         if: ${{ matrix.musl == true }}
         env:
@@ -274,10 +286,11 @@ jobs:
       - name: Install locked dependencies
         working-directory: apps/pi-extension
         run: npm ci --ignore-scripts
-      - name: Typecheck, lint, and Spec101 bloatgaurd detail routes
+      - name: Typecheck, lint, Mission Canvas lifecycle, and Spec101 bloatgaurd detail routes
         run: |
           npm --prefix apps/pi-extension run typecheck
           npm --prefix apps/pi-extension run lint
+          npm --prefix apps/pi-extension run test:mission-canvas
           node apps/pi-extension/tests/spec101-bloatgaurd-details-route.test.mjs
           node apps/pi-extension/tests/spec101-bloatgaurd-profile-runtime.test.mjs
           node apps/pi-extension/tests/spec101-bloatgaurd-pressure-circuit-runtime.test.mjs

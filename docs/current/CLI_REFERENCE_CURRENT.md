@@ -57,6 +57,7 @@ Commands:
   export         Export training datasets (docs/20-21)
   contribute     Data contribution (docs/22)
   cache          Cache management (docs/18-19)
+  working-set    Ontology working-set surface: scoped members, membership classes, freshness (Spec 49)
   workpoint      Spec88 Workpoint continuity operations
   tokens         API token management (docs/25)
   wrap           Wrap a harness CLI (Mode A proxy)
@@ -172,10 +173,26 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 - `metacognition recent-reflections` / `recent-adjustments` / `recent-evaluations` — read recent learning/evaluation packets.
 - `awareness card --continuity-id` — non-Pi utility card injection with trajectory orientation and logical-session scoping.
 
+### Project bootstrap lifecycle
+
+- `focusa project bootstrap preview --project-root <absolute-path>` — computes the local-only, idempotent bootstrap transaction without writing.
+- `focusa project bootstrap apply --project-root <absolute-path>` — applies only the previewed bounded transaction; it never creates or changes a remote implicitly.
+- `focusa project bootstrap status --project-root <absolute-path>` — reports marker, project identity, Genesis, Beads, and verification state without mutation.
+- `focusa project bootstrap repair --project-root <absolute-path>` — repairs only transaction-owned bootstrap artifacts while preserving operator choices and reporting rollback evidence.
+
+### Project Genesis lifecycle
+
+- `focusa project genesis start --project-root <absolute-path> --continuity-id <id> --idempotency-key <key>` — inventories authority and stages Genesis; missing High-Level Trajectory intent enters an explicit impasse instead of inventing one.
+- `focusa project genesis resume --project-root <absolute-path> --continuity-id <id> --idempotency-key <key>` — resumes the same bounded, idempotent Genesis transaction.
+- `focusa project genesis status --project-root <absolute-path>` — reads the durable Genesis packet without mutation.
+- `focusa project genesis commit --project-root <absolute-path> --continuity-id <id> --idempotency-key <key> --confirm` — atomically commits the confirmed Trajectory, first Workpoint, coordination state, and readiness receipt.
+
 ### Release-current lifecycle and autonomous execution
 
 - `focusa silent --help` exposes daemon-native Silent Session list/start/reopen/tail/send/interrupt/pause/resume/restart/kill/config/receipt/capabilities operations. Mutations use exact session/run/generation plus daemon-issued approval and idempotency fields; shell/tmux aliases are not authority.
-- `focusa update --help` exposes trusted OTA inventory, policy, guarded apply, activation status, and rollback surfaces across CLI/daemon/TUI/Pi/menubar/installer release artifacts.
+- `focusa update --help` exposes trusted OTA inventory, policy, guarded apply, activation status, and rollback surfaces across CLI/daemon/TUI/session-runner/Pi/agent-context/menubar/installer release artifacts.
+- `focusa update compatibility-bootstrap --latest-version <exact-candidate> --compatibility-canary-root <absolute-path> --yes --allow-apply --dry-run false` installs the exact historical baseline authorized by the current candidate signature into an empty isolated installation. It requires the signed full baseline digest map, delegates to the canonical Rust installer, and never runs the old CLI installer. The digest authority has no CLI/environment/deserialization input; rollback re-verifies the current candidate rather than trusting local journal claims.
+- `focusa update apply --latest-version <exact> --compatibility-canary-root <absolute-path> --yes --allow-apply --dry-run false` is a release-workflow-only preproduction mode. It accepts only a signed candidate-manifest canary authorization and a non-root isolated environment; it cannot run automatically, mutate services, target system paths, or substitute for production `deploy-success.json`.
 - `focusa uninstall --dry-run --keep-data` previews software removal with data preservation. The public bootstrapper preserves data by default; destructive removal requires explicit `--uninstall --purge-data`.
 - `focusa tui --headless-self-test` provides structured non-TTY Mission Deck diagnostics.
 - Mission Canvas, Work Rail, connectors, generated UI, and all Focusa Pi tools are discovered through the generated Agent Card/Spec141 registries rather than an invented parallel CLI hierarchy.
@@ -252,24 +269,7 @@ focusa project card-outcome --algorithm-run-id <algorithm_run_id> --actual-outco
 focusa project session-transfer --action save --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --current-ask "Save current work like a game save" --json
 focusa project session-transfer --action continue --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa project verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --project-id focusa --json
-focusa project trajectory-guard --action verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
-focusa project trajectory-guard --action migrate --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --confirm --idempotency-key marker-migrate-1 --json
-focusa project bootstrap preview --project-root /absolute/project --project-id project --canonical-name "Project" --continuity-id project-main --idempotency-key bootstrap-project --json
-focusa project bootstrap apply --project-root /absolute/project --project-id project --canonical-name "Project" --continuity-id project-main --idempotency-key bootstrap-project --hlt "Ship the verified project" --hlt-confirmed --specification-ref docs/01-project-spec.md --acceptance "First Workpoint is active" --current-state "Empty project" --desired-end-state "Disciplined project ready" --confirm --json
-focusa project bootstrap status --project-root /absolute/project --json
-focusa project bootstrap repair --project-root /absolute/project --project-id project --canonical-name "Project" --continuity-id project-main --idempotency-key bootstrap-project --repair-action rollback --confirm --json
-focusa project genesis start --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --hlt "Ship the verified project" --hlt-confirmed --specification-ref docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md --acceptance "First Workpoint is active" --current-state "Genesis incomplete" --desired-end-state "Project ready" --allow-task-decomposition --json
-focusa project genesis status --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
-focusa project genesis resume --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --json
-focusa project genesis commit --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --hlt "Ship the verified project" --hlt-confirmed --specification-ref docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md --acceptance "First Workpoint is active" --current-state "Genesis incomplete" --desired-end-state "Project ready" --allow-task-decomposition --confirm --json
-focusa temporal status --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
-focusa temporal commit --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key deadline-1 --claim-id release-deadline --kind external_commitment --subject-ref release --target-at 2026-08-01T17:00:00Z --timezone America/Los_Angeles --source operator --operator-confirmed --confidence verified --evidence-ref contract:release-date --confirm --json
-focusa temporal observe --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key build-run-1 --phase build --duration-ms 120000 --evidence-ref run:123 --json
-focusa temporal forecast --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --phase build --json
-focusa temporal preflight --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
 focusa trajectory view --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --mode summary --json
-focusa trajectory history --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --limit 50 --json
-focusa trajectory query --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --level waypoint --as-of 2026-07-25T12:00:00Z --json
 focusa trajectory define-goal --long-term-goal "Ship Spec96" --desired-end-state "All Spec96 gates pass" --mid-level-goal "Close release blockers" --short-term-goal "Run current validation gates" --waypoint "CLI/API parity proof" --waypoint "Public docs proof" --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa traverse read --surface workpoints --selector current --limit 1 --json
 focusa traverse verify-tags --surface workpoints --tag focusa://workpoints/current/item/example --json
@@ -301,3 +301,147 @@ focusa device pair-revoke    Revoke a paired device
 phone will hit (e.g. `https://focusa-conn.verious.net`). When unset, the
 daemon uses `daemon_base_url` (default `http://127.0.0.1:8787`). This is
 what makes pairing portable across public VPS hosts.
+
+## `working-set` — ontology working-set parity surface (Spec 49)
+
+Scoped to the active project workstream (same resolution as work-loop). Mirrors the REST surface at `/v1/ontology/working-set` and `/v1/ontology/actions` (refresh_working_set).
+
+```text
+focusa working-set status                 Show scoped members, membership class, freshness, score, verification handles
+focusa working-set status --ask "..."     Filter by ask text
+focusa working-set status --slice-type object --limit 10
+focusa working-set refresh --subject <ref>  Propose refreshing membership for a target ref (idempotent per subject)
+```
+
+Requires a resolved project workstream (project root + continuity id — same
+boundary as `focusa work-loop`). Output is advisory (`canonical: false`);
+membership changes land as typed proposals via the ontology action route.
+
+
+## license — activation and entitlement operations
+
+Generated from `focusa license --help` and subcommand help on this build. Paid fast-path: `focusa license activate-flow --license-key <KEY>` redeems an already-paid key in ONE request (no email verification, no menu, no polling) for ANY product in the authority registry; retry is idempotent.
+
+### `license (top)`
+
+```text
+License activation and entitlement operations (Spec92 §5.2)
+
+Usage: focusa license [OPTIONS] <COMMAND>
+
+Commands:
+  activate-flow  Interactive authority activation (Spec 152E §14.1): one shared flow renders email → verify → offer → checkout/poll → key/lease, existing key, Evaluation (Spec 172 limited-access overlay), resume, cancel, timeout, and recovery. Never accepts card data and never self-issues
+  activate       Activate a Focusa license key. Saves the local license state file
+  status         Show current license status (mode, status, features, offline-valid-until)
+  deactivate     Deactivate the current license. The local file is removed
+  doctor         Run a self-check of the local license file and remote registry reachability
+  check-feature  Check whether a specific feature is enabled by the current license
+  preflight      Fast preflight against the canonical entitlement decision (Spec 152F §6 chokepoint 4): renders base/premium/recovery reason and next action from the authority snapshot only, and exits nonzero when the target gate would deny. Never self-issues a grant
+  devmode-full   End-to-end license provisioning harness. Generates a fresh test key, validates it against the registry (dev_mode is acceptable for operator testing but downgrades commercial_use to false), writes license.json / license_authority.json / license_receipt.json, round-trips the files through the daemon parser, and reports the result. Use this to verify the full provisioning pipeline before the first real transaction
+  refresh        Re-validate the current license against the registry and update the local file. Picks up revoke / refund / expire changes that happened on the registry side since the last validation
+  watch          Watch the local license file and the registry. When the registry returns a new state, the local file is updated and a notification is printed. Use this as a long-running sidecar after a purchase so refunds and revokes propagate within the poll interval
+
+Options:
+      --json                       Output in JSON format
+      --config <CONFIG>            Config file path
+      --verbose                    Verbose output
+      --quiet                      Quiet mode — suppress non-essential output
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
+### `license activate-flow`
+
+```text
+Interactive authority activation (Spec 152E §14.1): one shared flow renders email → verify → offer → checkout/poll → key/lease, existing key, Evaluation (Spec 172 limited-access overlay), resume, cancel, timeout, and recovery. Never accepts card data and never self-issues
+
+Usage: focusa license activate-flow [OPTIONS]
+
+Options:
+      --json                       Output in JSON format
+      --registry <URL>             Override the registry URL (default: https://wpuiai.com)
+      --config <CONFIG>            Config file path
+      --resume <REGISTRATION_ID>   Resume a persisted activation registration (bounded poll continuation). The poll credential is re-supplied from the protected store; the snapshot never contains it
+      --email <EMAIL>              Explicit email for a new activation (prompted interactively otherwise). The email only creates a pending attempt; verification is always required before any promotion
+      --verbose                    Verbose output
+      --poll-timeout <SECONDS>     Bounded poll wall-clock timeout in seconds (default: the registration poll budget governs; timeout settles fail-closed via cancel → recovery_only)
+      --quiet                      Quiet mode — suppress non-essential output
+      --agent                      Agent/JSON protocol (Spec 152E §14.2): non-interactive, never prompts, never invents an email, verification code, consent, payment confirmation, or license. Returns typed human-action envelopes with a resumable registration handle; requires --email for a new attempt or --resume for a bounded poll continuation
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --reveal-key                 Customer-controlled key reveal opt-in (agent mode): full key output is masked by default; revealing the one-time key requires BOTH this flag and --confirm-reveal
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+      --license-key <KEY>          Paid fast-path (all products through the license authority): redeem an already-paid license key in ONE request — no email verification, no offer menu, no polling. The server verifies the key, promotes the account, binds this device (verbatim node identity), and returns a root-signed lease that is persisted locally. Works for every product in the authority registry (Focusa, UIAI Engine, bundles)
+      --confirm-reveal             Explicit confirmation for the customer-controlled key reveal (agent mode). Without it the key stays masked
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
+### `license activate`
+
+```text
+Activate a Focusa license key. Saves the local license state file
+
+Usage: focusa license activate [OPTIONS] <KEY>
+
+Arguments:
+  <KEY>  The license key (focusa_live_xxxxx or uiai_live_xxxxx)
+
+Options:
+      --json                       Output in JSON format
+      --persist-key                Persist the raw key in the local file (off-spec; default is prefix only)
+      --config <CONFIG>            Config file path
+      --registry <URL>             Override the registry URL (default: https://install.focusa.dev)
+      --verbose                    Verbose output
+      --quiet                      Quiet mode — suppress non-essential output
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
+### `license status`
+
+```text
+Show current license status (mode, status, features, offline-valid-until)
+
+Usage: focusa license status [OPTIONS]
+
+Options:
+      --json                       Output in JSON format
+      --config <CONFIG>            Config file path
+      --verbose                    Verbose output
+      --quiet                      Quiet mode — suppress non-essential output
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+
+### `license refresh`
+
+```text
+Re-validate the current license against the registry and update the local file. Picks up revoke / refund / expire changes that happened on the registry side since the last validation
+
+Usage: focusa license refresh [OPTIONS]
+
+Options:
+      --json                       Output in JSON format
+      --registry <URL>             Override the registry URL (default: https://wpuiai.com)
+      --config <CONFIG>            Config file path
+      --raw-key <KEY>              Persist the raw key from --raw-key in the local file (off-spec)
+      --require-real               Set FOCUSA_REQUIRE_REAL_LICENSE=1 for this run (refuse dev_mode)
+      --verbose                    Verbose output
+      --quiet                      Quiet mode — suppress non-essential output
+      --lifecycle-action <ACTION>  Inspect, preview, confirm, apply, or recover a lifecycle transaction [possible values: inspect, preview, confirm, apply, resume, repair, rerun, rollback, uninstall, purge]
+      --confirm                    Confirm the mutation selected by --lifecycle-action
+      --confirm-purge-data         Separately confirm user-data deletion for a lifecycle purge
+  -h, --help                       Print help
+  -V, --version                    Print version
+```
+

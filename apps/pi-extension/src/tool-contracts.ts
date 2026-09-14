@@ -1,5 +1,6 @@
 // Generated/maintained for Spec90. Keep this registry current with apps/pi-extension/src/tools.ts.
 
+
 export type FocusaToolFamily =
   | "focus_state"
   | "workpoint"
@@ -13,6 +14,7 @@ export type FocusaToolFamily =
   | "session_transfer"
   | "awareness"
   | "preload"
+  | "communications"
   | "agent_runtime";
 
 export type FocusaToolParityStatus =
@@ -27,6 +29,50 @@ export type FocusaScopeRequirement =
   | { kind: "public:pairing" };
 
 export type FocusaAuthorityRequirement = { kind: "advisory_only" } | { kind: "canonical"; path: string };
+
+export type FocusaOperationClass =
+  | "read"
+  | "value_mutation"
+  | "recovery"
+  | "internal_maintenance";
+
+export type FocusaCapabilityFamily =
+  | "account_recovery"
+  | "read_projection"
+  | "base_focusa"
+  | "automation"
+  | "team_remote"
+  | "release_proof"
+  | "premium_updates"
+  | "customer_data_export"
+  | "internal_maintenance";
+
+export type FocusaCommercialTreatment =
+  | "always_available"
+  | "read_allowance"
+  | "base_entitlement"
+  | "optional_premium"
+  | "always_available_basic_with_optional_premium_packaging"
+  | "inherit_initiating_operation";
+
+export interface FocusaOperationPolicy {
+  operation_class: FocusaOperationClass;
+  capability_family: FocusaCapabilityFamily;
+  commercial_treatment: FocusaCommercialTreatment;
+  policy_activation: "active";
+  required_feature: string | null;
+  limit_bucket: string | null;
+  recovery_allowance:
+    | "none"
+    | "account_recovery"
+    | "read_projection"
+    | "customer_data_export"
+    | "stable_security_update"
+    | "repair_rollback"
+    | "uninstall";
+  source_owner: string;
+  policy_owner: "entitlement_policy_resolver";
+}
 
 export interface FocusaToolContract {
   name: string;
@@ -49,6 +95,8 @@ export interface FocusaToolContract {
   scope_requirement: FocusaScopeRequirement;
   /** Whether the tool is canonical authority or advisory (Spec104 TOOL-07). */
   authority_requirement: FocusaAuthorityRequirement;
+  /** Spec 152F operation policy projected into every Agent Descriptor V2. */
+  operation_policy?: FocusaOperationPolicy;
 }
 
 export interface FocusaToolAffordance {
@@ -72,6 +120,51 @@ export interface FocusSliceToolAffordanceOptions {
   hasTrajectory: boolean;
   hasWorkpoint: boolean;
   hasOntologyAmbiguity: boolean;
+}
+
+function operationPolicyForContract(contract: FocusaToolContract): FocusaOperationPolicy {
+  const lowerName = contract.name.toLowerCase();
+  const profile = contract.side_effect_profile.toLowerCase();
+  const recovery = /device_pair|license|repair|rollback|uninstall|activation|verification/.test(lowerName);
+  const read =
+    /^(read|advisory|local_note|read_only|none)/.test(profile) ||
+    profile.includes("read_or_preview") ||
+    (contract.authority_requirement.kind === "advisory_only" &&
+      !/write|append|commit|delivery|mutation/.test(profile));
+  const operation_class: FocusaOperationClass = recovery
+    ? "recovery"
+    : read
+      ? "read"
+      : "value_mutation";
+  const capability_family: FocusaCapabilityFamily = recovery
+    ? "account_recovery"
+    : read
+      ? "read_projection"
+      : lowerName.includes("silent_sessions")
+        ? "automation"
+        : "base_focusa";
+  const commercial_treatment: FocusaCommercialTreatment = capability_family === "account_recovery"
+    ? "always_available"
+    : capability_family === "read_projection"
+      ? "read_allowance"
+      : capability_family === "automation"
+        ? "optional_premium"
+        : "base_entitlement";
+  return {
+    operation_class,
+    capability_family,
+    commercial_treatment,
+    policy_activation: "active",
+    required_feature: capability_family === "automation" ? "focusa.agent.silent_sessions" : null,
+    limit_bucket: capability_family === "automation" ? "silent_session_runs" : null,
+    recovery_allowance: recovery
+      ? "account_recovery"
+      : read
+        ? "read_projection"
+        : "none",
+    source_owner: "agent_capability_contracts",
+    policy_owner: "entitlement_policy_resolver",
+  };
 }
 
 const PRELOAD_TOOL_CONTRACTS: FocusaToolContract[] = [
@@ -284,7 +377,7 @@ const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract[] = [
   family: "agent_runtime" as const,
   ontology_action: String(action),
   ontology_objects: ["ProjectAgentRuntimeConstitution", "InstructionClaim", "RuntimeArtifactProjection"],
-  api_routes: route === "local" ? [] : [String(route)],
+  api_routes: (route === "local" ? [] : [String(route)]) as string[],
   cli_commands: [String(command)],
   core_surface: "Spec140 project-agent Runtime Constitution compiler and delivery",
   doc_path: `docs/focusa-tools/tools/${String(name)}.md`,
@@ -301,8 +394,94 @@ const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract[] = [
     : { kind: "advisory_only" as const },
 }));
 
-export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
+type SmsToolDescriptor = readonly [
+  name: string,
+  label: string,
+  purpose: string,
+  action: string,
+  objects: readonly string[],
+  route: string,
+  command: string,
+  scopeKind: "read" | "write" | "control",
+  scopeFamily: string,
+  sideEffect: string,
+  operationClass: "read" | "value_mutation" | "recovery",
+];
+
+const SMS_TOOL_CONTRACTS: FocusaToolContract[] = ([
+  ["focusa_sms_health", "SMS Broker Health", "Read value-free connector and encrypted-checkpoint health.", "communications.health.read", ["CommunicationsConnectorHealth", "EncryptedConnectorCheckpoint"], "GET /v1/sms/health", "focusa sms health", "read", "sms:health", "read_value_free_health", "read"],
+  ["focusa_sms_enrollment", "SMS Enrollment", "Read value-free customer-owned connector enrollment status.", "communications.enrollment.read", ["CommunicationsEnrollment"], "GET /v1/sms/enrollment", "focusa sms enrollment", "read", "sms:enrollment", "read_value_free_enrollment", "read"],
+  ["focusa_sms_threads", "SMS Threads", "List customer-authorized thread summaries under the separate list_threads grant.", "communications.threads.list", ["CommunicationsThread", "ScopedCapabilityGrant"], "GET /v1/sms/threads", "focusa sms threads", "read", "sms:list_threads", "authorized_customer_data_read", "read"],
+  ["focusa_sms_read_thread", "Read SMS Thread", "Read one bounded customer-authorized thread; OTP authority never implies message-read authority.", "communications.thread.read", ["CommunicationsThread", "CommunicationsMessage", "ScopedCapabilityGrant"], "GET /v1/sms/threads/{thread}/messages", "focusa sms read <thread-handle>", "read", "sms:read_thread", "authorized_customer_data_read", "read"],
+  ["focusa_sms_search", "Search SMS", "Search separately authorized message scope with bounded results.", "communications.messages.search", ["CommunicationsMessage", "ScopedCapabilityGrant"], "GET /v1/sms/search", "focusa sms search <query>", "read", "sms:search", "authorized_customer_data_read", "read"],
+  ["focusa_sms_send", "Send SMS", "Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution.", "communications.message.send", ["CommunicationsDelivery", "ScopedCapabilityGrant"], "POST /v1/sms/send", "focusa sms send <recipient-handle> --confirm", "write", "sms:send", "confirmed_idempotent_message_delivery", "value_mutation"],
+  ["focusa_sms_otp_challenge", "Register SMS OTP Challenge", "Register an exact provider and target challenge before OTP delivery.", "communications.otp_challenge.register", ["OtpChallenge", "ScopedCapabilityGrant"], "POST /v1/sms/otp/challenges", "focusa sms otp-challenge", "write", "sms:otp_challenge", "bounded_challenge_registration", "value_mutation"],
+  ["focusa_sms_otp_inject", "Inject SMS OTP", "Inject one eligible OTP into its exact bound target without exposing the value to model context.", "communications.otp.inject", ["OtpChallenge", "TargetInjectionReceipt"], "POST /v1/sms/otp/inject", "focusa sms otp-inject", "control", "sms:inject_otp", "single_use_secret_injection", "value_mutation"],
+  ["focusa_sms_checkpoint", "Checkpoint SMS Connector", "Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata.", "communications.connector.checkpoint", ["EncryptedConnectorCheckpoint"], "POST /v1/sms/checkpoint", "focusa sms checkpoint", "control", "sms:checkpoint", "confirmed_encrypted_checkpoint", "value_mutation"],
+  ["focusa_sms_events", "SMS Broker Events", "Read bounded value-free communications audit events.", "communications.events.read", ["CommunicationsAuditEvent"], "GET /v1/sms/events", "focusa sms events", "read", "sms:events", "read_value_free_audit_events", "read"],
+  ["focusa_sms_revoke", "Revoke SMS Connector", "Revoke one customer-owned connector and all associated grants with explicit confirmation.", "communications.connector.revoke", ["CommunicationsConnector", "ScopedCapabilityGrant"], "POST /v1/sms/revoke", "focusa sms revoke --confirm", "control", "sms:revoke", "confirmed_connector_and_grant_revocation", "recovery"],
+] as const satisfies readonly SmsToolDescriptor[]).map(
+  ([name, label, purpose, action, objects, route, command, scopeKind, scopeFamily, sideEffect, operationClass]) => {
+    const recovery = operationClass === "recovery";
+    const valueFreeRead = name === "focusa_sms_health" || name === "focusa_sms_enrollment";
+    const operationPolicy: FocusaOperationPolicy = {
+      operation_class: operationClass,
+      capability_family: recovery ? "account_recovery" : valueFreeRead ? "read_projection" : "base_focusa",
+      commercial_treatment: recovery ? "always_available" : valueFreeRead ? "read_allowance" : "base_entitlement",
+      policy_activation: "active",
+      required_feature: null,
+      limit_bucket: null,
+      recovery_allowance: recovery ? "account_recovery" : valueFreeRead ? "read_projection" : "none",
+      source_owner: "communications_capability_contracts",
+      policy_owner: "entitlement_policy_resolver",
+    };
+    return {
+      name,
+      family: "communications",
+      label,
+      purpose,
+      ontology_action: action,
+      ontology_objects: [...objects],
+      api_routes: [route],
+      cli_commands: [command],
+      core_surface: "Plan 180 customer-owned communications broker and Spec 156 credential authority",
+      doc_path: `docs/focusa-tools/tools/${name}.md`,
+      spec_path: "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+      result_envelope: "tool_result_v1",
+      side_effect_profile: sideEffect,
+      parity_status: "full",
+      exemptions: [],
+      live_check: "SMS broker contract, API consumer, CLI, Pi, scope, redaction, and replay-resistance tests",
+      scope_requirement: { kind: scopeKind, route_family: scopeFamily },
+      authority_requirement: { kind: "canonical", path: route.split(" ", 2)[1] },
+      operation_policy: operationPolicy,
+    };
+  }
+);
+
+export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
   ...AGENT_RUNTIME_TOOL_CONTRACTS,
+  ...SMS_TOOL_CONTRACTS,
+  {
+    name: "focusa_daemon_routing_status",
+    label: "Daemon Routing Status",
+    purpose: "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
+    family: "project_identity",
+    ontology_action: "daemon_routing.resolve",
+    ontology_objects: ["ProjectIdentity", "DaemonRegistry"],
+    api_routes: ["POST /v1/daemon-routing/resolve"],
+    cli_commands: ["focusa daemon-routing status"],
+    core_surface: "Explicit scoped daemon routing resolution",
+    doc_path: "docs/focusa-tools/tools/focusa_daemon_routing_status.md",
+    spec_path: "docs/158-focusa-daemon-routing-surface-parity-spec.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "read_state",
+    parity_status: "full",
+    exemptions: [],
+    live_check: "contract_static plus scoped daemon-routing resolve verification",
+    scope_requirement: { kind: "write", route_family: "daemon-routing" },
+    authority_requirement: { kind: "canonical", path: "/v1/daemon-routing/resolve" },
+  },
   {
     name: "focusa_north_star_gate",
     label: "North Star Gate",
@@ -695,8 +874,43 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "POST /v1/temporal/observe",
       "POST /v1/temporal/forecast",
       "POST /v1/temporal/preflight",
+      "GET /v1/time/now",
+      "GET /v1/time/awareness",
+      "GET /v1/time/status",
+      "GET /v1/time/trust",
+      "GET /v1/time/samples",
+      "GET /v1/time/capabilities",
+      "GET /v1/time/stream",
+      "POST /v1/deadline/set",
+      "POST /v1/deadline/revise",
+      "POST /v1/deadline/clear",
+      "GET /v1/deadlines",
+      "GET /v1/deadline/{id}",
+      "POST /v1/deadline/resolve-civil",
+      "GET /v1/deadline/conflicts",
+      "POST /v1/deadline/propagate",
+      "POST /v1/temporal/guard/issue",
+      "POST /v1/temporal/guard/validate",
+      "POST /v1/temporal/guard/revoke",
+      "POST /v1/cancellation/request",
+      "GET /v1/cancellation/{id}",
+      "POST /v1/estimate/request",
+      "POST /v1/estimate/validate",
+      "POST /v1/estimate/evaluate",
+      "GET /v1/estimate/{id}",
+      "GET /v1/estimate/history",
+      "POST /v1/response/temporal-claims/validate",
+      "POST /v1/progress/record",
+      "GET /v1/progress/status",
+      "GET /v1/no-progress/incidents",
+      "GET /v1/lost-time/incidents",
+      "GET /v1/opportunities",
+      "POST /v1/temporal/preflight",
     ],
-    cli_commands: ["focusa temporal status|commit|revise|observe|forecast|preflight"],
+    cli_commands: [
+      "focusa temporal status|commit|revise|observe|forecast|preflight",
+      "focusa time|deadline|estimate|progress|no-progress|lost-time|opportunity|cancellation",
+    ],
     core_surface: "Spec137 temporal authority, ledger, claims, preflight, forecasting, and release timing",
     doc_path: "docs/focusa-tools/tools/focusa_temporal_authority.md",
     spec_path: "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
@@ -979,6 +1193,195 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     side_effect_profile: "local_note",
     parity_status: "local_only",
     exemptions: ["local_scratchpad_only"],
+    live_check:
+      "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_workset_projection",
+    label: "Workset Projection",
+    purpose:
+      "Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger.",
+    family: "workset",
+    ontology_action: "workset.projection",
+    ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
+    api_routes: ["/v1/worksets/{workset_id}/projection"],
+    cli_commands: [],
+    core_surface: "workset_ledger/replay_projection",
+    doc_path: "docs/focusa-tools/tools/focusa_workset_projection.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "read_projection",
+    parity_status: "daemon_backed",
+    exemptions: ["daemon_backed_no_cli"],
+    live_check:
+      "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_callgraph_validate",
+    label: "CallGraph Validate",
+    purpose:
+      "validating a CallGraph definition deterministically before any create or dispatch action.",
+    family: "callgraph",
+    ontology_action: "callgraph.validate",
+    ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
+    api_routes: ["POST /v1/callgraphs/validate"],
+    cli_commands: [],
+    core_surface: "callgraph/definition validation",
+    doc_path: "docs/focusa-tools/tools/focusa_callgraph_validate.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "read_validation",
+    parity_status: "daemon_backed",
+    exemptions: ["daemon_backed_no_cli"],
+    live_check:
+      "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_callgraph_observe",
+    label: "CallGraph Observe",
+    purpose:
+      "Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation.",
+    family: "callgraph",
+    ontology_action: "callgraph.observe",
+    ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
+    api_routes: ["/v1/callgraph-runs/{run_id}/frontier"],
+    cli_commands: [],
+    core_surface: "callgraph_store/run observation",
+    doc_path: "docs/focusa-tools/tools/focusa_callgraph_observe.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "read_observation",
+    parity_status: "daemon_backed",
+    exemptions: ["daemon_backed_no_cli"],
+    live_check:
+      "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_credentials_verify",
+    label: "Credentials Verify",
+    purpose:
+      "Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization.",
+    family: "credential",
+    ontology_action: "credential.verify",
+    ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
+    api_routes: ["/v1/credentials/verify-requirement"],
+    cli_commands: [],
+    core_surface: "credential_authority/verify_requirement",
+    doc_path: "docs/focusa-tools/tools/focusa_credentials_verify.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "read_verdict",
+    parity_status: "daemon_backed",
+    exemptions: ["daemon_backed_no_cli"],
+    live_check:
+      "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_cockpit_projection",
+    label: "Cockpit Projection",
+    purpose:
+      "Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work.",
+    family: "cockpit",
+    ontology_action: "cockpit.projection",
+    ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
+    api_routes: ["/v1/cockpit/projection"],
+    cli_commands: [],
+    core_surface: "cockpit route projection",
+    doc_path: "docs/focusa-tools/tools/focusa_cockpit_projection.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "read_projection",
+    parity_status: "daemon_backed",
+    exemptions: ["daemon_backed_no_cli"],
+    live_check:
+      "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_bg_run",
+    label: "BG Run",
+    purpose:
+      "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
+    family: "background_job",
+    ontology_action: "background_job.run",
+    ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
+    api_routes: ["/v1/background-jobs"],
+    cli_commands: ["focusa bg run --detach"],
+    core_surface: "background_jobs route and CLI monitor",
+    doc_path: "docs/focusa-tools/tools/focusa_bg_run.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "durable_dispatch",
+    parity_status: "full",
+    exemptions: [],
+    live_check:
+      "dispatch returns a non-empty durable job_id; the same row is observable and completes through SSE",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_bg_run_many",
+    label: "BG Run Many",
+    purpose:
+      "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
+    family: "background_job",
+    ontology_action: "background_job.run_many",
+    ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
+    api_routes: ["/v1/background-jobs"],
+    cli_commands: ["focusa bg run --detach"],
+    core_surface: "background_jobs route and CLI monitor",
+    doc_path: "docs/focusa-tools/tools/focusa_bg_run_many.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "durable_dispatch",
+    parity_status: "full",
+    exemptions: [],
+    live_check:
+      "every successful lane returns a durable job_id; failures name the lane and never claim full dispatch",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_bg_status",
+    label: "BG Status",
+    purpose:
+      "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+    family: "background_job",
+    ontology_action: "background_job.status",
+    ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
+    api_routes: ["/v1/background-jobs"],
+    cli_commands: ["focusa bg status --job", "focusa bg list"],
+    core_surface: "background_job_store",
+    doc_path: "docs/focusa-tools/tools/focusa_bg_status.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "read_status",
+    parity_status: "full",
+    exemptions: [],
+    live_check:
+      "Pi and CLI observe the same durable job row; HTTP, missing-row, and invalid-envelope states fail closed",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_fast_forward",
+    label: "Fast Forward",
+    purpose:
+      "Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes.",
+    family: "session_fanout",
+    ontology_action: "session.fanout",
+    ontology_objects: ["Workset","CallGraph","Credential","BackgroundJob"],
+    api_routes: ["/v1/silent-sessions/fanout"],
+    cli_commands: [],
+    core_surface: "session_fanout route",
+    doc_path: "docs/focusa-tools/tools/focusa_fast_forward.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "durable_dispatch",
+    parity_status: "daemon_backed",
+    exemptions: ["daemon_backed_no_cli"],
     live_check:
       "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
     scope_requirement: { kind: "read", route_family: "auto" },
@@ -1418,7 +1821,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     name: "focusa_tool_doctor",
     label: "Focusa Tool Doctor",
     purpose:
-      "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
+      "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
     family: "diagnostics_hygiene",
     ontology_action: "diagnostics_hygiene.tool_doctor",
     ontology_objects: ["ToolContract"],
@@ -2640,6 +3043,53 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     authority_requirement: { kind: "advisory_only" },
   },
   {
+    name: "focusa_epistemic_operation",
+    label: "Epistemic Operation",
+    purpose: "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
+    family: "metacognition",
+    ontology_action: "epistemic.operation.invoke",
+    ontology_objects: ["Spec138OperationDescriptor", "ScopedAuthorityEvent"],
+    api_routes: [
+      "POST /v1/prediction-questions",
+      "POST /v1/information-sets",
+      "POST /v1/predictions/commit",
+      "POST /v1/predictions/{id}/supersede",
+      "GET /v1/predictions/{id}",
+      "GET /v1/predictions/recent",
+      "POST /v1/outcomes/claim",
+      "POST /v1/outcomes/{id}/dispute",
+      "POST /v1/outcomes/resolve",
+      "POST /v1/outcomes/{id}/correct",
+      "POST /v1/evaluations/predictions",
+      "GET /v1/calibration/reports",
+      "POST /v1/metacognition/signals",
+      "POST /v1/metacognition/reflections",
+      "POST /v1/metacognition/adjustments",
+      "POST /v1/metacognition/evaluations",
+      "POST /v1/learning/candidates/{id}/decide",
+      "POST /v1/learning/{id}/apply",
+      "POST /v1/learning/transfers/resolve",
+      "GET /v1/learning/retrieve",
+      "GET /v1/learning/conflicts",
+      "POST /v1/learning/{id}/expire",
+      "POST /v1/learning/{id}/supersede",
+      "POST /v1/learning/{id}/revoke",
+      "POST /v1/learning/{id}/rollback",
+      "POST /v1/learning/consolidate",
+      "GET /v1/self-model",
+    ],
+    cli_commands: ["focusa predict operation --operation <operation-id>"],
+    core_surface: "Generated Spec 138 operation registry and durable scoped prediction authority",
+    doc_path: "docs/focusa-tools/tools/focusa_epistemic_operation.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "typed_read_or_canonical_epistemic_mutation",
+    parity_status: "full",
+    exemptions: [],
+    live_check: "generated 27-operation parity gate plus typed API route tests",
+    scope_requirement: { kind: "write", route_family: "prediction-authority:operation" },
+    authority_requirement: { kind: "canonical_write" },
+  },
+  {
     name: "focusa_prediction_authority",
     label: "Prediction Authority",
     purpose: "Append or project immutable Spec 138 authority in typed scope.",
@@ -2662,7 +3112,10 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     scope_requirement: { kind: "read", route_family: "auto" },
     authority_requirement: { kind: "advisory_only" },
   },
-];
+] as FocusaToolContract[]).map((contract) => ({
+  ...contract,
+  operation_policy: operationPolicyForContract(contract),
+}));
 
 export function focusaToolContractSummary() {
   const byFamily: Record<string, number> = {};
@@ -2688,11 +3141,12 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
     "focusa_trajectory_propose_workpoint",
     "focusa_workpoint_checkpoint",
   ],
-  project_identity: ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
+  project_identity: ["focusa_daemon_routing_status", "focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
   traversal: ["focusa_active_object_resolve", "focusa_evidence_capture", "focusa_workpoint_resume"],
   session_transfer: ["focusa_workpoint_resume", "focusa_device_pair_status", "focusa_trajectory_view"],
   awareness: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_doctor"],
   preload: ["focusa_preload_build", "focusa_preload_verify", "focusa_preload_doctor"],
+  communications: ["focusa_sms_health", "focusa_sms_threads", "focusa_sms_events"],
   agent_runtime: [
     "focusa_agent_runtime_effective",
     "focusa_runtime_constitution_preview",
@@ -2701,6 +3155,16 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
 };
 
 const TOOL_NEXT_TOOLS: Record<string, string[]> = {
+  focusa_workset_projection: ["focusa_workpoint_resume", "focusa_callgraph_validate"],
+  focusa_callgraph_validate: ["focusa_callgraph_observe", "focusa_tool_describe"],
+  focusa_callgraph_observe: ["focusa_trajectory_view", "focusa_workpoint_resume"],
+  focusa_credentials_verify: ["focusa_credentials_verify", "focusa_tool_doctor"],
+  focusa_cockpit_projection: ["focusa_workset_projection", "focusa_bg_status"],
+  focusa_bg_run: ["focusa_bg_status", "focusa_workpoint_checkpoint"],
+  focusa_bg_run_many: ["focusa_bg_status", "focusa_workpoint_checkpoint"],
+  focusa_bg_status: ["focusa_bg_run", "focusa_workpoint_resume"],
+  focusa_fast_forward: ["focusa_bg_status", "focusa_workpoint_checkpoint"],
+
   focusa_agent_runtime_effective: [
     "focusa_instruction_sources",
     "focusa_instruction_conflicts",
@@ -2778,6 +3242,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   focusa_preload_write: ["focusa_preload_receipt_preview", "focusa_preload_verify"],
   focusa_preload_receipt_preview: ["focusa_preload_receipt_commit", "focusa_preload_verify"],
   focusa_preload_receipt_commit: ["focusa_preload_verify", "focusa_preload_doctor"],
+  focusa_daemon_routing_status: [
+    "focusa_project_identity",
+    "focusa_tool_doctor",
+    "focusa_workpoint_resume",
+  ],
   focusa_project_identity: [
     "focusa_project_card",
     "focusa_project_verify",
@@ -2802,6 +3271,7 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   focusa_project_bootstrap: ["focusa_project_genesis", "focusa_project_verify", "focusa_workpoint_resume"],
   focusa_project_genesis: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_project_verify"],
   focusa_temporal_authority: ["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_project_verify"],
+  focusa_epistemic_operation: ["focusa_prediction_authority", "focusa_metacog_retrieve", "focusa_trajectory_view"],
   focusa_trajectory_view: [
     "focusa_temporal_authority",
     "focusa_trajectory_assess",
@@ -3080,6 +3550,17 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   ],
   focusa_lineage_tree: ["focusa_li_tree_extract", "focusa_tree_path", "focusa_traverse"],
   focusa_li_tree_extract: ["focusa_metacog_capture", "focusa_metacog_reflect", "focusa_tree_snapshot_state"],
+  focusa_sms_health: ["focusa_sms_enrollment", "focusa_sms_checkpoint", "focusa_sms_events"],
+  focusa_sms_enrollment: ["focusa_sms_health", "focusa_sms_threads", "focusa_sms_events"],
+  focusa_sms_threads: ["focusa_sms_read_thread", "focusa_sms_search", "focusa_sms_send"],
+  focusa_sms_read_thread: ["focusa_sms_search", "focusa_sms_send", "focusa_sms_events"],
+  focusa_sms_search: ["focusa_sms_read_thread", "focusa_sms_threads", "focusa_sms_send"],
+  focusa_sms_send: ["focusa_sms_events", "focusa_sms_threads", "focusa_sms_checkpoint"],
+  focusa_sms_otp_challenge: ["focusa_sms_otp_inject", "focusa_sms_events", "focusa_sms_health"],
+  focusa_sms_otp_inject: ["focusa_sms_events", "focusa_sms_health", "focusa_sms_revoke"],
+  focusa_sms_checkpoint: ["focusa_sms_health", "focusa_sms_events", "focusa_sms_enrollment"],
+  focusa_sms_events: ["focusa_sms_health", "focusa_sms_checkpoint", "focusa_sms_revoke"],
+  focusa_sms_revoke: ["focusa_sms_enrollment", "focusa_sms_health", "focusa_sms_events"],
   focusa_awareness_packet: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_doctor"],
 };
 
@@ -3099,6 +3580,7 @@ const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
     "mode=minimal|standard|rich|onboarding",
   ],
   preload: ["profile", "project_root and continuity_id when scoped", "idempotency_key for writes"],
+  communications: ["separately authorized capability grant", "opaque connector/thread/target handles", "confirmation and idempotency for mutations"],
   agent_runtime: [
     "verified project_root",
     "constitution or instruction target",
@@ -3125,6 +3607,7 @@ const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
     "ignoring suppressed lines when debugging degraded awareness",
   ],
   preload: ["writing outside allowlisted paths", "committing receipts without an idempotency key"],
+  communications: ["assuming OTP authority grants inbox access", "placing OTP/message/credential values in logs, argv, receipts, or model context"],
   agent_runtime: [
     "unverified prompt sources",
     "silent prompt replacement",

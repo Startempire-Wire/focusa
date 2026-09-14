@@ -1,0 +1,198 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "parent_atom": "focusa-vbcqu.20.14.28",
+  "schema": "focusa.spec152f.runtime_entrypoint_map.v1",
+  "row_count": 20,
+  "resolution_counts": {
+    "customer_data_export": 2,
+    "release_proof": 12,
+    "inherit_initiating_operation": 6
+  },
+  "surface_counts": {
+    "export": 2,
+    "release": 12,
+    "scheduler": 2,
+    "update": 4
+  },
+  "policy": "No file is classified merely because its filename contains release/update/export/scheduler. Every entry resolves through callable operation metadata.",
+  "rows": [
+    {
+      "source_path": "crates/focusa-api/src/routes/silent_sessions_retention_export.rs",
+      "surface": "export",
+      "resolution": "customer_data_export",
+      "capability_family": "customer_data_export",
+      "operation_class": "read",
+      "rationale": "Basic customer-data export; always available. Premium packaging is operation-bound."
+    },
+    {
+      "source_path": "crates/focusa-cli/src/commands/export.rs",
+      "surface": "export",
+      "resolution": "customer_data_export",
+      "capability_family": "customer_data_export",
+      "operation_class": "read",
+      "rationale": "Basic customer-data export via CLI; always available. Premium packaging is operation-bound."
+    },
+    {
+      "source_path": "crates/focusa-api/src/routes/release.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release route surface; base read (status/list) gated through route-level classification. Premium proof operations require release_proof family."
+    },
+    {
+      "source_path": "crates/focusa-cli/src/commands/release.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "CLI release command; base query/status allowed. Premium orchestration requires release_proof."
+    },
+    {
+      "source_path": "crates/focusa-cli/src/commands/release_master.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release master coordination; base inquiry allowed. Premium orchestration requires release_proof."
+    },
+    {
+      "source_path": "crates/focusa-core/src/release_adapters.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release adapter layer; premium release_proof family. Base status reads inherit from caller context."
+    },
+    {
+      "source_path": "crates/focusa-core/src/release_calibration.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release calibration engine; premium release_proof family."
+    },
+    {
+      "source_path": "crates/focusa-core/src/release_cycle.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release lifecycle management; premium release_proof family."
+    },
+    {
+      "source_path": "crates/focusa-core/src/release_intelligence.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release intelligence/insight engine; premium release_proof family."
+    },
+    {
+      "source_path": "crates/focusa-core/src/release_ledger.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release ledger persistence; premium release_proof family."
+    },
+    {
+      "source_path": "crates/focusa-core/src/release_orchestrator.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release orchestration engine; premium release_proof family."
+    },
+    {
+      "source_path": "crates/focusa-core/src/release_planner.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release planning engine; premium release_proof family."
+    },
+    {
+      "source_path": "crates/focusa-core/src/release_protocol.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Release wire protocol; premium release_proof family."
+    },
+    {
+      "source_path": "crates/focusa-core/src/temporal_release_gate.rs",
+      "surface": "release",
+      "resolution": "release_proof",
+      "capability_family": "release_proof",
+      "operation_class": "value_mutation",
+      "rationale": "Temporal release gate; premium release_proof family."
+    },
+    {
+      "source_path": "crates/focusa-core/src/silent_session_scheduler.rs",
+      "surface": "scheduler",
+      "resolution": "inherit_initiating_operation",
+      "capability_family": "internal_maintenance",
+      "operation_class": "internal_maintenance",
+      "rationale": "Silent session scheduler; inherits initiating operation authority at dispatch time."
+    },
+    {
+      "source_path": "crates/focusa-core/src/work_item/scheduler.rs",
+      "surface": "scheduler",
+      "resolution": "inherit_initiating_operation",
+      "capability_family": "internal_maintenance",
+      "operation_class": "internal_maintenance",
+      "rationale": "Work item scheduler; inherits initiating operation authority at dispatch time."
+    },
+    {
+      "source_path": "crates/focusa-api/src/routes/update.rs",
+      "surface": "update",
+      "resolution": "inherit_initiating_operation",
+      "capability_family": "internal_maintenance",
+      "operation_class": "internal_maintenance",
+      "rationale": "Update route; stable security update inherits account_recovery allowance. Premium unattended/nightly updates inherit premium_updates via initiating operation."
+    },
+    {
+      "source_path": "crates/focusa-cli/src/commands/update.rs",
+      "surface": "update",
+      "resolution": "inherit_initiating_operation",
+      "capability_family": "internal_maintenance",
+      "operation_class": "internal_maintenance",
+      "rationale": "CLI update command; stable security update inherits account_recovery allowance. Premium channels inherit via initiating operation."
+    },
+    {
+      "source_path": "crates/focusa-cli/src/commands/update_trust.rs",
+      "surface": "update",
+      "resolution": "inherit_initiating_operation",
+      "capability_family": "internal_maintenance",
+      "operation_class": "internal_maintenance",
+      "rationale": "Update trust management; inherits initiating operation authority."
+    },
+    {
+      "source_path": "crates/focusa-core/src/update.rs",
+      "surface": "update",
+      "resolution": "inherit_initiating_operation",
+      "capability_family": "internal_maintenance",
+      "operation_class": "internal_maintenance",
+      "rationale": "Core update module; stable security update allowance or premium channel via initiating operation."
+    }
+  ],
+  "scanner_exclusions": [
+    "crates/focusa-cli/tests/silent_proof_export_parity_e2e.rs",
+    "crates/focusa-core/src/release_adapters_test.rs",
+    "crates/focusa-core/src/release_calibration_test.rs",
+    "crates/focusa-core/src/release_cycle_test.rs",
+    "crates/focusa-core/src/release_ledger_test.rs",
+    "crates/focusa-core/src/release_orchestrator_test.rs",
+    "crates/focusa-cli/tests/spec128_update_runtime_e2e.rs"
+  ],
+  "invariants": [
+    "No file is licensed merely because its filename contains release/update/export/scheduler",
+    "All 20 production files resolve by callable operation metadata",
+    "Basic customer data export never requires commercial entitlement",
+    "Stable security updates remain available via account_recovery",
+    "Premium release proof requires active release_proof family lease",
+    "Schedulers inherit authority from their initiating operation",
+    "Update modules inherit authority (stable=account_recovery, premium=premium_updates)"
+  ]
+}

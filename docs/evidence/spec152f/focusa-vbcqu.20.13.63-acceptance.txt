@@ -1,0 +1,173 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.63
+Title: 152E.07.09 Seal Spec 152E correction closure for locked release
+Implementation commit: `03ab68fe` (feat(spec152e): seal Spec 152E correction
+closure with receipt test); this evidence record is committed separately.
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§2 decisions, §23 acceptance matrix, §24
+completion gate); Specs 152, 150A, 152A-D; Spec 158 implementation excluded.
+Locked-release correction closure atom in the spec152f/spec172 async
+pipeline. Cargo/release builds remain deferred until the operator's 50% gate.
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.13.63 on
+local/luna-152f-reducer)
+
+Exact surfaces (this atom only)
+- tests/spec152e_correction_closure_test.py (NEW — the exact verification)
+- Locked-release gate contracts (updated to seal the Spec 152E correction):
+  docs/contracts/spec152-final-audit-status.v1.yaml,
+  docs/contracts/spec152-release-blocker-summary.v1.yaml,
+  docs/contracts/spec152-next-command.v1.yaml
+- Generated Spec 152E contracts corrected to stay current (stale repository
+  digest pins surfaced by the closure):
+  docs/contracts/spec152e-deployed-surface-inventory.v1.json (installer.unix
+  and installer.windows repository_sha256 re-pinned to the current assets,
+  matching the 20.13.55 correction precedent) and regenerated
+  docs/contracts/spec152e-installer-route-manifest.v1.json (only the two
+  digest pins changed);
+  docs/contracts/spec152e-presenter-parity-matrix.v1.json (CLI row corrected:
+  the CLI sources, changed by the accepted Spec 152F/172 CLI projections,
+  now also quote `recovery` and `EMAIL_VERIFICATION_REQUIRED`; the matrix is
+  a self-described generated contract that must stay current with the
+  surfaces, so the two added vocabulary items are re-pinned; 3 lines changed)
+- docs/evidence/spec152f/focusa-vbcqu.20.13.63-acceptance.txt (this record)
+- Every other Spec 152E contract, test, fixture, evidence record, and the
+  governance ledger were consumed read-only.
+
+Bounded result
+- Added tests/spec152e_correction_closure_test.py: one deterministic,
+  stdlib-only, fail-closed closure receipt test for the Spec 152E child
+  series. It cannot pass with a missing contract, missing test, missing atom
+  record, unresolvable implementation commit, unfinished acceptance marker,
+  stale generated contract, unsealed closure status, unblocked publication,
+  or false completion claim, and it exits 0 only when the complete closure
+  chain is present in the committed tree:
+  * Spec/contract/task trace matrix — 34 requirement rows reconcile every
+    Spec 152E requirement (14 mandatory decisions, §5 state machine, §6
+    verified identity/checkout-email integrity, §7 data model, §8 product
+    registry, §9 facade registry, §10 API, §11-§13 journeys, §14 terminal/
+    agent/source, §15-§16 key/lease and delivery, §17 lifecycle, §18 refund/
+    revoke/recovery, §19 security/privacy, §20 failures, §21 consolidation,
+    §22 migration/cutover/rollback, §23 acceptance matrix, §24 completion
+    gate) to 104 committed contracts, 87 committed tests, and 106 atom
+    bindings; every referenced contract/test is present and git-tracked and
+    every bound atom has an acceptance record.
+  * Child-atom audit (all 61 atoms 20.13.2..20.13.62) — every atom has a
+    git-tracked acceptance record in docs/evidence/spec152e or
+    docs/evidence/spec152f that names its own atom id, carries verification
+    content, cites no unfinished acceptance marker, resolves all 49
+    backtick-named implementation commit refs to real commit objects in this
+    tree (no fabricated refs, no unpublished source correction), and binds
+    all 360 exact-verification test references to real committed files.
+  * Staging/canary results replayed under the FINAL committed code — the
+    final cutover canary (152E.07.08), the adversarial identity/facade/
+    checkout matrix (152E.07.06), and the refund/revoke/node-limit/outage
+    gate (152E.07.07) all re-execute with real exit code 0; the migration
+    inventory pins recompute (596 physical records: 41 refunded/revoked,
+    34 synthetic quarantine, 515 unresolved, 6 verify_first) and the canary
+    fixture still pins before/after vectors and EDD/authority truth.
+  * Generated contracts are current — the installer route manifest
+    generator re-derives byte-identically (--check exit 0) after this atom
+    corrected the two stale installer repository digest pins (installer.unix
+    -> c92dec16..., installer.windows -> 3068255b..., changed by the
+    accepted Spec 172 installer change a843b0f5); the presenter-parity gate
+    passes after the CLI row re-pin; both gates exit 0 in the closure.
+  * Unresolved blocker inventory (truthful, bounded) — 24 deferred Cargo
+    build gates referencing Spec 152E are enumerated with
+    claimed_passed=false (cargo/release builds stay deferred to the
+    operator's 50% gate; no cargo command is run and nothing deferred is
+    claimed to have passed); the single remaining known-failing build-
+    independent gate, tests/spec152e_installer_activation_test.py, is
+    verified to fail with its documented cause marker ("EvaluationReady")
+    and is bound to the accepted Spec 172 supersession (commit a843b0f5,
+    atom 20.15.30, docs/evidence/spec172/focusa-vbcqu.20.15.30-acceptance.txt
+    documents the Spec 152E test was intentionally NOT modified) — it is a
+    published cross-spec supersession pin, not a Spec 152E requirement gap,
+    and is never claimed passed.
+  * Locked-release gates — the final-audit contract seals the Spec 152E
+    correction closure with receipts (spec152e_closure_status
+    closed_with_receipts, spec152e_closure_receipt points at this record,
+    spec152e_closure_atom focusa-vbcqu.20.13.63) while keeping the
+    correction work-item status in_progress (no false completion), the Spec
+    152F closure accepted_with_receipts with its receipt, REL.4-REL.7
+    not_closed, distribution blocked, publication forbidden, live_server
+    _verified / migration_cutover_accepted / all_platform_final_candidate
+    _verified all false (no stale or fabricated deployment acceptance); the
+    release-blocker summary adds the sealed closure status and the remaining
+    REL.4-REL.7 live-deployment blocker while staying
+    blocked_for_new_evaluator_customer_and_stable_distribution; the
+    next-command contract points past the Spec 152E closure to REL.4-REL.7
+    with publication still forbidden; the governance technical-closure gate
+    stays verified with invalid_closed_count=0 (no administrative closure)
+    and the Spec 152E atoms remain technically pending in the Beads provider
+    (no false claim).
+  * Fail-closed FORBIDDEN coverage — redaction scans over the closure
+    surfaces (test, gate contracts, product registry, facade registry,
+    recovery-only surface) find no secret prefixes, private-key material,
+    card-like sequences, or raw email; the product registry forbids every
+    caller-controlled price/grant/product field; the facade registry keeps
+    the presenter/bounded-proxy/origin boundary; the recovery-only surface
+    keeps recovery without entitlement grants; account promotion requires
+    verified identity; Spec 158 stays excluded.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152e_correction_closure_test.py` — exit 0 (1558
+   positive / 576 negative checks; trace matrix 34 rows / 104 contracts /
+   87 tests / 106 atom bindings; child-atom audit 61 records / 49 commit
+   refs resolved / 360 test refs bound; replayed gates
+   [final_cutover_canary, adversarial_identity_facade, lifecycle_outage]
+   exit codes [0, 0, 0]; generated contracts current; deferred Cargo gates
+   24 with claimed_passed=false; known cross-atom drift gates
+   [spec152e_installer_activation_test.py]; governance verified
+   invalid_closed=0 pending=255; result=passed).
+   Bounded immutable handle: sha256 of the closure-test source
+   709bcd9a7abf67f427e0b69a0dd56c5371a473f98086ffeede1dce783114a42a at
+   HEAD 03ab68fed2927e069363f1efbcb7610282eec8dd.
+
+Regression checks (exit codes)
+- `python3 tests/spec152f_release_dependency_test.py` — exit 0 (Spec 152F
+  wiring and stable-publication dependency intact).
+- `python3 tests/spec152e_document_authority_test.py` — exit 0.
+- `python3 tests/spec152f_document_authority_test.py` — exit 0.
+- `python3 tests/spec172_final_closure_test.py` — exit 0.
+- `python3 tests/spec172_document_authority_test.py` — exit 0.
+- `python3 tests/spec152f_final_closure_test.py` — exit 0.
+- `bash tests/spec152f_build_independent_gate.sh` — exit 0 on the clean
+  committed tree (zero hidden skips; generated artifacts current).
+- `python3 tests/spec152e_presenter_parity_test.py` — exit 0 (331 positive /
+  294 negative; matrix current).
+- `python3 tests/spec152e_install_facade_routes_test.py` — exit 0 (route
+  manifest/inventory pins current).
+- `python3 tests/spec152e_deployed_surface_inventory_test.py` — exit 0.
+- `python3 tests/spec152e_delivery_lease_acceptance_test.py` — exit 0.
+- `python3 tests/spec152e_complete_static_gate.py` — exit 1 with exactly one
+  remaining failing gate, tests/spec152e_installer_activation_test.py, the
+  documented Spec 172 supersession pin listed above (pre-existing at the
+  base commit; not claimed passed by this atom).
+- `bash tests/spec172_build_independent_gate.sh` — pre-existing exit 1 on
+  spec172_bundle_e2e_test.py (Spec 172 pipeline surface; unchanged by this
+  atom).
+- No cargo command was run: this atom touches no Rust surface and the
+  locked-release FORBIDDEN rule defers cargo/release builds to the operator's
+  50% gate.
+
+Tests added
+- tests/spec152e_correction_closure_test.py — the exact verification gate
+  (1558 positive / 576 negative checks): the spec/contract/task trace
+  matrix, the 61-atom evidence/commit audit, the three replayed staging/
+  canary gates, generated-contract currency, the deferred-Cargo and
+  cross-atom-drift inventories, the locked-release gate checks, and the
+  FORBIDDEN redaction/invariant scans, ending with the exact-SHA receipt and
+  `✓ spec152e_correction_closure PASS`.
+
+Rollback
+- Revert only this atom's implementation commit 03ab68fe
+  (tests/spec152e_correction_closure_test.py plus the three locked-release
+  gate contracts and the three generated-contract pin corrections) and this
+  evidence commit if required. Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals; the generated-contract corrections are
+  mechanical digest/pin re-pins (installer.unix/installer.windows repository
+  digests and the CLI row's two vocabulary items) that revert cleanly, and
+  rollback touches no canonical customer/entitlement state.
+
+No push, deploy, release, merge, or Beads mutation was performed.

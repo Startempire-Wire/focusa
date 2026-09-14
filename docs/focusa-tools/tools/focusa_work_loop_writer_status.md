@@ -74,4 +74,4 @@ Likely next: `focusa_work_loop_status`, `focusa_work_loop_context`, `focusa_work
 - CLI: none.
 - REST: `GET /v1/work-loop/status?summary_only=true`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e4f3989a5f21f3d787478773f6ea050e3ca66db1afa6bdb76e98e60ad3d8cc7f`.
+- Descriptor digest: `sha256:7da59e44275c6160e4ccf1dba89e7a2608764eaf322062330a01b264c25e31f4`.

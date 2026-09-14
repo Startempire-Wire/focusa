@@ -1,0 +1,11 @@
+Spec137 S137-REQ-001 Replay — v0.9.144 candidate
+Candidate SHA: 1a3dbb4e (current, v0.9.144 replay preservation)
+Requirement: Trusted wall, per-boot monotonic, suspend-aware, and TAI-capability clocks are distinct, typed, health-checked
+Commands:
+  cargo test -p focusa-core temporal -- --nocapture
+  python3 tests/spec137_temporal_authority_release_gate_test.py
+Result: PASS — implementation surfaces crates/focusa-core/src/temporal*.rs distinct clocks verified, health-checked, ClockSamplePair linked through uncertainty
+Positive fixture: monotonic vs wall delta bounded
+Negative: stale/cross-scope rejected
+Disposition: accepted_replay
+Evidence hash: sha256:7a863cea7216bc9f332e70ceaaaa6b814fbe4c263014543c8d9aa58760471256

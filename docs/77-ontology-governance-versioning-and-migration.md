@@ -175,8 +175,3 @@ Re-check domain conformance after migration.
 # 4. Success Condition
 
 Ontology Governance, Versioning, and Migration is successful when Focusa can evolve its ontology stack without losing interoperability, traceability, or system-wide consistency.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-semantic-bundle-governance -->
-## Spec 144 RDF/OWL/SHACL and Verification Pack governance
-
-RDF/OWL/SHACL bundles, the core Verification Pack, Vertical verification extensions, obligation triggers, finding shapes, and settlement shapes are versioned governed registry outputs. Breaking or materially semantic changes require migration, compatibility analysis, revalidation impact, rollback, Evidence, and Receipts. `owl:sameAs` cannot collapse canonical agent or authority identities.

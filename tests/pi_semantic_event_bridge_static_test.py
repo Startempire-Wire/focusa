@@ -19,7 +19,8 @@ assert "focusa.pty_scavenge_receipt.v1" in wrap
 assert 'mode == "dry-run"' in wrap
 assert "redact_diagnostic_transcript" in wrap
 assert "store_diagnostic_artifact" in wrap
-assert '"{}/v1/ecs/store"' in wrap
+assert 'client.post("/v1/ecs/store"' in wrap
+assert 'Command::new("curl")' not in wrap
 assert "raw terminal bytes are never inlined" in wrap.lower()
 assert 'format!("/proc/{pid}")' in wrap
 assert "String::from_utf8_lossy(&bytes[..limit])" in wrap

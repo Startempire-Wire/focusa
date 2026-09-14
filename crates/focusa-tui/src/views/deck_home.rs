@@ -49,6 +49,42 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         .unwrap_or("no active frame");
     let proof = proof_status::proof_meter(app);
     let scope = proof_status::scope_badge(app);
+    // Spec 152E §21 shared presenter posture: the TUI renders the same
+    // activation/entitlement states and allowed actions as the menubar,
+    // the daemon REST license routes, and lifecycle receipts for the same
+    // canonical registration; it never re-decides a transition.
+    let activation_line = app
+        .activation
+        .as_ref()
+        .map(|view| format!("Activation    {}", view.status_line()))
+        .unwrap_or_else(|| "Activation    unavailable (no registration snapshot)".into());
+    let entitlement_line = app
+        .license
+        .as_ref()
+        .map(|posture| format!("Entitlement   {}", posture.status_line()))
+        .unwrap_or_else(|| "Entitlement   unavailable (no signed authority snapshot)".into());
+    // Spec 152F §11.5/§13 accessibility fixture: the TUI shows the same
+    // next-action guide and always-reachable set as the menubar presenter;
+    // denied value actions stay explained and never trap the customer.
+    let entitlement_guide_line = app
+        .license
+        .as_ref()
+        .map(|posture| format!("Entitlement   {}", posture.action_guide()))
+        .unwrap_or_default();
+    // Spec 172 §11/§15 presenter projection: License Type display,
+    // Operator/Bundle upgrade accuracy, node semantics, and the frozen
+    // locked-state accessibility fixture. Fail closed: no signed posture
+    // snapshot renders as unavailable rather than an invented License Type.
+    let spec172_line = app
+        .spec172
+        .as_ref()
+        .map(|posture| format!("Spec 172      {}", posture.status_line()))
+        .unwrap_or_else(|| "Spec 172      unavailable (no canonical posture snapshot)".into());
+    let spec172_fixture_line = app
+        .spec172
+        .as_ref()
+        .map(|posture| format!("Spec 172      {}", posture.locked_state_fixture()))
+        .unwrap_or_default();
     let text = vec![
         Line::from(vec![
             Span::styled("Mission Deck", theme::title()),
@@ -56,6 +92,11 @@ fn render_mission_card(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         ]),
         Line::from(format!("Session       {session}")),
         Line::from(format!("Active frame  {active_frame}")),
+        Line::from(activation_line),
+        Line::from(entitlement_line),
+        Line::from(entitlement_guide_line),
+        Line::from(spec172_line),
+        Line::from(spec172_fixture_line),
         Line::from(format!("Scope badge   {}  {}", scope.visual, scope.label)),
         Line::from(format!("Proof meter   {}  {}", proof.visual, proof.label)),
         Line::from(format!(

@@ -1,0 +1,123 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.24
+Title: 172.03.07 Run complete Spec 172 runtime policy matrix
+Implementation commit: `c52b30f9` (feat(spec172): run complete runtime policy
+matrix across resolver, core, and API)
+
+Exact surfaces
+- Spec 172 Rust registry/reducer/core/API vectors:
+  crates/focusa-license/tests/spec172_runtime_policy.rs (pure resolver +
+  registry matrix)
+  crates/focusa-core/tests/spec172_runtime_policy.rs (core execution-guard
+  matrix)
+  crates/focusa-api/src/middleware/spec172_runtime_policy.rs (API route-gate
+  matrix; compiled only under `cargo test`, wired from
+  crates/focusa-api/src/middleware/entitlement.rs)
+- limited project/UIAI/dynamic/lifetime tests (replayed read-only as the
+  contract layer of the receipt; not modified)
+- tests/spec172_runtime_policy_acceptance_test.py (cross-layer acceptance
+  receipt)
+
+Bounded result
+- The complete Spec 172 runtime policy matrix is now replayed across the pure
+  resolver, the focusa-core execution guard, and the focusa-api route gate,
+  with equivalent decisions at every layer:
+  1. Pure resolver (`reduce_entitlement_state`): all 63 cells of the
+     committed 7-state × 9-family golden fixture replay exactly
+     (pending_unverified, verified_no_license, active_paid, offline_grace,
+     expired, refunded_or_revoked, missing_or_corrupt × account_recovery,
+     read_projection, base_focusa, automation, team_remote, release_proof,
+     premium_updates, customer_data_export, internal_maintenance); the
+     resolver is deterministic; `evaluation`/`unknown` states fail serde;
+     `verified_no_license` is a first-class account/runtime posture, never a
+     License Type and never Evaluation.
+  2. Registry: verified-no-license allowlists for Focusa (six explicit manual
+     families, one mutable project) and UIAI (six explicit observation
+     families) are exact; blocked families and unknown families/products deny;
+     Focusa Operator Lifetime v1 and UIAI Operator Lifetime v1 are the only
+     License Types; the Bundle resolves to the exact union of the two
+     underlying grants and rejects any other composition; future Navigator and
+     future products are excluded by default (no mutation of Operator);
+     one operator seat, three shared nodes, and HostedExcluded are the only
+     expressible seat/node/resource grants (caller cannot select or widen);
+     legacy Download 453 stays quarantined with checkout disabled.
+  3. Core guard: decisions are equivalent to the resolver for every
+     guard-representable state × family; every denied cell emits the stable
+     denial code before any side effect (ENTITLEMENT_BASE_REQUIRED /
+     ENTITLEMENT_REQUIRED / ENTITLEMENT_ROUTE_UNCLASSIFIED); the guarded
+     mutation ledger proves zero denied path produces a partial side effect,
+     while account recovery, basic customer-data export, and read projection
+     stay reachable in every blocked state; the verified-limited one-project
+     boundary (active selection, second-project denial, no-selection denial,
+     paid bypass) holds; self-issued eval never satisfies the base gate.
+  4. API route gate: base/premium mutations are denied before handler side
+     effects in every blocked state with sentinels, pass with the exact
+     authority grants, and recovery/export/repair/rollback/stable-update/
+     diagnostics/license-status routes remain available in every blocked
+     state; a UIAI-only signed lease cannot execute Focusa mutations; future
+     Navigator has no wired API policy; generated-UI bindings only render
+     canonical registered actions; surfaces own no pricing or grants.
+- The Python receipt replays the contract layer for every matrix case (21
+  gates: unverified, verified-limited Focusa/UIAI, Focusa Operator, UIAI
+  Operator, Bundle, refunded/revoked, offline-bounded, corrupt/tampered,
+  unknown type/vector, future Navigator, dynamic tool, node/seat/resource,
+  public commerce, no-sales cutover/inventory, presenter inheritance, call
+  stack) with real exit codes, statically pins the Rust surfaces, verifies
+  legacy Download 453 quarantine and checkout block, and runs hygiene checks
+  (no raw email, key, token, customer row, credential, or card data in any
+  surface or evidence).
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_runtime_policy_acceptance_test.py` — exit 0.
+   Receipt: schema focusa.spec172.runtime_policy_acceptance.v1, result
+   "passed", 21 replay gates with exit codes all 0, 14 Rust vectors
+   (7 license + 4 core + 3 API), 67 static positive checks, 0 negative,
+   legacy_download_453_quarantined true, checkout_blocked true.
+2. `cargo test --workspace spec172_runtime_policy` — exit 0.
+   test result: ok. 14 passed; 0 failed (7 focusa-license resolver/registry
+   vectors, 4 focusa-core guard vectors, 3 focusa-api route-gate vectors).
+
+Regression checks (exit codes)
+- `cargo test -p focusa-api spec152f_state_grid_acceptance` — exit 0:
+  8 passed; 0 failed (481 filtered out); existing entitlement middleware
+  acceptance unaffected by the added test-only module.
+- `cargo test -p focusa-license spec172` — exit 0: 38 passed; 0 failed
+  (12 dynamic-operation-manifest + 12 family-inheritance + 7 lifetime
+  credential + 7 runtime-policy vectors); existing Spec 172 license tests
+  unaffected.
+
+Tests added
+- focusa-license (crates/focusa-license/tests/spec172_runtime_policy.rs):
+  spec172_runtime_policy_resolver_replays_complete_state_family_matrix,
+  spec172_runtime_policy_verified_limited_allowlists_are_exact_and_closed,
+  spec172_runtime_policy_operator_types_and_bundle_are_exact_union,
+  spec172_runtime_policy_refund_revoke_offline_corrupt_preserve_recovery,
+  spec172_runtime_policy_unknown_and_future_fail_closed_in_inheritance,
+  spec172_runtime_policy_dynamic_tool_and_generated_ui_fail_closed,
+  spec172_runtime_policy_node_seat_and_resource_limits_are_authority_only.
+- focusa-core (crates/focusa-core/tests/spec172_runtime_policy.rs):
+  spec172_runtime_policy_core_guard_decisions_equivalent_to_resolver,
+  spec172_runtime_policy_denied_paths_have_zero_partial_side_effects,
+  spec172_runtime_policy_core_guard_verified_limited_project_boundary,
+  spec172_runtime_policy_core_guard_unknown_future_and_dynamic_fail_closed.
+- focusa-api (crates/focusa-api/src/middleware/spec172_runtime_policy.rs):
+  spec172_runtime_policy_api_route_gate_equivalent_to_resolver,
+  spec172_runtime_policy_api_denied_route_no_partial_side_effect,
+  spec172_runtime_policy_api_future_navigator_and_dynamic_fail_closed.
+- Python receipt: tests/spec172_runtime_policy_acceptance_test.py.
+
+Remaining blockers
+- None for this atom. Downstream atoms remain open as planned:
+  focusa-vbcqu.20.15.25 (core/API chokepoints), .20.15.33 (verified
+  no-license value), .20.15.37 (refund downgrade), .20.15.38 (adversarial
+  matrix) — these are dependents, not prerequisites.
+
+Rollback
+- Revert only implementation commit `c52b30f9` and this evidence record if
+  required. The entitlement.rs change is a 4-line test-only module include;
+  the three Rust vector files and the Python receipt are additive. Preserve
+  verified identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, data, migration journals, evidence, and all accepted unrelated
+  work.
+
+No push, deploy, release, merge, or Beads mutation was performed.

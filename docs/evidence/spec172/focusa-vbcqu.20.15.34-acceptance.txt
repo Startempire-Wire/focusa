@@ -1,0 +1,192 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.34
+Title: 172.05.03 Prove paid Focusa and UIAI upgrades preserve limited-state data
+Implementation commit: `d676e39e` (E2E receipt gate; evidence record
+follows in this commit)
+
+Exact surfaces
+- EDD test orders/keys (dedicated Operator v1 Downloads 458/459/460; one
+  canonical EDD Software Licensing key per order; idempotent replay)
+- Limited account/project/node (verified limited posture; one mutable
+  project; shared node identity; paid upgrade bypasses the project guard
+  without deleting the selection or data)
+- Focusa/UIAI paid leases (focusa_operator_lifetime_v1 / uiai_operator_
+  lifetime_v1 projections, lifetime entitlement with bounded credential,
+  UIAI grant/child-token and hosted-resource exclusion fixtures)
+- Presenters (facade convergence, CLI/Pi/agent, Focusa Desktop, UIAI
+  Cockpit, menubar/TUI)
+- tests/spec172_paid_upgrade_e2e_test.py (NEW — exact verification)
+
+Bounded result
+- Added `tests/spec172_paid_upgrade_e2e_test.py`: a cross-surface E2E
+  receipt (`focusa.spec172.paid_upgrade_e2e.v1`) that proves the required
+  journey end to end in seven stages with real exit codes and a single
+  bounded, redacted JSON line.
+- Stage 1 — EDD test orders/keys: replays the accepted PHP gates
+  `tests/spec172_edd_operator_products_test.php`,
+  `tests/spec172_edd_commerce_acceptance_test.php`,
+  `tests/spec172_focusa_operator_issuance_test.php`, and
+  `tests/spec172_uiai_operator_issuance_test.php` (all exit 0) and binds
+  the dedicated Downloads contract: exactly two $697 Operator standalones
+  plus the $1,254.60 Bundle (amount_minor 69700/69700/125460, lifetime,
+  one operator seat, three shared nodes, checkout disabled,
+  `approved_not_yet_enabled`, whole-order 30-day refund, Download 453
+  quarantined `forbidden_implicit_download`), and the canonical
+  license-types contract (exactly `focusa_operator_lifetime_v1` and
+  `uiai_operator_lifetime_v1`, each $697.00 / one seat / three nodes).
+- Stage 2 — Same verified account -> Focusa Operator: the base product gate
+  (`resolve_base_focusa_product`) resolves only product `focusa`; paid
+  ActivePaid/OfflineGrace -> `BaseProductDecision::Entitled`,
+  verified-no-license -> Limited; the full Focusa Operator v1 family set
+  (manual base + automation/team_remote/release_proof/premium_updates) is
+  frozen; the paid upgrade bypasses the one-project guard while the
+  active-project selection and the persisted node identity are preserved
+  (`load_or_create_node_identity`, shared `OperatorSharedV1Three` baseline,
+  never deletes data); the reducer keeps paid read/export/recovery and
+  base-then-feature posture; the presenter fixture `focusa-operator-active`
+  renders active_paid_operator / focusa_operator_lifetime_v1 with no denial.
+- Stage 3 — Same verified account -> UIAI Operator: the seven canonical UIAI
+  paid family features (`SPEC172_UIAI_PAID_FAMILY_FEATURES`) unlock; the
+  same-account UIAI activation binds one account + one EDD customer
+  (`UiaiAccountIdentity`, `AccountProductGrants::focusa_only`,
+  `same_account_binding`) and requires `UiaiGrantRequired` otherwise; the
+  hosted-resource exclusion registry raises `HOSTED_RESOURCE_NOT_INCLUDED`
+  and metered/hosted/private rights never enter the paid family set; the
+  lease/child-token surface binds the operator node id and the paid lease
+  fixture documents the same three shared node identities (no per-app node
+  multiplication); lifetime entitlement + bounded device credential
+  (`LIFETIME_ENTITLEMENT_SCHEMA`, refund/revoke supersede by higher
+  authority sequence).
+- Stage 4 — Unlock only purchased families: Focusa paid grants
+  Cockpit Focusa display/mutation but never UIAI
+  (`FocusaOnlyCannotGrantUiai`); UIAI paid grants UIAI families only
+  (`FocusaDisplayDenied`/`FocusaMutationDenied` for UIAI-only accounts,
+  `FamilyNotGranted` unless the granted family feature is present); combined
+  workflows require both grants (`CombinedMissingUiaiGrant` /
+  `CombinedMissingFocusaGrant`); the reducer requires base-then-feature and
+  hosted/private vectors (premium_proxy, hosted_capacity, paid_model_calls,
+  authenticated_private_dashboard, unattended_browser_automation) deny even
+  for paid grants.
+- Stage 5 — Reject cross-product actions: `resolve_base_focusa_product`
+  denies every non-`focusa` product; the fixture
+  `uiai-lease-focusa-family-product-not-included` renders
+  `PRODUCT_NOT_INCLUDED` for a paid UIAI lease on the Focusa base family;
+  the CLI carries `PRODUCT_NOT_INCLUDED` / `ENTITLEMENT_PRODUCT_MISMATCH`;
+  Focusa-only entitlement cannot activate UIAI (`UiaiGrantRequired`),
+  wrong requested product codes fail closed (`ProductMappingRequired`),
+  feature/limit isolation violations are rejected
+  (`ProductIsolationViolation`); authority lease verification rejects a
+  wrong-product lease (`WrongProduct`) before execution; the accepted PHP
+  issuance gates exercise wrong_product_uiai / wrong_product_focusa with
+  zero projections created.
+- Stage 6 — No duplicate customer/key/grant: live Rust vectors
+  `uiai_account_activates_exact_grants_without_duplicate_customer` and
+  `same_account_binding_is_strict_and_never_duplicates_customer` (a
+  different account on the UIAI grant is never the same EDD customer); the
+  PHP gates prove one canonical EDD Software Licensing key per order,
+  idempotent replay / duplicate projection calls / duplicate orders settle
+  once (`idempotent_replay`, `duplicate_projection_call`,
+  `idempotency_conflict`, `duplicate_order`), strictly monotonic per-account
+  sequence (regex-bound across the Focusa and UIAI issuance gates),
+  authority sequence rollback denied in the lifetime surface, cross-account
+  UIAI grants never combine with the Focusa grant, and a Bundle union of
+  duplicate grants is rejected (`MalformedBundleUnion`).
+- Stage 7 — Presenters converge and limited-state data is preserved:
+  replays the accepted presenter gates
+  `tests/spec172_public_facade_convergence_test.py`,
+  `tests/spec172_cli_agent_presenter_test.py`,
+  `tests/spec172_cockpit_mixed_product_test.py`,
+  `tests/spec172_focusa_desktop_entitlement_test.py`, and
+  `tests/spec172_menubar_tui_presenter_test.mjs` (all exit 0); the public
+  facade contract binds WPUIAI EDD authority, Download 453 quarantine, no
+  anonymous product capability, `focusa_purchase_grants_uiai: false`, and
+  $697/$697/$1254.60 prices; the retained-access set (navigation, status,
+  account, read, export, recovery, repair, update, uninstall) is never
+  disabled in paid posture; refund/revoke downgrade returns the account to
+  verified_no_license with read projection and account recovery preserved
+  and no data deletion. Live Rust vectors run inside the gate:
+  `cargo test -p focusa-core verified_limited_project` (project guard +
+  paid bypass + preserve/never-delete), `cargo test -p focusa-license
+  spec172` (policy grid, cockpit focusa-only/uiai-only/bundle/limited
+  isolation, UIAI child-token paid boundary), and `cargo test -p
+  focusa-license uiai_activation` (cross-product + no-duplicate-customer
+  vectors) — all exit 0.
+- The receipt output is bounded and redacted: hygiene checks reject raw
+  email, Stripe-style secrets, synthetic EDD-style license keys, private
+  keys, and card numbers; no raw email, key, token, customer row,
+  credential, or card data appears in the test or the evidence. No
+  anonymous product capability, no local/self-issued grant, no
+  caller-controlled product/price/License Type/family/feature/limit/node/
+  commercial right, no presenter-owned policy, no implicit legacy Download
+  453 mapping, and no data deletion or blocked basic export, repair,
+  rollback, stable security update, or uninstall were added.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_paid_upgrade_e2e_test.py` — exit 0.
+   Result: passed_fail_closed; 9 replay gates all exit 0; 3 cargo runs all
+   exit 0; positive_checks 134; negative_checks 4; paid_upgrade
+   same_verified_account=true, project_identity_preserved=true,
+   node_identity_preserved=true, data_read_export_preserved=true,
+   focusa_unlocks_only_focusa=true, uiai_unlocks_only_uiai=true,
+   cross_product_rejected="PRODUCT_NOT_INCLUDED / UiaiGrantRequired /
+   FocusaOnlyCannotGrantUiai", duplicate_customer=0, duplicate_key=0,
+   duplicate_grant=0.
+   Cargo vectors executed live inside the gate:
+   - `cargo test -p focusa-core verified_limited_project` — exit 0.
+     test result: ok. 17 passed + 1 passed (guard integration);
+     0 failed; 900 + 1 + 4 + 4 + 3 filtered out.
+   - `cargo test -p focusa-license spec172` — exit 0.
+     test result: ok. 16 + 12 + 12 + 7 + 7 = 54 passed; 0 failed;
+     119 + 11 + 8 + 3 + 5 + 35 + 7 + 30 + 5 + 14 + 33 + 43 filtered out.
+   - `cargo test -p focusa-license uiai_activation` — exit 0.
+     test result: ok. 5 passed; 0 failed; 130 + 11 + 8 + 3 + 5 + 35 + 7 +
+     30 + 5 + 14 + 33 + 43 + 12 + 12 + 7 + 7 filtered out.
+
+Regression checks (exit codes)
+- `python3 tests/spec172_family_inheritance_test.py` — exit 0.
+- `python3 tests/spec172_limited_assertion_vector_test.py` — exit 0.
+- `python3 tests/spec172_license_type_lifecycle_test.py` — exit 0.
+- `python3 tests/spec172_dynamic_operation_manifest_test.py` — exit 0.
+- `python3 tests/spec172_uiai_limited_mode_test.py` — exit 0.
+- `python3 tests/spec172_public_facade_convergence_test.py` — exit 0.
+- `php tests/spec172_refund_downgrade_test.php` — exit 0.
+- `php tests/spec172_verified_access_schema_test.php` — exit 0.
+- `php tests/spec172_limited_assertion_test.php` — exit 0.
+- Replay gates inside the E2E receipt (all exit 0):
+  tests/spec172_edd_operator_products_test.php,
+  tests/spec172_edd_commerce_acceptance_test.php,
+  tests/spec172_focusa_operator_issuance_test.php,
+  tests/spec172_uiai_operator_issuance_test.php,
+  tests/spec172_public_facade_convergence_test.py,
+  tests/spec172_cli_agent_presenter_test.py,
+  tests/spec172_cockpit_mixed_product_test.py,
+  tests/spec172_focusa_desktop_entitlement_test.py,
+  tests/spec172_menubar_tui_presenter_test.mjs.
+- `git diff --check` — exit 0, no whitespace errors.
+
+Tests added
+- tests/spec172_paid_upgrade_e2e_test.py (134 positive + 4 negative checks
+  across the seven stages above; 9 replay gates; 3 live cargo vector runs;
+  bounded redacted JSON receipt). No production source files were modified:
+  all surfaces bound by this gate were implemented and accepted by the
+  dependency atoms (20.15.17 EDD commerce matrix, 20.15.33 verified
+  no-license limited value, 20.15.11/20.15.21/20.15.24/20.15.26–20.15.31
+  leases and presenters).
+
+Remaining blockers
+- None for this atom. Downstream atoms remain: focusa-vbcqu.20.15.35
+  (Bundle price/union/shared nodes/whole refund), focusa-vbcqu.20.15.39
+  (UIAI public pricing/browser proof, service-dependent), and
+  focusa-vbcqu.20.15.40 (build-independent Spec 172 gate).
+
+Rollback
+- Revert only this atom's commits: `d676e39e` (the E2E gate) and the
+  evidence-record commit that follows, i.e. remove
+  tests/spec172_paid_upgrade_e2e_test.py and
+  docs/evidence/spec172/focusa-vbcqu.20.15.34-acceptance.txt. Preserve
+  verified identities, customers, orders, refunds, License Types, keys,
+  nodes, sequences, customer data, migration journals, evidence, and
+  accepted unrelated work. No data deletion is performed by this atom or
+  its rollback.
+
+No push, deploy, release, merge, or Beads mutation was performed.

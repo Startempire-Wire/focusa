@@ -231,6 +231,14 @@ pub fn resolve_project_scope(
         if root_path_is_project_candidate(Path::new(root)) {
             return Ok(resolved_from_root(root, ScopeSource::ExplicitFlag));
         }
+        if Path::new(root).exists() {
+            // Explicit, structurally safe, existing path: honor it even without a
+            // project marker or commits yet (empty/new repo with a configured
+            // remote must be bindable). Do NOT fall through to cwd/env upward
+            // walking, which can silently rewrite the root to a broad parent
+            // (e.g. /root) and reject the explicit child path.
+            return Ok(resolved_from_root(root, ScopeSource::ExplicitFlag));
+        }
     }
 
     if let Some(alias) = explicit_project_alias.filter(|value| !value.trim().is_empty()) {
@@ -348,6 +356,27 @@ mod tests {
         let err =
             resolve_project_scope(Some("/tmp/focusa-does-not-exist"), None, None).unwrap_err();
         assert!(err.to_string().contains("project_root_selection_required"));
+    }
+
+    #[test]
+    fn explicit_existing_safe_root_is_honored_without_marker_or_commits() {
+        // Regression for #300: an explicit, safe, existing project root (e.g. an
+        // empty/new git repo with only a remote) must be honored, not rewritten
+        // to a broad parent (e.g. /root) by cwd/env upward walking.
+        let root = std::env::temp_dir().join("focusa-cli-explicit-plain-dir");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+
+        let resolved = resolve_project_scope(Some(root.to_str().unwrap()), None, None).unwrap();
+        assert_eq!(resolved.project_root, root.to_string_lossy());
+
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn explicit_broad_root_still_rejected() {
+        let err = resolve_project_scope(Some("/root"), None, None).unwrap_err();
+        assert!(err.to_string().contains("unsafe_broad_project_root"));
     }
 
     #[test]

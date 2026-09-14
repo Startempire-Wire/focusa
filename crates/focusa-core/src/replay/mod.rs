@@ -432,6 +432,8 @@ mod tests {
             machine_id: None,
             instance_id: None,
             session_id,
+            project_root: None,
+            continuity_id: None,
             thread_id: None,
             is_observation: false,
         };

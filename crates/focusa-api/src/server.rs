@@ -13,6 +13,7 @@ use crate::routes::sse::EventBroadcaster;
 use crate::scoped_store::ScopedCrdtLedger;
 use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
+use focusa_core::daemon_lifecycle::DaemonProcessIdentity;
 use focusa_core::prediction::PredictionValue;
 use focusa_core::prediction_authority::ScopedAuthorityEvent;
 use focusa_core::runtime::persistence_actor::PersistenceActor;
@@ -33,7 +34,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::process::{Child, ChildStdin};
 use tokio::sync::RwLock as TokioRwLock;
-use tokio::sync::{Mutex, RwLock, broadcast, mpsc};
+use tokio::sync::{Mutex, RwLock, broadcast, mpsc, watch};
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
@@ -161,7 +162,7 @@ async fn resource_mode_monitor_loop(state: Arc<AppState>) {
     }
 }
 
-fn lowmem_background_throttle() -> Option<(String, String)> {
+pub(crate) fn lowmem_background_throttle() -> Option<(String, String)> {
     let status = resource_mode_status();
     if matches!(status.mode, "lowmem" | "emergency") && status.budget.background_concurrency == 0 {
         Some((status.mode.to_string(), status.reason.to_string()))
@@ -230,6 +231,11 @@ pub struct WriterLease {
     pub expires_at: chrono::DateTime<chrono::Utc>,
 }
 
+pub struct DaemonRuntimeIdentity {
+    pub process: DaemonProcessIdentity,
+    pub shutdown_token: String,
+}
+
 pub struct AppState {
     /// Read-only snapshot of cognitive state (daemon writes, API reads).
     pub focusa: Arc<RwLock<FocusaState>>,
@@ -280,6 +286,12 @@ pub struct AppState {
     pub supervisor_perf: Arc<SupervisorPerfCounters>,
     /// Monotonic signal for API routes that mutate shared state outside the daemon reducer.
     pub external_mutation_epoch: Arc<AtomicU64>,
+    /// Exact process identity and per-start credential for governed shutdown.
+    pub daemon_runtime_identity: Arc<DaemonRuntimeIdentity>,
+    /// Shared graceful-shutdown signal; published only after exact identity authorization.
+    pub shutdown_tx: watch::Sender<bool>,
+    /// Single-acceptance guard for the exact shutdown route.
+    pub shutdown_accepted: Arc<Mutex<bool>>,
 }
 
 impl AppState {
@@ -301,10 +313,7 @@ impl AppState {
         } else {
             let persistence = self.persistence.clone();
             tokio::task::spawn_blocking(move || {
-                for event in &events {
-                    persistence.append_event(event)?;
-                }
-                persistence.save_state(&state)
+                persistence.persist_event_batch_and_state(&events, &state)
             })
             .await
             .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
@@ -316,14 +325,9 @@ impl AppState {
             actor.append_events_checkpoint(events).await
         } else {
             let persistence = self.persistence.clone();
-            tokio::task::spawn_blocking(move || {
-                for event in &events {
-                    persistence.append_event(event)?;
-                }
-                Ok(())
-            })
-            .await
-            .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
+            tokio::task::spawn_blocking(move || persistence.append_event_batch(&events))
+                .await
+                .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
         }
     }
 }
@@ -556,17 +560,24 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::info::router())
         .merge(routes::llms_txt::router())
         .merge(routes::env::router())
+        .merge(routes::screenshot_settings::router())
         .merge(routes::commands::router())
         .merge(routes::compaction::router())
+        .merge(routes::compaction_policy::router())
+        .merge(routes::compaction_policy_resolution::router())
         .merge(routes::convergence::router())
+        .merge(routes::daemon_routing::router())
         .merge(routes::capabilities::router())
         .merge(routes::capabilities_extra::router())
         .merge(routes::instances::router())
         .merge(routes::attachments::router())
         .merge(routes::sync::router())
+        .merge(routes::sms::router())
+        .merge(routes::background_jobs::router())
         .merge(routes::bloatgaurd::router())
         .merge(routes::focus::router())
         .merge(routes::work_items::router())
+        .merge(routes::work_item_temporal::router())
         .merge(routes::gate::router())
         .merge(routes::ecs::router())
         .merge(routes::memory::router())
@@ -574,22 +585,36 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::browser_interop::router())
         .merge(routes::metacognition::router())
         .merge(routes::ontology::router())
+        .merge(routes::events_retention::router())
         .merge(routes::events_sqlite::router())
+        .merge(routes::backups::router())
         .merge(routes::session::router())
+        .merge(routes::shutdown::router())
         .merge(routes::silent_sessions::router())
+        .merge(routes::silent_sessions_wait::router())
         .merge(routes::proxy::router())
         .merge(routes::license::router())
         .merge(routes::clt::router())
         .merge(routes::uxp::router())
         .merge(routes::autonomy::router())
         .merge(routes::constitution::router())
+        .merge(routes::credentials::router())
         .merge(routes::agent_runtime::router())
         .merge(routes::agent_runtime_delivery::router())
         .merge(routes::agent_runtime_integrity::router())
         .merge(routes::agent_runtime_migration::router())
         .merge(routes::agent_runtime_studio::router())
+        .merge(routes::adapters::router())
+        .merge(routes::cockpit::router())
+        .merge(routes::completion_claims::router())
+        .merge(routes::direction::router())
+        .merge(routes::remote_workspaces::router())
+        .merge(routes::runtime_constitution::router())
+        .merge(routes::session_fanout::router())
+        .merge(routes::worksets::router())
         .merge(routes::telemetry::router())
         .merge(routes::temporal::router())
+        .merge(routes::temporal_clients::router())
         .merge(routes::trust::router())
         .merge(routes::threads::router())
         .merge(routes::proposals::router())
@@ -598,6 +623,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::project_genesis::router())
         .merge(routes::predictions::router())
         .merge(routes::prediction_authority::router())
+        .merge(routes::prediction_authority_canonical::router())
         .merge(routes::rfm::router())
         .merge(routes::resource::router())
         .merge(routes::reflection::router())
@@ -611,6 +637,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::training::router())
         .merge(routes::trajectory::router())
         .merge(routes::call_stack::router())
+        .merge(routes::callgraph::router())
         .merge(routes::context_cognition::router())
         .merge(routes::context_sources::router())
         .merge(routes::context_claims::router())
@@ -710,6 +737,7 @@ fn supervisor_allows_pi_driver(enabled: bool, status: WorkLoopStatus) -> bool {
                 | WorkLoopStatus::AwaitingHarnessTurn
                 | WorkLoopStatus::EvaluatingOutcome
                 | WorkLoopStatus::AdvancingTask
+                | WorkLoopStatus::TransportDegraded
                 | WorkLoopStatus::Idle
         )
 }
@@ -720,7 +748,11 @@ fn supervisor_should_start_pi_driver(
     has_current_task: bool,
 ) -> bool {
     supervisor_allows_pi_driver(enabled, status)
-        && (has_current_task || status != WorkLoopStatus::Idle)
+        && (has_current_task
+            || !matches!(
+                status,
+                WorkLoopStatus::Idle | WorkLoopStatus::TransportDegraded
+            ))
 }
 
 async fn reflection_scheduler_loop(base_url: String) {
@@ -882,6 +914,10 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             };
             let project_root = scope.root_scope.root_path.to_string_lossy().to_string();
             let continuity_id = scope.continuity_id.clone();
+            let driver_cwd = std::env::var("FOCUSA_WORK_LOOP_DRIVER_CWD")
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+                .unwrap_or_else(|| project_root.clone());
             let claim_key = format!(
                 "project:{}|workstream:{}|work_item:{}",
                 project_root.replace('|', "_"),
@@ -890,15 +926,45 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             );
             let lease = {
                 let claims = state.writer_claims.read().await;
-                claims
-                    .get(&claim_key)
-                    .filter(|lease| lease.expires_at > chrono::Utc::now())
-                    .cloned()
+                claims.get(&claim_key).cloned()
             };
-            let Some(lease) = lease else {
+            let Some(mut lease) = lease else {
                 tokio::time::sleep(Duration::from_millis(delay_ms)).await;
                 continue;
             };
+            if lease.expires_at <= chrono::Utc::now() {
+                let live_driver = {
+                    let mut guard = state.pi_rpc_session.lock().await;
+                    guard
+                        .as_mut()
+                        .is_some_and(|session| matches!(session.child.try_wait(), Ok(None)))
+                };
+                if !live_driver {
+                    tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                    continue;
+                }
+                let now = chrono::Utc::now();
+                let renewed = {
+                    let mut claims = state.writer_claims.write().await;
+                    claims
+                        .get_mut(&claim_key)
+                        .filter(|active| {
+                            active.writer_id == lease.writer_id
+                                && active.fencing_token == lease.fencing_token
+                        })
+                        .map(|active| {
+                            active.expires_at = crate::routes::work_loop::writer_lease_expiry(now);
+                            active.clone()
+                        })
+                };
+                let Some(renewed) = renewed else {
+                    tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                    continue;
+                };
+                lease = renewed;
+            }
+            let driver_idempotency_key =
+                format!("work-loop-supervisor:{}:{}", claim_key, lease.fencing_token);
 
             let allows_driver = supervisor_allows_pi_driver(enabled, status);
             let should_start_driver =
@@ -949,8 +1015,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .post(&stop_url)
                     .header("x-focusa-writer-id", &lease.writer_id)
                     .header("x-focusa-fencing-token", lease.fencing_token)
-                    .header("x-focusa-project-root", &project_root)
-                    .header("x-focusa-continuity-id", &continuity_id)
+                    .header("x-scope-project-root", &project_root)
+                    .header("x-scope-continuity-id", &continuity_id)
                     .json(&serde_json::json!({}))
                     .send()
                     .await;
@@ -968,8 +1034,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .post(&stop_url)
                     .header("x-focusa-writer-id", &lease.writer_id)
                     .header("x-focusa-fencing-token", lease.fencing_token)
-                    .header("x-focusa-project-root", &project_root)
-                    .header("x-focusa-continuity-id", &continuity_id)
+                    .header("x-scope-project-root", &project_root)
+                    .header("x-scope-continuity-id", &continuity_id)
                     .json(&serde_json::json!({}))
                     .send()
                     .await;
@@ -986,9 +1052,13 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .post(&driver_url)
                     .header("x-focusa-writer-id", &lease.writer_id)
                     .header("x-focusa-fencing-token", lease.fencing_token)
-                    .header("x-focusa-project-root", &project_root)
-                    .header("x-focusa-continuity-id", &continuity_id)
-                    .json(&serde_json::json!({"cwd": project_root}))
+                    .header("x-scope-project-root", &project_root)
+                    .header("x-scope-continuity-id", &continuity_id)
+                    .header("idempotency-key", &driver_idempotency_key)
+                    .json(&serde_json::json!({
+                        "cwd": &driver_cwd,
+                        "idempotency_key": driver_idempotency_key,
+                    }))
                     .send()
                     .await;
             }
@@ -1034,8 +1104,8 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         .post(&stop_url)
                         .header("x-focusa-writer-id", &lease.writer_id)
                         .header("x-focusa-fencing-token", lease.fencing_token)
-                        .header("x-focusa-project-root", &project_root)
-                        .header("x-focusa-continuity-id", &continuity_id)
+                        .header("x-scope-project-root", &project_root)
+                        .header("x-scope-continuity-id", &continuity_id)
                         .json(&serde_json::json!({}))
                         .send()
                         .await;
@@ -1049,9 +1119,13 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         .post(&driver_url)
                         .header("x-focusa-writer-id", &lease.writer_id)
                         .header("x-focusa-fencing-token", lease.fencing_token)
-                        .header("x-focusa-project-root", &project_root)
-                        .header("x-focusa-continuity-id", &continuity_id)
-                        .json(&serde_json::json!({"cwd": project_root}))
+                        .header("x-scope-project-root", &project_root)
+                        .header("x-scope-continuity-id", &continuity_id)
+                        .header("idempotency-key", &driver_idempotency_key)
+                        .json(&serde_json::json!({
+                            "cwd": &driver_cwd,
+                            "idempotency_key": driver_idempotency_key,
+                        }))
                         .send()
                         .await;
 
@@ -1085,6 +1159,9 @@ pub async fn run(
     write_serial_lock: Arc<Mutex<()>>,
     external_mutation_epoch: Arc<AtomicU64>,
     license_guard: focusa_license::LicenseGuard,
+    daemon_runtime_identity: DaemonRuntimeIdentity,
+    shutdown_tx: watch::Sender<bool>,
+    mut shutdown_rx: watch::Receiver<bool>,
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
     let (persistence, persistence_actor) = persistence_runtime;
@@ -1127,7 +1204,33 @@ pub async fn run(
         pi_rpc_session: Arc::new(Mutex::new(None)),
         supervisor_perf: Arc::new(SupervisorPerfCounters::default()),
         external_mutation_epoch,
+        daemon_runtime_identity: Arc::new(daemon_runtime_identity),
+        shutdown_tx,
+        shutdown_accepted: Arc::new(Mutex::new(false)),
     });
+
+    // The daemon owns lifecycle cleanup. Settle stale queued/running rows
+    // before serving requests so every consumer sees one truthful ledger.
+    // Recovery-only startup remains read-only.
+    let may_reconcile_jobs =
+        focusa_license::base_product_projection(state.license_guard.entitlement.as_ref())
+            .is_ok_and(|projection| projection.permits_base_mutations);
+    if may_reconcile_jobs {
+        let background_job_path =
+            crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+        let reconciled_jobs = tokio::task::spawn_blocking(move || -> anyhow::Result<_> {
+            let conn = rusqlite::Connection::open(background_job_path)?;
+            focusa_core::background_job_store::reconcile_stale_jobs(&conn, chrono::Utc::now())
+        })
+        .await
+        .map_err(|error| anyhow::anyhow!("background job reconciliation join failed: {error}"))??;
+        if !reconciled_jobs.is_empty() {
+            tracing::warn!(
+                settled = reconciled_jobs.len(),
+                "settled stale background job records at daemon startup"
+            );
+        }
+    }
 
     let app = build_router(state.clone());
 
@@ -1173,11 +1276,22 @@ pub async fn run(
         resource_mode_monitor_loop(resource_monitor_state).await;
     });
 
+    let backup_maintenance_state = state.clone();
+    tokio::spawn(async move {
+        routes::backup_maintenance::maintenance_loop(backup_maintenance_state).await;
+    });
+
     tracing::info!("Listening on {}", bind_addr);
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
     )
+    .with_graceful_shutdown(async move {
+        let already_requested = *shutdown_rx.borrow();
+        if !already_requested {
+            let _ = shutdown_rx.wait_for(|requested| *requested).await;
+        }
+    })
     .await?;
 
     Ok(())
@@ -1250,7 +1364,7 @@ mod tests {
         ));
         assert!(!supervisor_allows_pi_driver(true, WorkLoopStatus::Paused));
         assert!(!supervisor_allows_pi_driver(true, WorkLoopStatus::Blocked));
-        assert!(!supervisor_allows_pi_driver(
+        assert!(supervisor_allows_pi_driver(
             true,
             WorkLoopStatus::TransportDegraded
         ));
@@ -1271,6 +1385,16 @@ mod tests {
         assert!(supervisor_should_start_pi_driver(
             true,
             WorkLoopStatus::AwaitingHarnessTurn,
+            false
+        ));
+        assert!(supervisor_should_start_pi_driver(
+            true,
+            WorkLoopStatus::TransportDegraded,
+            true
+        ));
+        assert!(!supervisor_should_start_pi_driver(
+            true,
+            WorkLoopStatus::TransportDegraded,
             false
         ));
     }

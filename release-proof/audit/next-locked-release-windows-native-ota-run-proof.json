@@ -1,0 +1,86 @@
+{
+  "schema": "focusa.locked_release_windows_native_ota_run_proof.v1",
+  "status": "verified_fixture_lifecycle_only",
+  "github_run": {
+    "database_id": 30964767392,
+    "url": "https://github.com/Startempire-Wire/focusa/actions/runs/30964767392",
+    "workflow_name": "Windows OTA E2E",
+    "event": "workflow_dispatch",
+    "head_sha": "b46afafb68cfb6ed7ff51489771fa41e92b9a7d0",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-08-05T00:54:17Z",
+    "updated_at": "2026-08-05T01:15:27Z"
+  },
+  "native_jobs": [
+    {
+      "database_id": 92176940437,
+      "name": "Windows native OTA (x64)",
+      "url": "https://github.com/Startempire-Wire/focusa/actions/runs/30964767392/job/92176940437",
+      "status": "completed",
+      "conclusion": "success",
+      "runtime_architecture": "X64",
+      "install_target": "windows-x64"
+    },
+    {
+      "database_id": 92176940441,
+      "name": "Windows native OTA (arm64)",
+      "url": "https://github.com/Startempire-Wire/focusa/actions/runs/30964767392/job/92176940441",
+      "status": "completed",
+      "conclusion": "success",
+      "runtime_architecture": "Arm64",
+      "install_target": "windows-arm64"
+    }
+  ],
+  "supporting_jobs": [
+    "Windows native dependency preflight (x64)",
+    "Windows native dependency preflight (arm64)",
+    "Windows release build (x86_64-pc-windows-msvc)",
+    "Windows release build (aarch64-pc-windows-msvc)"
+  ],
+  "artifact_proofs": [
+    {
+      "name": "windows-native-ota-x64",
+      "artifact_id": 8914557941,
+      "github_artifact_digest": "sha256:45706607ab49c4a9ff04dc14c9187756356cddacaa93b90a0a4fc6cb48ff9f42",
+      "payload_sha256": "e0b940226b474406846906653be5d855f9ba242903ebe5f03411b312d34fd486",
+      "result": "pass",
+      "phases": {
+        "clean_install": "v0.9.116-dev",
+        "apply": "v0.9.117-dev",
+        "rollback": "v0.9.116-dev",
+        "reapply": "v0.9.117-dev"
+      },
+      "daemon_health": "v0.9.117-dev",
+      "user_data_preserved": true
+    },
+    {
+      "name": "windows-native-ota-arm64",
+      "artifact_id": 8914552689,
+      "github_artifact_digest": "sha256:4a9f4379a8a03626bb7d95798ff8590a63da9170e661f4a5549edd74c4456e53",
+      "payload_sha256": "36e1213cc1e1572c470f2ed45039ca97e9c0fc3fd0f47323e9076565b8a0808d",
+      "result": "pass",
+      "phases": {
+        "clean_install": "v0.9.116-dev",
+        "apply": "v0.9.117-dev",
+        "rollback": "v0.9.116-dev",
+        "reapply": "v0.9.117-dev"
+      },
+      "daemon_health": "v0.9.117-dev",
+      "user_data_preserved": true
+    }
+  ],
+  "authority_boundary": {
+    "historical_fixtures": "v0.9.116-dev and v0.9.117-dev are non-authoritative migration fixtures",
+    "production_entitlement_claimed": false,
+    "current_release_assets_proven": false,
+    "v0.9.144_publication_proven": false,
+    "rel19_closure_effect": "removes native runner and lifecycle-mechanism blockers only; current-release signed assets, installers, and publication proof remain required"
+  },
+  "bead_binding": "focusa-vbcqu.19.2",
+  "observed_via": [
+    "gh run view 30964767392 --repo Startempire-Wire/focusa",
+    "gh run download 30964767392 --repo Startempire-Wire/focusa",
+    "gh api repos/Startempire-Wire/focusa/actions/runs/30964767392/artifacts"
+  ]
+}

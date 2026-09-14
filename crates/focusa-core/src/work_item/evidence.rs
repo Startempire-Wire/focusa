@@ -32,10 +32,23 @@ pub trait EvidenceVerifier: Send + Sync {
 // Shared utilities
 // ---------------------------------------------------------------------------
 
+fn citation_path_component(value: &str) -> &str {
+    let without_fragment = value.split_once('#').map(|(path, _)| path).unwrap_or(value);
+    without_fragment
+        .rsplit_once(':')
+        .filter(|(_, suffix)| {
+            !suffix.is_empty()
+                && suffix
+                    .chars()
+                    .all(|character| character.is_ascii_digit() || character == '-')
+        })
+        .map(|(path, _)| path)
+        .unwrap_or(without_fragment)
+}
+
 /// Resolve a citation `ref_` against the project root. Strips a
-/// leading `crates/...:LINE` or `docs/...#section` or `tests/...` to a
-/// concrete path; returns `None` when the ref is not a path (e.g. an
-/// HTTP URL).
+/// trailing `:LINE` / `:LINE-LINE` or `#section` without splitting a Windows
+/// drive-letter prefix; returns `None` when the ref is not a path.
 pub fn citation_path(project_root: &Path, ref_: &str) -> Option<PathBuf> {
     let s = ref_.trim();
     if s.starts_with("http://") || s.starts_with("https://") {
@@ -44,14 +57,7 @@ pub fn citation_path(project_root: &Path, ref_: &str) -> Option<PathBuf> {
     if s.starts_with("gh-") || s.starts_with("gh ") {
         return None;
     }
-    // Strip "path:LINE" or "path:LINE-LINE"
-    let path_part = s.split_once(':').map(|(p, _rest)| p).unwrap_or(s);
-    // Strip "path#section"
-    let path_part = path_part
-        .split_once('#')
-        .map(|(p, _rest)| p)
-        .unwrap_or(path_part);
-    Some(project_root.join(path_part))
+    Some(project_root.join(citation_path_component(s)))
 }
 
 /// Run a child process and return exit status + tail of stderr.
@@ -171,7 +177,7 @@ fn citation_root_from_ref(ref_: &str) -> Option<PathBuf> {
     // accept absolute paths and look for a project_root marker in the
     // ref itself. The lifecycle wires the project_root in before
     // calling the verifier.
-    let p = Path::new(ref_);
+    let p = Path::new(citation_path_component(ref_));
     if p.is_absolute() {
         return Some(p.parent()?.to_path_buf());
     }
@@ -439,6 +445,52 @@ pub struct WorkpointVerifier {
     /// `<HOME>/.focusa`.
     pub data_dir: Option<PathBuf>,
 }
+
+impl WorkpointVerifier {
+    fn verify_persisted_snapshot(data_dir: &Path, wp_id: &str) -> Option<VerifyResult> {
+        let database = data_dir.join("focusa.sqlite");
+        let connection = rusqlite::Connection::open_with_flags(
+            &database,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .ok()?;
+        let state_json: String = connection
+            .query_row(
+                "SELECT state_json FROM snapshots ORDER BY ts DESC LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .ok()?;
+        let state: serde_json::Value = serde_json::from_str(&state_json).ok()?;
+        let record = state
+            .pointer("/workpoint/records")?
+            .as_array()?
+            .iter()
+            .find(|record| {
+                record
+                    .get("workpoint_id")
+                    .and_then(serde_json::Value::as_str)
+                    == Some(wp_id)
+                    && record
+                        .get("canonical")
+                        .and_then(serde_json::Value::as_bool)
+                        .unwrap_or(false)
+            })?;
+        let evidence_count = record
+            .get("evidence_refs")
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::len)
+            .unwrap_or(0);
+        Some(VerifyResult {
+            verified: true,
+            result: format!(
+                "workpoint {wp_id}: canonical persisted snapshot evidence_refs={evidence_count}"
+            ),
+            evidence_url: Some(format!("file://{}#snapshot", database.display())),
+        })
+    }
+}
+
 #[async_trait]
 impl EvidenceVerifier for WorkpointVerifier {
     fn kind(&self) -> EvidenceKind {
@@ -462,11 +514,13 @@ impl EvidenceVerifier for WorkpointVerifier {
             });
         let path = data_dir.join("workpoints").join(format!("{wp_id}.json"));
         match std::fs::read_to_string(&path) {
-            Err(e) => VerifyResult {
-                verified: false,
-                result: format!("workpoint not readable at {}: {e}", path.display()),
-                evidence_url: None,
-            },
+            Err(e) => {
+                Self::verify_persisted_snapshot(&data_dir, &wp_id).unwrap_or_else(|| VerifyResult {
+                    verified: false,
+                    result: format!("workpoint not readable at {}: {e}", path.display()),
+                    evidence_url: None,
+                })
+            }
             Ok(contents) => {
                 let parsed: Option<serde_json::Value> = serde_json::from_str(&contents).ok();
                 let evidence_count = parsed
@@ -775,6 +829,19 @@ impl EvidenceVerifier for ArtifactStub {
 mod tests {
     use super::*;
 
+    #[test]
+    fn citation_line_suffix_parser_preserves_windows_drive_prefix() {
+        assert_eq!(
+            citation_path_component(r"C:\projects\focusa\src\lib.rs:12-15"),
+            r"C:\projects\focusa\src\lib.rs"
+        );
+        assert_eq!(
+            citation_path_component(r"C:\projects\focusa\docs\01-spec.md#acceptance"),
+            r"C:\projects\focusa\docs\01-spec.md"
+        );
+        assert_eq!(citation_path_component("src/lib.rs:12"), "src/lib.rs");
+    }
+
     fn tmpfile_with(content: &str, ext: &str) -> PathBuf {
         let dir = std::env::temp_dir().join("focusa-evidence-tests");
         std::fs::create_dir_all(&dir).unwrap();
@@ -862,6 +929,54 @@ mod tests {
         assert!(v.verified);
         assert!(v.result.contains("not executed"));
         let _ = std::fs::remove_file(p);
+    }
+
+    #[tokio::test]
+    async fn workpoint_verifier_accepts_canonical_persisted_snapshot() {
+        let dir = std::env::temp_dir().join(format!("focusa-workpoint-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let database = dir.join("focusa.sqlite");
+        let connection = rusqlite::Connection::open(&database).unwrap();
+        connection
+            .execute_batch(
+                "CREATE TABLE snapshots (name TEXT PRIMARY KEY, version INTEGER NOT NULL, ts TEXT NOT NULL, state_json TEXT NOT NULL);",
+            )
+            .unwrap();
+        let workpoint_id = uuid::Uuid::now_v7().to_string();
+        let state = serde_json::json!({
+            "workpoint": {
+                "records": [{
+                    "workpoint_id": workpoint_id,
+                    "canonical": true,
+                    "evidence_refs": ["test:exact"]
+                }]
+            }
+        });
+        connection
+            .execute(
+                "INSERT INTO snapshots(name, version, ts, state_json) VALUES (?1, 1, ?2, ?3)",
+                rusqlite::params!["focusa", "2026-08-07T00:00:00Z", state.to_string()],
+            )
+            .unwrap();
+        drop(connection);
+
+        let citation = EvidenceCitation {
+            kind: EvidenceKind::Workpoint,
+            ref_: workpoint_id,
+            line: None,
+            line_end: None,
+            required: true,
+            result: None,
+            verified: false,
+        };
+        let result = WorkpointVerifier {
+            data_dir: Some(dir.clone()),
+        }
+        .verify(&citation)
+        .await;
+        assert!(result.verified, "{:?}", result);
+        assert!(result.result.contains("canonical persisted snapshot"));
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[tokio::test]

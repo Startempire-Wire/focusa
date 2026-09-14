@@ -2,6 +2,7 @@
 // Spec: docs/44-pi-focusa-integration-spec.md
 
 import { AsyncLocalStorage } from "async_hooks";
+import { SPEC138_OPERATIONS } from "./generated/spec138-operations.js";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "fs";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -379,6 +380,13 @@ function createAttachmentRuntime() {
     footerSyncInterval: null as ReturnType<typeof setInterval> | null,
     healthBackoffMs: 30_000, // §11 exponential backoff
     healthFailCount: 0,
+    // docs/165 + #496 — visual background state is attachment-local. A
+    // process-global map leaks one Pi session's jobs into another transcript.
+    backgroundJobs: {
+      running: new Map<string, { name: string; startedAt: string }>(),
+      recent: [] as Array<{ name: string; status: string; exitCode: number | null }>,
+    },
+    bgSeeded: false,
     daemonRestartAttempts: [] as number[],
     daemonRestartInFlight: null as Promise<boolean> | null,
     daemonHoldoverMode: false,
@@ -462,6 +470,23 @@ export class AttachmentRuntimeRegistry {
     this.boundAttachmentsBySession.set(key.session_id, key);
   }
 
+  promoteRuntime(source: AttachmentKey, target: AttachmentKey): AttachmentRuntimeState {
+    if (source.session_id !== target.session_id) {
+      throw new Error("attachment_runtime_session_mismatch");
+    }
+    const sourceId = attachmentRuntimeKey(source);
+    const targetId = attachmentRuntimeKey(target);
+    const sourceRuntime = this.getOrCreate(source);
+    if (sourceId === targetId) return sourceRuntime;
+    const existingTarget = this.runtimes.get(targetId);
+    if (existingTarget && existingTarget !== sourceRuntime) {
+      throw new Error("attachment_runtime_target_already_exists");
+    }
+    this.runtimes.delete(sourceId);
+    this.runtimes.set(targetId, sourceRuntime);
+    return sourceRuntime;
+  }
+
   boundSessionAttachment(sessionId: string): AttachmentKey | undefined {
     return this.boundAttachmentsBySession.get(sessionId);
   }
@@ -469,11 +494,32 @@ export class AttachmentRuntimeRegistry {
   reset(): void {
     this.runtimes.clear();
     this.boundAttachmentsBySession.clear();
+    delete process.env.FOCUSA_ATTACHMENT_KEY_V1;
   }
 }
 
 export const attachmentRuntimeRegistry = new AttachmentRuntimeRegistry();
 const attachmentRuntimeContext = new AsyncLocalStorage<AttachmentKey>();
+
+export function makeSessionBootstrapAttachmentKey(sessionId: string): AttachmentKey {
+  const boundedSessionId = String(sessionId || "").trim();
+  if (!boundedSessionId) throw new Error("attachment_runtime_session_required");
+  return {
+    workstream: {
+      root_scope: {
+        scope_kind: "host",
+        scope_id: "host:pi-extension-bootstrap",
+        root_path: "/",
+        canonical_name: "Pi Extension Bootstrap",
+        fingerprint: "bootstrap:pi-extension",
+      },
+      continuity_id: "extension-bootstrap",
+    },
+    instance_id: `pi-${process.pid}`,
+    session_id: boundedSessionId,
+    attachment_id: `extension-bootstrap:${boundedSessionId}`,
+  };
+}
 
 export function makeAttachmentKey(input: {
   projectRoot: string;
@@ -492,6 +538,54 @@ export function makeAttachmentKey(input: {
 
 export function currentAttachmentKey(): AttachmentKey | undefined {
   return attachmentRuntimeContext.getStore();
+}
+
+/**
+ * Promote one verified Pi session from its private host bootstrap runtime into
+ * the exact project/workstream attachment. Re-key the same runtime object so
+ * recovered session state survives; never mutate the global bootstrap key.
+ */
+export function promoteCurrentSessionAttachment(input: {
+  projectRoot: string;
+  continuityId: string;
+  sessionId: string;
+}): AttachmentKey {
+  const current = currentAttachmentKey();
+  if (!current) throw new Error("attachment_runtime_key_required");
+  if (current.session_id !== input.sessionId) throw new Error("attachment_runtime_session_mismatch");
+  if (!isProjectRootAuthoritySafe(input.projectRoot)) {
+    throw new Error("attachment_runtime_safe_project_required");
+  }
+  if (!input.continuityId || input.continuityId === "extension-bootstrap") {
+    throw new Error("attachment_runtime_continuity_required");
+  }
+  if (!verifiedScopeRefForRoot(input.projectRoot)) {
+    throw new Error("attachment_runtime_verified_scope_required");
+  }
+  const promoted = makeAttachmentKey(input);
+  const runtime = attachmentRuntimeRegistry.promoteRuntime(current, promoted);
+  runtime.sessionCwd = input.projectRoot;
+  runtime.continuityId = input.continuityId;
+  runtime.sessionFrameKey = input.sessionId;
+  attachmentRuntimeRegistry.bindSessionAttachment(promoted);
+  attachmentRuntimeContext.enterWith(promoted);
+  process.env.FOCUSA_ATTACHMENT_KEY_V1 = JSON.stringify(promoted);
+  return promoted;
+}
+
+export function clearPublishedAttachmentEnvironment(sessionId?: string): boolean {
+  const raw = process.env.FOCUSA_ATTACHMENT_KEY_V1;
+  if (!raw) return false;
+  if (sessionId) {
+    try {
+      const published = JSON.parse(raw) as Partial<AttachmentKey>;
+      if (published.session_id !== sessionId) return false;
+    } catch {
+      // Malformed process-local routing state carries no authority and is cleared.
+    }
+  }
+  delete process.env.FOCUSA_ATTACHMENT_KEY_V1;
+  return true;
 }
 
 export function getAttachmentRuntime(key?: AttachmentKey): any {
@@ -726,6 +820,19 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
           "X-Scope-Session-Id": attachment.session_id,
         }
       : {};
+  const mutationMethod = String(opts.method || "GET").toUpperCase();
+  let idempotencyHeader: Record<string, string> = {};
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(mutationMethod) && typeof opts.body === "string") {
+    try {
+      const body = JSON.parse(opts.body) as Record<string, unknown>;
+      const key = body.idempotency_key ?? body.idempotencyKey ?? body.request_id ?? body.requestId;
+      if (typeof key === "string" && key.trim()) {
+        idempotencyHeader = { "Idempotency-Key": key.trim() };
+      }
+    } catch {
+      // The daemon JSON guard rejects malformed mutation bodies before handlers.
+    }
+  }
   const attempts = 2;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const ac = new AbortController();
@@ -743,11 +850,45 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
           "X-Extension-Token": `focusa-pi-${runtime?.cfg?.focusaExtensionBuild || "v0"}`,
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...typedScopeHeaders,
+          ...idempotencyHeader,
           ...((opts.headers as Record<string, string>) || {}),
         },
         signal: ac.signal,
       });
       if (r.ok) return await r.json();
+      if (r.status === 403) {
+        const blocked = await r.json().catch(() => null);
+        const code = String(blocked?.error?.code || "");
+        if (code.startsWith("ENTITLEMENT_")) {
+          return {
+            ok: false,
+            status: "blocked",
+            failure_class: "entitlement_blocked",
+            error: {
+              code,
+              state: blocked?.error?.state || "recovery_only",
+              required_feature: blocked?.error?.required_feature || null,
+              limit_bucket: blocked?.error?.limit_bucket || null,
+              recovery: blocked?.error?.recovery || {
+                status_path: "/v1/license/status",
+                action: "recovery_only",
+                allowed: [
+                  "health",
+                  "version",
+                  "license_status",
+                  "export",
+                  "diagnostics",
+                  "repair",
+                  "update_for_recovery",
+                  "uninstall",
+                  "safe_read",
+                ],
+              },
+            },
+          };
+        }
+        return null;
+      }
       if (![429, 502, 503, 504].includes(r.status) || attempt === attempts - 1) return null;
     } catch {
       if (attempt === attempts - 1) return null;
@@ -3704,8 +3845,12 @@ export function adoptWorkpointScopeForFrameRecovery(
   const workpoint = packet.resume_packet?.workpoint || packet.workpoint || packet;
   const packetProjectRoot = normalizeProjectRoot(workpoint.project_root || packet.project_root);
   const packetContinuityId = String(workpoint.continuity_id || packet.continuity_id || "").trim();
+  const sessionIdentity = workpoint.session_identity || packet.session_identity;
   const packetPiSessionKey = String(
-    workpoint.pi_session_frame_key || packet.pi_session_frame_key || ""
+    workpoint.pi_session_frame_key ||
+      packet.pi_session_frame_key ||
+      sessionIdentity?.session_frame_key ||
+      ""
   ).trim();
   const packetSessionId = String(workpoint.session_id || packet.session_id || "").trim();
   const currentSessionKey = String(getAttachmentRuntime().sessionFrameKey || "").trim();
@@ -5068,4 +5213,19 @@ export function setInToolContext(v: boolean): void {
  */
 export function resetAllScopeStores(): void {
   scopeStoreRegistry.clearAll();
+}
+
+/** Focus Slice affordances are descriptor projections only; daemon responses remain authoritative. */
+export function spec138FocusSliceAffordances(canMutate: boolean) {
+  return SPEC138_OPERATIONS.map((operation) => ({
+    operation_id: operation.operation_id,
+    method: operation.method,
+    path: operation.path,
+    label: operation.label,
+    available: operation.mode === "read" || canMutate,
+    disabled_reason: operation.mode === "canonical_mutation" && !canMutate
+      ? "canonical_daemon_authority_required"
+      : undefined,
+    client_authority: false as const,
+  }));
 }

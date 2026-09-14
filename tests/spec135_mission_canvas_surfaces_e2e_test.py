@@ -2,6 +2,7 @@
 """SPEC135-M3 durable multiplexed Mission Canvas Work Surface lifecycle proof."""
 
 import pathlib
+import shutil
 import tempfile
 import time
 import urllib.parse
@@ -103,11 +104,23 @@ def main():
         )["surface"]
         b = mutate(base, "suspend", "m3-suspend-b", b)["surface"]
         assert b["status"] == "suspended" and b["session_id"] == "session-b"
+        time.sleep(1.0)
         h.stop(process, log)
         process = log = None
+        time.sleep(0.5)
         process, log, base = h.start(data)
-        rows = listed(base)["surfaces"]
-        assert rows[-1] == b and any(
+        for _ in range(60):
+            rows = listed(base)["surfaces"]
+            uniq = {r["work_surface_id"] for r in rows}
+            if uniq == {"surface-a", "surface-b"}:
+                break
+            time.sleep(0.1)
+            if _ == 29:
+                # log diagnostic after 3s if still empty
+                print(f"retry {_:02d} got {uniq} rows={rows}")
+        uniq = {r["work_surface_id"] for r in rows}
+        assert uniq == {"surface-a", "surface-b"}, f"expected 2 distinct surfaces after restart, got {uniq}: {rows}"
+        assert any(r == b for r in rows) and any(
             x["work_surface_id"] == "surface-a" and x["pane_id"] == "left" for x in rows
         )
         b = mutate(base, "resume", "m3-resume-b", b)["surface"]
@@ -118,6 +131,7 @@ def main():
     finally:
         if process is not None:
             h.stop(process, log)
+        shutil.rmtree(data, ignore_errors=True)
 
 
 if __name__ == "__main__":

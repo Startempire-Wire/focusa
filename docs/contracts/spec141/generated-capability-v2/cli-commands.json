@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:c7392ed838c10d4117584ee11a47c93214e4a887aeec4bd838cf3c1bb570305f",
+  "registry_digest": "sha256:ec9775458f22ba12fee89dbc180ded2497e9e7fa5ca2ebf6c2c545e8352c8d5a",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -248,6 +248,173 @@
           },
           "human_invocation": "focusa agent-runtime headless-verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg run --detach",
+      "capability_id": "focusa.bg.run",
+      "summary": "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "name",
+          "command"
+        ],
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "description": "Human job name (appears in the completion notification).",
+            "type": "string"
+          },
+          "command": {
+            "minLength": 1,
+            "description": "The full command line to execute (after -- semantics).",
+            "type": "string"
+          },
+          "cwd": {
+            "minLength": 1,
+            "description": "Working directory (defaults to the current session cwd).",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "durable_dispatch",
+        "durable_dispatch"
+      ],
+      "examples": [
+        {
+          "description": "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
+          "arguments": {
+            "name": "focusa_workpoint_resume",
+            "command": "example"
+          },
+          "human_invocation": "focusa bg run --detach",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg run --detach",
+      "capability_id": "focusa.bg.run.many",
+      "summary": "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "jobs"
+        ],
+        "properties": {
+          "jobs": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "command"
+              ],
+              "properties": {
+                "name": {
+                  "minLength": 1,
+                  "description": "Job name (appears in its completion notification).",
+                  "type": "string"
+                },
+                "command": {
+                  "minLength": 1,
+                  "description": "Full command line to execute.",
+                  "type": "string"
+                },
+                "cwd": {
+                  "minLength": 1,
+                  "description": "Working directory override.",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "durable_dispatch",
+        "durable_dispatch"
+      ],
+      "examples": [
+        {
+          "description": "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
+          "arguments": {
+            "jobs": [
+              {
+                "name": "focusa_workpoint_resume",
+                "command": "example"
+              }
+            ]
+          },
+          "human_invocation": "focusa bg run --detach",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run_many.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg status --job",
+      "capability_id": "focusa.bg.status",
+      "summary": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "minLength": 1,
+            "description": "Optional job id; omit to list recent jobs.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_status",
+        "read_status"
+      ],
+      "examples": [
+        {
+          "description": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+          "arguments": {},
+          "human_invocation": "focusa bg status --job",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa bg list",
+      "capability_id": "focusa.bg.status",
+      "summary": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "minLength": 1,
+            "description": "Optional job id; omit to list recent jobs.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_status",
+        "read_status"
+      ],
+      "examples": [
+        {
+          "description": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
+          "arguments": {},
+          "human_invocation": "focusa bg status --job",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md"
         }
       ],
       "deprecation": null
@@ -1795,6 +1962,58 @@
       "deprecation": null
     },
     {
+      "command": "focusa daemon-routing status",
+      "capability_id": "focusa.daemon.routing.status",
+      "summary": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "registry",
+          "project_root",
+          "continuity_id",
+          "working_subpath_id",
+          "native_session_id"
+        ],
+        "properties": {
+          "registry": {
+            "description": "Canonical daemon registry projection from the controller."
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "working_subpath_id": {
+            "type": "string"
+          },
+          "native_session_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "examples": [
+        {
+          "description": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
+          "arguments": {
+            "registry": {},
+            "project_root": "/tmp/focusa-project",
+            "continuity_id": "continuity-demo",
+            "working_subpath_id": "example",
+            "native_session_id": "example"
+          },
+          "human_invocation": "focusa daemon-routing status",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_daemon_routing_status.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
       "command": "focusa focus update --decision",
       "capability_id": "focusa.decide",
       "summary": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=160 chars) — architectural choices only, not task lists.",
@@ -2227,6 +2446,162 @@
           },
           "human_invocation": "focusa dxux requirement <id>",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_requirement.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa predict operation --operation <operation-id>",
+      "capability_id": "focusa.epistemic.operation",
+      "summary": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "operation_id"
+        ],
+        "properties": {
+          "operation_id": {
+            "anyOf": [
+              {
+                "const": "prediction.question.create",
+                "type": "string"
+              },
+              {
+                "const": "prediction.information_set.commit",
+                "type": "string"
+              },
+              {
+                "const": "prediction.commit",
+                "type": "string"
+              },
+              {
+                "const": "prediction.supersede",
+                "type": "string"
+              },
+              {
+                "const": "prediction.get",
+                "type": "string"
+              },
+              {
+                "const": "prediction.list",
+                "type": "string"
+              },
+              {
+                "const": "outcome.claim",
+                "type": "string"
+              },
+              {
+                "const": "outcome.dispute",
+                "type": "string"
+              },
+              {
+                "const": "outcome.resolve",
+                "type": "string"
+              },
+              {
+                "const": "outcome.correct",
+                "type": "string"
+              },
+              {
+                "const": "prediction.evaluate",
+                "type": "string"
+              },
+              {
+                "const": "calibration.report",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.signal.capture",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.reflect",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.adjustment.propose",
+                "type": "string"
+              },
+              {
+                "const": "metacognition.adjustment.evaluate",
+                "type": "string"
+              },
+              {
+                "const": "learning.candidate.decide",
+                "type": "string"
+              },
+              {
+                "const": "learning.apply",
+                "type": "string"
+              },
+              {
+                "const": "learning.transfer.resolve",
+                "type": "string"
+              },
+              {
+                "const": "learning.retrieve",
+                "type": "string"
+              },
+              {
+                "const": "learning.conflicts",
+                "type": "string"
+              },
+              {
+                "const": "learning.expire",
+                "type": "string"
+              },
+              {
+                "const": "learning.supersede",
+                "type": "string"
+              },
+              {
+                "const": "learning.revoke",
+                "type": "string"
+              },
+              {
+                "const": "learning.rollback",
+                "type": "string"
+              },
+              {
+                "const": "learning.consolidate",
+                "type": "string"
+              },
+              {
+                "const": "self_model.get",
+                "type": "string"
+              }
+            ]
+          },
+          "id": {
+            "description": "Value for canonical {id} path segments.",
+            "type": "string"
+          },
+          "event": {
+            "description": "Typed ScopedAuthorityEvent required for mutations."
+          },
+          "project_root": {
+            "description": "Explicit or current verified project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Explicit or current continuity id.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "typed_read_or_canonical_epistemic_mutation",
+        "typed_read_or_canonical_epistemic_mutation"
+      ],
+      "examples": [
+        {
+          "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
+          "arguments": {
+            "operation_id": "prediction.question.create"
+          },
+          "human_invocation": "focusa predict operation --operation <operation-id>",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_epistemic_operation.md"
         }
       ],
       "deprecation": null
@@ -5686,6 +6061,487 @@
       "deprecation": null
     },
     {
+      "command": "focusa sms checkpoint",
+      "capability_id": "focusa.sms.checkpoint",
+      "summary": "Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "grant_id",
+          "consumer_ref",
+          "confirm"
+        ],
+        "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_encrypted_checkpoint",
+        "confirmed_encrypted_checkpoint"
+      ],
+      "examples": [
+        {
+          "description": "Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata.",
+          "arguments": {
+            "grant_id": "example",
+            "consumer_ref": "example",
+            "confirm": false
+          },
+          "human_invocation": "focusa sms checkpoint",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_checkpoint.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms enrollment",
+      "capability_id": "focusa.sms.enrollment",
+      "summary": "Read value-free customer-owned connector enrollment status.",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_value_free_enrollment",
+        "read_value_free_enrollment"
+      ],
+      "examples": [
+        {
+          "description": "Read value-free customer-owned connector enrollment status.",
+          "arguments": {},
+          "human_invocation": "focusa sms enrollment",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_enrollment.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms events",
+      "capability_id": "focusa.sms.events",
+      "summary": "Read bounded value-free communications audit events.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "grant_id",
+          "consumer_ref"
+        ],
+        "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_value_free_audit_events",
+        "read_value_free_audit_events"
+      ],
+      "examples": [
+        {
+          "description": "Read bounded value-free communications audit events.",
+          "arguments": {
+            "grant_id": "example",
+            "consumer_ref": "example"
+          },
+          "human_invocation": "focusa sms events",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_events.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms health",
+      "capability_id": "focusa.sms.health",
+      "summary": "Read value-free connector and encrypted-checkpoint health.",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_value_free_health",
+        "read_value_free_health"
+      ],
+      "examples": [
+        {
+          "description": "Read value-free connector and encrypted-checkpoint health.",
+          "arguments": {},
+          "human_invocation": "focusa sms health",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_health.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms otp-challenge",
+      "capability_id": "focusa.sms.otp.challenge",
+      "summary": "Register an exact provider and target challenge before OTP delivery.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "provider",
+          "target_handle",
+          "consumer_ref",
+          "grant_id"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "target_handle": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "ttl_seconds": {
+            "minimum": 30,
+            "maximum": 600,
+            "default": 300,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "bounded_challenge_registration",
+        "bounded_challenge_registration"
+      ],
+      "examples": [
+        {
+          "description": "Register an exact provider and target challenge before OTP delivery.",
+          "arguments": {
+            "provider": "example",
+            "target_handle": "example",
+            "consumer_ref": "example",
+            "grant_id": "example"
+          },
+          "human_invocation": "focusa sms otp-challenge",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_challenge.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms otp-inject",
+      "capability_id": "focusa.sms.otp.inject",
+      "summary": "Inject one eligible OTP into its exact bound target without exposing the value to model context.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "challenge_handle",
+          "target_handle",
+          "consumer_ref",
+          "grant_id"
+        ],
+        "properties": {
+          "challenge_handle": {
+            "type": "string"
+          },
+          "target_handle": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "single_use_secret_injection",
+        "single_use_secret_injection"
+      ],
+      "examples": [
+        {
+          "description": "Inject one eligible OTP into its exact bound target without exposing the value to model context.",
+          "arguments": {
+            "challenge_handle": "example",
+            "target_handle": "example",
+            "consumer_ref": "example",
+            "grant_id": "example"
+          },
+          "human_invocation": "focusa sms otp-inject",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_inject.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms read <thread-handle>",
+      "capability_id": "focusa.sms.read.thread",
+      "summary": "Read one bounded customer-authorized thread; OTP authority never implies message-read authority.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "thread_handle",
+          "grant_id",
+          "consumer_ref"
+        ],
+        "properties": {
+          "thread_handle": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "authorized_customer_data_read",
+        "authorized_customer_data_read"
+      ],
+      "examples": [
+        {
+          "description": "Read one bounded customer-authorized thread; OTP authority never implies message-read authority.",
+          "arguments": {
+            "thread_handle": "example",
+            "grant_id": "example",
+            "consumer_ref": "example"
+          },
+          "human_invocation": "focusa sms read <thread-handle>",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_read_thread.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms revoke --confirm",
+      "capability_id": "focusa.sms.revoke",
+      "summary": "Revoke one customer-owned connector and all associated grants with explicit confirmation.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "connector_id",
+          "grant_id",
+          "consumer_ref",
+          "confirm"
+        ],
+        "properties": {
+          "connector_id": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_connector_and_grant_revocation",
+        "confirmed_connector_and_grant_revocation"
+      ],
+      "examples": [
+        {
+          "description": "Revoke one customer-owned connector and all associated grants with explicit confirmation.",
+          "arguments": {
+            "connector_id": "example",
+            "grant_id": "example",
+            "consumer_ref": "example",
+            "confirm": false
+          },
+          "human_invocation": "focusa sms revoke --confirm",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_revoke.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms search <query>",
+      "capability_id": "focusa.sms.search",
+      "summary": "Search separately authorized message scope with bounded results.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "query",
+          "grant_id",
+          "consumer_ref"
+        ],
+        "properties": {
+          "query": {
+            "minLength": 1,
+            "maxLength": 500,
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "authorized_customer_data_read",
+        "authorized_customer_data_read"
+      ],
+      "examples": [
+        {
+          "description": "Search separately authorized message scope with bounded results.",
+          "arguments": {
+            "query": "workpoint resume",
+            "grant_id": "example",
+            "consumer_ref": "example"
+          },
+          "human_invocation": "focusa sms search <query>",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_search.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms send <recipient-handle> --confirm",
+      "capability_id": "focusa.sms.send",
+      "summary": "Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "recipient_handle",
+          "body",
+          "idempotency_key",
+          "grant_id",
+          "consumer_ref",
+          "confirm"
+        ],
+        "properties": {
+          "recipient_handle": {
+            "type": "string"
+          },
+          "body": {
+            "minLength": 1,
+            "maxLength": 5000,
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_idempotent_message_delivery",
+        "confirmed_idempotent_message_delivery"
+      ],
+      "examples": [
+        {
+          "description": "Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution.",
+          "arguments": {
+            "recipient_handle": "example",
+            "body": "example",
+            "idempotency_key": "example",
+            "grant_id": "example",
+            "consumer_ref": "example",
+            "confirm": false
+          },
+          "human_invocation": "focusa sms send <recipient-handle> --confirm",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_send.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa sms threads",
+      "capability_id": "focusa.sms.threads",
+      "summary": "List customer-authorized thread summaries under the separate list_threads grant.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "grant_id",
+          "consumer_ref"
+        ],
+        "properties": {
+          "grant_id": {
+            "type": "string"
+          },
+          "consumer_ref": {
+            "type": "string"
+          },
+          "limit": {
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "authorized_customer_data_read",
+        "authorized_customer_data_read"
+      ],
+      "examples": [
+        {
+          "description": "List customer-authorized thread summaries under the separate list_threads grant.",
+          "arguments": {
+            "grant_id": "example",
+            "consumer_ref": "example"
+          },
+          "human_invocation": "focusa sms threads",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_threads.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
       "command": "focusa temporal status|commit|revise|observe|forecast|preflight",
       "capability_id": "focusa.temporal.authority",
       "summary": "Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency.",
@@ -5742,6 +6598,46 @@
               {
                 "const": "settle-closure",
                 "type": "string"
+              },
+              {
+                "const": "time-now",
+                "type": "string"
+              },
+              {
+                "const": "time-status",
+                "type": "string"
+              },
+              {
+                "const": "deadline-list",
+                "type": "string"
+              },
+              {
+                "const": "deadline-inspect",
+                "type": "string"
+              },
+              {
+                "const": "deadline-conflicts",
+                "type": "string"
+              },
+              {
+                "const": "progress-status",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-list",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-inspect",
+                "type": "string"
+              },
+              {
+                "const": "opportunity-inspect",
+                "type": "string"
+              },
+              {
+                "const": "cancellation-inspect",
+                "type": "string"
               }
             ]
           },
@@ -5764,6 +6660,406 @@
             "type": "string"
           },
           "task_id": {
+            "type": "string"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "deadline_id": {
+            "type": "string"
+          },
+          "incident_id": {
+            "type": "string"
+          },
+          "cancellation_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "forecast_authority": {
+            "type": "object",
+            "required": [
+              "claim_kind",
+              "target_state",
+              "scope_revision",
+              "expires_at",
+              "estimator_version",
+              "cohort",
+              "evidence_basis",
+              "comparable_sample_count",
+              "all_attempt_sample_count",
+              "censoring_method",
+              "correlation_method",
+              "calibration_profile",
+              "grounding_status",
+              "baseline_ref",
+              "drift_policy_ref"
+            ],
+            "properties": {
+              "claim_kind": {
+                "const": "forecast",
+                "type": "string"
+              },
+              "target_state": {
+                "type": "string"
+              },
+              "scope_revision": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "estimator_version": {
+                "type": "string"
+              },
+              "cohort": {
+                "type": "string"
+              },
+              "evidence_basis": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable_sample_count": {
+                "type": "number"
+              },
+              "all_attempt_sample_count": {
+                "type": "number"
+              },
+              "censoring_method": {
+                "type": "string"
+              },
+              "correlation_method": {
+                "type": "string"
+              },
+              "calibration_profile": {
+                "type": "string"
+              },
+              "grounding_status": {
+                "const": "grounded",
+                "type": "string"
+              },
+              "baseline_ref": {
+                "type": "string"
+              },
+              "drift_policy_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "forecast_evaluation": {},
+          "high_consequence_packet": {},
+          "civil_time_packet": {},
+          "temporal_priority_packet": {},
+          "closure_packet": {},
+          "duration_ms": {
+            "type": "number"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "actual_ms": {
+            "type": "number"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "claim": {
+            "type": "object",
+            "required": [
+              "claim_id",
+              "revision",
+              "scope",
+              "kind",
+              "status",
+              "subject_ref",
+              "timezone",
+              "source",
+              "operator_confirmed",
+              "confidence",
+              "observed_at",
+              "effective_at",
+              "evidence_refs"
+            ],
+            "properties": {
+              "claim_id": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "number"
+              },
+              "scope": {
+                "type": "object",
+                "required": [
+                  "project_root",
+                  "continuity_id"
+                ],
+                "properties": {
+                  "project_root": {
+                    "type": "string"
+                  },
+                  "continuity_id": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "operator_id": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "kind": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "subject_ref": {
+                "type": "string"
+              },
+              "target_at": {
+                "type": "string"
+              },
+              "duration_ms": {
+                "type": "number"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "source_ref": {
+                "type": "string"
+              },
+              "operator_confirmed": {
+                "type": "boolean"
+              },
+              "confidence": {
+                "type": "string"
+              },
+              "uncertainty": {
+                "type": "object",
+                "properties": {
+                  "earliest_at": {
+                    "type": "string"
+                  },
+                  "latest_at": {
+                    "type": "string"
+                  },
+                  "coverage_probability": {
+                    "type": "number"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "observed_at": {
+                "type": "string"
+              },
+              "effective_at": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "supersedes_revision": {
+                "type": "number"
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "reason_code": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "status_preflight_read_or_confirmed_claim_write_or_observation",
+        "status_preflight_read_or_confirmed_claim_write_or_observation"
+      ],
+      "examples": [
+        {
+          "description": "Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency.",
+          "arguments": {},
+          "human_invocation": "focusa temporal status|commit|revise|observe|forecast|preflight",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_temporal_authority.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa time|deadline|estimate|progress|no-progress|lost-time|opportunity|cancellation",
+      "capability_id": "focusa.temporal.authority",
+      "summary": "Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "description": "Temporal operation; defaults to status.",
+            "anyOf": [
+              {
+                "const": "status",
+                "type": "string"
+              },
+              {
+                "const": "commit",
+                "type": "string"
+              },
+              {
+                "const": "revise",
+                "type": "string"
+              },
+              {
+                "const": "observe",
+                "type": "string"
+              },
+              {
+                "const": "forecast",
+                "type": "string"
+              },
+              {
+                "const": "preflight",
+                "type": "string"
+              },
+              {
+                "const": "migrate-signatures",
+                "type": "string"
+              },
+              {
+                "const": "high-consequence-preflight",
+                "type": "string"
+              },
+              {
+                "const": "capture-clock",
+                "type": "string"
+              },
+              {
+                "const": "resolve-civil-time",
+                "type": "string"
+              },
+              {
+                "const": "commit-priority",
+                "type": "string"
+              },
+              {
+                "const": "settle-closure",
+                "type": "string"
+              },
+              {
+                "const": "time-now",
+                "type": "string"
+              },
+              {
+                "const": "time-status",
+                "type": "string"
+              },
+              {
+                "const": "deadline-list",
+                "type": "string"
+              },
+              {
+                "const": "deadline-inspect",
+                "type": "string"
+              },
+              {
+                "const": "deadline-conflicts",
+                "type": "string"
+              },
+              {
+                "const": "progress-status",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-list",
+                "type": "string"
+              },
+              {
+                "const": "lost-time-inspect",
+                "type": "string"
+              },
+              {
+                "const": "opportunity-inspect",
+                "type": "string"
+              },
+              {
+                "const": "cancellation-inspect",
+                "type": "string"
+              }
+            ]
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "deadline_id": {
+            "type": "string"
+          },
+          "incident_id": {
+            "type": "string"
+          },
+          "cancellation_id": {
             "type": "string"
           },
           "idempotency_key": {

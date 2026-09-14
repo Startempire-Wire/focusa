@@ -17,6 +17,70 @@ use chrono::Utc;
 use rusqlite::Connection;
 use uuid::Uuid;
 
+#[test]
+fn device_token_restart_preserves_grants_and_rejects_corrupt_authority() {
+    let dir = temp_dir();
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+    let issued = "2020-01-01T00:00:00+00:00";
+    let expires = "2999-01-01T00:00:00+00:00";
+    let cases = [
+        (Some("[\"custom:read\"]"), issued, expires, true),
+        (Some("[]"), issued, expires, true),
+        (None, issued, expires, false),
+        (Some("{"), issued, expires, false),
+        (Some("{}"), issued, expires, false),
+        (Some("null"), issued, expires, false),
+        (Some("[1]"), issued, expires, false),
+        (Some("[\"read\"]"), "invalid-issued", expires, false),
+        (Some("[\"read\"]"), issued, "invalid-expiry", false),
+    ];
+    let p = SqlitePersistence::new(&cfg).unwrap();
+    for (i, (scopes, issued, expires, _)) in cases.iter().enumerate() {
+        p.put_device_token(
+            &format!("synthetic-token-{i}"),
+            &format!("synthetic-device-{i}"),
+            *scopes,
+            issued,
+            expires,
+            Some("test"),
+        )
+        .unwrap();
+    }
+    let before = p.list_device_tokens().unwrap();
+    drop(p);
+    let p = SqlitePersistence::new(&cfg).unwrap();
+    for (i, (_, _, _, valid)) in cases.iter().enumerate() {
+        let by_token = p.load_device_token_full(&format!("synthetic-token-{i}"));
+        let by_device = p.get_device_token_by_device_id(&format!("synthetic-device-{i}"));
+        if *valid {
+            let expected = if i == 0 {
+                vec!["custom:read".to_string()]
+            } else {
+                vec![]
+            };
+            let token = by_token.unwrap().unwrap();
+            let device = by_device.unwrap().unwrap();
+            assert_eq!(token.scopes, expected);
+            assert_eq!(device.scopes, expected);
+            assert_eq!(token.issued_at.to_rfc3339(), issued);
+            assert_eq!(token.expires_at.to_rfc3339(), expires);
+        } else {
+            assert!(
+                by_token.is_err(),
+                "case {i}: corrupt token authority accepted"
+            );
+            assert!(
+                by_device.is_err(),
+                "case {i}: corrupt device authority accepted"
+            );
+        }
+    }
+    assert_eq!(p.list_device_tokens().unwrap(), before);
+    drop(p);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
 fn sample_silent_session(dir: &std::path::Path) -> (SilentSession, SilentSessionEvent) {
     let session_id = SilentSessionId::new();
     let run_id = SilentSessionRunId::new();
@@ -139,6 +203,8 @@ fn test_event(turn_id: &str) -> EventLogEntry {
         machine_id: None,
         instance_id: None,
         session_id: None,
+        project_root: None,
+        continuity_id: None,
         thread_id: None,
         is_observation: false,
     }
@@ -174,6 +240,23 @@ fn sqlite_event_hash_chain_links_appended_events() {
     assert_eq!(rows[1].0, 1);
     assert_eq!(rows[1].1, rows[0].2);
     assert_ne!(rows[0].2, rows[1].2);
+}
+
+#[test]
+fn sqlite_event_round_trip_preserves_explicit_project_and_continuity_scope() {
+    let dir = temp_dir();
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+    let persistence = SqlitePersistence::new(&cfg).unwrap();
+    let mut event = test_event("scope-round-trip");
+    event.project_root = Some("/repo/homepage".to_string());
+    event.continuity_id = Some("homepage-main".to_string());
+    persistence.append_event(&event).unwrap();
+
+    let restored = persistence.events_since(None, None, 10).unwrap();
+    assert_eq!(restored.len(), 1);
+    assert_eq!(restored[0].project_root, event.project_root);
+    assert_eq!(restored[0].continuity_id, event.continuity_id);
 }
 
 #[test]

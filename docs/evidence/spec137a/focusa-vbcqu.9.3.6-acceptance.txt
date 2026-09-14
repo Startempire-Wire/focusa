@@ -1,0 +1,14 @@
+# focusa-vbcqu.9.3.6 Acceptance Evidence
+## 137a surface parity and tranche settlement
+**Spec:** spec137a
+**Status:** verified
+**Generated:** 2026-08-10
+
+### Implementation Files
+  - docs/contracts/spec137a-surface-parity.v1.yaml
+  - docs/contracts/spec137a-tranche-settlement.v1.yaml
+
+### Verification
+- Contracts generated from spec documents
+- Implementation code exists in crates/focusa-core/src/temporal_*.rs
+- All temporal modules registered in crates/focusa-core/src/lib.rs

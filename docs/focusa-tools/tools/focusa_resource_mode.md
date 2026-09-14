@@ -77,4 +77,4 @@ Likely next: `focusa_traverse`, `focusa_trajectory_view`, `focusa_workpoint_resu
 - CLI: `focusa resource mode`.
 - REST: `GET /v1/resource/mode`, `POST /v1/resource/mode`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c10f4e2e0af7479c4949219fed8b8b894b4286d0bea67821cab08749f23c7ae1`.
+- Descriptor digest: `sha256:9a3897779fa6ab2813d87af3543fca63b1e9f893977fc513dd71fc0a86daf493`.

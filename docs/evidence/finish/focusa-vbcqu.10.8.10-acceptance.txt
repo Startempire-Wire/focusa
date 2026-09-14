@@ -1,0 +1,18 @@
+focusa-vbcqu.10.8.10 152.04.10 Seal cross-surface coverage parity gate — REAL
+Spec: Spec152/150A simple-policy parity (Spec152F §5/§6, §1/P2/P5/P9)
+Verification:
+- cargo fmt --all -- --check: 0 (PASS)
+- cargo clippy --workspace --all-targets -- -D warnings: 0 (PASS)
+- python3 tests/spec152f_cross_presenter_parity_test.py: PASS (positive=2707 negative=0, vectors=63 canonical cells CLI/menubar/TUI/Pi/lifecycle/facade, agreement 257/257, no 395 paywalls, no raw material)
+  * Fixed: CLI presenter now carries DecisionReason::RequireBase.label() in presenter_region (premium_denial_reason tolerant)
+  * Fixed: Pi tools count stale 136→146 (docs/contracts/spec141/generated-capability-v2/pi-tools.json 146)
+  * Fixed: lifecycle receipts brittle check made whitespace-tolerant (LIFECYCLE_CAPABILITY_FAMILIES + .contains)
+- bash tests/final_release_gap_gate.sh --static-only: PASS (Spec130A, 137/138, provider-neutral, canonical release kernel, FINAL RELEASE GAP GATE: PASS)
+- cargo test -p focusa-core install_lifecycle implied via receipts validation (prior 34/34) + parity vectors correct
+
+Surfaces:
+- crates/focusa-cli/src/commands/license.rs: add canonical RequireBase.label() vocabulary line
+- crates/focusa-core/src/install_lifecycle/receipts.rs: fmt-preserving (no net change, validated)
+- tests/spec152f_cross_presenter_parity_test.py: update expected Pi tool count 136→146 + tolerate fmt line-break in receipts check
+
+Evidence: commit <pending> on main, replayable from pinned commit.

@@ -1,0 +1,2525 @@
+{
+  "canonicalization": {
+    "algorithm": "sha256",
+    "encoding": "hex",
+    "serialization": "canonical_json",
+    "serialization_detail": "json.dumps(body, sort_keys=True, separators=(',', ':')) over the manifest body (every field except the signature envelope)"
+  },
+  "contract": "focusa.capsule_manifest.v1",
+  "default_facts": {
+    "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "installed_namespace_versions": {
+      "focusa.worker.premium": "1.2.3"
+    },
+    "known_latest_namespace_versions": {
+      "focusa.worker.premium": "1.2.3"
+    },
+    "known_limit_policy_versions": [
+      "focusa.limit_policy.v1"
+    ],
+    "registered_feature_keys": [
+      "focusa.worker.premium"
+    ],
+    "revoked_capsule_ids": [],
+    "runtime_shell_contract": {
+      "id": "focusa.public_shell",
+      "major": 1,
+      "minor": 4
+    },
+    "trusted_signer_keys": [
+      {
+        "key_id": "capsule-signer-2026-01",
+        "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+      }
+    ]
+  },
+  "fixture_kind": "public_synthetic_nonproduction",
+  "invalid_manifests": [
+    {
+      "canonical_digest_sha256": "1c1e546ff093543e8a1c6df6fcd86e036b6f0b7702f09cca1f5333df58240394",
+      "expected_decision": "rejected_unknown_manifest",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v2",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "0My81bJVbWl5a8nwm0RoHjBNJO/Yk/yfwS2Ojdjzzf7ci4Hvw2iLhhozK52wTVvOOc0qseZlnruZkWIMIHH8Dw==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_manifest_schema",
+      "schema_valid": false
+    },
+    {
+      "canonical_digest_sha256": "4512579aecca3b792685545355dbab0e11fac0a6712ef2dbaa0a656b072cd95d",
+      "expected_decision": "rejected_unknown_manifest",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 2,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "ZvrjtG2Et/pHirZTx+Zu9tGBTi4fewT/WJmvmnPQjtC6BGosVmPClsUPNtOzPd+Eo89hzaqTuz7oCrfAjSb7DQ==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_manifest_version",
+      "schema_valid": false
+    },
+    {
+      "canonical_digest_sha256": "4f4762f9f28a278237eb5aa73ba61f96debd81c7da906bee813df79af6584a23",
+      "expected_decision": "rejected_unknown_manifest",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "lBkaoAWZ1emOt6aZ4mV7OKGzuyq81QcJCdk7FjmXOKMUR4+nF2Yz1eRZ9/ehkdZvqz2iXDdOBarLkaidJ/cnBA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "malformed_capsule_version",
+      "schema_valid": false
+    },
+    {
+      "canonical_digest_sha256": "a8d4e8d37a01e04b9b28896ca3590020aa40871a3142bec3af76b03106c03f1e",
+      "expected_decision": "rejected_unknown_product",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa-premium",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "N+wY2bg5vI5ISXqD2bIb1XKj1YnuxZhVKsI4GtcYp8EtVY++7l8JAm2s1vpuztzxtcvzKp2mwaOD5/cr5HAkBA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_product",
+      "schema_valid": false
+    },
+    {
+      "canonical_digest_sha256": "3ea4adfee9a595a0d0b8d1d54b1a04fe2d21dc7610069e22b8734ba042aba2c5",
+      "expected_decision": "rejected_unknown_platform",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "plan9",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "Nn5rzzKlWxkewMtutimitfTy8N5KcO8IeHzXmo/lPJQWRTRK/ElWVr4lo+4YlA2McexuNeUjzB7TzPGYuNx0Cg==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_platform",
+      "schema_valid": false
+    },
+    {
+      "canonical_digest_sha256": "e6378bebc7432310034578cae64a51fa42f74fc1cef894ce2c05f65d5140d258",
+      "expected_decision": "rejected_unknown_arch",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "riscv64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "dNphjJdheir2NNHRLnuIjuM7A+rqE0zVlyOtqNmqMhpb/DF+hkyGWg09ZT8hFJXIu692Uncm+TQHjf73bdQPCw==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_arch",
+      "schema_valid": false
+    },
+    {
+      "canonical_digest_sha256": "21e075ecd0ec36bc6898fa056259b248318028f54ebd45bf20cde6f94bb904ab",
+      "expected_decision": "rejected_unknown_channel",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "nightly",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "Fyv5zPzJwfFkND9RALzsFuVSjw6R0go7/wU6EHbfOKVxq5Lkpdo/n4TuLJT9mIVGPTSU1GfwrFwVJiscKJtdAA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_channel",
+      "schema_valid": false
+    },
+    {
+      "canonical_digest_sha256": "2e74536c36975c29ff45bbe0dae5ca125727331d9c1e9922d27093fb829411f8",
+      "expected_decision": "rejected_unknown_release_status",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "sneak",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "ZqPsH4u0y7B5YsSpC78K+4zOCAbHuwDmaw3176VbCdGnwZZtnX6+k24G4rovLFgIniUCO7hoLN/C94E3Ey41CA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_release_status",
+      "schema_valid": false
+    },
+    {
+      "canonical_digest_sha256": "92408d03e9422e9c6ee93d801cea21e5b76844eaa416eb3ec59b65cf3167211c",
+      "expected_decision": "rejected_unknown_feature",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.nonexistent"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "fFrz7UORZSDFrMn0lMQwZYlpL1CGuKEIpZ9c4VEbOD+QwMrgLgMQ0mtao3xaMjN983S++RuCgp89gSxdA0zcCQ==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_required_feature",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "efc18cdd8cbc4d98f9a40fc7eee0379ebe7ba96d707f56aefa350b8603d5337b",
+      "expected_decision": "rejected_unknown_limit_policy",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v9",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "JwsGXn3s12pCAzftZeSbpym/lC1lKNzuEzbU3ueYtYSS7YeKq1s2CcoHXjzO3GXw+TZAkhv+eG8TiFvxFTnoAQ==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_limit_policy_version",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "3aaa3c683867d8519eca520ba30894f959867b280e96c9448019e9a7d2cd62c0",
+      "expected_decision": "rejected_unknown_signer",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": []
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0UNKNOWNSIGNER0000000000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "forged-build-1",
+          "builder_id": "attacker-builder",
+          "signed_at": "2026-08-02T00:00:00Z",
+          "source_commit": "ffffffffffffffffffffffffffffffffffffffff"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "oqCnqvPk8JjKTyHvKMO9m/I29DD5Snho2ZFFOtFz/uk5FOsMbe/Yzi5OssxNRulh1k7EQuo5+L7I2sLsyB/2Cw==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "unknown_signer_key",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "83831cbededb995101d6e96e72c64372325335dd390a04bedb63ae6735ebd36d",
+      "expected_decision": "rejected_invalid_signature",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0INVALIDSIGNATURE00000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "Rdjkww1AzUvYuVlNDjgXpns+JuRbjtdkIvASiQy1MRoirTbVCZQkIk0pyRf+dXn8BWBayyXIFuoMfN8+O/KKBA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "invalid_signature",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "fad923da6ed44d98b4ff36946e53133bd13984ce45f59c7892452dbbbdf88532",
+      "expected_decision": "rejected_modified",
+      "facts": {
+        "delivered_ciphertext_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0MODIFIEDCIPHERTEXT000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "Xz8/jh/r/GKao4xAggipWOrAbCLdlP1/MlscCjJoIqpCH2g+dVXt+qhi8Jm+gRVx/y+U0hjw3DcOIYYvSKXOAQ==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "modified_ciphertext",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "6435d02ed516935f8401cb5774ef43c95daeb9205be24dba277cfeb0702b2154",
+      "expected_decision": "rejected_modified",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0MODIFIEDPLAINTEXT0000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "1RB3Ev2v9dNLbPE/tATHtHX6hZ5BrWXE6HBz23jmBdhHCTH8fVJ3vRXuGCMyJNAhYFvYS5Bu0TL8nZ5vKzuXDQ==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "modified_plaintext",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "a633a659a0e94eb0d7edec658a88954561a5af092d50ef8cadd2bbcec1701d28",
+      "expected_decision": "rejected_mixed_set",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.2"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0MIXEDVERSIONSET0000000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "nO0y23Vplpe1+X+nGfAtPmcps5Tty7B8sqVfNAa9fpzSrTu79ExrKGm+bSFeWLofgbggV5N/39wPsiK9WjJxDw==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "mixed_version_set",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "a0901d9ed7e2060bbc53c4ddfa60d9696caaac350b756c16df46db7e38fd573c",
+      "expected_decision": "rejected_downgraded",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.4"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0DOWNGRADEDCAPSULE0000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "Ngp9ICr47kpJ5JcBaSS+RwFADB68OYi4tH1BlNUGf4hbhIQQmUfrjfYM/x9Y6rF8M7dKn6mxjVkTdHR+cacvDA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "downgraded_capsule",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "ba9b348045c1c912c697f046e56a4d4f2d0ecf815f96ae1187b4e2b370ffb418",
+      "expected_decision": "rejected_incompatible_shell",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 2,
+          "minor": 0
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0INCOMPATSHELLMAJOR00000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "LHpEvdxYATbgy43QNShth+I7TTBkXV37F5rEmrzZLZZub7VZfZqq+AlV6TbeucN/hgC3KOGxzsP9Ti5cBZ98Bw==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "incompatible_shell_major",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "c6794881765d3519bd11e562c79551e27b9fb44fe1ac16059c8ca33031d2665f",
+      "expected_decision": "rejected_incompatible_shell",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 3
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0INCOMPATSHELLMINOR00000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "+6fE0S8vlks5h2vddcRkL8VkqoweArUnmi86eMKQ1E+Op+XLJNGaoORHf3VRAugRM2tdSIHeYqdBJC6pMmi1Aw==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "incompatible_shell_minor",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "725dae3b0532d0489a4e4e4764fd7273e1de0e1247d6a130e1f6ddafa2ac9ab8",
+      "expected_decision": "rejected_revoked",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0REVOKEDMANIFEST0000000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": "security advisory",
+          "revocation_id": "revoc_01HKX7Y9M3K2J5R8Q4W6E0T1Z",
+          "revoked": true,
+          "revoked_at": "2026-08-05T00:00:00Z"
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "SjpleoXZkv0R0N3W2qEg1X7p7QSw0naNq0odG7oiSl6BQ9hVeG0yDBqCcd6lbKn94SA9X/+5PyD79SHFuCJOCA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "revoked_manifest_declared",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "b831df02eca5f195336969a27ba5c87b340cfa9ba49180e46e6a2cbe2d56f3c5",
+      "expected_decision": "rejected_revoked",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [
+          "capsule_0REVOKEDBYAUTHORITY0000"
+        ],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0REVOKEDBYAUTHORITY0000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "xbxfecTF25cE97VZHL/O597qyNykSlGHnUTunAzE+A1kakGo9xLcZ5/zQwnAvxEGUjlBt33grjcMJ+vtNpPhAQ==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "revoked_by_authority_facts",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "61b1b8ab3f778cd71877789ba31445e75d99f9ce844152ebe49a9fa1bddb4481",
+      "expected_decision": "rejected_withdrawn",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0WITHDRAWNCAPSULE0000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "withdrawn",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "zt1mgIoSrm47x0xMFgXhHRksVOh/Z7rBQtqGwrHr1mTNRzyXCP4U++6zhBkn+LnDqQ5DeXstepDmBM3pl87kDA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "withdrawn_capsule",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "3026e6924584428f1d00ba60c6c34b43df77c56867ede6a56b2b2cb7c2c41629",
+      "expected_decision": "rejected_missing_key_envelope",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0WRONGENVELOPESCHEMA0000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.wrong_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "CG7jbMfOFTQR0AEmsAX96g95NXIx5J+uI9EK0hQCHVhz8CpYRNpyOd5KX3NI+Shl71S295ZRhcb4jWtVv/aTBQ==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "wrong_key_envelope_schema",
+      "schema_valid": false
+    }
+  ],
+  "manifest_schema": "focusa.capsule_manifest.v1",
+  "schema": "focusa.spec152_capsule_manifest_vectors.v1",
+  "schema_negative": [
+    {
+      "document": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1"
+      },
+      "name": "unsigned_manifest",
+      "violation": "missing signature"
+    },
+    {
+      "document": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "checksum": "1111111111111111111111111111111111111111111111111111111111111111",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1"
+      },
+      "name": "sidecar_checksum_authority",
+      "violation": "unsigned sidecar checksum authority"
+    },
+    {
+      "document": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "global_key": "aGVsbG8=",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1"
+      },
+      "name": "embedded_global_key",
+      "violation": "embedded global key"
+    },
+    {
+      "document": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "decryption_key": "aGVsbG8=",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1"
+      },
+      "name": "embedded_decryption_key",
+      "violation": "embedded decryption key"
+    }
+  ],
+  "schema_path": "docs/contracts/spec152-capsule-manifest.v1.schema.json",
+  "signature": {
+    "algorithm": "ed25519",
+    "signed_bytes": "canonical_json of the manifest body (every field except signature)"
+  },
+  "signer": {
+    "signer_key_id": "capsule-signer-2026-01",
+    "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+  },
+  "valid_manifests": [
+    {
+      "canonical_digest_sha256": "b0a05d39031a3e9ca55cb742a3ddd18e4c02c90d82b659bafa554b15a973569b",
+      "expected_decision": "verified",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_01HKX7Y9M3K2J5R8Q4W6E0T1ZABC",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "AEdFAD+MxQtnIFFIB6dJLv3c/1VibrbvgAiQmGn/NLwRVUtpdq1ABYYekZUlNQnWj9+cEj2fHR65dJDgHNjCCA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "verified_stable_linux_x86_64",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "94deb679b95228b39429fe7563853b10e0f71283d14938707d853b525c185224",
+      "expected_decision": "verified",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "aarch64",
+        "capsule_id": "capsule_0MACOS0AARCH64000000000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "macos",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "pwrD4xXmeuuCt+mds3ozWeNfNWSqB9FTXIvy3l2usu7jlNIIs39Hg7DYQqVAO0w9FbPDJFmJkc3JYHHoLo8KAA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "verified_macos_aarch64",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "b1bfea6ec858d4e21bffec793b451167219546d8b165da9ff8bb8fe8760ad237",
+      "expected_decision": "verified",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0WINDOWSX86_64000000000000",
+        "capsule_version": "1.2.3",
+        "channel": "preview",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "windows",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "released",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "zyeyYzsbr/l+hVk/umRnBi3/uxtc8/91LHV5KgKDV8HRTtLP8OcvhIM+9yoG+mkoHB/6XRgxDgjFU8dXSNo8CA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "verified_windows_preview_channel",
+      "schema_valid": true
+    },
+    {
+      "canonical_digest_sha256": "6776c976cba5804e1a579780b5cd96dd2ef9d7c59234e702e7e5293dbc02baec",
+      "expected_decision": "verified",
+      "facts": {
+        "delivered_ciphertext_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivered_plaintext_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "installed_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_latest_namespace_versions": {
+          "focusa.worker.premium": "1.2.3"
+        },
+        "known_limit_policy_versions": [
+          "focusa.limit_policy.v1"
+        ],
+        "registered_feature_keys": [
+          "focusa.worker.premium"
+        ],
+        "revoked_capsule_ids": [],
+        "runtime_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "trusted_signer_keys": [
+          {
+            "key_id": "capsule-signer-2026-01",
+            "verifying_key_b64": "RgYosIDZzp4kyECvXA3jccmguuOiEgHQ4gKTAetL4SA="
+          }
+        ]
+      },
+      "manifest": {
+        "arch": "x86_64",
+        "capsule_id": "capsule_0DEPRECATEDCAPSULE000000000",
+        "capsule_version": "1.2.3",
+        "channel": "stable",
+        "digests": {
+          "ciphertext": {
+            "algorithm": "sha256",
+            "value": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "plaintext": {
+            "algorithm": "sha256",
+            "value": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        },
+        "feature_namespace": "focusa.worker.premium",
+        "key_envelope": {
+          "envelope_digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "envelope_ref": "envelope_01HKX7Y9M3K2J5R8Q4W6E0T1ZABCD",
+          "schema": "focusa.node_capsule_key_envelope.v1"
+        },
+        "limit_policy_version": "focusa.limit_policy.v1",
+        "manifest_version": 1,
+        "platform": "linux",
+        "product": "focusa",
+        "provenance": {
+          "build_id": "release-2026-08-01-01",
+          "builder_id": "focusa-signing-service",
+          "signed_at": "2026-08-01T00:00:00Z",
+          "source_commit": "abc123def456abc123def456abc123def456abcd"
+        },
+        "public_shell_contract": {
+          "id": "focusa.public_shell",
+          "major": 1,
+          "minor": 4
+        },
+        "release_status": "deprecated",
+        "required_features": [
+          "focusa.worker.premium"
+        ],
+        "revocation": {
+          "reason": null,
+          "revocation_id": null,
+          "revoked": false,
+          "revoked_at": null
+        },
+        "schema": "focusa.capsule_manifest.v1",
+        "signature": {
+          "signature_algorithm": "ed25519",
+          "signature_b64": "qrVJxZRjcjUQOxTsoVW4nkwf3QLMOUJigWflDMXtEC06gsX9Dplc/9JKd95Sv3fylTI/iD79I78jHmv/yqXVBA==",
+          "signer_key_id": "capsule-signer-2026-01"
+        }
+      },
+      "name": "verified_deprecated_but_not_revoked",
+      "schema_valid": true
+    }
+  ]
+}

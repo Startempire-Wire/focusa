@@ -75,4 +75,4 @@ Likely next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_tree_sn
 - CLI: `focusa lineage extract`.
 - REST: `GET /v1/lineage/tree`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:dc820e03a067d90a6562d56bfe1e0cb462fcc8be2568f5b0692f00b27c2a4d1d`.
+- Descriptor digest: `sha256:e5c931d48d0b9f56905ac3e743d1af346b86d0552aa0b579c0095b45afcd539d`.

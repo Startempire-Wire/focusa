@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:c7392ed838c10d4117584ee11a47c93214e4a887aeec4bd838cf3c1bb570305f",
+  "registry_digest": "sha256:ec9775458f22ba12fee89dbc180ded2497e9e7fa5ca2ebf6c2c545e8352c8d5a",
   "tools": [
     {
       "type": "function",
@@ -244,6 +244,104 @@
                   "type": "string"
                 }
               ]
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_bg_run",
+        "description": "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "name",
+            "command"
+          ],
+          "properties": {
+            "name": {
+              "minLength": 1,
+              "description": "Human job name (appears in the completion notification).",
+              "type": "string"
+            },
+            "command": {
+              "minLength": 1,
+              "description": "The full command line to execute (after -- semantics).",
+              "type": "string"
+            },
+            "cwd": {
+              "minLength": 1,
+              "description": "Working directory (defaults to the current session cwd).",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_bg_run_many",
+        "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "jobs"
+          ],
+          "properties": {
+            "jobs": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "command"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "description": "Job name (appears in its completion notification).",
+                    "type": "string"
+                  },
+                  "command": {
+                    "minLength": 1,
+                    "description": "Full command line to execute.",
+                    "type": "string"
+                  },
+                  "cwd": {
+                    "minLength": 1,
+                    "description": "Working directory override.",
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_bg_status",
+        "description": "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "minLength": 1,
+              "description": "Optional job id; omit to list recent jobs.",
+              "type": "string"
             }
           },
           "additionalProperties": false
@@ -739,6 +837,49 @@
     {
       "type": "function",
       "function": {
+        "name": "focusa_callgraph_observe",
+        "description": "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "run_id"
+          ],
+          "properties": {
+            "run_id": {
+              "description": "CallGraph run id.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_callgraph_validate",
+        "description": "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when validating a CallGraph definition deterministically before any create or dispatch action. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "graph"
+          ],
+          "properties": {
+            "graph": {
+              "additionalProperties": true,
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "focusa_canonical_instruction_amendment_activate",
         "description": "Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
@@ -775,6 +916,24 @@
           "properties": {
             "request": {
               "description": "Typed amendment proposal envelope."
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_cockpit_projection",
+        "description": "Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation. Use it when Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "project_root": {
+              "description": "Project root scope (defaults to the session cwd).",
+              "type": "string"
             }
           },
           "additionalProperties": false
@@ -1150,6 +1309,137 @@
     {
       "type": "function",
       "function": {
+        "name": "focusa_credentials_verify",
+        "description": "Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "requirement",
+            "grants"
+          ],
+          "properties": {
+            "requirement": {
+              "type": "object",
+              "required": [
+                "schema",
+                "requirement_id",
+                "project_scope_ref",
+                "workstream_ref",
+                "callgraph_frame_ref",
+                "attempt_generation",
+                "credential_role_ref",
+                "required_operation",
+                "required_exposure_mode",
+                "exact_consumer_ref",
+                "exact_target_refs",
+                "validity_minimum_seconds",
+                "use_count_required",
+                "evidence_requirement_refs"
+              ],
+              "properties": {
+                "schema": {
+                  "type": "string"
+                },
+                "requirement_id": {
+                  "type": "string"
+                },
+                "project_scope_ref": {
+                  "type": "string"
+                },
+                "workstream_ref": {
+                  "type": "string"
+                },
+                "callgraph_frame_ref": {
+                  "type": "string"
+                },
+                "attempt_generation": {
+                  "minimum": 0,
+                  "maximum": 4294967295,
+                  "type": "integer"
+                },
+                "credential_role_ref": {
+                  "type": "string"
+                },
+                "required_operation": {
+                  "anyOf": [
+                    {
+                      "const": "use",
+                      "type": "string"
+                    },
+                    {
+                      "const": "reveal",
+                      "type": "string"
+                    },
+                    {
+                      "const": "manage",
+                      "type": "string"
+                    },
+                    {
+                      "const": "rotate",
+                      "type": "string"
+                    },
+                    {
+                      "const": "revoke",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "required_exposure_mode": {
+                  "type": "string"
+                },
+                "exact_consumer_ref": {
+                  "type": "string"
+                },
+                "exact_target_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "required_auth_challenge_support": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "precondition_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "validity_minimum_seconds": {
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "type": "integer"
+                },
+                "use_count_required": {
+                  "minimum": 0,
+                  "maximum": 4294967295,
+                  "type": "integer"
+                },
+                "evidence_requirement_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "grants": {
+              "type": "array",
+              "items": {}
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "focusa_current_focus",
         "description": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). Use it when Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
@@ -1161,6 +1451,42 @@
           "properties": {
             "focus": {
               "description": "Current focus: what you are actively working on (1-3 sentences, max 300 chars).",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_daemon_routing_status",
+        "description": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Use it when Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "registry",
+            "project_root",
+            "continuity_id",
+            "working_subpath_id",
+            "native_session_id"
+          ],
+          "properties": {
+            "registry": {
+              "description": "Canonical daemon registry projection from the controller."
+            },
+            "project_root": {
+              "type": "string"
+            },
+            "continuity_id": {
+              "type": "string"
+            },
+            "working_subpath_id": {
+              "type": "string"
+            },
+            "native_session_id": {
               "type": "string"
             }
           },
@@ -1444,6 +1770,150 @@
     {
       "type": "function",
       "function": {
+        "name": "focusa_epistemic_operation",
+        "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "operation_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "anyOf": [
+                {
+                  "const": "prediction.question.create",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.information_set.commit",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.commit",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.supersede",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.get",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.list",
+                  "type": "string"
+                },
+                {
+                  "const": "outcome.claim",
+                  "type": "string"
+                },
+                {
+                  "const": "outcome.dispute",
+                  "type": "string"
+                },
+                {
+                  "const": "outcome.resolve",
+                  "type": "string"
+                },
+                {
+                  "const": "outcome.correct",
+                  "type": "string"
+                },
+                {
+                  "const": "prediction.evaluate",
+                  "type": "string"
+                },
+                {
+                  "const": "calibration.report",
+                  "type": "string"
+                },
+                {
+                  "const": "metacognition.signal.capture",
+                  "type": "string"
+                },
+                {
+                  "const": "metacognition.reflect",
+                  "type": "string"
+                },
+                {
+                  "const": "metacognition.adjustment.propose",
+                  "type": "string"
+                },
+                {
+                  "const": "metacognition.adjustment.evaluate",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.candidate.decide",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.apply",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.transfer.resolve",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.retrieve",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.conflicts",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.expire",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.supersede",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.revoke",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.rollback",
+                  "type": "string"
+                },
+                {
+                  "const": "learning.consolidate",
+                  "type": "string"
+                },
+                {
+                  "const": "self_model.get",
+                  "type": "string"
+                }
+              ]
+            },
+            "id": {
+              "description": "Value for canonical {id} path segments.",
+              "type": "string"
+            },
+            "event": {
+              "description": "Typed ScopedAuthorityEvent required for mutations."
+            },
+            "project_root": {
+              "description": "Explicit or current verified project root.",
+              "type": "string"
+            },
+            "continuity_id": {
+              "description": "Explicit or current continuity id.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "focusa_evidence_capture",
         "description": "Capture a bounded evidence ref/result and optionally link it to the active Workpoint. Use it when Capture a bounded evidence ref/result and optionally link it to the active Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
@@ -1511,6 +1981,39 @@
             "recovery": {
               "description": "What was done to recover or workaround.",
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_fast_forward",
+        "description": "Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "multiplier",
+            "work_items"
+          ],
+          "properties": {
+            "multiplier": {
+              "description": "Speed multiplier: 2, 4, 6, 8...",
+              "type": "number"
+            },
+            "work_items": {
+              "type": "array",
+              "items": {
+                "description": "Work item refs to divide across lanes.",
+                "type": "string"
+              }
+            },
+            "policy_max_turns_per_session": {
+              "description": "Per-lane turn cap (default 12).",
+              "type": "number"
             }
           },
           "additionalProperties": false
@@ -3800,6 +4303,337 @@
     {
       "type": "function",
       "function": {
+        "name": "focusa_sms_checkpoint",
+        "description": "Create and verify an encrypted atomic connector checkpoint. Returns value-free receipt metadata only. Use it when Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "grant_id",
+            "consumer_ref",
+            "confirm"
+          ],
+          "properties": {
+            "grant_id": {
+              "type": "string"
+            },
+            "consumer_ref": {
+              "type": "string"
+            },
+            "confirm": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_enrollment",
+        "description": "Read value-free customer-owned connector enrollment status. Use it when Read value-free customer-owned connector enrollment status. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_events",
+        "description": "Read bounded value-free broker audit events. Use it when Read bounded value-free communications audit events. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "grant_id",
+            "consumer_ref"
+          ],
+          "properties": {
+            "grant_id": {
+              "type": "string"
+            },
+            "consumer_ref": {
+              "type": "string"
+            },
+            "since": {
+              "type": "string"
+            },
+            "limit": {
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100,
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_health",
+        "description": "Read value-free connector/checkpoint health. Never returns messages, cookies, pairing state, or OTP values. Use it when Read value-free connector and encrypted-checkpoint health. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_otp_challenge",
+        "description": "Register an exact provider/target challenge before requesting OTP delivery. Returns a handle, never an OTP. Use it when Register an exact provider and target challenge before OTP delivery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "provider",
+            "target_handle",
+            "consumer_ref",
+            "grant_id"
+          ],
+          "properties": {
+            "provider": {
+              "type": "string"
+            },
+            "target_handle": {
+              "type": "string"
+            },
+            "consumer_ref": {
+              "type": "string"
+            },
+            "grant_id": {
+              "type": "string"
+            },
+            "ttl_seconds": {
+              "minimum": 30,
+              "maximum": 600,
+              "default": 300,
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_otp_inject",
+        "description": "Inject one eligible OTP into its exact bound target. The OTP value never enters model context or tool output. Use it when Inject one eligible OTP into its exact bound target without exposing the value to model context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "challenge_handle",
+            "target_handle",
+            "consumer_ref",
+            "grant_id"
+          ],
+          "properties": {
+            "challenge_handle": {
+              "type": "string"
+            },
+            "target_handle": {
+              "type": "string"
+            },
+            "consumer_ref": {
+              "type": "string"
+            },
+            "grant_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_read_thread",
+        "description": "Read a bounded customer-authorized thread. OTP grants do not authorize this tool. Use it when Read one bounded customer-authorized thread; OTP authority never implies message-read authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "thread_handle",
+            "grant_id",
+            "consumer_ref"
+          ],
+          "properties": {
+            "thread_handle": {
+              "type": "string"
+            },
+            "grant_id": {
+              "type": "string"
+            },
+            "consumer_ref": {
+              "type": "string"
+            },
+            "limit": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_revoke",
+        "description": "Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "connector_id",
+            "grant_id",
+            "consumer_ref",
+            "confirm"
+          ],
+          "properties": {
+            "connector_id": {
+              "type": "string"
+            },
+            "grant_id": {
+              "type": "string"
+            },
+            "consumer_ref": {
+              "type": "string"
+            },
+            "confirm": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_search",
+        "description": "Search customer-authorized message scope with bounded results. Use it when Search separately authorized message scope with bounded results. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "query",
+            "grant_id",
+            "consumer_ref"
+          ],
+          "properties": {
+            "query": {
+              "minLength": 1,
+              "maxLength": 500,
+              "type": "string"
+            },
+            "grant_id": {
+              "type": "string"
+            },
+            "consumer_ref": {
+              "type": "string"
+            },
+            "limit": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_send",
+        "description": "Send one customer-authorized message. Requires separate send grant, idempotency key, consumer attribution, and confirm=true. Use it when Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "recipient_handle",
+            "body",
+            "idempotency_key",
+            "grant_id",
+            "consumer_ref",
+            "confirm"
+          ],
+          "properties": {
+            "recipient_handle": {
+              "type": "string"
+            },
+            "body": {
+              "minLength": 1,
+              "maxLength": 5000,
+              "type": "string"
+            },
+            "idempotency_key": {
+              "type": "string"
+            },
+            "grant_id": {
+              "type": "string"
+            },
+            "consumer_ref": {
+              "type": "string"
+            },
+            "confirm": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_sms_threads",
+        "description": "List customer-authorized thread summaries under a separately granted list_threads capability. Use it when List customer-authorized thread summaries under the separate list_threads grant. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "grant_id",
+            "consumer_ref"
+          ],
+          "properties": {
+            "grant_id": {
+              "type": "string"
+            },
+            "consumer_ref": {
+              "type": "string"
+            },
+            "limit": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "focusa_state_hygiene_apply",
         "description": "Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. Use it when Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
@@ -3880,6 +4714,46 @@
                 {
                   "const": "settle-closure",
                   "type": "string"
+                },
+                {
+                  "const": "time-now",
+                  "type": "string"
+                },
+                {
+                  "const": "time-status",
+                  "type": "string"
+                },
+                {
+                  "const": "deadline-list",
+                  "type": "string"
+                },
+                {
+                  "const": "deadline-inspect",
+                  "type": "string"
+                },
+                {
+                  "const": "deadline-conflicts",
+                  "type": "string"
+                },
+                {
+                  "const": "progress-status",
+                  "type": "string"
+                },
+                {
+                  "const": "lost-time-list",
+                  "type": "string"
+                },
+                {
+                  "const": "lost-time-inspect",
+                  "type": "string"
+                },
+                {
+                  "const": "opportunity-inspect",
+                  "type": "string"
+                },
+                {
+                  "const": "cancellation-inspect",
+                  "type": "string"
                 }
               ]
             },
@@ -3902,6 +4776,18 @@
               "type": "string"
             },
             "task_id": {
+              "type": "string"
+            },
+            "subject_ref": {
+              "type": "string"
+            },
+            "deadline_id": {
+              "type": "string"
+            },
+            "incident_id": {
+              "type": "string"
+            },
+            "cancellation_id": {
               "type": "string"
             },
             "idempotency_key": {
@@ -4207,7 +5093,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tool_doctor",
-        "description": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5306,6 +6192,27 @@
             },
             "current_ask": {
               "description": "Optional latest operator ask used to compute current-action authority; defaults to Pi current ask.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_workset_projection",
+        "description": "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "workset_id"
+          ],
+          "properties": {
+            "workset_id": {
+              "description": "Workset id.",
               "type": "string"
             }
           },

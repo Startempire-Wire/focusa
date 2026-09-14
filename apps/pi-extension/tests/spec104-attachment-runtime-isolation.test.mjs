@@ -19,6 +19,75 @@ try {
   for (const [root, id] of [["/tmp/project-a", "project:a"], ["/tmp/project-b", "project:b"]]) {
     scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: id, root_path: root, canonical_name: id, fingerprint: `fingerprint:${id}` });
   }
+  const bootstrapA = state.makeSessionBootstrapAttachmentKey("promoted-session-a");
+  const bootstrapB = state.makeSessionBootstrapAttachmentKey("promoted-session-b");
+  await state.runWithAttachmentRuntime(bootstrapA, async () => {
+    const runtime = state.getAttachmentRuntime();
+    runtime.localDecisions = ["bootstrap-a"];
+    const promoted = state.promoteCurrentSessionAttachment({
+      projectRoot: "/tmp/project-a",
+      continuityId: "promoted-cont-a",
+      sessionId: "promoted-session-a",
+    });
+    assert.equal(state.currentAttachmentKey().session_id, "promoted-session-a");
+    assert.equal(state.getAttachmentRuntime(), runtime, "promotion must re-key, not clone, recovered state");
+    assert.deepEqual(state.getAttachmentRuntime().localDecisions, ["bootstrap-a"]);
+    await Promise.resolve();
+    assert.equal(
+      state.currentAttachmentKey().workstream.continuity_id,
+      "promoted-cont-a",
+      "promoted AsyncLocalStorage key must survive await boundaries"
+    );
+    assert.equal(JSON.parse(process.env.FOCUSA_ATTACHMENT_KEY_V1).session_id, promoted.session_id);
+  });
+  await state.runWithAttachmentRuntime(bootstrapB, async () => {
+    state.getAttachmentRuntime().localDecisions = ["bootstrap-b"];
+    state.promoteCurrentSessionAttachment({
+      projectRoot: "/tmp/project-b",
+      continuityId: "promoted-cont-b",
+      sessionId: "promoted-session-b",
+    });
+  });
+  assert.equal(
+    bootstrapA.workstream.continuity_id,
+    "extension-bootstrap",
+    "promotion must never mutate a bootstrap key object"
+  );
+  const promotedA = state.makeAttachmentKey({
+    projectRoot: "/tmp/project-a",
+    continuityId: "promoted-cont-a",
+    sessionId: "promoted-session-a",
+  });
+  const promotedB = state.makeAttachmentKey({
+    projectRoot: "/tmp/project-b",
+    continuityId: "promoted-cont-b",
+    sessionId: "promoted-session-b",
+  });
+  assert.deepEqual(state.getAttachmentRuntime(promotedA).localDecisions, ["bootstrap-a"]);
+  assert.deepEqual(state.getAttachmentRuntime(promotedB).localDecisions, ["bootstrap-b"]);
+  state.getAttachmentRuntime(promotedA).backgroundJobs.running.set("job-a", {
+    name: "gate-a",
+    startedAt: "t0",
+  });
+  state.getAttachmentRuntime(promotedA).backgroundJobs.recent.push({
+    name: "prior-a",
+    status: "completed",
+    exitCode: 0,
+  });
+  assert.equal(state.getAttachmentRuntime(promotedB).backgroundJobs.running.size, 0);
+  assert.deepEqual(state.getAttachmentRuntime(promotedB).backgroundJobs.recent, []);
+  assert.equal(
+    state.getAttachmentRuntime(promotedA).backgroundJobs.running.get("job-a")?.name,
+    "gate-a",
+    "background progress must remain partitioned by exact attachment runtime"
+  );
+  assert.equal(
+    state.attachmentRuntimeRegistry.boundSessionAttachment("promoted-session-a")?.workstream.continuity_id,
+    "promoted-cont-a"
+  );
+  assert.equal(state.clearPublishedAttachmentEnvironment("promoted-session-a"), false);
+  assert.equal(state.clearPublishedAttachmentEnvironment("promoted-session-b"), true);
+
   const trajectorySnapshot = (root, continuityId, scopeId, goal) => ({
     trajectory_id: `trajectory:${scopeId}:${continuityId}`,
     project_root: root,

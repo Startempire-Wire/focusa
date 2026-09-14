@@ -1747,8 +1747,3 @@ Focusa should not ask agents to jump from idea to implementation.
 Focusa should make the idea pass through structured thought, adversarial pressure, evidence grounding, operator approval, task decomposition, and proof.
 
 Spec120 turns specification into a governed, replayable, operator-controlled Focusa workflow.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-verification-disputes -->
-## Spec 144 verification-dispute integration
-
-The Adversarial Spec Workbench supplies judgmental challenge/synthesis and operator gates for verification conflicts that cannot be resolved mechanically. A VerificationAppeal binds the original finding, counterevidence, requirements, snapshot, prior assignments, requested remedy, and conflict-of-interest profile. The synthesis arbiter remains advisory until the registered PRE/Spec 136/operator path records a disposition.

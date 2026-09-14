@@ -1,0 +1,173 @@
+Spec 172 acceptance record
+Work item: focusa-vbcqu.20.15.42
+Title: 172.05.11 Seal Spec 172 closure and wire release dependencies
+Implementation commit: `5bb40f08` (feat(spec172): seal Spec 172 closure with
+final closure receipt test; see git log for this atom)
+Recorded at: 2026-08-09 (worktree execution, atom/focusa-vbcqu.20.15.42 on
+local/luna-152f-reducer)
+
+Exact surfaces
+- tests/spec172_final_closure_test.py (NEW — the Spec 172 final closure
+  receipt test, i.e. the exact verification for 172.05.11)
+- docs/evidence/spec172/focusa-vbcqu.20.15.42-acceptance.txt (this record)
+- No contract, generator, workflow, source, or other test file was modified
+  by this atom; the committed Spec 172 taskgraph, reconciliation map, Spec
+  152 final-audit/release-blocker/document-set contracts, and release
+  governance snapshots are audited read-only. The Spec 172 build-independent
+  gate discovers every tests/spec172_*.py by glob, so the new closure test
+  joins the gate with zero inventory edits.
+
+Bounded result
+- Added tests/spec172_final_closure_test.py: one deterministic, stdlib-only,
+  fail-closed closure receipt test that cannot pass with a missing child
+  record, a stale taskgraph, an uncovered reconciliation requirement, a
+  broken Spec152E/F anti-bypass edge, a weakened governance closure, a
+  cyclic dependency graph, or an unblocked stable publication. It exits 0
+  only when the complete closure chain is present in the committed tree:
+  * Taskgraph closure contract — the Spec 172 taskgraph
+    (docs/contracts/spec172-implementation-taskgraph.v1.json) has 42 tasks
+    from focusa-vbcqu.20.15.1 to focusa-vbcqu.20.15.42 with phase counts
+    00:5 01:4 02:8 03:7 04:7 05:11, internal edges 114, external edges 56,
+    and every phase file regenerates byte-identically (sha256 zero-diff).
+  * Zero uncovered reconciliation items — the Spec 152↔Spec 172
+    reconciliation map (docs/contracts/spec172-spec152-reconciliation-
+    map.v1.json) covers all 28 enumerated requirements (covered=28 total=28
+    uncovered=0) across roots spec152e/spec152f/spec172 with
+    single_owner_no_duplicate implementation rules; its committed sha256
+    matches the taskgraph binding exactly.
+  * Child-atom audit — all 42 children audited against their done
+    conditions and evidence paths; 41 evidence records exist in
+    docs/evidence/spec172 (the seal task's own record is written by this
+    atom), every record is git-tracked, names its work item, carries
+    verification content (verification/validation section or real exit
+    code), cites no unfinished-acceptance markers, and every named
+    implementation/exact-source commit SHA resolves in this repository
+    (no fabricated refs). All ten phase-05 receipts (20.15.32..20.15.41)
+    satisfy the strict receipt template (Implementation commit / Bounded
+    result / Exact verification / Rollback / "No push, deploy, release,
+    merge, or Beads mutation was performed."); phase-05 records 33..41
+    additionally bind a resolvable exact implementation commit SHA
+    (20.15.32 is the documented single-commit "see git log for this atom"
+    exception listed as exact-SHA-bound-set-excluded in the 20.15.41
+    installed-acceptance receipt; its record is not rewritten by this
+    atom).
+  * Spec152E/F cannot bypass Spec172 — the committed downstream release
+    edges wire the Spec 152F final work item (focusa-vbcqu.20.14.52)
+    behind this seal (blocker focusa-vbcqu.20.15.42) and the Spec 152E
+    final milestone (focusa-vbcqu.20.13.63) behind Spec 152F (blocker
+    focusa-vbcqu.20.14.52, per the Spec 152F taskgraph
+    downstream_release_edges); every Spec152E/F path to REL acceptance
+    passes through this closure. The full six-edge downstream set
+    (20.13.3←20.15.8, 20.13.20←20.15.10, 20.14.6←20.15.18,
+    20.14.7←20.15.18, 20.14.49←20.15.40, 20.14.52←20.15.42) is asserted
+    exactly.
+  * Zero invalid closure — the governance gate is re-derived from the
+    committed ledger (scripts/reduce-locked-release-technical-closure.py
+    --check, byte-identical) and reports status=verified,
+    invalid_closed_count=0, invalid_closed_ids=[] with mappings=465 while
+    the REL wiring successors (focusa-vbcqu.20.14.51, 20.14.52, 20.13.62,
+    20.13.63) remain technically pending — REL.4–REL.7 stay dependent on
+    this closure and are never administratively closed.
+  * Stable publication remains blocked until REL acceptance — the Spec 152
+    final-audit contract (docs/contracts/spec152-final-audit-status.v1.yaml)
+    keeps spec172_registered=true, distribution_status=blocked,
+    migration_cutover_accepted=false, all_platform_final_candidate_verified
+    =false, and the publication_rule "forbidden until
+    focusa-vbcqu.20.13.63 and focusa-vbcqu.20.14.52 close with linked
+    acceptance evidence; the Spec 172 final acceptance work item must also
+    close"; the release-blocker summary stays
+    blocked_for_new_evaluator_customer_and_stable_distribution; the Spec
+    152 document set registers the Spec 172 addendum as the narrow
+    license-type-and-surface-governance authority.
+  * Acyclic final dependency proof — an independent Kahn traversal of the
+    114 internal taskgraph edges visits all 42/42 tasks (zero internal
+    cycles); the committed taskgraph contract test re-proves cycles=0; the
+    literal Beads edge command (bd dep cycles --json) exits 0 with
+    cycles=[] count=0.
+  * FORBIDDEN coverage — no anonymous capability, local/self-issued grant,
+    caller-controlled product/price/License Type/family/feature/limit/node,
+    presenter-owned policy, implicit legacy Download 453 mapping, or
+    disabled recovery/export/repair/rollback/update/uninstall is introduced;
+    no raw email, key, token, customer row, credential, or card data is
+    produced or recorded anywhere by this atom (all checks are static
+    receipt assertions and byte-identity comparisons).
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_final_closure_test.py` (working tree at HEAD
+   19fd078d with the receipt test present) — exit 0.
+   Receipt: sha256_head=19fd078dff4897bb97af6addbd3ea56e6c045fea;
+   tasks=42 evidenced=41 (seal focusa-vbcqu.20.15.42 documented by this
+   atom); reconciliation=covered:28 uncovered:0; governance=verified
+   invalid_closed:0 pending:255; beads_cycles=0 publication=blocked.
+   Final line: `✓ spec172_final_closure PASS`.
+2. `python3 tests/164_focusa_locked_release_governance_reconciliation_test.py`
+   — exit 0. "GH#106.2 locked-release governance reconciliation: PASS
+   (truthfully blocked)".
+3. `bd dep cycles --json` — exit 0.
+   `{"cycles":[],"count":0,"active_count":0,"archived_closed_count":0,
+   "total_count":0,"blocking_only":false,"include_closed":false,
+   "scope":"active"}` (zero bead dependency cycles).
+4. Full chain `python3 tests/spec172_final_closure_test.py && python3
+   tests/164_focusa_locked_release_governance_reconciliation_test.py &&
+   bd dep cycles --json` — all three exit 0 (the exact verification is
+   green as a single command chain).
+5. Re-run of the exact verification from the committed implementation state
+   (HEAD 5bb40f08, closure test committed) — exit 0 for all three commands;
+   the receipt test is deterministic (runs 2 and 3 exit 0 with identical
+   receipt output).
+
+Regression checks (exit codes)
+- `python3 -m py_compile tests/spec172_final_closure_test.py` — exit 0
+  (syntax valid).
+- `git diff --check` — exit 0, no whitespace errors.
+- `bash tests/spec172_build_independent_gate.sh` (the complete
+  build-independent Spec 172 gate, which globs the new closure test) —
+  exit 0. Receipt: runs=118 passed=118 failed=0 flake_retries=0;
+  tests=py:30 php:9 node:1 sh:0 overlay=1 contracts=json:16 yaml:5
+  php_lint:25; final line `✓ spec172_build_independent_gate PASS (zero
+  hidden skips)`. The new closure test is executed by the gate
+  (spec172_final_closure_test.py PASS) and its Python syntax is checked.
+- The gate's zero-diff contract held: no tracked modification and no new
+  untracked file under docs/contracts after the full run.
+- `git status --short` after all runs shows only this atom's two files
+  (test + this evidence record).
+
+Tests added
+- tests/spec172_final_closure_test.py — the Spec 172 final closure receipt
+  test: static fail-closed closure chain (taskgraph contract with per-phase
+  byte-identity, reconciliation coverage 28/28 with zero uncovered items,
+  full child-atom evidence audit with tracked/verification/resolvable-commit
+  checks and phase-05 strict template, exact Spec152E/F anti-bypass release
+  edges, governance zero-invalid-closure with REL successors pending, stable
+  publication blocked until REL acceptance, independent Kahn acyclicity
+  proof) PLUS real subprocess runs of the taskgraph contract test, the Spec
+  152 locked-release reconciliation overlay, the 164 governance
+  reconciliation test, the reducer --check, and the literal Beads edge check
+  (bd dep cycles --json, asserting cycles=[] count=0). Fails closed (exit 1)
+  on any missing child record, stale taskgraph, uncovered requirement,
+  weakened edge, nonzero governance closure, cyclic graph, or unblocked
+  publication.
+
+Remaining blockers
+- None for this atom. Downstream dependents remain open by design:
+  focusa-vbcqu.20.14.52 (Spec 152F wiring successor) and
+  focusa-vbcqu.20.13.63 (Spec 152E final release milestone) stay technically
+  pending in the governance gate, and stable publication stays forbidden
+  until those REL items close with linked acceptance evidence — the Spec
+  172 closure seals Spec 172 while keeping Spec152E/152F and REL.4–REL.7
+  dependent on it. The live public-surface contradictions recorded by
+  focusa-vbcqu.20.15.39 (R01-R09) remain open for the site owners; this
+  atom mutates no live surface.
+
+Rollback
+- Revert only this atom: `git revert 5bb40f08` (drop
+  tests/spec172_final_closure_test.py) and, if the evidence record itself
+  must be rolled back, the follow-up docs commit that records this file. No
+  contract, generator, workflow, source, or other test file was modified by
+  this atom; verified identities, customers, orders, refunds, License
+  Types, keys, nodes, sequences, data, migration journals, evidence, and
+  accepted unrelated work are preserved untouched. This atom seals closure
+  receipts only; it does not weaken EDD identity/commerce, signed-lease,
+  refund/revoke, node, sequence, recovery, or any other authority.
+
+No push, deploy, release, merge, or Beads mutation was performed.

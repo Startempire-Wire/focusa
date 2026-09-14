@@ -1,14 +1,11 @@
 # 138 — Focusa Prediction, Outcome, Calibration, Metacognitive Learning, Transfer, and Epistemic Governance Spec
 
-**Status:** Normative draft; primitive-owning; implementation not implied  
-**Owner:** Focusa core  
-**Mandatory companion:** [`Spec 138A — Epistemic Zero-Deferral, Profile Completeness, and Omission Firewall`](138a-focusa-epistemic-zero-deferral-profile-completeness-and-omission-firewall-addendum.md)  
-**Combined normative source:** Spec 138 + Spec 138A + activated inherited primitive-owner requirements  
-**Conformance truth:** Profiles A–H are selective at runtime but mandatory for `full_spec138_conformance`; profile subsets must be labeled exactly and cannot be called the maximal substrate  
-**Source baseline:** `b08acf4f6a1f73c61a07cf6845b37efbad316ddb`  
-**Research audit:** `docs/evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md`  
-**Amends and deepens:** current Prediction, Metacognition, reflection, project-card algorithm, and prediction/metacognition flywheel surfaces  
-**Depends on:** Specs 45–50/135F ontology; Spec 76 retention/decay; Spec 80 metacognition tooling; Spec 96 trajectory projection; Spec 104 scoped CRDT; Spec 119 receipts; Spec 131 Workpoint Item timing; Spec 133 governed sessions; combined Spec 137 + Spec 137A temporal authority  
+**Status:** Normative draft; primitive-owning; implementation not implied
+**Owner:** Focusa core
+**Source baseline:** `b08acf4f6a1f73c61a07cf6845b37efbad316ddb`
+**Research audit:** `docs/evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md`
+**Amends and deepens:** current Prediction, Metacognition, reflection, project-card algorithm, and prediction/metacognition flywheel surfaces
+**Depends on:** Specs 45–50/135F ontology; Spec 76 retention/decay; Spec 80 metacognition tooling; Spec 96 trajectory projection; Spec 104 scoped CRDT; Spec 119 receipts; Spec 131 Workpoint Item timing; Spec 133 governed sessions; combined Spec 137 + Spec 137A temporal authority
 **Does not activate:** market feeds, financial trading, live mutation, external source access, or domain-specific models
 
 ---
@@ -2497,9 +2494,9 @@ The operator-supplied example weights and `low/moderate/high` thresholds belong 
 35. Every consequential epistemic mutation is receipted.
 36. The system may always report `unknown`, `insufficient evidence`, or `abstain`.
 
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec138a-parent-integration -->
-## Mandatory Spec 138A integration and full-profile closure
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:mandatory-spec138a-companion -->
+## Mandatory companion: Spec 138A
 
-Spec 138A governs staged activation, profile completeness, normative optionality, API/CLI/Pi and generated-client parity, migration, projections, proof, and closure. Parent wording such as `SHOULD`, `suggested`, `eventually`, or staged activation cannot remove an accepted generic capability from the full-conformance target.
-
-Full Spec 138 conformance requires Profiles A–H, the complete scorer and calibration registry, append-only semantic history, migration, source-independence and resolution authority, transfer and self-model evaluation, consolidation, rollback, high-consequence governance, client parity, Evidence, Receipts, and replay proof. A profile-subset release remains a truthful verified subset only.
+Spec 138A is a mandatory companion to Spec 138. Full-profile runtime conformance
+remains bound to the current evidence-gated Spec 138 activation receipt and is not
+inferred from documentation closure or partial prediction primitives.

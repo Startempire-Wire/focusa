@@ -1,0 +1,155 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "parent": "focusa-vbcqu.20.14",
+  "phase": "02",
+  "schema": "focusa.spec152f_implementation_phase.v1",
+  "task_count": 8,
+  "tasks": [
+    {
+      "code": "02.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.13"
+      ],
+      "done_condition": "Direct non-HTTP invocation cannot bypass base/premium policy and recovery/read operations remain available.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.14-acceptance.txt",
+      "exact_surfaces": "crates/focusa-core/src/license.rs; crates/focusa-core/src/lib.rs; new focused guard module if needed",
+      "id": "focusa-vbcqu.20.14.14",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Core guard with no presenter-specific policy.",
+      "required_steps": "Add a single guard called by CLI, agents, embedded clients, workers, and schedulers before value-producing side effects. Accept canonical operation policy plus context; delegate all commercial resolution to focusa-license.",
+      "title": "Implement non-HTTP core execution guard",
+      "verification": "cargo test -p focusa-core entitlement_execution_guard"
+    },
+    {
+      "code": "02.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.14"
+      ],
+      "done_condition": "REST and non-HTTP paths return the same decision for identical context and no handler runs after denial.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.15-acceptance.txt",
+      "exact_surfaces": "crates/focusa-api/src/middleware/entitlement.rs; crates/focusa-api/src/middleware/route_scope.rs; crates/focusa-api/src/server.rs",
+      "id": "focusa-vbcqu.20.14.15",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Thin route middleware using the same resolver as the core guard.",
+      "required_steps": "Replace route-local feature inference with operation policy + canonical resolver. Preserve auth/scope order, run before handlers/side effects, and return stable decision/error envelopes.",
+      "title": "Refactor API middleware onto canonical resolver",
+      "verification": "cargo test -p focusa-api entitlement_middleware"
+    },
+    {
+      "code": "02.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.15",
+        "focusa-vbcqu.20.14.6"
+      ],
+      "done_condition": "Every unknown case fails before side effects with a stable error and exact source operation reference.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.16-acceptance.txt",
+      "exact_surfaces": "crates/focusa-api/src/middleware/entitlement.rs; docs/contracts/spec141/generated-capability-v2/route-classification.json; operation registry generators",
+      "id": "focusa-vbcqu.20.14.16",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Shared operation classifier and negative fixtures.",
+      "required_steps": "Distinguish safe read, recovery, value mutation, internal maintenance, and unknown. Unknown method or side effect returns ENTITLEMENT_ROUTE_UNCLASSIFIED before execution; no GET-with-side-effect shortcut.",
+      "title": "Fail closed on unknown method, mutation, or side effect",
+      "verification": "cargo test -p focusa-api unknown_entitlement_classification && python3 tests/spec152_recovery_only_route_gate_test.py"
+    },
+    {
+      "code": "02.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.14",
+        "focusa-vbcqu.20.14.15"
+      ],
+      "done_condition": "Concurrent/replayed operations cannot exceed limits, duplicate side effects, or consume reservations after denial.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.17-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/feature_decision.rs; crates/focusa-api/src/middleware/entitlement.rs; relevant reservation middleware/services",
+      "id": "focusa-vbcqu.20.14.17",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Canonical pre-side-effect reservation pipeline.",
+      "required_steps": "Resolve usable lease -> base/premium family -> idempotency -> reserve limit -> execute -> settle/release. Preserve existing ENTITLEMENT_IDEMPOTENCY_REQUIRED, LIMIT_EXHAUSTED, and RESERVATION_FAILED semantics.",
+      "title": "Order entitlement and atomic limit reservation before side effects",
+      "verification": "python3 tests/spec152_limit_reservation_test.py && cargo test -p focusa-api entitlement_limit_reservation"
+    },
+    {
+      "code": "02.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.14",
+        "focusa-vbcqu.20.14.17"
+      ],
+      "done_condition": "Queued work executes only under current usable authority and denied work settles without protected side effects or lost customer data.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.18-acceptance.txt",
+      "exact_surfaces": "crates/focusa-core/src/silent_session_scheduler.rs; crates/focusa-core/src/work_item/scheduler.rs; worker dispatch call sites discovered by the reconciliation manifest",
+      "id": "focusa-vbcqu.20.14.18",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Dispatch-time guard and cancellation settlement.",
+      "required_steps": "Persist initiating operation/family/reservation references, then re-read current authority state and policy at dispatch. Stop queued work after refund/revoke/expiry/node removal. Do not let queue time extend Offline Grace.",
+      "title": "Revalidate workers and schedulers at dispatch",
+      "verification": "cargo test -p focusa-core scheduler_entitlement_revalidation"
+    },
+    {
+      "code": "02.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.14",
+        "focusa-vbcqu.20.14.4"
+      ],
+      "done_condition": "Every maintenance entrypoint is explicitly recovery-safe or inherits a canonical initiating decision; none grants itself entitlement.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.19-acceptance.txt",
+      "exact_surfaces": "core workers, telemetry, cache maintenance, migrations, and helper operations listed in spec152f-surface-reconciliation.v1.json",
+      "id": "focusa-vbcqu.20.14.19",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Internal-maintenance policy adapters and trace fields.",
+      "required_steps": "Classify internal maintenance as recovery-safe or inherited. Carry initiating decision/operation where applicable. Prevent internal labels from becoming independent paid features or bypasses.",
+      "title": "Make internal maintenance inherit initiating authority",
+      "verification": "cargo test --workspace internal_maintenance_entitlement"
+    },
+    {
+      "code": "02.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.16",
+        "focusa-vbcqu.20.14.17",
+        "focusa-vbcqu.20.14.18",
+        "focusa-vbcqu.20.14.19"
+      ],
+      "done_condition": "All denial classes produce zero protected partial side effects and deterministic recovery guidance.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.20-acceptance.txt",
+      "exact_surfaces": "focusa-api/core negative integration tests; temporary SQLite fixtures; operation side-effect counters",
+      "id": "focusa-vbcqu.20.14.20",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Reusable denial-atomicity harness.",
+      "required_steps": "Inject missing/expired/refunded/wrong-feature/limit/unknown-policy denials immediately before every chokepoint. Assert handler, DB mutation, worker enqueue, external adapter, and reservation settlement behavior.",
+      "title": "Prove denial atomicity and no partial side effects",
+      "verification": "cargo test --workspace entitlement_denial_atomicity"
+    },
+    {
+      "code": "02.08",
+      "dependencies": [
+        "focusa-vbcqu.20.14.15",
+        "focusa-vbcqu.20.14.20",
+        "focusa-vbcqu.20.14.9"
+      ],
+      "done_condition": "Required customer-control routes remain available while protected mutations and accidental destructive purge remain denied.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.21-acceptance.txt",
+      "exact_surfaces": "crates/focusa-api route registry; entitlement middleware; export/update/repair/uninstall/account/node-deactivation routes; tests/spec152f_recovery_matrix_test.py",
+      "id": "focusa-vbcqu.20.14.21",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Machine allowlist plus positive/negative recovery matrix.",
+      "required_steps": "Enumerate and test registration, activation, status, refresh/recovery, account, node deactivation, safe read, basic export, diagnostics, repair, stable security update, rollback, uninstall, and confirmed purge boundaries in every blocked state.",
+      "title": "Prove permanent recovery and customer-control routes",
+      "verification": "python3 tests/spec152f_recovery_matrix_test.py && cargo test -p focusa-api recovery_route_matrix"
+    }
+  ]
+}

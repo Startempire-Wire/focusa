@@ -1,0 +1,137 @@
+{
+  "schema": "focusa.spec152_license_decision_inventory.v1",
+  "authority_rule": "Only a verified signed EntitlementSnapshot in Active or OfflineGrace state may grant production capability.",
+  "classifications": [
+    "production_authority",
+    "production_enforcement",
+    "read_only_projection",
+    "credential_transport",
+    "legacy_migration_input",
+    "test_fixture_only"
+  ],
+  "surfaces": [
+    {
+      "path": "crates/focusa-license/src/authority.rs",
+      "classification": "production_authority",
+      "decisions": ["key-set signature", "lease signature", "sequence", "chain", "audience", "node binding", "expiry", "offline grace", "feature and limit claims"],
+      "may_grant": true
+    },
+    {
+      "path": "crates/focusa-license/src/authority_store.rs",
+      "classification": "production_authority",
+      "decisions": ["production trust-root parsing", "durable authority state", "missing/corrupt recovery-only fallback"],
+      "may_grant": true
+    },
+    {
+      "path": "crates/focusa-license/src/lib.rs",
+      "classification": "production_authority",
+      "decisions": ["single LicenseGuard resolution", "capability mapping", "tier projection"],
+      "may_grant": true
+    },
+    {
+      "path": "crates/focusa-license/src/authority_client.rs",
+      "classification": "credential_transport",
+      "decisions": ["device-code state machine", "polling", "lease refresh request"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-license/src/authority_http.rs",
+      "classification": "credential_transport",
+      "decisions": ["bounded authority HTTP", "TLS/error classification"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-license/src/authority_credentials.rs",
+      "classification": "credential_transport",
+      "decisions": ["node credential lookup", "refresh credential lookup"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-api/src/middleware/entitlement.rs",
+      "classification": "production_enforcement",
+      "decisions": ["mutation route recovery-only gate", "Active/OfflineGrace requirement"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-api/src/routes/license.rs",
+      "classification": "read_only_projection",
+      "decisions": ["license status", "recovery guidance", "capability display"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-api/src/server.rs",
+      "classification": "production_enforcement",
+      "decisions": ["startup LicenseGuard injection", "entitlement middleware ordering"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-core/src/license.rs",
+      "classification": "legacy_migration_input",
+      "decisions": ["legacy license read/write", "signed entitlement projection", "legacy activation migration"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-cli/src/commands/license.rs",
+      "classification": "legacy_migration_input",
+      "decisions": ["legacy key activation", "status", "doctor", "refresh", "dev fixture harness"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-cli/src/commands/install.rs",
+      "classification": "legacy_migration_input",
+      "decisions": ["installer key/eval flags", "legacy license materialization", "install plan"],
+      "may_grant": false
+    },
+    {
+      "path": "scripts/install-focusa.sh",
+      "classification": "legacy_migration_input",
+      "decisions": ["shell installer license/eval flags", "legacy local record"],
+      "may_grant": false
+    },
+    {
+      "path": "scripts/install-focusa.ps1",
+      "classification": "legacy_migration_input",
+      "decisions": ["Windows installer license/eval flags", "legacy local record"],
+      "may_grant": false
+    },
+    {
+      "path": "apps/menubar/src/lib/api.ts",
+      "classification": "read_only_projection",
+      "decisions": ["license status fetch", "activation guidance"],
+      "may_grant": false
+    },
+    {
+      "path": "apps/pi-extension/src/commands.ts",
+      "classification": "read_only_projection",
+      "decisions": ["license and settings display", "operator guidance"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-license/tests/fixtures/spec152-authority-golden-vector.json",
+      "classification": "test_fixture_only",
+      "decisions": ["deterministic signature vector"],
+      "may_grant": false
+    },
+    {
+      "path": "crates/focusa-license/tests/authority_lease.rs",
+      "classification": "test_fixture_only",
+      "decisions": ["fixture roots", "golden signatures", "negative authority cases"],
+      "may_grant": false
+    }
+  ],
+  "production_rejections": [
+    "test-root",
+    "fixture-authority",
+    "local-dev-root",
+    "example-root",
+    "plaintext license.json",
+    "self-signed eval",
+    "dev_mode registry status",
+    "local bypass environment flags"
+  ],
+  "migration_obligations": [
+    "119.7 replaces installer eval bypass with authority-backed activation",
+    "119.10 migrates paid keys/evaluators without data loss",
+    "Legacy files remain readable for migration but never grant production capability"
+  ]
+}

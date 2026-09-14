@@ -3126,10 +3126,3 @@ Spec 136 is successful when Focusa can demonstrate, across C.R.I.S.T., ontology-
 The final systemic rule is:
 
 > **Models may observe, reason, propose, predict, execute within granted authority, and critique. Only Focusa’s governed proposal-to-settlement protocol may establish operational truth.**
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-settlement-integration -->
-## Spec 144 structured verification, dispute, and revalidation integration
-
-When activated, Spec 136 settlement consumes the complete Spec 144 Verification Portfolio rather than a string verdict. Settlement requires complete obligation coverage, eligible assignments, immutable verified-snapshot equality, resolved blocking findings/conflicts, valid independence/common-mode and placement posture, Evidence, and Receipt readiness.
-
-Verification disputes reuse PRE and Spec 120/operator gates through typed conflict, appeal, arbiter-eligibility, conflict-of-interest, assignment, and decision records. Later material invalidation creates a SettlementValidityChallenge and append-only uphold/correct/supersede/reopen outcome; historical settlement is never rewritten.

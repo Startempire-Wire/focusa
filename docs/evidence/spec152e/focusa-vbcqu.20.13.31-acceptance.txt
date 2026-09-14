@@ -1,0 +1,154 @@
+Spec 152E multi-domain facade acceptance matrix — acceptance evidence
+Work item: focusa-vbcqu.20.13.31
+Title: 152E.03.07 Run complete multi-domain facade acceptance matrix
+Scope: registered facade descriptors, proxies, website component/pages,
+security middleware, routes, and upstream outage behavior
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+(§21 surface consolidation, §23 acceptance matrix); Specs 152, 150A, 152A-D;
+Spec 158 implementation excluded.
+
+Exact surfaces (this atom only)
+- tests/spec152e_facade_acceptance_test.py
+- tests/spec152e_facade_acceptance_test.mjs
+- docs/evidence/spec152e/focusa-vbcqu.20.13.31-acceptance.txt
+
+Bounded result
+- Added the build-independent Spec 152E multi-domain facade acceptance suite:
+  a deterministic, offline, replayable matrix over every registered facade
+  domain (focusa_install_v1, focusa_marketing_v1, focusa_forge_v1,
+  focusa_arena_v1, uiai_engine_v1, wpuiai_public_v1) and its exact origin.
+  The matrix is driven by the generated facade registry and cross-checks the
+  activation call stack, error registry, public OpenAPI, golden vectors,
+  installer route manifest, deployed surface inventory, the browser security
+  and website registration components, and the executable PHP facade
+  contracts (probed through the CLI). No cargo build, no live network, no
+  publication.
+- Domain row: all six registered domains present with exact HTTPS origins,
+  unique server-owned sender identities, registered-presenter status, bounded
+  authority proxy capability, locale allowlist, and exact registry counts.
+- Product row: all 14 allowed product bindings accepted; every allowlisted
+  product is a registered protected EDD offer; cross-facade products
+  (uiai-only offers on Focusa-only facades, base Focusa product on the engine
+  facade) and invented/attacker products fail closed with FACADE_PRODUCT_DENIED.
+- Link row: advertised verify/pay/success/manage/recovery transactional links
+  equal the registered facade paths and are relative and version-stable; every
+  facade path and success/cancel/recovery callback resolves against the exact
+  origin as an HTTPS URL with no query, fragment, or version segment.
+- Checkout-return row: select-offer -> checkout -> entitlement chain exists in
+  the call stack; checkout is a registry proxy route, a public OpenAPI
+  operation, and an install-facade page proxied to the registered facade path.
+- Polling row: poll proxy route and OpenAPI operation; opaque poll credential
+  stored keyed-hash only with registration/facade/action/expiry binding;
+  retry-after bounded 3..30s; terminal states activated/denied/recovery_only;
+  safe-retry, idempotent-retry, restart-verification, do-not-retry, and
+  recovery-only retry rules; 202 poll errors; poll/verification hashes never
+  exposed; masked email only.
+- Recovery row: every facade exposes /activate/recovery and
+  /activate/callback/recovery; recovery_only is terminal and reachable from
+  denied/refunded/revoked/superseded/expired; EDD_LICENSE_UNUSABLE, REFUNDED,
+  and REVOKED are 403 recovery-only; the outage link is the registered
+  recovery page and recovery pages force recovery-only posture.
+- Spoofing row: 15 origin/product/route/callback/locale spoof cases deny with
+  the registry contract codes; all 16 caller authority fields deny with
+  FACADE_REQUEST_FIELD_DENIED; all 9 required fields are enforced; browser
+  component denies spoofed origins, unsafe callbacks, forbidden body fields,
+  caller product overrides, issuance methods, GET-with-body, and short CSRF.
+- Timeout row: protocol skew bound 300s (FACADE_TIMESTAMP_DENIED), presenter
+  session TTL 1800s, CSRF TTL 600s (executed through the PHP security
+  middleware: an expired session is FACADE_SESSION_DENIED and an expired CSRF
+  is FACADE_CSRF_DENIED); continuation tokens expire now+300 and are
+  registration/facade/action/nonce bound; verification expiry codes are
+  non-retryable with restart semantics; browser responses are no-store and
+  continuation/session state is memory-only.
+- Upstream outage row: AUTHORITY_UNAVAILABLE is 503 retryable with
+  retry_or_use_recovery; the install facade executes a 503 recovery-only
+  envelope that never issues a license, lease, node, or credential; the
+  registry/OpenAPI/call-stack postures forbid facade issuance and
+  customer/commerce truth; the deployed surface inventory shows WPUIAI.com as
+  the sole canonical authority kernel and install.focusa.dev as a bounded
+  facade; all 11 install page routes resolve to the registered proxy routes.
+- Website/presenter row: the shared registration presenter produces an
+  identical eight-state semantic flow across all four branded website pages
+  (Focusa, Focusa Forge, Focusa Arena, WPUIAI) with brand-only differences;
+  checkout return, polling, and recovery pages disclose authority
+  confirmation/outage posture; browser security binds all six domains; the
+  installer surfaces are bound by the browser security component and are not
+  website-themed registration pages.
+- Hygiene: golden vector signature and continuation verify; OpenAPI proxy
+  paths equal the registry routes; every proxy route has a call-stack
+  operation; browser bindings match the registry; no secrets, no unmasked
+  real email, and no wildcard authority appear in any public descriptor or in
+  this atom's files.
+
+Exact verification (exit codes)
+1. python3 tests/spec152e_facade_acceptance_test.py — exit 0.
+   Bounded result: {"schema":"focusa.spec152e.facade_acceptance_matrix.v1","facades":6,
+   "exact_origins":6,"product_bindings":14,"proxy_routes":11,"php_probes":3,
+   "positive_checks":449,"negative_checks":40,"result":"passed_fail_closed"}
+   Positive: registry schema/owner/counts; six domains and exact origins;
+   fourteen allowed product bindings accepted; verify/pay/success/manage/
+   recovery links equal registered facade paths; checkout chain; polling
+   contract and retry rules; recovery contract; executed PHP probes for the
+   503 outage envelope, all eleven install page route resolutions, and
+   expired session/CSRF denials; golden vector signature and continuation;
+   OpenAPI/call-stack parity; browser binding parity; hygiene checks.
+   Negative: 15 registry spoof cases, 16 forbidden caller fields, 9 missing
+   required fields — all fail closed with the registry contract codes.
+2. node tests/spec152e_facade_acceptance_test.mjs — exit 0.
+   Bounded result: {"schema":"focusa.spec152e.facade_acceptance_matrix_browser.v1",
+   "facades":6,"exact_origins":6,"product_bindings":14,"proxy_routes":11,
+   "website_facades":4,"positive_checks":797,"negative_checks":61,
+   "result":"passed_fail_closed"}
+   Positive: all six domains through the shipped browser security component
+   (14 bindings x 11 proxy routes), server-bound bodies, CSRF on mutations,
+   no-store/error-redirect policy; identical 8-state semantic flow across the
+   four branded website pages; checkout/poll/recovery routing; golden vector
+   binding; cross-surface parity.
+   Negative: denied cross-facade and attacker products; 7 spoofed origins;
+   unsafe callback registries; 15 forbidden body fields; caller product/grant
+   overrides; issuance method; GET-with-body; short CSRF; malformed
+   continuations; unmasked-email envelopes; unknown facades/pages/transitions.
+
+Regression checks (exit codes)
+- python3 tests/spec152e_facade_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_golden_vector_test.py — exit 0.
+- python3 tests/spec152e_install_facade_routes_test.py — exit 0.
+- python3 tests/spec152e_deployed_surface_inventory_test.py — exit 0.
+- python3 scripts/generate-spec152e-facade-registry.py --check — exit 0
+  (generated registry contract is current).
+- node tests/spec152e_facade_browser_security_test.mjs — exit 0.
+- node tests/spec152e_website_registration_test.mjs — exit 0.
+- php tests/spec152e_install_facade_test.php — exit 0.
+- php tests/spec152e_facade_security_test.php — exit 0.
+- php tests/spec152e_facade_protocol_test.php — exit 0.
+- php tests/spec152e_facade_registry_test.php — exit 0.
+
+Tests added
+- tests/spec152e_facade_acceptance_test.py (exact verification; 449 positive /
+  40 negative checks across domains, products, links, checkout return,
+  polling, recovery, spoofing, timeout, and upstream outage, plus 3 executed
+  PHP probes).
+- tests/spec152e_facade_acceptance_test.mjs (exact verification; 797 positive /
+  61 negative checks across the browser security and website registration
+  components for all six registered domains).
+
+Acceptance criteria
+- All facades present one semantic authority flow and none can independently
+  issue or widen entitlement: verified — every facade is a bounded
+  presenter/proxy with registry-owned origins, products, callbacks, and
+  senders; no issuance route exists; outage never issues license/lease/node/
+  credential; the website presenter produces one identical flow with brand
+  differences only.
+- All named positive and negative checks pass; diff contains only named
+  surfaces; generated contracts are current (registry --check passes); secrets
+  and unmasked real email are absent (hygiene checks pass); evidence is
+  replayable from the pinned commit (both tests are offline and
+  deterministic).
+
+Rollback
+Revert only this atom's commit: tests/spec152e_facade_acceptance_test.py,
+tests/spec152e_facade_acceptance_test.mjs, and this evidence file. Preserve
+EDD customer/order/refund truth, verified identities, licenses, nodes,
+sequences, credentials, Workpoints, Evidence, and migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.

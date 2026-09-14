@@ -1,9 +1,9 @@
 # Spec141 Focusa Skill and Runbook Coverage
 
-- Generated domain skills: `29`
-- Installed root skills: `29`
-- Packaged skills: `29`
-- Runbooks: `31`
+- Generated domain skills: `31`
+- Installed root skills: `31`
+- Packaged skills: `31`
+- Runbooks: `33`
 - Complete runbook coverage: `True`
 - Root/package parity: `True`
 
@@ -38,6 +38,8 @@
 - `focusa-work-loop` → `.pi/skills/focusa-work-loop/references/01-focusa-work-loop-runbook.md` → 6 declared tools
 - `focusa-workpoint` → `.pi/skills/focusa-workpoint/references/01-focusa-workpoint-runbook.md` → 4 declared tools
 - `predictive-power` → `.pi/skills/predictive-power/references/01-predictive-power-runbook.md` → 5 declared tools
+- `focusa-deslop` → `.pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md` → 3 declared tools
+- `focusa-roadmap-to-workpoint` → `.pi/skills/focusa-roadmap-to-workpoint/references/01-focusa-roadmap-to-workpoint-runbook.md` → 6 declared tools
 
 ## Installed skill and runbook inventory
 
@@ -46,6 +48,7 @@
 - `focusa-browser-uiai` → `.pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md`
 - `focusa-cli-api` → `.pi/skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md`
 - `focusa-context-cognition` → `.pi/skills/focusa-context-cognition/references/01-focusa-context-cognition-runbook.md`
+- `focusa-deslop` → `.pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md`
 - `focusa-device-pairing` → `.pi/skills/focusa-device-pairing/references/01-focusa-device-pairing-runbook.md`
 - `focusa-docs-maintenance` → `.pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md`
 - `focusa-dxux-recovery` → `.pi/skills/focusa-dxux-recovery/references/01-focusa-dxux-recovery-runbook.md`
@@ -59,6 +62,7 @@
 - `focusa-project-scope` → `.pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md`
 - `focusa-release-proof` → `.pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md`
 - `focusa-resource-performance` → `.pi/skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md`
+- `focusa-roadmap-to-workpoint` → `.pi/skills/focusa-roadmap-to-workpoint/references/01-focusa-roadmap-to-workpoint-runbook.md`
 - `focusa-security-auth-licensing` → `.pi/skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md`
 - `focusa-session-recovery` → `.pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md`
 - `focusa-silent-sessions` → `.pi/skills/focusa-silent-sessions/references/01-focusa-silent-sessions-runbook.md`

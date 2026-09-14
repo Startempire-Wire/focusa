@@ -1,0 +1,46 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.10
+Title: 152F.01.06 Implement four premium-family resolution
+Implementation commit: `0685f599cd633a4f2132815602f3c9e4ec9a44c5`
+
+Exact surfaces
+- crates/focusa-license/src/entitlement_policy.rs
+- docs/contracts/spec152-feature-registry.v1.yaml
+
+Bounded result
+- Added typed `PremiumFamilyDecision` FEATURE results for the four optional
+  families: automation, team_remote, release_proof, and premium_updates.
+- Resolution is base-first and consumes only the authority-owned
+  `EntitlementSnapshot` feature map. The operation feature identifier must be
+  one of the exact registered IDs for the selected family; caller-provided
+  grants, products, prices, or Evaluation state cannot expand the decision.
+- Every FEATURE result carries a non-zero lease sequence and requires lease
+  identity/digest binding. Missing base entitlement, missing sequence or lease
+  binding, mismatched family/feature, and missing authority feature claims fail
+  closed with typed denial reasons.
+- Offline Grace checks the signed cached-grant expiry before allowing a feature
+  and never adds features or limits. The feature-registry contract records the
+  exact family mappings, authority-issued grant source, base prerequisite,
+  sequence binding, and cached-only Offline Grace policy.
+
+Exact verification (exit codes)
+1. `cargo test -p focusa-license premium_family_resolution` — exit 0.
+   Result: 3 passed; 0 failed; 0 ignored; 0 measured; 35 filtered out.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 38 unit tests, 11 authority-lease
+  tests, and 2 entitlement-policy-grid tests passed; 0 failed.
+- `git diff --check` — exit 0.
+
+Tests added
+- `premium_family_resolution_maps_exact_feature_ids_and_is_base_first`
+- `premium_family_resolution_fails_closed_with_exact_missing_feature_reasons`
+- `premium_family_resolution_requires_sequence_and_bounded_cached_grants`
+
+Rollback
+- Revert implementation commit `0685f599cd633a4f2132815602f3c9e4ec9a44c5`
+  (and this evidence record if required). Preserve customers, orders, refunds,
+  licenses, nodes, sequences, customer data, migration journals, and accepted
+  authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.

@@ -92,7 +92,9 @@ impl WorkspacePlanningRequest {
                     .worktree_root
                     .filter(|path| path.is_absolute())
                     .ok_or(WorkspacePlanError::WorktreeRootRequired)?;
-                let root = fs::canonicalize(&configured_root).unwrap_or(configured_root);
+                let root = subprocess_compatible_path(
+                    fs::canonicalize(&configured_root).unwrap_or(configured_root),
+                );
                 let mut branch = format!("focusa/silent/{session_short}/{work_item_slug}");
                 let mut path = root.join(&project_slug).join(&session_short);
                 let collision = self.existing_branch_refs.contains(&branch)
@@ -148,7 +150,8 @@ pub fn materialize_isolated_worktree(
     {
         return Err(WorkspacePlanError::InvalidPlan);
     }
-    let source_root = fs::canonicalize(&plan.source_root).map_err(io_error)?;
+    let source_root =
+        subprocess_compatible_path(fs::canonicalize(&plan.source_root).map_err(io_error)?);
     if !source_root.join(".git").exists() {
         return Err(WorkspacePlanError::SourceIsNotGitRepository);
     }
@@ -184,7 +187,8 @@ pub fn materialize_isolated_worktree(
             &output.stderr,
         )));
     }
-    let workspace_root = fs::canonicalize(&plan.workspace_root).map_err(io_error)?;
+    let workspace_root =
+        subprocess_compatible_path(fs::canonicalize(&plan.workspace_root).map_err(io_error)?);
     if workspace_root != plan.workspace_root
         || !workspace_root.starts_with(parent)
         || !workspace_root.join(".git").exists()
@@ -197,6 +201,23 @@ pub fn materialize_isolated_worktree(
         strategy: WorkspaceStrategy::IsolatedWorktree,
         branch_ref: plan.branch_ref.clone(),
     })
+}
+
+#[cfg(not(windows))]
+fn subprocess_compatible_path(path: PathBuf) -> PathBuf {
+    path
+}
+
+#[cfg(windows)]
+fn subprocess_compatible_path(path: PathBuf) -> PathBuf {
+    let rendered = path.to_string_lossy();
+    if let Some(rest) = rendered.strip_prefix("\\\\?\\UNC\\") {
+        PathBuf::from(format!("\\\\{rest}"))
+    } else if let Some(rest) = rendered.strip_prefix("\\\\?\\") {
+        PathBuf::from(rest)
+    } else {
+        path
+    }
 }
 
 fn validate_private_directory(path: &Path) -> Result<(), WorkspacePlanError> {
@@ -331,8 +352,8 @@ mod tests {
 
     #[test]
     fn background_mutation_defaults_to_sanitized_collision_safe_isolation() {
-        let source = PathBuf::from("/projects/focusa");
-        let worktree_root = PathBuf::from("/private/focusa-worktrees");
+        let source = crate::test_support::absolute_path("silent-workspace-project");
+        let worktree_root = crate::test_support::absolute_path("silent-workspace-root");
         let first = request(source.clone(), worktree_root.clone())
             .plan()
             .unwrap();
@@ -360,8 +381,8 @@ mod tests {
 
     #[test]
     fn existing_and_shared_strategies_enforce_lease_read_only_and_approval() {
-        let source = PathBuf::from("/projects/focusa");
-        let worktree_root = PathBuf::from("/private/focusa-worktrees");
+        let source = crate::test_support::absolute_path("silent-workspace-project");
+        let worktree_root = crate::test_support::absolute_path("silent-workspace-root");
         let mut exclusive = request(source.clone(), worktree_root.clone());
         exclusive.background_mutation = false;
         exclusive.requested_strategy = Some(WorkspaceStrategy::ExclusiveExisting);

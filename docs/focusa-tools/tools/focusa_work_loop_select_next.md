@@ -74,4 +74,4 @@ Likely next: `focusa_workpoint_checkpoint`, `focusa_work_loop_context`, `focusa_
 - CLI: none.
 - REST: `POST /v1/work-loop/select-next`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:96d41a90fa7676dd4be89e709d574e1e27899bef6d48226cb7b22cde281fac87`.
+- Descriptor digest: `sha256:069679c8ce62c061570615167060cba520faa7490ee07d25bad93b0365a8e9c9`.

@@ -18,8 +18,10 @@ mod scoped_store;
 mod server;
 
 use anyhow::anyhow;
+use focusa_core::daemon_lifecycle::{DaemonLockRecord, DaemonProcessIdentity};
 use focusa_core::runtime::daemon::Daemon;
 use focusa_core::types::{FocusaConfig, FocusaState};
+use rand::{RngCore, rngs::OsRng};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::net::ToSocketAddrs;
@@ -93,75 +95,118 @@ async fn run_legacy_pi_activation_bridge() {
 
 struct DaemonInstanceLock {
     path: PathBuf,
-    pid: u32,
+    record: DaemonLockRecord,
+}
+
+fn secure_random_token() -> String {
+    let mut bytes = [0_u8; 32];
+    OsRng.fill_bytes(&mut bytes);
+    hex::encode(bytes)
+}
+
+fn create_new_lock_file(path: &Path) -> std::io::Result<std::fs::File> {
+    let mut options = OpenOptions::new();
+    options.create_new(true).write(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options.open(path)
 }
 
 impl DaemonInstanceLock {
-    fn acquire(config: &FocusaConfig) -> anyhow::Result<Self> {
+    fn acquire(config: &FocusaConfig, started_at: String) -> anyhow::Result<Self> {
         let pid = std::process::id();
         let data_dir = resolved_data_dir(config);
         fs::create_dir_all(&data_dir)?;
         let path = data_dir.join("focusa-daemon.lock");
+        let record = DaemonLockRecord {
+            pid,
+            bind: config.api_bind.clone(),
+            started_at,
+            start_token: secure_random_token(),
+            shutdown_token: secure_random_token(),
+        };
 
         for _ in 0..2 {
-            let opened = OpenOptions::new().create_new(true).write(true).open(&path);
-            match opened {
-                Ok(mut f) => {
-                    let started = chrono::Utc::now().to_rfc3339();
-                    writeln!(f, "pid={pid}")?;
-                    writeln!(f, "bind={}", config.api_bind)?;
-                    writeln!(f, "started_at={started}")?;
-                    f.flush()?;
+            match create_new_lock_file(&path) {
+                Ok(mut file) => {
+                    file.write_all(record.render().as_bytes())?;
+                    file.flush()?;
+                    file.sync_all()?;
                     tracing::info!(pid, lock = %path.display(), "acquired daemon lock");
-                    return Ok(Self { path, pid });
+                    return Ok(Self { path, record });
                 }
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                    let stale = match read_lock_pid(&path) {
-                        Some(existing_pid) => !process_alive(existing_pid),
-                        None => true,
-                    };
-                    if stale {
-                        let _ = fs::remove_file(&path);
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                    let existing_content = fs::read_to_string(&path).map_err(|read_error| {
+                        anyhow!(
+                            "[DAEMON_LOCK_UNVERIFIED] existing daemon lock cannot be read: {read_error}"
+                        )
+                    })?;
+                    let existing = DaemonLockRecord::parse(&existing_content).map_err(|parse_error| {
+                        anyhow!(
+                            "[DAEMON_LOCK_UNVERIFIED] existing daemon lock is not an exact lifecycle record: {parse_error}"
+                        )
+                    })?;
+                    if !process_alive(existing.pid) {
+                        fs::remove_file(&path)?;
                         continue;
                     }
-                    let owner = read_lock_pid(&path).unwrap_or(0);
                     return Err(anyhow!(
                         r#"[DAEMON_ALREADY_RUNNING] {{"code":"DAEMON_ALREADY_RUNNING","pid":{},"lock":"{}"}}"#,
-                        owner,
+                        existing.pid,
                         path.display()
                     ));
                 }
-                Err(e) => return Err(e.into()),
+                Err(error) => return Err(error.into()),
             }
         }
 
         Err(anyhow!("unable to acquire daemon lock {}", path.display()))
     }
+
+    fn runtime_identity(&self) -> server::DaemonRuntimeIdentity {
+        server::DaemonRuntimeIdentity {
+            process: DaemonProcessIdentity::new(
+                self.record.pid,
+                self.record.start_token.clone(),
+                self.path.to_string_lossy(),
+            ),
+            shutdown_token: self.record.shutdown_token.clone(),
+        }
+    }
 }
 
 impl Drop for DaemonInstanceLock {
     fn drop(&mut self) {
-        let owner = read_lock_pid(&self.path);
-        if owner == Some(self.pid) {
-            let _ = fs::remove_file(&self.path);
+        let still_owned = fs::read_to_string(&self.path)
+            .ok()
+            .and_then(|content| DaemonLockRecord::parse(&content).ok())
+            .is_some_and(|record| {
+                record.pid == self.record.pid && record.start_token == self.record.start_token
+            });
+        if still_owned && let Err(error) = fs::remove_file(&self.path) {
+            tracing::warn!(
+                error = %error,
+                lock = %self.path.display(),
+                "failed to remove owned daemon lock during shutdown"
+            );
         }
     }
 }
 
-fn read_lock_pid(path: &Path) -> Option<u32> {
-    let content = fs::read_to_string(path).ok()?;
-    for line in content.lines() {
-        if let Some(rest) = line.strip_prefix("pid=")
-            && let Ok(pid) = rest.trim().parse::<u32>()
-        {
-            return Some(pid);
-        }
-    }
-    None
-}
-
+#[cfg(target_os = "linux")]
 fn process_alive(pid: u32) -> bool {
     Path::new(&format!("/proc/{pid}")).exists()
+}
+
+/// Platforms without a safe standard-library process identity probe retain an
+/// existing exact lock and fail closed. They never infer staleness by name or
+/// signal an unverified PID.
+#[cfg(not(target_os = "linux"))]
+fn process_alive(_pid: u32) -> bool {
+    true
 }
 
 fn enforced_auth_token_configured() -> bool {
@@ -186,14 +231,93 @@ fn enforce_bind_auth_guard(config: &FocusaConfig) -> anyhow::Result<()> {
     ))
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    if std::env::args()
-        .skip(1)
-        .any(|arg| arg == "--version" || arg == "-V")
+/// CLI flags the daemon recognizes before any lock/startup work.
+///
+/// Fixes #213: `--help` must print usage and exit (it previously started a
+/// full daemon instance and could displace the live one), and unknown
+/// dash-arguments must fail instead of silently starting.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum CliAction {
+    Version,
+    Help,
+    Unknown(String),
+}
+
+fn detect_cli_action(args: impl Iterator<Item = String>) -> Option<CliAction> {
+    let mut args = args.skip(1);
+    let first = args.next()?;
+    match first.as_str() {
+        "--version" | "-V" => Some(CliAction::Version),
+        "--help" | "-h" => Some(CliAction::Help),
+        _ if first.starts_with('-') => Some(CliAction::Unknown(first)),
+        // Positional arguments are not used by the daemon; preserve the
+        // historical behavior of starting normally.
+        _ => None,
+    }
+}
+
+fn print_daemon_usage() {
+    println!(
+        "Focusa daemon — cognitive governance runtime\n\n\
+         USAGE:\n\
+             focusa-daemon [OPTIONS]\n\n\
+         OPTIONS:\n\
+             -h, --help       Print this help and exit\n\
+             -V, --version    Print version and exit\n\n\
+         ENVIRONMENT:\n\
+             FOCUSA_BIND          Bind address (default 127.0.0.1:8787)\n\
+             FOCUSA_DATA_DIR      Data directory override\n\
+             FOCUSA_AUTH_TOKEN    Enforced auth token for non-loopback binds"
+    );
+}
+
+async fn wait_for_os_shutdown() -> std::io::Result<()> {
+    #[cfg(unix)]
     {
-        println!("focusa-daemon {}", env!("CARGO_PKG_VERSION"));
-        return Ok(());
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+        tokio::select! {
+            result = tokio::signal::ctrl_c() => result,
+            _ = terminate.recv() => Ok(()),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await
+    }
+}
+
+// The daemon serializes and persists full FocusaState projections on Tokio workers.
+// Those projections can exceed Tokio's default worker-stack budget; keep the
+// production runtime aligned with the bounded 8 MiB stack proved by the command
+// checkpoint contract instead of requiring callers to set RUST_MIN_STACK.
+const TOKIO_WORKER_STACK_BYTES: usize = 8 * 1024 * 1024;
+
+fn main() -> anyhow::Result<()> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(TOKIO_WORKER_STACK_BYTES)
+        .build()
+        .map_err(|error| anyhow!("build Focusa Tokio runtime: {error}"))?
+        .block_on(daemon_main())
+}
+
+async fn daemon_main() -> anyhow::Result<()> {
+    match detect_cli_action(std::env::args()) {
+        Some(CliAction::Version) => {
+            println!("focusa-daemon {}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
+        Some(CliAction::Help) => {
+            print_daemon_usage();
+            return Ok(());
+        }
+        Some(CliAction::Unknown(arg)) => {
+            eprintln!("focusa-daemon: unknown argument: {arg}");
+            print_daemon_usage();
+            std::process::exit(2);
+        }
+        None => {}
     }
 
     tracing_subscriber::fmt()
@@ -237,15 +361,14 @@ async fn main() -> anyhow::Result<()> {
                 prev_pid = ?prev_pid,
                 prev_started_at = ?prev_started,
                 new_started_at = %started_at,
-                "focusa-daemon startup: replacing prior lock file (was the previous instance an intentional shutdown or a crash?)"
+                "focusa-daemon startup: prior lock detected; exact lifecycle ownership will be verified before acquisition"
             );
         }
-        Some(prev) => {
-            // Lock file existed but no pid line — unparseable, treat as suspect.
+        Some(_) => {
+            // Never log untrusted lock content: it may contain credentials.
             tracing::warn!(
                 pid,
-                prev_contents = %prev.lines().next().unwrap_or(""),
-                "focusa-daemon startup: prior lock file was unparseable; replacing"
+                "focusa-daemon startup: prior lock is unparseable; acquisition will fail closed"
             );
         }
         None => {
@@ -264,12 +387,36 @@ async fn main() -> anyhow::Result<()> {
         "focusa-daemon starting",
     );
 
-    let _instance_lock = DaemonInstanceLock::acquire(&config)?;
+    let instance_lock = DaemonInstanceLock::acquire(&config, started_at.clone())?;
+    let daemon_runtime_identity = instance_lock.runtime_identity();
+    let _instance_lock = instance_lock;
     let _legacy_pi_activation_bridge = tokio::spawn(run_legacy_pi_activation_bridge());
 
     // License plane: evaluate tier + log current capability posture.
     // Bead focusa-nbai.1: wire LicenseGuard into daemon startup.
-    let license_guard = focusa_license::resolve_license_guard();
+    let mut license_guard = focusa_license::resolve_license_guard();
+    // Isolated e2e/CI daemons run with FOCUSA_TEST_MODE=1 and no operator lease;
+    // grant a bound test entitlement so value-producing e2e surfaces exercise
+    // the full entitlement path instead of failing at the gate.
+    if std::env::var("FOCUSA_TEST_MODE")
+        .map(|value| value == "1")
+        .unwrap_or(false)
+        && license_guard.entitlement.as_ref().is_none_or(|snapshot| {
+            !matches!(
+                snapshot.state,
+                focusa_license::authority::EntitlementState::Active
+            )
+        })
+    {
+        let mut entitlement =
+            focusa_license::authority::EntitlementSnapshot::unactivated("focusa", "test-node");
+        entitlement.state = focusa_license::authority::EntitlementState::Active;
+        entitlement.lease_id = Some("test-lease".to_string());
+        entitlement.sequence = Some(1);
+        entitlement.lease_digest = Some("sha256:test-lease-digest".to_string());
+        entitlement.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
+        license_guard = focusa_license::LicenseGuard::from_entitlement(entitlement);
+    }
     tracing::info!(
         tier = license_guard.tier.label(),
         issued_at = %license_guard.issued_at,
@@ -295,6 +442,11 @@ async fn main() -> anyhow::Result<()> {
     let (events_tx, _events_rx) = tokio::sync::broadcast::channel::<String>(1024);
     let write_serial_lock = Arc::new(Mutex::new(()));
     let external_mutation_epoch = Arc::new(AtomicU64::new(0));
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let shutdown_tx_for_supervisor = shutdown_tx.clone();
+    let shutdown_tx_for_os = shutdown_tx.clone();
+    let daemon_shutdown_rx = shutdown_rx.clone();
+    let api_shutdown_rx = shutdown_rx;
 
     // Initialize daemon (loads saved state from disk, syncs to shared_state on run).
     let mut daemon = Daemon::new(
@@ -327,15 +479,27 @@ async fn main() -> anyhow::Result<()> {
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(8787);
 
+    // SIGTERM is systemd's normal stop path. Convert OS termination into the
+    // same governed shutdown signal used by the API so the daemon's bounded
+    // state checkpoint and durable event cursor complete before process exit.
+    tokio::spawn(async move {
+        match wait_for_os_shutdown().await {
+            Ok(()) => {
+                let _ = shutdown_tx_for_os.send(true);
+            }
+            Err(error) => tracing::error!(error = %error, "OS shutdown signal listener failed"),
+        }
+    });
+
     // Spawn daemon event loop.
-    let daemon_handle = tokio::spawn(async move {
-        if let Err(e) = daemon.run().await {
+    let mut daemon_handle = tokio::spawn(async move {
+        if let Err(e) = daemon.run_until_shutdown(daemon_shutdown_rx).await {
             tracing::error!("Daemon error: {}", e);
         }
     });
 
     // Start API server (blocks until shutdown).
-    let api_handle = tokio::spawn(async move {
+    let mut api_handle = tokio::spawn(async move {
         if let Err(e) = server::run(
             shared_state,
             command_tx,
@@ -345,6 +509,9 @@ async fn main() -> anyhow::Result<()> {
             write_serial_lock,
             external_mutation_epoch,
             license_guard,
+            daemon_runtime_identity,
+            shutdown_tx,
+            api_shutdown_rx,
         )
         .await
         {
@@ -362,10 +529,20 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    // Wait for either to finish (normally neither should).
+    // If either governed plane exits, request its peer to stop and await it.
+    // Intentional shutdown therefore cannot end the Tokio runtime before the
+    // daemon's final persistence flush completes.
     tokio::select! {
-        _ = daemon_handle => tracing::warn!("Daemon exited"),
-        _ = api_handle => tracing::warn!("API server exited"),
+        result = &mut daemon_handle => {
+            tracing::warn!(result = ?result, "Daemon exited");
+            let _ = shutdown_tx_for_supervisor.send(true);
+            let _ = api_handle.await;
+        }
+        result = &mut api_handle => {
+            tracing::warn!(result = ?result, "API server exited");
+            let _ = shutdown_tx_for_supervisor.send(true);
+            let _ = daemon_handle.await;
+        }
     }
 
     Ok(())
@@ -375,6 +552,18 @@ async fn main() -> anyhow::Result<()> {
 #[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
+
+    fn lock_test_config(label: &str) -> (FocusaConfig, PathBuf) {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-daemon-lock-{label}-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let config = FocusaConfig {
+            data_dir: root.to_string_lossy().into_owned(),
+            ..FocusaConfig::default()
+        };
+        (config, root)
+    }
 
     #[test]
     fn expand_home_dir_expands_tilde_prefix() {
@@ -439,6 +628,53 @@ mod tests {
     }
 
     #[test]
+    fn unversioned_existing_lock_fails_closed_without_removal() {
+        let (config, root) = lock_test_config("legacy");
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("focusa-daemon.lock");
+        let content = format!("pid={}\nbind=127.0.0.1:8787\n", std::process::id());
+        std::fs::write(&path, &content).unwrap();
+
+        let error = DaemonInstanceLock::acquire(&config, chrono::Utc::now().to_rfc3339())
+            .err()
+            .expect("unversioned lock must fail closed");
+        assert!(error.to_string().contains("DAEMON_LOCK_UNVERIFIED"));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn exact_dead_lock_is_replaced_without_signaling_and_new_lock_is_private() {
+        let (config, root) = lock_test_config("stale");
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("focusa-daemon.lock");
+        let stale = DaemonLockRecord {
+            pid: u32::MAX,
+            bind: config.api_bind.clone(),
+            started_at: "2026-08-31T00:00:00Z".into(),
+            start_token: "stale-start".into(),
+            shutdown_token: "stale-shutdown".into(),
+        };
+        std::fs::write(&path, stale.render()).unwrap();
+
+        let lock = DaemonInstanceLock::acquire(&config, chrono::Utc::now().to_rfc3339()).unwrap();
+        assert_eq!(lock.record.pid, std::process::id());
+        assert_ne!(lock.record.start_token, stale.start_token);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
+        drop(lock);
+        assert!(!path.exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn legacy_pi_activation_marker_is_atomically_quarantined() {
         let root =
             std::env::temp_dir().join(format!("focusa-legacy-pi-marker-{}", uuid::Uuid::now_v7()));
@@ -490,5 +726,43 @@ mod tests {
                 .is_file()
         );
         std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod cli_action_tests {
+    use super::*;
+
+    fn args(v: &[&str]) -> impl Iterator<Item = String> {
+        std::iter::once("focusa-daemon".to_string()).chain(v.iter().map(|s| s.to_string()))
+    }
+
+    #[test]
+    fn help_flag_prints_action_not_startup() {
+        assert_eq!(detect_cli_action(args(&["--help"])), Some(CliAction::Help));
+        assert_eq!(detect_cli_action(args(&["-h"])), Some(CliAction::Help));
+    }
+
+    #[test]
+    fn version_flag_recognized() {
+        assert_eq!(
+            detect_cli_action(args(&["--version"])),
+            Some(CliAction::Version)
+        );
+        assert_eq!(detect_cli_action(args(&["-V"])), Some(CliAction::Version));
+    }
+
+    #[test]
+    fn unknown_dash_arg_is_rejected_not_started() {
+        assert_eq!(
+            detect_cli_action(args(&["--vresion"])),
+            Some(CliAction::Unknown("--vresion".to_string()))
+        );
+    }
+
+    #[test]
+    fn no_args_or_positionals_start_normally() {
+        assert_eq!(detect_cli_action(args(&[])), None);
+        assert_eq!(detect_cli_action(args(&["some-positional"])), None);
     }
 }

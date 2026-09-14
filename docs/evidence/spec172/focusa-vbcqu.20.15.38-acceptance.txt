@@ -1,0 +1,98 @@
+Spec 172 acceptance record
+Work item: focusa-vbcqu.20.15.38
+Title: 172.05.07 Run cross-presenter, dynamic-tool, offline, and bypass adversarial matrix
+Implementation commit: 02bf87e31952
+
+Exact surfaces
+- tests/spec172_cross_surface_adversarial_test.py (new adversarial matrix gate)
+- crates/focusa-core/tests/spec172_bypass_resistance.rs (new runtime bypass-resistance vectors)
+- Replayed surfaces (read-only): core chokepoint (crates/focusa-core/src/guarded_mutation.rs),
+  execution guard (entitlement_execution_guard.rs), API route gate
+  (crates/focusa-api/src/middleware/spec172_core_api_bypass.rs + entitlement.rs), CLI presenter
+  (crates/focusa-cli/src/commands/license.rs + spec172-cli-agent-presenter-fixtures.v1.json),
+  Pi adapter (apps/pi-extension/src/entitlement-policy-adapter.ts + spec141 descriptors), menubar
+  (apps/menubar/src/lib/spec172Posture.ts + spec152f-menubar-action-map.v1.json), TUI
+  (crates/focusa-tui/src/spec172_presenter.rs), Desktop (apps/menubar/src-tauri/src/
+  spec172_desktop_bridge.rs + spec152f-desktop-action-map.v1.json), Cockpit
+  (crates/focusa-license/src/cockpit_action_registry.rs), installer/lifecycle
+  (crates/focusa-core/src/install_lifecycle/preflight.rs + receipts.rs), public facade
+  (public/activation/focusa-facade-policy-presenter.mjs + spec172-public-facade-convergence.v1.json),
+  dynamic manifest (crates/focusa-license/src/dynamic_operation_manifest.rs +
+  spec135/generated-contract-v1/operation-registry.json + ui-action-bindings.fixture.json),
+  offline/refund fixtures (spec172-lifetime-credential-vectors.v1.json,
+  spec172-refund-downgrade-settlement.v1.php, tests/fixtures/spec172-limited-access-cases.v1.json)
+
+Bounded result
+- Added a build-independent adversarial matrix gate that replays the identical allowed/denied
+  cases across every Spec 172 surface and attempts every bypass vector: UI hiding, direct
+  core/DB, stale client, queued work, unsigned plugin, generated UI, wrong product/type/node,
+  offline stale sequence, and pairing-as-entitlement. The emitted cross-presenter semantic
+  diff is empty (every surface projects the same canonical posture/License Type/stable error/
+  retained-access/upgrade vocabulary), and the side-effect counter report shows all 9 vectors
+  blocked (9/9 attempts, 9/9 zero protected side effects, recovery always available).
+- Added 4 runtime vectors at the shared chokepoint (cargo filter spec172_bypass_resistance):
+  (1) cross-presenter equivalent policy matrix — base mutations denied on every
+  core-expressible value-producing surface (execution guard, guarded-mutation chokepoint,
+  project-aware chokepoint) for missing/corrupt, pairing-only, refunded/revoked, stale-client,
+  wrong-product, and fabricated-unbound cells, with base-product-projection and Cockpit
+  resolver agreement and zero-side-effect denials; (2) dynamic plugin/generated-UI
+  fail-closed — unsigned plugins, self-labeled recovery, client-selected policy, unknown
+  ownership, unregistered family, and generated-UI grant expansion quarantine with zero
+  executions (ManifestQuarantineLedger); (3) offline stale sequence and pairing fail-closed —
+  valid Offline Grace passes, past-grace (CachedGrantExpired), missing-window
+  (MissingCachedGrantExpiry), expired-Active (ActiveLeaseExpired), unbound/fabricated leases,
+  wrong-product, and pairing-only snapshots never grant; (4) zero protected side effects —
+  direct core/DB/storage, stale client, wrong product, pairing-only, and queued-before-refund
+  worker dispatch all deny with zero durable writes while recovery/read/export stay reachable
+  in every blocked state.
+- No anonymous product capability, no local/self-issued grant, no caller-controlled product,
+  price, License Type, family, feature, limit, node, or commercial right, no presenter-owned
+  policy, no implicit legacy Download 453 mapping (forbidden_implicit_download = 453 asserted),
+  no data deletion, and basic export/repair/rollback/stable-security-update/uninstall stay
+  available.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_cross_surface_adversarial_test.py` — exit 0.
+   One bounded JSON line: result passed_fail_closed; cross_presenter_semantic_diff {} (empty);
+   side_effect_counters: 9 vectors, each attempts=1 blocked=1 zero_side_effects=1
+   recovery_available=true; fixture replays 30 cases (16 allow / 14 deny), 108 registered
+   operations; replay gates (offline_bounded, refund_downgrade, dynamic_tool_manifest,
+   limited_assertion) all exit 0; static_positive_checks 966.
+2. `cargo test --workspace spec172_bypass_resistance` — exit 0.
+   test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out (finished 0.01s)
+   in tests/spec172_bypass_resistance.rs; entire workspace compiled (63 test binaries
+   reported "test result: ok", 0 matching tests elsewhere, all filtered out).
+
+Regression checks
+- The gate replays 4 previously accepted read-only Spec 172 gates (lifetime credential
+  offline-bounded, refund downgrade PHP, dynamic operation manifest, limited assertion PHP) —
+  all exit 0.
+- Workspace compilation covered by the cargo filter run: all crates and integration test
+  binaries built cleanly; prior spec172/spec152f vectors unaffected (no policy behavior
+  changed; tests only).
+
+Tests added
+- Python: tests/spec172_cross_surface_adversarial_test.py (cross-presenter semantic diff,
+  9-vector bypass matrix with side-effect counters, fixture replays, Rust vector pinning,
+  hygiene).
+- Rust: 4 tests in crates/focusa-core/tests/spec172_bypass_resistance.rs:
+  spec172_bypass_resistance_cross_presenter_equivalent_policy_matrix,
+  spec172_bypass_resistance_dynamic_plugin_and_generated_ui_fail_closed,
+  spec172_bypass_resistance_offline_stale_sequence_and_pairing_fail_closed,
+  spec172_bypass_resistance_bypass_vectors_zero_side_effects_recovery_reachable.
+
+Remaining blockers
+- None. All dependencies for this atom were already merged in prior atoms.
+
+Rollback
+- Revert only this atom's files: crates/focusa-core/tests/spec172_bypass_resistance.rs,
+  tests/spec172_cross_surface_adversarial_test.py, and this evidence record. Preserve verified
+  identities, customers, orders, refunds, License Types, keys, nodes, sequences, data,
+  migration journals, evidence, and accepted unrelated work. No policy behavior changed by
+  this atom, so no product logic is affected by rollback.
+
+Note: the OVH build host public endpoint was unreachable from the KH network during this run;
+the build was executed through the equivalent Tailscale peer (focusa-build-ovh-ts,
+100.69.132.82) with the identical remote build pipeline and lock discipline.
+
+No push, deploy, release, merge, or Beads mutation was performed.

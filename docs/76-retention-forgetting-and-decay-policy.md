@@ -152,8 +152,3 @@ Return an archived object to active use when justified.
 # 4. Success Condition
 
 Retention, Forgetting, and Decay Policy is successful when Focusa can preserve what matters, decay what no longer should dominate, and keep active reasoning clear without destroying historical trace.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-retention -->
-## Spec 144 retention integration
-
-Verification snapshots, findings, dispositions, compilation receipts, independence/common-mode profiles, arbitration records, settlement evaluations, and revalidation challenges inherit evidence-, legal-, security-, and conformance-sensitive retention. Ordinary decay cannot delete a record required to explain a current settlement, correction, promoted learning, dispute, or public conformance claim.

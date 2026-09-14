@@ -15,12 +15,15 @@ use super::silent_render::{CLI_SCHEMA, print_result};
 
 #[derive(Subcommand, Debug)]
 pub enum SilentCmd {
-    Preflight(PreflightArgs),
+    /// Resolve and validate an exact SilentSessionConfig without creating a session.
+    Preflight(ConfigInputArgs),
     Create(CreateArgs),
     Start(SessionMutationArgs),
+    #[command(subcommand)]
+    Approval(ApprovalCmd),
     List(ListArgs),
-    Show(ReadArgs),
-    Status(ReadArgs),
+    Show(ShowArgs),
+    Status(StatusArgs),
     Watch(WatchArgs),
     Output(OutputArgs),
     Send(InputArgs),
@@ -39,6 +42,8 @@ pub enum SilentCmd {
     Profile(ProfileCmd),
     #[command(subcommand)]
     Preset(PresetCmd),
+    #[command(subcommand)]
+    Model(ModelCmd),
     Checkpoints(ExactSessionArgs),
     Evidence(ProofArgs),
     Receipt(ProofArgs),
@@ -47,6 +52,23 @@ pub enum SilentCmd {
     Delete(RetentionArgs),
     Purge(RetentionArgs),
     Doctor(DoctorArgs),
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ApprovalCmd {
+    /// Preview the exact server-derived approval target and action digest.
+    Preview(ApprovalFileArgs),
+    /// Persist the exact previewed approval; the request must include expected_action_digest.
+    Create(ApprovalFileArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct ApprovalFileArgs {
+    /// Exact durable Silent Session id.
+    pub session_id: String,
+    /// JSON request bound to the exact session/run/generation/action.
+    #[arg(long)]
+    pub request_file: PathBuf,
 }
 
 #[derive(Subcommand, Debug)]
@@ -67,17 +89,50 @@ pub enum PresetCmd {
     List,
 }
 
-#[derive(Args, Debug, Clone)]
-pub struct SessionArgs {
-    /// Exact durable Silent Session id.
-    pub session_id: String,
+#[derive(Subcommand, Debug)]
+pub enum ModelCmd {
+    /// List models explicitly allowed by the server-owned Pi runtime catalog.
+    List(ModelListArgs),
+    /// Resolve one exact model or return a typed unsupported_model result.
+    Preflight(ModelPreflightArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct ModelListArgs {
+    #[arg(long, default_value = "pi-runtime")]
+    pub provider: String,
+}
+
+#[derive(Args, Debug)]
+pub struct ModelPreflightArgs {
+    #[arg(long, default_value = "pi-runtime")]
+    pub provider: String,
+    #[arg(long)]
+    pub model: String,
+    #[arg(long)]
+    pub thinking: Option<String>,
+    #[arg(long, default_value_t = true)]
+    pub strict: bool,
+    #[arg(long, default_value_t = false)]
+    pub require_entitlement_preflight: bool,
 }
 
 #[derive(Args, Debug, Clone)]
-pub struct ReadArgs {
+pub struct ShowArgs {
+    pub session_id: String,
+    /// Accepted for backward compatibility; show is session-scoped.
+    #[arg(long, alias = "run")]
+    pub run_id: Option<String>,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct StatusArgs {
     pub session_id: String,
     #[arg(long, alias = "run")]
     pub run_id: String,
+    /// Exact current run generation; stale generations fail closed.
+    #[arg(long)]
+    pub generation: u64,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -122,18 +177,6 @@ pub struct ConfigInputArgs {
     /// Optional ConfigLayer JSON array.
     #[arg(long)]
     pub layers_file: Option<PathBuf>,
-}
-
-#[derive(Args, Debug)]
-pub struct PreflightArgs {
-    #[arg(long)]
-    pub actor_instance_ref: String,
-    #[arg(long)]
-    pub approval_id: String,
-    #[arg(long)]
-    pub session_owner_os_user: String,
-    #[arg(long)]
-    pub context_authority_file: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -192,7 +235,7 @@ pub struct OutputArgs {
     #[arg(long, alias = "run")]
     pub run_id: String,
     #[arg(long)]
-    pub generation: Option<u64>,
+    pub generation: u64,
     #[arg(long, alias = "after")]
     pub cursor: Option<String>,
     #[arg(long, default_value_t = 200)]
@@ -282,6 +325,9 @@ pub struct ProofArgs {
     pub session_id: String,
     #[arg(long, alias = "run")]
     pub run_id: String,
+    /// Exact current run generation; stale generations fail closed.
+    #[arg(long)]
+    pub generation: u64,
     #[arg(long)]
     pub after: Option<String>,
     #[arg(long, default_value_t = 200)]
@@ -430,16 +476,6 @@ fn config_apply_body(args: &ConfigSessionArgs) -> Result<Value> {
     config_session_body(args)
 }
 
-fn preflight_body(args: &PreflightArgs) -> Result<Value> {
-    Ok(json!({
-        "actor_instance_ref": args.actor_instance_ref,
-        "approval_id": args.approval_id,
-        "legacy_approved": false,
-        "session_owner_os_user": args.session_owner_os_user,
-        "context_authority": read_json(&args.context_authority_file)?,
-    }))
-}
-
 fn create_body(args: &CreateArgs) -> Result<Value> {
     if let Some(path) = &args.request_file {
         let request = read_json(path)?;
@@ -523,11 +559,11 @@ async fn lifecycle_call(
 ) -> Result<Value> {
     let path = if args.lease_file.is_some() {
         format!(
-            "/silent-sessions/{}/{operation}?run_id={}&expected_generation={}",
+            "/v1/silent-sessions/{}/{operation}?run_id={}&expected_generation={}",
             args.session_id, args.run_id, args.generation
         )
     } else {
-        format!("/silent-sessions/{}/{operation}", args.session_id)
+        format!("/v1/silent-sessions/{}/{operation}", args.session_id)
     };
     let result = client.post(&path, &mutation_body(args)?).await?;
     if result.get("ok").and_then(Value::as_bool) == Some(false)
@@ -539,6 +575,24 @@ async fn lifecycle_call(
             .unwrap_or("lifecycle_rejected");
         bail!("lifecycle mutation rejected: {failure}");
     }
+    Ok(result)
+}
+
+fn validate_session_read(result: Value, session_id: &str) -> Result<Value> {
+    let response_session = result
+        .pointer("/data/id")
+        .and_then(Value::as_str)
+        .or_else(|| result.pointer("/data/session_id").and_then(Value::as_str))
+        .or_else(|| result.pointer("/data/session/id").and_then(Value::as_str))
+        .or_else(|| {
+            result
+                .pointer("/data/session/session_id")
+                .and_then(Value::as_str)
+        });
+    anyhow::ensure!(
+        response_session == Some(session_id),
+        "[API_DECODE_ERROR] daemon response did not match the exact requested session"
+    );
     Ok(result)
 }
 
@@ -576,7 +630,7 @@ async fn watch_call(client: &ApiClient, args: &WatchArgs) -> Result<Value> {
     let mut next_cursor = args.cursor.clone();
     for poll in 0..poll_count {
         let path = format!(
-            "/silent-sessions/{}/events{}",
+            "/v1/silent-sessions/{}/events{}",
             args.session_id,
             query(&[
                 ("run_id", Some(args.run_id.clone())),
@@ -640,10 +694,11 @@ async fn proof_call(client: &ApiClient, args: &ProofArgs, collection: &str) -> R
         _ => anyhow::bail!("unsupported proof collection"),
     };
     let mut path = format!(
-        "/silent-sessions/{}{}?run_id={}&limit={}",
+        "/v1/silent-sessions/{}{}?run_id={}&generation={}&limit={}",
         args.session_id,
         route,
         urlencoding::encode(&args.run_id),
+        args.generation,
         args.limit
     );
     if let Some(after) = &args.after {
@@ -652,12 +707,15 @@ async fn proof_call(client: &ApiClient, args: &ProofArgs, collection: &str) -> R
     }
     let result = client.get(&path).await?;
     anyhow::ensure!(
-        result.pointer("/data/run_id").and_then(Value::as_str) == Some(args.run_id.as_str())
+        result.pointer("/data/session_id").and_then(Value::as_str)
+            == Some(args.session_id.as_str())
+            && result.pointer("/data/run_id").and_then(Value::as_str) == Some(args.run_id.as_str())
+            && result.pointer("/data/generation").and_then(Value::as_u64) == Some(args.generation)
             && result
                 .pointer("/data/limit")
                 .and_then(Value::as_u64)
                 .is_none_or(|limit| limit <= args.limit as u64),
-        "proof response violated exact-run or bounded-limit authority"
+        "proof response violated exact session/run/generation or bounded-limit authority"
     );
     Ok(result)
 }
@@ -668,7 +726,7 @@ async fn export_call(client: &ApiClient, args: &ExportArgs) -> Result<Value> {
         "--limit must be between 1-1000"
     );
     let path = format!(
-        "/silent-sessions/{}/export?run_id={}",
+        "/v1/silent-sessions/{}/export?run_id={}",
         args.session_id,
         urlencoding::encode(&args.run_id)
     );
@@ -795,7 +853,7 @@ async fn retention_call(
 ) -> Result<Value> {
     let path = if operation == "delete" {
         format!(
-            "/silent-sessions/{}?run_id={}&expected_generation={}",
+            "/v1/silent-sessions/{}?run_id={}&expected_generation={}",
             args.session_id,
             urlencoding::encode(&args.run_id),
             args.generation
@@ -807,7 +865,7 @@ async fn retention_call(
             _ => anyhow::bail!("unsupported retention operation"),
         };
         format!(
-            "/silent-sessions/{}{}?run_id={}&expected_generation={}",
+            "/v1/silent-sessions/{}{}?run_id={}&expected_generation={}",
             args.session_id,
             route,
             urlencoding::encode(&args.run_id),
@@ -954,7 +1012,7 @@ fn blocked_doctor_report(failure_class: &str, recovery_hint: &str) -> Value {
 }
 
 async fn silent_doctor_report(client: &ApiClient) -> Value {
-    let (_, health) = match client.get_probe("/health").await {
+    let (_, health) = match client.get_probe("/v1/health").await {
         Ok(response) => response,
         Err(_) => {
             return blocked_doctor_report(
@@ -963,15 +1021,18 @@ async fn silent_doctor_report(client: &ApiClient) -> Value {
             );
         }
     };
-    let harness = client.get_probe("/harnesses").await;
-    let provider = client.get_probe("/providers").await;
-    let profiles = client.get_probe("/silent-sessions/profiles").await;
-    let presets = client.get_probe("/silent-sessions/presets").await;
-    let capabilities = client.get_probe("/silent-sessions/capabilities").await;
+    let harness = client.get_probe("/v1/harnesses").await;
+    let provider = client.get_probe("/v1/providers").await;
+    let profiles = client.get_probe("/v1/silent-sessions/profiles").await;
+    let presets = client.get_probe("/v1/silent-sessions/presets").await;
+    let capabilities = client.get_probe("/v1/silent-sessions/capabilities").await;
 
-    let capabilities_ok = capabilities
-        .as_ref()
-        .is_ok_and(|(status, _)| (200..300).contains(status));
+    let capabilities_ok = capabilities.as_ref().is_ok_and(|(status, value)| {
+        (200..300).contains(status)
+            && value.get("ok").and_then(Value::as_bool) == Some(true)
+            && value.get("canonical").and_then(Value::as_bool) == Some(true)
+            && value.get("degraded").and_then(Value::as_bool) == Some(false)
+    });
     let daemon_ok = health.get("status").and_then(Value::as_str) == Some("ok");
     let harness_ok = harness.as_ref().is_ok_and(|(status, value)| {
         (200..300).contains(status)
@@ -1064,8 +1125,22 @@ async fn silent_doctor_report(client: &ApiClient) -> Value {
 
 async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> Result<()> {
     let (name, result) = match command {
-        SilentCmd::Preflight(args) => ("preflight", client.post("/silent-sessions/preflight", &preflight_body(&args)?).await?),
-        SilentCmd::Create(args) => ("create", client.post("/silent-sessions", &create_body(&args)?).await?),
+        SilentCmd::Preflight(args) => ("preflight", client.post("/v1/silent-sessions/preflight", &config_body(&args)?).await?),
+        SilentCmd::Create(args) => ("create", client.post("/v1/silent-sessions", &create_body(&args)?).await?),
+        SilentCmd::Approval(ApprovalCmd::Preview(args)) => (
+            "approval preview",
+            client.post(
+                &format!("/v1/silent-sessions/{}/approvals/preview", args.session_id),
+                &read_json(&args.request_file)?,
+            ).await?,
+        ),
+        SilentCmd::Approval(ApprovalCmd::Create(args)) => (
+            "approval create",
+            client.post(
+                &format!("/v1/silent-sessions/{}/approvals", args.session_id),
+                &read_json(&args.request_file)?,
+            ).await?,
+        ),
         SilentCmd::Start(args) => ("start", lifecycle_call(client, &args, "start").await?),
         SilentCmd::List(args) => {
             let query = query(&[
@@ -1074,48 +1149,51 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
                 ("status", args.status),
                 ("limit", Some(args.limit.clamp(1, 200).to_string())),
             ]);
-            ("list", client.get(&format!("/silent-sessions{query}")).await?)
+            ("list", client.get(&format!("/v1/silent-sessions{query}")).await?)
         }
         SilentCmd::Show(args) => {
-            let result = client.get(&format!("/silent-sessions/{}?run_id={}", args.session_id, urlencoding::encode(&args.run_id))).await?;
-            ("show", validate_exact_read(result, &args.session_id, &args.run_id)?)
+            drop(args.run_id); // compatibility-only; canonical show is session-scoped.
+            let result = client
+                .get(&format!("/v1/silent-sessions/{}", args.session_id))
+                .await?;
+            ("show", validate_session_read(result, &args.session_id)?)
         }
         SilentCmd::Status(args) => {
-            let result = client.get(&format!("/silent-sessions/{}/status?run_id={}", args.session_id, urlencoding::encode(&args.run_id))).await?;
+            let result = client.get(&format!("/v1/silent-sessions/{}/status?run_id={}&generation={}", args.session_id, urlencoding::encode(&args.run_id), args.generation)).await?;
             ("status", validate_exact_read(result, &args.session_id, &args.run_id)?)
         }
         SilentCmd::Watch(args) => ("watch", watch_call(client, &args).await?),
         SilentCmd::Output(args) => {
             anyhow::ensure!((1..=1000).contains(&args.limit), "--limit must be between 1-1000");
-            let mut path = format!("/silent-sessions/{}/output?run_id={}&limit={}", args.session_id, urlencoding::encode(&args.run_id), args.limit);
+            let mut path = format!("/v1/silent-sessions/{}/output?run_id={}&generation={}&follow=false&limit={}", args.session_id, urlencoding::encode(&args.run_id), args.generation, args.limit);
             if let Some(after) = &args.cursor { path.push_str("&after="); path.push_str(&urlencoding::encode(after)); }
             let result = client.get(&path).await?;
             ("output", validate_exact_read(result, &args.session_id, &args.run_id)?)
         }
         SilentCmd::Send(args) => {
             let body = interaction_body(&args.session_id, &args.actor_instance_ref, &args.approval_id, &args.idempotency_key, &args.lease_file, &args.payload_file, Some(&args.text), None)?;
-            let path = format!("/silent-sessions/{}/input?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
+            let path = format!("/v1/silent-sessions/{}/input?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
             let result = client.post(&path, &body).await?;
             validate_interaction_replay(&result)?;
             ("send", result)
         }
         SilentCmd::Steer(args) => {
             let body = interaction_body(&args.session_id, &args.actor_instance_ref, &args.approval_id, &args.idempotency_key, &args.lease_file, &args.payload_file, Some(&args.text), None)?;
-            let path = format!("/silent-sessions/{}/steer?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
+            let path = format!("/v1/silent-sessions/{}/steer?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
             let result = client.post(&path, &body).await?;
             validate_interaction_replay(&result)?;
             ("steer", result)
         }
         SilentCmd::FollowUp(args) => {
             let body = interaction_body(&args.session_id, &args.actor_instance_ref, &args.approval_id, &args.idempotency_key, &args.lease_file, &args.payload_file, Some(&args.text), None)?;
-            let path = format!("/silent-sessions/{}/follow-up?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
+            let path = format!("/v1/silent-sessions/{}/follow-up?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
             let result = client.post(&path, &body).await?;
             validate_interaction_replay(&result)?;
             ("follow-up", result)
         }
         SilentCmd::Key(args) => {
             let body = interaction_body(&args.session_id, &args.actor_instance_ref, &args.approval_id, &args.idempotency_key, &args.lease_file, &args.payload_file, None, Some(&args.keys))?;
-            let path = format!("/silent-sessions/{}/keys?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
+            let path = format!("/v1/silent-sessions/{}/keys?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
             let result = client.post(&path, &body).await?;
             validate_interaction_replay(&result)?;
             ("key", result)
@@ -1127,14 +1205,40 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
         SilentCmd::Restart(args) => ("restart", lifecycle_call(client, &args, "restart").await?),
         SilentCmd::Adopt(args) => ("adopt", lifecycle_call(client, &args, "adopt").await?),
         SilentCmd::Config(command) => match command {
-            ConfigCmd::Resolve(args) => ("config resolve", client.post("/silent-sessions/config/resolve", &config_body(&args)?).await?),
-            ConfigCmd::Diff(args) => ("config diff", client.post(&format!("/silent-sessions/{}/config/preview", args.session_id), &config_session_body(&args)?).await?),
-            ConfigCmd::Apply(args) => ("config apply", client.post(&format!("/silent-sessions/{}/config/revisions", args.session_id), &config_apply_body(&args)?).await?),
-            ConfigCmd::Rollback(args) => ("config rollback", client.post(&format!("/silent-sessions/{}/config/rollback", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"target_revision_id":args.revision,"idempotency_key":args.idempotency_key})).await?),
+            ConfigCmd::Resolve(args) => ("config resolve", client.post("/v1/silent-sessions/config/resolve", &config_body(&args)?).await?),
+            ConfigCmd::Diff(args) => ("config diff", client.post(&format!("/v1/silent-sessions/{}/config/preview", args.session_id), &config_session_body(&args)?).await?),
+            ConfigCmd::Apply(args) => ("config apply", client.post(&format!("/v1/silent-sessions/{}/config/revisions", args.session_id), &config_apply_body(&args)?).await?),
+            ConfigCmd::Rollback(args) => ("config rollback", client.post(&format!("/v1/silent-sessions/{}/config/rollback", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"target_revision_id":args.revision,"idempotency_key":args.idempotency_key})).await?),
         },
-        SilentCmd::Profile(ProfileCmd::List) => ("profile list", client.get("/silent-sessions/profiles").await?),
-        SilentCmd::Preset(PresetCmd::List) => ("preset list", client.get("/silent-sessions/presets").await?),
-        SilentCmd::Checkpoints(args) => ("checkpoints", client.get(&format!("/silent-sessions/{}/checkpoints?run_id={}&generation={}", args.session_id, args.run_id, args.generation)).await?),
+        SilentCmd::Profile(ProfileCmd::List) => ("profile list", client.get("/v1/silent-sessions/profiles").await?),
+        SilentCmd::Preset(PresetCmd::List) => ("preset list", client.get("/v1/silent-sessions/presets").await?),
+        SilentCmd::Model(ModelCmd::List(args)) => (
+            "model list",
+            client
+                .get(&format!(
+                    "/v1/providers/{}/models",
+                    urlencoding::encode(&args.provider)
+                ))
+                .await?,
+        ),
+        SilentCmd::Model(ModelCmd::Preflight(args)) => (
+            "model preflight",
+            client
+                .post(
+                    &format!(
+                        "/v1/providers/{}/models/preflight",
+                        urlencoding::encode(&args.provider)
+                    ),
+                    &json!({
+                        "model": args.model,
+                        "thinking": args.thinking,
+                        "strict": args.strict,
+                        "require_entitlement_preflight": args.require_entitlement_preflight,
+                    }),
+                )
+                .await?,
+        ),
+        SilentCmd::Checkpoints(args) => ("checkpoints", client.get(&format!("/v1/silent-sessions/{}/checkpoints?run_id={}&generation={}", args.session_id, args.run_id, args.generation)).await?),
         SilentCmd::Evidence(args) => ("evidence", proof_call(client, &args, "artifacts").await?),
         SilentCmd::Receipt(args) => ("receipt", proof_call(client, &args, "receipts").await?),
         SilentCmd::Export(args) => ("export", export_call(client, &args).await?),

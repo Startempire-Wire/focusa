@@ -1,0 +1,150 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.31
+Title: 172.04.07 Converge facades and public commerce on Spec 172
+Implementation commit: (see git log for this atom; single commit)
+Base: branch atom/focusa-vbcqu.20.15.31 on local/luna-152f-reducer
+
+Exact surfaces
+- Focusa/Engine/install/WPUIAI public pages and machine commerce: shared public
+  copy/commerce convergence contract (NEW)
+  docs/contracts/spec172-public-facade-convergence.v1.json
+- facade registry/proxy: cross-checked read-only against
+  docs/contracts/spec152e-facade-registry.v1.json (all six registered facades
+  and 11 proxy routes) and docs/contracts/spec152e-activation-call-stack.v1.yaml
+  (activation.checkout proxy route and EDD adapter binding)
+- EDD checkout links: cross-checked read-only against
+  docs/contracts/spec172-edd-operator-v1-downloads.v1.json (dedicated Downloads
+  458/459/460), docs/contracts/spec152e-edd-product-registry.v1.json, and
+  docs/contracts/spec172-license-types.v1.yaml
+- route/link fixtures: cross-checked read-only against
+  docs/contracts/spec152e-installer-route-manifest.v1.json (convenience URLs and
+  transactional links) and docs/contracts/spec152e-install-facade-routes.v1.php
+- tests/spec172_public_facade_convergence_test.py (NEW — exact verification)
+
+Bounded result
+- Added the shared public copy/commerce contract
+  (docs/contracts/spec172-public-facade-convergence.v1.json, schema
+  focusa.spec172.public_facade_convergence.v1): the single authority for what
+  every registered facade and machine endpoint MUST project. It freezes the
+  canonical current policy — Focusa Operator Lifetime v1 and UIAI Engine
+  Operator Lifetime v1 at exactly USD $697.00 each, and the Focusa + UIAI
+  Operator Lifetime Bundle at exactly USD $1,254.60 (exact union of the two
+  underlying License Types, 10% below the $1,394.00 sum, whole-order 30-day
+  refunds, no component refunds); permanent verified no-license limited mode
+  (no EDD key, no expiry, signed limited-access assertion only); the
+  no-telemetry bounded-authority copy ("No telemetry; bounded authority
+  communication for identity, activation, refresh, refund/revoke, and
+  recovery"); EDD-backed checkout (WPUIAI.com EDD sole authority, configured
+  Stripe gateway only, facades never collect card data, no direct
+  Gravity/Stripe entitlement); product isolation (a Focusa-only purchase never
+  grants UIAI Engine); future boundaries (new families deny pending explicit
+  assignment, new products and License Types excluded by default, Operator
+  naming preserved); and preserved always-reachable operations (basic export,
+  account/device control, license status, diagnostics, repair, rollback,
+  stable security update, uninstall, emergency recovery).
+- The contract lists all six registered facades (focusa_marketing_v1,
+  uiai_engine_v1, focusa_install_v1, focusa_forge_v1, focusa_arena_v1,
+  wpuiai_public_v1) with their exact origins and product allowlists equal to
+  the facade registry, and declares that every facade projects the identical
+  current policy (identical checkout/verification/manage/recovery paths,
+  identical prices and authority). Product isolation is enforced per facade:
+  Focusa-only facades never project the standalone UIAI offer; the engine
+  facade never projects the Focusa standalone offer.
+- The contract freezes all ten Section 18.2 contradiction removals with
+  replacement text verbatim equal to the accepted public-commerce baseline:
+  anonymous/no-account Evaluation, local self-issued --eval, timed Evaluation,
+  the conflicting $1,097 Bundle, implicit UIAI grant, Gravity Forms/direct
+  Stripe entitlement, no-phone-home, broken /focusa and /bundle convenience
+  routes, broken LICENSE/COMMERCIAL.md links, and legacy WPUIAI prices are all
+  replaced or explicitly separated. The shared copy contains no $1,097, no
+  anonymous evaluation, no no-phone-home, and no direct-entitlement Gravity
+  copy.
+- EDD checkout links: all six facade checkout paths are identical
+  (/activate/checkout), the proxy route is /v1/activation/checkout via the EDD
+  adapter, checkout stays disabled (sale_status approved_not_yet_enabled,
+  checkout_enabled false, checkout_block_reason awaiting_validation_pass), and
+  the three dedicated EDD Downloads (458/459/460) carry exactly
+  69700/69700/125460 minor units — never a legacy download id and never
+  Download 453. No payment/purchase link uses a contradictory authority or
+  price.
+- Route/link fixtures: the repaired install convenience URLs (/focusa, /bundle,
+  /engine, /powershell) and the five transactional links (verify, pay, success,
+  manage, recovery) all resolve 200 in the installer route manifest; license
+  terms links are valid-or-removed; the install facade routes contract remains
+  bound to the exact origin and defers to WPUIAI EDD.
+- Added the bounded UIAI browser proof plan (owned by downstream atom
+  focusa-vbcqu.20.15.39): UIAI engine browser reads only, no authenticated or
+  customer-data capture, no raw capture/email/key embedded, targeting the same
+  public URLs captured in Section 18.1, verifying Operator names, $697/$1,254.60
+  pricing with no 1097, verified limited mode, no-telemetry copy, EDD-backed
+  checkout, product isolation, and valid routes; service unavailability is
+  recorded as a blocker and never bypassed.
+- No anonymous product capability, no local/self-issued grant, no
+  caller-controlled product/price/License Type/family/feature/limit/node/
+  commercial right, no presenter-owned policy, and no implicit legacy Download
+  453 mapping were added. No raw email, key, token, customer row, credential,
+  or card data exists in the new contract or test. No data deletion and no
+  blocked basic export, repair, rollback, stable security update, or uninstall.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_public_facade_convergence_test.py` — exit 0.
+   {"canonical_offers": 3, "dedicated_edd_downloads": 3, "negative_checks": 4,
+   "positive_checks": 288, "registered_facades": 6,
+   "removed_contradictions": 10, "result": "passed_fail_closed"}
+   "Spec 172 public facade and commerce convergence: PASS"
+
+Regression checks (exit codes)
+- `python3 tests/spec172_public_commerce_baseline_test.py` — exit 0.
+  "Spec 172 bounded UIAI public-commerce baseline: PASS"
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0.
+  (facades 6, proxy_routes 11, negative_validator_checks 8,
+  result passed_fail_closed)
+- `python3 tests/spec152e_install_facade_routes_test.py` — exit 0.
+  (convenience_urls 4, transactional_links 5, positive 90, negative 26,
+  passed_fail_closed)
+- `python3 tests/spec152e_facade_acceptance_test.py` — exit 0.
+  (facades 6, proxy_routes 11, positive 449, negative 40, php_probes 3,
+  passed_fail_closed)
+- `python3 tests/spec172_no_sales_inventory_test.py` — exit 0.
+  "Spec 172 migration-preserving sales inventory: PASS"
+- `python3 tests/spec172_family_inheritance_test.py` — exit 0.
+- `python3 tests/spec152f_facade_policy_presenter_test.py` — exit 0.
+- `python3 tests/spec172_uiai_limited_mode_test.py` — exit 0.
+- `python3 -c "import json; json.load(open('docs/contracts/spec172-public-facade-convergence.v1.json'))"` — exit 0 (contract is valid JSON).
+- `git diff --check` — exit 0, no whitespace errors.
+
+Tests added
+- tests/spec172_public_facade_convergence_test.py (288 positive + 4 negative
+  checks): contract schema/authority/caller-control freeze; canonical Operator
+  names and $697.00/$697.00/$1,254.60 prices across the convergence contract,
+  dedicated EDD Downloads, product registry, and license-types YAML; exact
+  Bundle union/refund/node semantics; permanent verified limited mode with no
+  EDD key; no-telemetry bounded-authority copy; EDD-only checkout; product
+  isolation per facade; future boundary defaults; preserved always-reachable
+  operations; all six registered facades project identical policy with exact
+  origins and product allowlists matching the registry; identical
+  checkout/verify/manage/recovery paths; dedicated EDD download ids 458/459/460
+  with correct minor units and no legacy/453 reuse; checkout proxy route matches
+  the activation call stack; convenience URLs and transactional links all
+  resolve 200; all ten Section 18.2 replacements verbatim equal to the baseline;
+  forbidden public claims absent; bounded UIAI browser proof plan; hygiene
+  (no email/secret/license/customer/card data, no wildcards); eight fail-closed
+  mutation checks reject contradictory prices, premature checkout enablement,
+  direct Stripe/Gravity paths, implicit UIAI grants, non-identical facade
+  projections, and EDD-key/timed limited mode.
+
+Remaining blockers
+- None for this atom. Fresh post-convergence UIAI browser proof remains owned
+  by downstream atom focusa-vbcqu.20.15.39 (proof plan is recorded here and
+  depends on UIAI service availability); no-sales clean cutover is owned by
+  focusa-vbcqu.20.15.32 and remains blocked on the accepted no-sales proof.
+
+Rollback
+- Revert only this atom's files: docs/contracts/spec172-public-facade-
+  convergence.v1.json, tests/spec172_public_facade_convergence_test.py, and
+  docs/evidence/spec172/focusa-vbcqu.20.15.31-acceptance.txt. Preserve verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, customer data, migration journals, evidence, and accepted
+  unrelated work. No data deletion is performed by this atom or its rollback.
+
+No push, deploy, release, merge, or Beads mutation was performed.

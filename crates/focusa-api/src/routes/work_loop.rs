@@ -5,7 +5,7 @@ use crate::routes::permissions::{forbid, permission_context};
 use crate::scope::ScopeContext;
 use crate::server::{AppState, WriterLease};
 use axum::extract::{FromRequestParts, Query, State};
-use axum::http::{HeaderMap, StatusCode, request::Parts};
+use axum::http::{HeaderMap, Method, StatusCode, request::Parts};
 use axum::response::{IntoResponse, Response};
 use axum::{
     Json, Router,
@@ -37,7 +37,8 @@ use uuid::Uuid;
 
 const WRITER_HEADER: &str = "x-focusa-writer-id";
 const FENCING_HEADER: &str = "x-focusa-fencing-token";
-const WRITER_LEASE_TTL_MS: i64 = 30_000;
+// Leave enough bounded time for provider discovery and one atomic CLI mutation.
+pub(crate) const WRITER_LEASE_TTL_MS: i64 = 120_000;
 const APPROVAL_HEADER: &str = "x-focusa-approval";
 const WORK_LOOP_STATUS_SCHEMA: &str = "focusa.work_loop_status.v3";
 const WORK_LOOP_REPLAY_SCHEMA: &str = "focusa.work_loop_replay.v2";
@@ -59,8 +60,10 @@ fn stale_scope_rebind_allowed(
     enabled: bool,
     status: WorkLoopStatus,
     has_current_task: bool,
+    active_scope_orphaned: bool,
 ) -> bool {
-    !enabled
+    active_scope_orphaned
+        || !enabled
         || matches!(
             status,
             WorkLoopStatus::Idle | WorkLoopStatus::Completed | WorkLoopStatus::Aborted
@@ -119,6 +122,18 @@ fn canonical_workpoint_exists_for_scope(focusa: &FocusaState, key: &WorkstreamKe
     canonical_workpoint_id_for_scope_and_item(focusa, key, None).is_some()
 }
 
+fn read_only_scope_inspection_allowed(method: &Method, path: &str) -> bool {
+    method == Method::GET
+        && matches!(
+            path,
+            "/v1/work-loop"
+                | "/v1/work-loop/health"
+                | "/v1/work-loop/status"
+                | "/v1/work-loop/status/deep"
+                | "/v1/work-loop/checkpoints"
+        )
+}
+
 impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
     type Rejection = WorkLoopScopeRejection;
 
@@ -173,14 +188,22 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
                 .get("x-focusa-approval")
                 .and_then(|value| value.to_str().ok())
                 .is_some_and(|value| value == "approved");
+            let active_scope_orphaned = focusa
+                .work_loop
+                .execution_scope
+                .as_ref()
+                .is_some_and(|active| !canonical_workpoint_exists_for_scope(&focusa, active));
             let stale_enable_rebind = parts.uri.path() == "/v1/work-loop/enable"
                 && approved
                 && stale_scope_rebind_allowed(
                     focusa.work_loop.enabled,
                     focusa.work_loop.status,
                     focusa.work_loop.current_task.is_some(),
+                    active_scope_orphaned,
                 );
-            if stale_enable_rebind {
+            if stale_enable_rebind
+                || read_only_scope_inspection_allowed(&parts.method, parts.uri.path())
+            {
                 return Ok(Self(key));
             }
             return Err(WorkLoopScopeRejection {
@@ -776,7 +799,7 @@ fn fencing_token_from_headers(headers: &HeaderMap) -> Result<u64, (StatusCode, J
         .ok_or_else(|| bad_request(format!("missing or invalid header: {FENCING_HEADER}")))
 }
 
-fn writer_lease_expiry(now: DateTime<Utc>) -> DateTime<Utc> {
+pub(crate) fn writer_lease_expiry(now: DateTime<Utc>) -> DateTime<Utc> {
     now + chrono::Duration::milliseconds(WRITER_LEASE_TTL_MS)
 }
 
@@ -1343,11 +1366,12 @@ pub(crate) struct WorkLoopOutcomeReceipt {
 }
 
 pub(crate) fn parse_work_loop_outcome_receipt(output: &str) -> Option<WorkLoopOutcomeReceipt> {
-    let payload = output
-        .lines()
-        .rev()
-        .find_map(|line| line.trim().strip_prefix(WORK_LOOP_OUTCOME_PREFIX))?;
-    let receipt: WorkLoopOutcomeReceipt = serde_json::from_str(payload).ok()?;
+    let marker = output.rfind(WORK_LOOP_OUTCOME_PREFIX)?;
+    let payload = &output[marker + WORK_LOOP_OUTCOME_PREFIX.len()..];
+    let receipt = serde_json::Deserializer::from_str(payload)
+        .into_iter::<WorkLoopOutcomeReceipt>()
+        .next()?
+        .ok()?;
     (receipt.schema == WORK_LOOP_OUTCOME_SCHEMA).then_some(receipt)
 }
 
@@ -1615,6 +1639,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
             status,
             WorkLoopStatus::SelectingReadyWork
                 | WorkLoopStatus::Idle
+                | WorkLoopStatus::PreparingTurn
                 | WorkLoopStatus::AwaitingHarnessTurn
                 | WorkLoopStatus::AdvancingTask
                 | WorkLoopStatus::EvaluatingOutcome
@@ -3130,6 +3155,16 @@ async fn enable(
         work_item_id: parent_work_item_id.clone(),
         workpoint_id,
     };
+    let orphaned_scope_recovered = {
+        let focusa = state.focusa.read().await;
+        focusa
+            .work_loop
+            .execution_scope
+            .as_ref()
+            .is_some_and(|active| {
+                active != &scope.0 && !canonical_workpoint_exists_for_scope(&focusa, active)
+            })
+    };
     let writer_lease =
         ensure_writer_claim_for_work_item(&scope, &state, &headers, &parent_work_item_id).await?;
     send_work_loop_action(&state, "work_loop_dispatch", action).await?;
@@ -3151,7 +3186,7 @@ async fn enable(
     }
 
     Ok(Json(
-        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at, "temporal_context":temporal_context_for_scope(&scope) }),
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at, "orphaned_scope_recovered": orphaned_scope_recovered, "temporal_context":temporal_context_for_scope(&scope) }),
     ))
 }
 
@@ -3396,6 +3431,12 @@ async fn start_pi_driver(
         return Err(bad_request("idempotency_key must not be empty"));
     }
     let mut guard = state.pi_rpc_session.lock().await;
+    let stale_driver = guard
+        .as_mut()
+        .is_some_and(|existing| !matches!(existing.child.try_wait(), Ok(None)));
+    if stale_driver {
+        guard.take();
+    }
     if let Some(existing) = guard.as_ref() {
         if existing.idempotency_key == payload.idempotency_key {
             return Ok(Json(json!({
@@ -4549,6 +4590,24 @@ mod tests {
     use focusa_core::scoped_state::ScopeRef;
 
     #[test]
+    fn read_only_status_can_inspect_a_different_active_execution_scope() {
+        for path in [
+            "/v1/work-loop",
+            "/v1/work-loop/health",
+            "/v1/work-loop/status",
+            "/v1/work-loop/status/deep",
+            "/v1/work-loop/checkpoints",
+        ] {
+            assert!(read_only_scope_inspection_allowed(&Method::GET, path));
+            assert!(!read_only_scope_inspection_allowed(&Method::POST, path));
+        }
+        assert!(!read_only_scope_inspection_allowed(
+            &Method::GET,
+            "/v1/work-loop/enable"
+        ));
+    }
+
+    #[test]
     fn work_loop_temporal_context_is_exact_scope_and_never_infers_urgency() {
         let root = std::env::temp_dir().join(format!(
             "focusa-work-loop-temporal-{}",
@@ -4875,46 +4934,60 @@ mod tests {
     }
 
     #[test]
-    fn stale_inert_scope_can_rebind_only_at_safe_terminal_boundaries() {
+    fn stale_inert_or_orphaned_scope_rebinds_only_at_safe_boundaries() {
         assert!(stale_scope_rebind_allowed(
             false,
             WorkLoopStatus::Blocked,
-            false
+            false,
+            false,
         ));
         assert!(stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Idle,
-            false
+            false,
+            false,
         ));
         assert!(stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Completed,
-            false
+            false,
+            false,
         ));
         assert!(stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Aborted,
-            false
+            false,
+            false,
         ));
         assert!(stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Blocked,
-            false
+            false,
+            false,
         ));
         assert!(!stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Blocked,
-            true
+            true,
+            false,
         ));
         assert!(!stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::Paused,
-            false
+            false,
+            false,
         ));
         assert!(!stale_scope_rebind_allowed(
             true,
             WorkLoopStatus::AwaitingHarnessTurn,
-            false
+            false,
+            false,
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::AwaitingHarnessTurn,
+            true,
+            true,
         ));
     }
 
@@ -5945,6 +6018,23 @@ FOCUSA_WORK_LOOP_OUTCOME {"schema":"focusa.work_loop_outcome.v1","work_item_id":
         assert!(receipt.spec_conformant);
         assert_eq!(receipt.evidence_citations.len(), 1);
         assert_eq!(receipt.evidence_citations[0].ref_, "tests/work_loop.rs");
+    }
+
+    #[test]
+    fn typed_completion_receipt_accepts_multiline_json_and_bounded_suffix() {
+        let output = r#"FOCUSA_WORK_LOOP_OUTCOME {
+  "schema":"focusa.work_loop_outcome.v1",
+  "work_item_id":"focusa-1",
+  "status":"completed",
+  "summary":"verified",
+  "spec_conformant":true,
+  "evidence_citations":[{"kind":"test","ref":"tests/work_loop.rs","required":true}]
+}
+```"#;
+        let receipt = parse_work_loop_outcome_receipt(output).unwrap();
+        assert_eq!(receipt.work_item_id, "focusa-1");
+        assert_eq!(receipt.status, WorkLoopOutcomeStatus::Completed);
+        assert_eq!(receipt.evidence_citations.len(), 1);
     }
 
     #[test]

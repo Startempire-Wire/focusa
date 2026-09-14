@@ -16,7 +16,7 @@ rg -q 'pi\.on\("session_compact"' "$AUTO"
 rg -q 'ctx\.getContextUsage\(\)' "$AUTO"
 rg -q 'ctx\.compact\(' "$AUTO"
 rg -q 'retryTimer = setTimeout' "$AUTO"
-rg -U -q 'registerAutoCompaction\(pi, \(\) =>\s*proactiveCompactionPolicy\(getAttachmentRuntime\(\)\.cfg\)' "$INDEX"
+rg -U -q 'registerAutoCompaction\(\s*pi,\s*\(\) =>\s*proactiveCompactionPolicy\(getAttachmentRuntime\(\)\.cfg\),\s*\(\) =>\s*getAttachmentRuntime\(\)\.cfg\s*\)' "$INDEX"
 for key in autoCompactionEnabled autoCompactionTokenCap autoCompactionReserveTokens autoCompactionReservePct autoCompactionCooldownMs; do
   rg -q "$key" "$CONFIG"
   rg -q "$key" "$COMMANDS"

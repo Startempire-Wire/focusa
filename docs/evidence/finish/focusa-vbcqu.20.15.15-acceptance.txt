@@ -1,0 +1,3 @@
+focusa-vbcqu.20.15.15 172.02.06 — REAL 2026-08-18
+Commit: db4d67d286803f563384eaf44efb6a168f8a3c6f
+php tests/spec172_bundle_composition_test.php PASS

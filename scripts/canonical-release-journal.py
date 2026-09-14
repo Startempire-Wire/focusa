@@ -12,7 +12,6 @@ import re
 import statistics
 import subprocess
 import sys
-import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -30,6 +29,7 @@ FOCUSA_PROJECT_ROOT = os.environ.get("FOCUSA_PROJECT_ROOT", "/home/wirebot/focus
 FOCUSA_PROJECT_FINGERPRINT = os.environ.get("FOCUSA_PROJECT_FINGERPRINT", "project-fnv1a64:c435b14d4fb3ab67")
 FOCUSA_CONTINUITY_ID = os.environ.get("FOCUSA_CONTINUITY_ID", "focusa-v0.9.135-locked-14")
 WORKFLOW_NAMES = ("CI", "Release", "Deploy Live Daemon")
+COMMAND_DIAGNOSTIC_BYTES = 2048
 
 
 def utcnow() -> str:
@@ -40,8 +40,34 @@ def parse_time(value: str) -> dt.datetime:
     return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def _bounded_command_diagnostic(value: str) -> str:
+    raw = value.encode("utf-8", errors="replace")[-COMMAND_DIAGNOSTIC_BYTES:]
+    tail = raw.decode("utf-8", errors="replace")
+    tail = re.sub(r"(?i)(bearer\s+)[^\s]+", r"\1[REDACTED]", tail)
+    tail = re.sub(
+        r"(?i)((?:api[_-]?key|token|password|secret)\s*[=:]\s*)[^\s,;]+",
+        r"\1[REDACTED]",
+        tail,
+    )
+    return tail
+
+
 def command(args: list[str], *, cwd: Path = ROOT, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=check)
+    result = subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=False)
+    if check and result.returncode != 0:
+        failed_check = " ".join(str(part) for part in args[:2])
+        diagnostic = {
+            "status": "blocked",
+            "failed_check": _bounded_command_diagnostic(failed_check),
+            "exit_code": result.returncode,
+            "stdout_tail": _bounded_command_diagnostic(result.stdout or ""),
+            "stderr_tail": _bounded_command_diagnostic(result.stderr or ""),
+        }
+        raise RuntimeError(
+            "release benchmark command failed: "
+            + json.dumps(diagnostic, sort_keys=True, ensure_ascii=False)
+        )
+    return result
 
 
 def git(*args: str) -> str:
@@ -80,17 +106,25 @@ def api_request(method: str, path: str, payload: dict[str, Any] | None = None) -
         raise RuntimeError(f"agent-kb-api {error.code}: {detail}") from error
 
 
+def focusa_headers() -> dict[str, str]:
+    headers = {
+        "Content-Type": "application/json",
+        "x-scope-project-root": FOCUSA_PROJECT_ROOT,
+        "x-scope-continuity-id": FOCUSA_CONTINUITY_ID,
+    }
+    auth_token = os.environ.get("FOCUSA_AUTH_TOKEN", "").strip()
+    if auth_token:
+        headers["Authorization"] = f"Bearer {auth_token}"
+    return headers
+
+
 def focusa_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
     base = os.environ.get("FOCUSA_API_URL", DEFAULT_FOCUSA_API).rstrip("/")
     request = urllib.request.Request(
         base + path,
         data=json.dumps(payload, sort_keys=True).encode(),
         method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "x-scope-project-root": FOCUSA_PROJECT_ROOT,
-            "x-scope-continuity-id": FOCUSA_CONTINUITY_ID,
-        },
+        headers=focusa_headers(),
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         return json.loads(response.read())
@@ -98,7 +132,8 @@ def focusa_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 def focusa_get(path: str) -> dict[str, Any]:
     base = os.environ.get("FOCUSA_API_URL", DEFAULT_FOCUSA_API).rstrip("/")
-    with urllib.request.urlopen(base + path, timeout=30) as response:
+    request = urllib.request.Request(base + path, headers=focusa_headers())
+    with urllib.request.urlopen(request, timeout=30) as response:
         return json.loads(response.read())
 
 
@@ -155,7 +190,12 @@ def record_release_predictions(tag: str) -> dict[str, str]:
             "limit": 100,
         }
     )
-    recent = focusa_get("/v1/predictions/recent?" + query).get("data", {}).get("predictions", [])
+    try:
+        recent = focusa_get("/v1/predictions/recent?" + query).get("data", {}).get("predictions", [])
+    except urllib.error.HTTPError as error:
+        if error.code not in {401, 403}:
+            raise
+        return {}
     stages = {
         "benchmark": "candidate benchmark passes every required release protocol check",
         "candidate-ci": "exact stamped candidate CI passes before immutable tagging",
@@ -177,18 +217,23 @@ def record_release_predictions(tag: str) -> dict[str, str]:
         if existing:
             predictions[stage] = existing["record_id"]
             continue
-        response = focusa_request(
-            "/v1/predictions",
-            {
-                "scope": prediction_scope(),
-                "prediction_type": f"release_{stage}_success",
-                "context_refs": [f"release:{tag}"],
-                "predicted_outcome": predicted_outcome,
-                "confidence": 0.9,
-                "recommended_action": f"Run and evidence the {stage} guard before settlement",
-                "why": "Prior release problems are now explicit recurrence guards in the measured release cycle",
-            },
-        )
+        try:
+            response = focusa_request(
+                "/v1/predictions",
+                {
+                    "scope": prediction_scope(),
+                    "prediction_type": f"release_{stage}_success",
+                    "context_refs": [f"release:{tag}"],
+                    "predicted_outcome": predicted_outcome,
+                    "confidence": 0.9,
+                    "recommended_action": f"Run and evidence the {stage} guard before settlement",
+                    "why": "Prior release problems are now explicit recurrence guards in the measured release cycle",
+                },
+            )
+        except urllib.error.HTTPError as error:
+            if error.code not in {401, 403}:
+                raise
+            continue
         prediction_id = response.get("data", {}).get("record", {}).get("record_id")
         if prediction_id:
             predictions[stage] = prediction_id
@@ -300,16 +345,33 @@ def event(
 def publish(payload: dict[str, Any]) -> dict[str, Any]:
     receipt = api_request("POST", "/v1/releases/journal", payload)
     if os.environ.get("AGENT_KB_REQUIRE_MASTER_ACK", "1") != "0":
+        event_id = str(payload.get("event_id", "")).strip()
+        if not event_id:
+            raise RuntimeError("release journal event_id required for master acknowledgement")
+        replication_path = (
+            "/v1/releases/journal?view=replication&event_id="
+            + urllib.parse.quote(event_id, safe="")
+        )
         deadline = time.monotonic() + 45
         while time.monotonic() < deadline:
-            projection = api_request("GET", "/v1/releases/journal?view=projection").get("projection", {})
-            if projection.get("status") == "ok" and projection.get("replication_pending") == 0:
+            replication = api_request("GET", replication_path)
+            if (
+                replication.get("status") == "ok"
+                and replication.get("state") == "master_accepted"
+                and replication.get("master_event_hash")
+            ):
                 receipt["master_acknowledged"] = True
-                receipt["projection"] = projection
+                receipt["replication"] = replication
                 break
+            if replication.get("status") == "conflict":
+                raise RuntimeError(
+                    f"agent-kb master rejected conflicting event_id {event_id}"
+                )
             time.sleep(1)
         else:
-            raise RuntimeError("agent-kb master acknowledgement timed out")
+            raise RuntimeError(
+                f"agent-kb master acknowledgement timed out for event_id {event_id}"
+            )
     return receipt
 
 
@@ -668,7 +730,10 @@ def cmd_finalize(args: argparse.Namespace) -> dict[str, Any]:
         for stage in ("release", "deploy", "final")
     }
     plan_learning = plan.get("measurements", {}).get("learning", {})
-    guard_artifact = Path(f"/tmp/focusa-{args.tag.removeprefix('v')}-learning-guards.json")
+    guard_artifact = Path(
+        os.environ.get("FOCUSA_LEARNING_GUARDS_ARTIFACT", "").strip()
+        or f"/tmp/focusa-{os.getuid()}-{args.tag.removeprefix('v')}-learning-guards.json"
+    )
     guard_result = json.loads(guard_artifact.read_text()) if guard_artifact.exists() else {"guards": []}
     actuals["learning"] = {
         "retrieved_lesson_count": plan_learning.get("retrieved_lessons", {}).get("candidate_count", 0),

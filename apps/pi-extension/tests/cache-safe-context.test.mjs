@@ -69,15 +69,18 @@ const marker = "[Focusa Focus Slice — minimal applicable context]";
   const newestUser = { role: "user", content: [{ type: "text", text: "current ask" }] };
   const messages = [historicalUser, historicalAssistant, newestUser];
   const result = attachFocusSliceToNewestUser(messages, `${marker}\nCURRENT_ASK: current ask`);
-  assert.equal(result.length, messages.length);
+  assert.equal(result.length, messages.length + 1);
   assert.equal(result[0], historicalUser);
   assert.equal(result[1], historicalAssistant);
+  assert.equal(result[2], newestUser);
   assert.equal(result[2].content[0], newestUser.content[0]);
-  assert.equal(result[2].content[1].text.startsWith(marker), true);
+  assert.equal(result[2].content.length, 1, "operator-authored message must stay pristine");
+  assert.equal(result[3].role, "user");
+  assert.equal(result[3].content[0].text.startsWith(marker), true);
   assert.equal(messages[2].content.length, 1, "source messages must not be mutated");
 
   const repeated = attachFocusSliceToNewestUser(result, `${marker}\nchanged`);
-  assert.equal(repeated[2].content.length, 2, "the same request must not receive duplicate slices");
+  assert.equal(repeated.length, result.length, "the same request must not receive duplicate slices");
 }
 
 {

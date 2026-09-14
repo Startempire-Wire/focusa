@@ -1,3 +1,5 @@
+import { SPEC138_OPERATIONS } from "./generated/spec138-operations.js";
+
 export const MAX_MISSION_CANVAS_ROWS = 200;
 
 export type WorkSurfaceKind =
@@ -180,6 +182,20 @@ const TRUTH_STATES = new Set<SemanticPairTruthState>([
 export function normalizeSemanticPairState(value: unknown): SemanticPairTruthState {
   return typeof value === "string" && TRUTH_STATES.has(value as SemanticPairTruthState)
     ? value as SemanticPairTruthState : "schema_only";
+}
+
+/** Generated epistemic affordances remain visible; Mission Canvas never grants mutation authority. */
+export function spec138MissionCanvasAffordances(canMutate: boolean) {
+  return SPEC138_OPERATIONS.map((operation) => ({
+    operation_id: operation.operation_id,
+    label: operation.label,
+    kind: operation.mode === "read" ? "read" as const : "mutation" as const,
+    available: operation.mode === "read" || canMutate,
+    disabled_reason: operation.mode === "canonical_mutation" && !canMutate
+      ? "canonical_daemon_authority_required"
+      : undefined,
+    client_authority: false as const,
+  }));
 }
 
 /** Preserve every daemon operation; unsupported Pi mutations remain visible and disabled. */

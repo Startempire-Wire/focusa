@@ -1,0 +1,37 @@
+Spec 152E migration inventory acceptance evidence
+Work item: focusa-vbcqu.20.13.49
+
+Verification command:
+python3 tests/spec152e_migration_inventory_test.py
+Exit status: 0
+
+Validated result:
+inventory_digest_sha256=8240e68701fcadbcfb98342f5badbfabc9557aacdba9bcb87fdf87a51183f4ca
+physical_records=596
+correlated_manual_views=27
+correlated_node_views=25
+
+Disposition counts:
+canonical=0
+evidence_backed_import=0
+verify_first=6
+duplicate=0
+synthetic_quarantine=34
+refunded_revoked=41
+unresolved=515
+
+Reconciliation decision:
+zero_sales_proven=false
+genuine_sales_count=unknown
+migration_preserving=true
+historical_rights_preserved=true
+clean_reset_allowed=false
+deletion_allowed=false
+destructive_reconciliation_forbidden=true
+Correlated views are non-additive and do not create additional physical-record dispositions.
+
+Remaining verification work:
+Correlate immutable identifiers across EDD, Gravity, Stripe, install-site, node, receipt, and manual rails. Resolve each unresolved or verify-first record through evidence-backed migration or retained quarantine; do not infer zero sales or promote unverified identity evidence.
+
+Rollback:
+Revert only this acceptance evidence artifact. Preserve the migration inventory, tests, EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.

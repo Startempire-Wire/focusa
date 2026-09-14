@@ -59,4 +59,22 @@ const unverified = providerCompactionCapabilities(null);
 assert.equal(unverified.groundingStatus, "unverified");
 assert.deepEqual(unverified.evidenceRefs, []);
 
+const switched = providerCompactionCapabilities({
+  model: { provider: "provider-b", id: "model-b", contextWindow: 32_000 },
+  getContextUsage() {},
+});
+assert.equal(switched.providerId, "provider-b");
+assert.equal(switched.modelId, "model-b");
+assert.equal(switched.contextWindow, 32_000);
+assert.equal(switched.nativeCompaction, "unknown");
+assert.notDeepEqual(switched, grounded);
+
+const incompatible = providerCompactionCapabilities({
+  model: { provider: "provider-c", id: "incompatible", contextWindow: -1 },
+});
+assert.equal(incompatible.contextWindow, null);
+assert.equal(incompatible.tokenAccounting, "unknown");
+assert.equal(incompatible.nativeCompaction, "unknown");
+assert.equal(incompatible.groundingStatus, "partial");
+
 console.log("provider compaction capability inventory passed");

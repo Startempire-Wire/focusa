@@ -1,0 +1,561 @@
+{
+  "accepted_implementation_commits": [
+    "17a5bfba2b9b4cc46b90c0d64443e5ca93a7d84f",
+    "1def1bd1c5930e4814dee127f844e481678faa6e",
+    "2d6603365325a63992bbe6a25fb276c87787ab23",
+    "36615bbed7b6af8d368c6502b83cbc5baf821e01",
+    "46bef4a6c28afc9e850b724042887c162a2c5986",
+    "4804b78c3987d2f31ad04dc58e8fb5070e216cc7",
+    "4b9c3f403cf6b706773755fd121aac28891ccc3a",
+    "5f3b2d2f14ae9e0489322dd72c667a4613ecb8c0",
+    "616c98a701ece85714237fde8d560004bfcc1e8c",
+    "843df64690efa6c3fdf6dc0482d363a9445b87c7",
+    "947164b3c9b2c2ade7238e803aaca4bfd2b6d504",
+    "a16f0da30a8650d993ff691b19acd05225820c56",
+    "a2fbfbb870499f35a961cd27c224024f242c3ca1",
+    "b15dd2403da428a13e71558e04c60690f27da410",
+    "b52d0c41765659fe86d53b3f9ae75f2295267869",
+    "ba47c980325e1468fbef2d5a75bc6c0203e7275b",
+    "be99f9a168f7f71e0b50c9d66959a54c7468174d",
+    "c7521ebd22653298a5a11868516cf90835975f32",
+    "c99a155c38ee46532e9b04d14f6a0bb467aacaf8",
+    "d418039d3657eff0c690d1b2497a1f253d8ecf09",
+    "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
+    "ee569eb1e65eb8baada1000429a7400d46addb41"
+  ],
+  "ancestry_digest": "sha256:207335237fb00a6d8bef20a7f006fcff39b0b98fb3436903ecbf417978a8b70d",
+  "audit_errors": [],
+  "candidate": {
+    "audit_head": "20ab0435e82c29c1db94c4e3fb04026c26e974ff",
+    "changed_after_source_commit": [],
+    "source_commit": "20ab0435e82c29c1db94c4e3fb04026c26e974ff",
+    "source_is_ancestor_of_audit_head": true,
+    "unexpected_changes_after_source_commit": []
+  },
+  "excluded_post_release_worksets": [
+    "focusa-vbcqu.11",
+    "focusa-vbcqu.12",
+    "focusa-vbcqu.13",
+    "focusa-vbcqu.15",
+    "focusa-vbcqu.16",
+    "focusa-vbcqu.17",
+    "focusa-vbcqu.18"
+  ],
+  "excluded_workset_collisions": [],
+  "immutable_release": {
+    "commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
+    "disposition": "immutable_incomplete_never_rewrite",
+    "manifest_assets": {
+      "SHA256SUMS.txt": {
+        "digest": "sha256:b14f56794119b02f71eb7decc1f09667e39854754d9ade8f51771a3da3f201a6",
+        "name": "SHA256SUMS.txt",
+        "size": 2785
+      },
+      "release-manifest.json": {
+        "digest": "sha256:4b97cecf7930f86e4e7eacd54fd0d5cabfdd31f6dd4311efc01df52585645da4",
+        "name": "release-manifest.json",
+        "size": 19157
+      },
+      "release-manifest.json.sig": {
+        "digest": "sha256:112b74629ed7c03032684cb0820a784305ab86877e1975783e39e3208e22ce67",
+        "name": "release-manifest.json.sig",
+        "size": 64
+      },
+      "release-provenance.json": {
+        "digest": "sha256:cdadccb0a9db6b729acea79129faac54f00c62e958ea886b61400be218833e22",
+        "name": "release-provenance.json",
+        "size": 5294
+      },
+      "release-provenance.json.sig": {
+        "digest": "sha256:08fdbf317dd4c92a1357d294e6b9d4be765f8325ff0bbcdd87fec7c40814deed",
+        "name": "release-provenance.json.sig",
+        "size": 64
+      }
+    },
+    "missing_required_assets": [
+      "focusa-session-runner-v0.9.143-aarch64-apple-darwin",
+      "focusa-session-runner-v0.9.143-x86_64-apple-darwin",
+      "focusa-session-runner-v0.9.143-x86_64-unknown-linux-gnu",
+      "focusa-v0.9.143-aarch64-unknown-linux-gnu",
+      "focusa-daemon-v0.9.143-aarch64-unknown-linux-gnu",
+      "focusa-tui-v0.9.143-aarch64-unknown-linux-gnu",
+      "focusa-session-runner-v0.9.143-aarch64-unknown-linux-gnu",
+      "focusa-session-runner-v0.9.143-x86_64-unknown-linux-musl",
+      "focusa-v0.9.143-x86_64-pc-windows-msvc.exe",
+      "focusa-daemon-v0.9.143-x86_64-pc-windows-msvc.exe",
+      "focusa-tui-v0.9.143-x86_64-pc-windows-msvc.exe",
+      "focusa-session-runner-v0.9.143-x86_64-pc-windows-msvc.exe",
+      "focusa-v0.9.143-aarch64-pc-windows-msvc.exe",
+      "focusa-daemon-v0.9.143-aarch64-pc-windows-msvc.exe",
+      "focusa-tui-v0.9.143-aarch64-pc-windows-msvc.exe",
+      "focusa-session-runner-v0.9.143-aarch64-pc-windows-msvc.exe",
+      "focusa-generated-clients-v0.9.143.tar.gz",
+      "focusa-installer-v0.9.143.ps1",
+      "distribution-manifest.json",
+      "pattern:Focusa_*x64*setup.exe",
+      "pattern:Focusa_*x64*setup.exe.sig",
+      "pattern:Focusa_*arm64*setup.exe",
+      "pattern:Focusa_*arm64*setup.exe.sig",
+      "pattern:Focusa_*x64*.msi",
+      "pattern:Focusa_*x64*.msi.sig",
+      "pattern:Focusa_*arm64*.msi",
+      "pattern:Focusa_*arm64*.msi.sig"
+    ],
+    "published_asset_count": 66,
+    "published_asset_snapshot": "release-proof/audit/next-locked-release-v09143-published-assets.json",
+    "published_asset_snapshot_digest": "sha256:238bded7784cadab402fd530bb21d7708c953b41b8f4529c793147a09e1ac113",
+    "tag": "v0.9.143"
+  },
+  "issue_ledger": {
+    "invalid_closed_count": 0,
+    "inventory_digest": "sha256:13736b9e0076527713ed8d2fe2cce9d9b291ba49a923696b9dcabc035d5ce47f",
+    "mapping_count": 465,
+    "pending_technical_acceptance_count": 255,
+    "reconciliation_digest": "sha256:2ddd696d56017a63742e4f8d420ac763c948c105f1817923c8b79f2050a35cad",
+    "technical_closure_gate_digest": "sha256:0488ac408a5efc59f03dab8c2c8f9554a859af257d2bbc9d96fc0095af7b6846",
+    "technically_accepted_count": 210,
+    "workset_id": "workset:focusa-next-locked-release:r7"
+  },
+  "missing_accepted_implementation_commits": [],
+  "mutation_policy": {
+    "create_tag": false,
+    "publish_release": false,
+    "rewrite_v0.9.143": false
+  },
+  "next_stable_tag": "v0.9.194",
+  "next_version_selection": {
+    "base": "0.9",
+    "channel_maxima": {
+      "dev": 193,
+      "preview": 192,
+      "rc": null,
+      "stable": 192
+    },
+    "considered_tags": 196,
+    "highest_patch": 193,
+    "ignored_malformed_tags": [
+      "spec-integration-v1",
+      "spec-integraton-v1-start"
+    ],
+    "mode": "automatic",
+    "monotonic": true,
+    "schema": "focusa.release_version_selection.v1",
+    "selected_channel": "dev",
+    "selected_patch": 194,
+    "selected_tag": "v0.9.194-dev",
+    "selected_version": "0.9.194-dev",
+    "status": "completed"
+  },
+  "pull_request_ancestry": [
+    {
+      "commit": "76bb85ce907989bfd0a26d4d8f6c69b2435e2817",
+      "pr": 432,
+      "subject": "fix(bg): monitor loss settles a failed receipt with the real durable tail (#432)"
+    },
+    {
+      "commit": "c10a4acbbede5836ae061473066e9990a5d56732",
+      "pr": 600,
+      "subject": "fix(pi-extension): make decision validation testable in CI (#600)"
+    },
+    {
+      "commit": "b088f29fd855015efc1ee34a3155745967b17eeb",
+      "pr": 600,
+      "subject": "fix(pi-extension): accept ownership noun-phrases and surface matched task pattern (#600)"
+    },
+    {
+      "commit": "91b1469c49eaf8ee80dd8fbedb2579521dd44362",
+      "pr": 595,
+      "subject": "fix(license): fail fast when a non-terminal activation start lacks a poll credential (#595)"
+    },
+    {
+      "commit": "754808493af5d62c8a1429e5b5446de700797aba",
+      "pr": 603,
+      "subject": "fix(pi-extension): restrict custom_message surfaces to interactive sessions (#603)"
+    },
+    {
+      "commit": "48b51f53f238a84d4a72ea914f2714e17f3af1f7",
+      "pr": 593,
+      "subject": "fix(update): derive install mode from the running executable surface (#593)"
+    },
+    {
+      "commit": "6dfbab20f82ddc681b6a4bdd73118d81cdfbcd10",
+      "pr": 598,
+      "subject": "fix(license): enable keyring platform backends per target (#598)"
+    },
+    {
+      "commit": "fc464c8afaf80122433166fa49188fd31bd6c4c6",
+      "pr": 441,
+      "subject": "Merge pull request #441 from Startempire-Wire/feat/evidence-share-canvas"
+    },
+    {
+      "commit": "a1066dcd439eae8233ec2b28d09e4ae796d88705",
+      "pr": 536,
+      "subject": "Merge pull request #536 from Startempire-Wire/fix/389-release-authority-root-proof"
+    },
+    {
+      "commit": "5f84268410fdcd6825cfd87ae360b024926e768b",
+      "pr": 538,
+      "subject": "Merge pull request #538 from Startempire-Wire/fix/535-nightly-installability"
+    },
+    {
+      "commit": "acc2d6a7cb77caf27f56fbfa2c0f0f4619dea090",
+      "pr": 541,
+      "subject": "Merge pull request #541 from Startempire-Wire/fix/380-temporal-signal-bounds"
+    },
+    {
+      "commit": "5bd5d671016cc32ebebe8022dcdaada0a8de793d",
+      "pr": 539,
+      "subject": "fix(ci): retain Deslop reports only on failure (#539)"
+    },
+    {
+      "commit": "14eea0336a552c072400afb9b3b92b4cbd54be42",
+      "pr": 505,
+      "subject": "Merge pull request #505 from Startempire-Wire/release/v0.9.188-integration"
+    },
+    {
+      "commit": "4aa8f903acf59f8e9399d46fa0087e3f5ed3e745",
+      "pr": 507,
+      "subject": "fix(api): mount credential authority routes (#507)"
+    },
+    {
+      "commit": "7762ce500062b7e60e357bd3ee7e7d3680e428d2",
+      "pr": 479,
+      "subject": "Merge pull request #479 from Startempire-Wire/fix/codemagic-codesign-pipefail"
+    },
+    {
+      "commit": "89de018658c8b422cfae397f78e027e2a3e0698e",
+      "pr": 478,
+      "subject": "Merge pull request #478 from Startempire-Wire/fix/codemagic-adhoc-bundle-seal"
+    },
+    {
+      "commit": "ca2a3946ec899eee4908111fc12280484db9d277",
+      "pr": 476,
+      "subject": "Merge pull request #476 from Startempire-Wire/fix/codemagic-menubar-identifier"
+    },
+    {
+      "commit": "42509dc1a5ef4309b18a9409929ec766b2b5d9f9",
+      "pr": 474,
+      "subject": "Merge pull request #474 from Startempire-Wire/fix/v187-recovery-lock-normalization"
+    },
+    {
+      "commit": "da10912ec696ed7a77f965ec9a65a36fb1cd71e8",
+      "pr": 471,
+      "subject": "Merge pull request #471 from Startempire-Wire/fix/codemagic-libsodium"
+    },
+    {
+      "commit": "ef01ba523add901c819b7cad89b94cde006a561c",
+      "pr": 472,
+      "subject": "Merge pull request #472 from Startempire-Wire/fix/stamp-all-root-lock-packages"
+    },
+    {
+      "commit": "28799ffc224336114657b7238efbeb9087706f6d",
+      "pr": 469,
+      "subject": "Merge pull request #469 from Startempire-Wire/fix/codemagic-canonical-daemon-name"
+    },
+    {
+      "commit": "cbff51a967909c075ed9249e1cb6c0e79439b312",
+      "pr": 468,
+      "subject": "Merge pull request #468 from Startempire-Wire/fix/codemagic-current-tauri-key"
+    },
+    {
+      "commit": "251deeb4c33e3a3390b45570547e3f92fdb0c648",
+      "pr": 465,
+      "subject": "Merge pull request #465 from Startempire-Wire/fix/issue-464-codemagic-recovery"
+    },
+    {
+      "commit": "17aace04038cbf63e5f815460045d0a6226917fb",
+      "pr": 462,
+      "subject": "Merge pull request #462 from Startempire-Wire/fix/issue-461-pre-ci-tag-order"
+    },
+    {
+      "commit": "7b44f4c43069c83e0f1ffca96736d1902d645d0a",
+      "pr": 460,
+      "subject": "fix: bind silent proof reads to run generation (#460)"
+    },
+    {
+      "commit": "960a8215ca43c45111d37c2f42745768ef009142",
+      "pr": 458,
+      "subject": "fix: remove unclassified OS owner cache (#458)"
+    },
+    {
+      "commit": "bfa30e05561c226d6a1172b578213db5caf55380",
+      "pr": 456,
+      "subject": "fix: resolve Silent Session OS owner (#456)"
+    },
+    {
+      "commit": "42b64ededa73a0a9d9eee968bc0fea10f3dbe0ac",
+      "pr": 454,
+      "subject": "fix: preserve release proof failure diagnostics (#454)"
+    },
+    {
+      "commit": "2f2a803469b96ef3eb97ed47fad0b2e0e01f4333",
+      "pr": 453,
+      "subject": "fix: align Silent Session preflight and approval flow (#453)"
+    },
+    {
+      "commit": "ec9f3a08eac3edfc633819766a9b68df92478cf2",
+      "pr": 444,
+      "subject": "Merge pull request #444 from Startempire-Wire/fix/issue-413-background-output-tail"
+    },
+    {
+      "commit": "d64423b5c55ba3d75936fe6ce01a91e681f2e7af",
+      "pr": 435,
+      "subject": "Merge pull request #435 from Startempire-Wire/fix/issue-424-callgraph-validator"
+    },
+    {
+      "commit": "22da49e3b336b749c7f81e1302f88d4afb4b5380",
+      "pr": 392,
+      "subject": "fix: require durable background dispatch receipts (#392)"
+    },
+    {
+      "commit": "6a3412387410a90b22d877179e2ff94993ad702f",
+      "pr": 374,
+      "subject": "Merge pull request #374 from curtisslwitt-dotcom/fix/node-prefix-lease-verification"
+    },
+    {
+      "commit": "81e3b99058a06f679b740292a8a64dd327e7b3b3",
+      "pr": 346,
+      "subject": "fix(license): remove unexecutable advertised actions until shipped (#346)"
+    },
+    {
+      "commit": "582941ad8e0506b88d3f9ece2013a1b76bac94ef",
+      "pr": 343,
+      "subject": "fix(security): gate dev/test/home bypass to debug builds only (#343)"
+    },
+    {
+      "commit": "4e3be16371ccb6be66aef206c5a37aae629359cb",
+      "pr": 347,
+      "subject": "fix(security): atomic/private activation writes + retire unused terminal poll credentials (#347)"
+    },
+    {
+      "commit": "d4b45de6056a972481514010832725a1cb094973",
+      "pr": 345,
+      "subject": "fix(security): disable redirects and reject 3xx on activation transport (#345)"
+    },
+    {
+      "commit": "3644a98bb6efae9ea5795777025ec2bb7fe52b6b",
+      "pr": 365,
+      "subject": "fix(activation): surface honest verification delivery status; add resend recovery command (#365)"
+    },
+    {
+      "commit": "e88d122c6571dcaa97f139f0c15184fad310b92a",
+      "pr": 366,
+      "subject": "fix(license): portal key binds via redeem fast-path, not command-retired (#366)"
+    },
+    {
+      "commit": "4969d7d292f0512ba13c03c559971361d2d86b99",
+      "pr": 367,
+      "subject": "fix(cli): JSON errors report invoked command, not recovery suggestion (#367)"
+    },
+    {
+      "commit": "b65218038c70b2fa18edec686beba0c9a1185b21",
+      "pr": 371,
+      "subject": "fix(activation): graceful cancel from entitlement_issued state (#371)"
+    },
+    {
+      "commit": "d8be140ba27ec3beef98598114c4c447975ab3c5",
+      "pr": 370,
+      "subject": "fix(activation): agent mode persists snapshot + poll credential on every state change (#370)"
+    },
+    {
+      "commit": "b6c0b8535d61d7a56f362bf2a2b79abacd5e414c",
+      "pr": 342,
+      "subject": "fix(license): typed authority errors + status reconciliation (#344, #342)"
+    },
+    {
+      "commit": "b6c0b8535d61d7a56f362bf2a2b79abacd5e414c",
+      "pr": 344,
+      "subject": "fix(license): typed authority errors + status reconciliation (#344, #342)"
+    },
+    {
+      "commit": "450c96a164b4807098c3df83a7b5b8f0e154cf13",
+      "pr": 328,
+      "subject": "fix(ci): strip CI debuginfo \u2014 rustc memory spike hit container ceiling (#328)"
+    },
+    {
+      "commit": "b166ba0170e68284ada68d7a39e8c8db30a96eed",
+      "pr": 328,
+      "subject": "fix(ci): serialize cargo-heavy jobs on single self-hosted runner (#328)"
+    },
+    {
+      "commit": "30305e56f0113829acb24760d1f61ed55abb5254",
+      "pr": 328,
+      "subject": "fix(ci): disable thin-LTO on validation builds \u2014 container memory wall kills rustc (#328)"
+    },
+    {
+      "commit": "22d43035b910a30b1c36af640e14888e2c38ad60",
+      "pr": 328,
+      "subject": "fix(ci): harden self-hosted lanes against resource collisions (#328)"
+    },
+    {
+      "commit": "f7dd2d7183213b58ff09faf5072807fa7f799d3c",
+      "pr": 171,
+      "subject": "docs(spec): pi-extension drift reconciliation plan (#171)"
+    },
+    {
+      "commit": "4b4bff6f50e84fbcbec7125b5430cc85356b05e0",
+      "pr": 322,
+      "subject": "fix(cli): wire focusa bg subcommand into Commands enum #322"
+    },
+    {
+      "commit": "3bbfa1f12492efff5a2a6e7629586d1c9a60bd8e",
+      "pr": 316,
+      "subject": "fix(license): carry origin and registered facade_id through activation wire #316"
+    },
+    {
+      "commit": "ba73cc5ea5b3a648276bfd6137ae669613dadcef",
+      "pr": 321,
+      "subject": "fix(pi): contain Windows TUI write UNKNOWN on host boundary #321"
+    },
+    {
+      "commit": "f052a1eb56f17c586db7eb710cd919bc26c267a5",
+      "pr": 320,
+      "subject": "fix(update): surface OTA channel mismatch and version inversion in notifications #320"
+    },
+    {
+      "commit": "5d3acc5147b8f89db8bb68ba0ba69f65b0334737",
+      "pr": 317,
+      "subject": "fix(closure-authority): enforce bead close evidence gate per Spec 131 #317 #318"
+    },
+    {
+      "commit": "5d3acc5147b8f89db8bb68ba0ba69f65b0334737",
+      "pr": 318,
+      "subject": "fix(closure-authority): enforce bead close evidence gate per Spec 131 #317 #318"
+    },
+    {
+      "commit": "8a72209b5569594f3a2aa9220bf379e2093faf68",
+      "pr": 318,
+      "subject": "chore(core): update GH#318 detail + defer to next release \u2014 back to license tail (Sir V3)"
+    },
+    {
+      "commit": "66dbd19ce7685f9beeef88ce71f9ad0108fe33de",
+      "pr": 318,
+      "subject": "chore(core): file core promise failure GH#318 \u2014 Closure Authority not enforced (Sir V3)"
+    },
+    {
+      "commit": "5dc01c80c5ebcff38a404c889ed5b6f541607872",
+      "pr": 317,
+      "subject": "chore(guard): link focusa-bwhtl \u2192 GH#317 (Sir V3)"
+    },
+    {
+      "commit": "4e5d3a7e42ec24574eeafa0236f1ff76de3e058f",
+      "pr": 314,
+      "subject": "Merge pull request #314 from Startempire-Wire/release/canon-final"
+    },
+    {
+      "commit": "7e24490c9c671e45ba3383c9f17350227fbf6113",
+      "pr": 299,
+      "subject": "feat(credentials): grant/verify HTTP surface (#299 slice 3)"
+    },
+    {
+      "commit": "02255aad471632aeeedf7bb7c776266206798396",
+      "pr": 107,
+      "subject": "feat(letta): wire the 4 stateful-runtime crates into the workspace (#107)"
+    },
+    {
+      "commit": "a2407fd858259f57ef9924471b82b5031c155e7d",
+      "pr": 310,
+      "subject": "fix(pi): invalidate Mission Canvas callbacks on session replacement (#310)"
+    },
+    {
+      "commit": "872f35b955931b450b7dbad44e33d5610dec0bed",
+      "pr": 115,
+      "subject": "fix: decouple evidence linking from Work Loop lease (#115)"
+    }
+  ],
+  "release_blockers": [
+    "technical_acceptance_pending"
+  ],
+  "release_ready": false,
+  "schema": "focusa.locked_release_candidate_ancestry.v1",
+  "source_version_agreement": true,
+  "source_versions": {
+    "menubar": "0.9.194-dev",
+    "pi_extension": "0.9.194-dev",
+    "workspace": "0.9.194-dev"
+  },
+  "status": "verified",
+  "tag_chain": {
+    "dev": [
+      {
+        "commit": "99c3c25819ac47a92ba422b32095b6c26aaf350b",
+        "follows_previous": true,
+        "object_id": "99c3c25819ac47a92ba422b32095b6c26aaf350b",
+        "object_type": "commit",
+        "tag": "v0.9.135-dev"
+      },
+      {
+        "commit": "312cfed079a9ad62708ab8a96b6d7b24ae9b6111",
+        "follows_previous": true,
+        "object_id": "312cfed079a9ad62708ab8a96b6d7b24ae9b6111",
+        "object_type": "commit",
+        "tag": "v0.9.136-dev"
+      },
+      {
+        "commit": "657af735efb4668bf0df54cffb8605be7a7177ed",
+        "follows_previous": true,
+        "object_id": "657af735efb4668bf0df54cffb8605be7a7177ed",
+        "object_type": "commit",
+        "tag": "v0.9.137-dev"
+      }
+    ],
+    "stable": [
+      {
+        "commit": "0a8ee331d6e1108ae8871b351ab60ab22f7752d8",
+        "follows_previous": true,
+        "object_id": "0a8ee331d6e1108ae8871b351ab60ab22f7752d8",
+        "object_type": "commit",
+        "tag": "v0.9.136"
+      },
+      {
+        "commit": "8de463969d594ff357df8e57f2646e57e7410c65",
+        "follows_previous": true,
+        "object_id": "8de463969d594ff357df8e57f2646e57e7410c65",
+        "object_type": "commit",
+        "tag": "v0.9.137"
+      },
+      {
+        "commit": "ff853e930a70852f2f9f6e7aeb5d963ff7bae00b",
+        "follows_previous": true,
+        "object_id": "ff853e930a70852f2f9f6e7aeb5d963ff7bae00b",
+        "object_type": "commit",
+        "tag": "v0.9.138"
+      },
+      {
+        "commit": "4e05cedabc1a2ec5f42a5eb7b0d163f1d2a60d51",
+        "follows_previous": true,
+        "object_id": "4e05cedabc1a2ec5f42a5eb7b0d163f1d2a60d51",
+        "object_type": "commit",
+        "tag": "v0.9.139"
+      },
+      {
+        "commit": "bcce2295876eba8d93a4677fb085bb37e66ef05e",
+        "follows_previous": true,
+        "object_id": "bcce2295876eba8d93a4677fb085bb37e66ef05e",
+        "object_type": "commit",
+        "tag": "v0.9.140"
+      },
+      {
+        "commit": "24ac577c62e9a8bd96772b9a4daaf1318873c7cc",
+        "follows_previous": true,
+        "object_id": "24ac577c62e9a8bd96772b9a4daaf1318873c7cc",
+        "object_type": "commit",
+        "tag": "v0.9.141"
+      },
+      {
+        "commit": "e46d8b88b7ad8951e0781aa2b71ae28d3d09f1ca",
+        "follows_previous": true,
+        "object_id": "e46d8b88b7ad8951e0781aa2b71ae28d3d09f1ca",
+        "object_type": "commit",
+        "tag": "v0.9.142"
+      },
+      {
+        "commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
+        "follows_previous": true,
+        "object_id": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
+        "object_type": "commit",
+        "tag": "v0.9.143"
+      }
+    ]
+  }
+}

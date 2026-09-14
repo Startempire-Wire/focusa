@@ -46,7 +46,7 @@ const MAX_REQUEST_BYTES: usize = 1024 * 1024;
 
 #[cfg(unix)]
 #[derive(Debug, Parser)]
-#[command(name = "focusa-session-runner")]
+#[command(name = "focusa-session-runner", version)]
 struct Args {
     #[arg(long)]
     socket: PathBuf,
@@ -370,10 +370,27 @@ async fn handle_connection(stream: UnixStream, state: &mut RunnerState) -> Resul
 
 #[cfg(not(unix))]
 fn main() {
+    let mut args = std::env::args_os().skip(1);
+    if args.next().as_deref() == Some(std::ffi::OsStr::new("--version")) && args.next().is_none() {
+        println!("focusa-session-runner {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
     eprintln!(
         "focusa-session-runner: protected runner socket transport is unsupported on non-Unix platforms"
     );
     std::process::exit(78);
+}
+
+#[cfg(all(test, unix))]
+mod version_tests {
+    use super::*;
+
+    #[test]
+    fn version_flag_is_available_without_runtime_credentials() {
+        let error = Args::try_parse_from(["focusa-session-runner", "--version"]).unwrap_err();
+        assert_eq!(error.kind(), clap::error::ErrorKind::DisplayVersion);
+        assert!(error.to_string().contains(env!("CARGO_PKG_VERSION")));
+    }
 }
 
 #[cfg(unix)]

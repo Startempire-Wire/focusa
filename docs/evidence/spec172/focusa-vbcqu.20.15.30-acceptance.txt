@@ -1,0 +1,112 @@
+Spec 172 acceptance record
+Work item: focusa-vbcqu.20.15.30
+Title: 172.04.06 Remove local Evaluation from installers and lifecycle receipts
+Lane / owner: surfaces / Startempire-Wire/focusa + focusadev/install.focusa.dev
+Implementation commit: `a843b0f5`
+
+Exact surfaces
+- Rust installer (crates/focusa-cli/src/commands/install.rs)
+- Unix installer (scripts/install-focusa.sh)
+- PowerShell installer (scripts/install-focusa.ps1)
+- Install lifecycle models/orchestrator/receipts
+  (crates/focusa-core/src/install_lifecycle/models.rs, preflight.rs,
+  receipts.rs, and their in-crate test modules contract_tests.rs /
+  receipt_tests.rs)
+- First-run presenters (installer first-install walkthrough in install.rs;
+  terminal-ui install presenter/completion/state/event sources)
+- tests/spec172_installer_limited_access_test.py (new gate)
+
+Bounded result
+- Removed local/self-issued Evaluation from every installer and lifecycle
+  surface. The lifecycle receipt class and entitlement state now spell
+  `LimitedAccessReady` / `ActiveVerifiedLimited` (serde labels
+  `limited_access_ready` / `active_verified_limited`) instead of
+  `EvaluationReady` / `active_evaluation`; `AuthorizationSelection::Evaluation`
+  and `LicensePosture::Evaluation` are replaced by `LimitedAccess` and
+  `VerifiedLimitedAccess`. Product readiness still requires a
+  signature-verified binding with the canonical policy digest, capability
+  family, entitlement state, lease sequence, and recovery posture recorded on
+  the receipt (Spec 152F simple-policy binding); unverified or forged
+  product-ready claims fail closed (`UnverifiedProductReady`,
+  `PolicyReconciliation`). Receipts and policy bindings never carry raw email,
+  key, token, credential, customer, or card fields.
+- `--eval` is intent forwarding only. In the Rust installer it maps to the
+  shared activation client's `ActivationJourney::LimitedAccess`
+  (verified-email limited activation); the plan and preflight report record
+  `authority_limited_access`, `authority_existing_or_limited_access`, and
+  `authority_limited_access_request` instead of the evaluation spellings.
+  Noninteractive installs keep verified device-code authorization
+  (`DeviceAuthorizationSession`/`AuthorityHttpClient`); interactive installs
+  render the universal email → verify → offer → checkout/poll → key/lease
+  flow through `run_activation_flow` and settle as `activated` or fail closed
+  (`E_AUTHORITY_ACTIVATION_UNSETTLED`). No `persist_eval_license`, no
+  `return Ok("eval")`, no `write_license_json`, and no `E_EVAL_ISSUED` path
+  exists in the installer.
+- Unix and PowerShell bootstrappers remain pure presenters: they reject raw
+  credentials (`E_AUTHORITY_RAW_KEY_FORBIDDEN`), never create local
+  evaluation/authority/receipt state, and converge on the single Rust handoff.
+  Their help and dry-run output now disclose the Spec 172 verified-email
+  limited-activation mapping for `--eval` while preserving the pinned 152E
+  "authority-issued only" disclosure. Paid key flow remains EDD-backed: raw
+  license keys cannot authorize installation on any channel.
+- First-run presenters (install walkthrough + terminal-ui install sources)
+  render status only; they contain no grant, policy, or evaluation
+  vocabulary.
+- New gate `tests/spec172_installer_limited_access_test.py` statically binds
+  all channels (official/source/raw) to the same verified-limited or paid
+  authority flow and proves self-issuance is impossible: 45 positive and 44
+  negative checks, all surfaces, no unmasked email anywhere.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_installer_limited_access_test.py` — exit 0.
+   `{"positive_checks": 45, "negative_checks": 44, "result": "passed_fail_closed",
+   "schema": "focusa.spec172.installer_limited_access.v1", "self_issue": "impossible"}`
+2. `python3 tests/170_focusa_installer_entitlement_activation_gate_test.py` — exit 0.
+   "Focusa installer entitlement activation gate: PASS"
+3. Combined: `python3 tests/spec172_installer_limited_access_test.py && python3 tests/170_focusa_installer_entitlement_activation_gate_test.py` — exit 0.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-core install_lifecycle` — exit 0: 34 passed, 0 failed
+  (includes receipts hash-chain, policy-binding reconciliation, tamper and
+  raw-material checks on the new limited-access vocabulary).
+- `cargo test -p focusa-cli --bin focusa install` — exit 0: 38 passed, 0 failed
+  (includes dry-run plan labels and the renamed
+  `dry_run_plan_with_eval_flag_marks_limited_access_license`).
+- `bash tests/spec152e_installer_shell_static_test.sh` — exit 0 (all 10
+  verified-delegation checks pass with the updated bootstrapper).
+- `cargo test -p focusa-core --lib` — 916 passed, 1 failed:
+  `work_item::lifecycle::tests::spec79_canary_advances_ordered_bd_graph_without_manual_reprompt`
+  fails identically on the base commit with this atom's changes stashed (it
+  exercises the external `bd` CLI adapter and is unrelated to install/lifecycle
+  surfaces); no install-lifecycle test fails.
+- `git diff --check` — exit 0.
+
+Tests added
+- tests/spec172_installer_limited_access_test.py: static gate proving no
+  channel can self-issue or persist a local Evaluation, `--eval` maps to the
+  verified-email limited-access overlay, receipts record posture/family/
+  policy digest/sequence (`limited_access_ready`, `active_verified_limited`,
+  policy binding) without raw identity or key material, raw keys remain
+  EDD-backed-rejected, and first-run presenters own no policy.
+
+Supersession note
+- Spec 172 §3 supersedes the conflicting Spec 152E Evaluation clause pinned by
+  the earlier 152E.05.04 static test
+  (`tests/spec152e_installer_activation_test.py`, "receipt classes
+  distinguish Eval/Paid/Development readiness", atom focusa-vbcqu.20.13.42,
+  not part of this atom's surfaces). That file was not modified; its
+  `EvaluationReady` source pin is superseded by this atom's removal of local
+  Evaluation from lifecycle receipts. The 150A lifecycle receipt schema JSON
+  (`docs/contracts/spec150a-lifecycle-entitlement-receipt.v1.schema.json`) is
+  a Spec 150A contract artifact outside this atom's exact surfaces and retains
+  legacy `evaluation_ready` vocabulary pending the Spec 172 reconciliation;
+  no runtime code consumes it.
+
+Rollback
+- Revert only implementation commit `a843b0f5` (and this evidence record if
+  required). Preserve verified identities, customers, orders, refunds,
+  License Types, keys, nodes, sequences, data, migration journals, evidence,
+  and accepted unrelated work. Rollback does not touch the pre-existing
+  `spec152e_installer_activation_test.py` or 150A schema artifacts.
+
+No push, deploy, release, merge, or Beads mutation was performed.

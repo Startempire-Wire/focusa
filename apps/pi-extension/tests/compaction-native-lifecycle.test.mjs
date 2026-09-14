@@ -7,12 +7,24 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../..");
 const extensionSource = fs.readFileSync(path.join(root, "apps/pi-extension/src/compaction.ts"), "utf8");
+const resumeProjectionSource = fs.readFileSync(
+  path.join(root, "apps/pi-extension/src/compaction-resume-projection.ts"),
+  "utf8"
+);
 const stateSource = fs.readFileSync(path.join(root, "apps/pi-extension/src/state.ts"), "utf8");
 const turnsSource = fs.readFileSync(path.join(root, "apps/pi-extension/src/turns.ts"), "utf8");
 const apiSource = fs.readFileSync(path.join(root, "crates/focusa-api/src/routes/compaction.rs"), "utf8");
 const fallbackDoc = fs.readFileSync(path.join(root, "docs/current/COMPACTION_FALLBACKS.md"), "utf8");
 const spec142 = fs.readFileSync(
   path.join(root, "docs/142-focusa-seamless-pi-continuation-and-workflow-dependency-onboarding-spec.md"),
+  "utf8"
+);
+const spec130a = fs.readFileSync(
+  path.join(root, "docs/130a-zero-waste-compaction-performance-addendum.md"),
+  "utf8"
+);
+const piPatchSource = fs.readFileSync(
+  path.join(root, "apps/pi-extension/scripts/patch-pi-shrinkwrap-dependencies.mjs"),
   "utf8"
 );
 
@@ -26,9 +38,9 @@ function blockFrom(source, marker, nextMarker) {
 
 test("compaction packets preserve bounded temporal authority without full projection blobs", () => {
   const render = blockFrom(
-    extensionSource,
-    "function renderCompactionMissionPacket",
-    "async function buildCompactionMissionPacket"
+    resumeProjectionSource,
+    "export function renderCompactionResumeProjection",
+    "export function compactionProjectionBudgetTokens"
   );
   assert.match(render, /TEMPORAL_STATUS:/);
   assert.match(render, /DEADLINE_STATUS:/);
@@ -68,17 +80,39 @@ test("normal lifecycle uses one prepare and one verify RPC", () => {
   assert.equal(verify.includes("refreshTrajectoryResumePacket"), false);
 });
 
-test("Pi retains native summary after Focusa persists bounded preparation", () => {
+test("Pi retains native summary while Focusa enriches its preservation instructions", () => {
   const before = blockFrom(
     extensionSource,
     'pi.on("session_before_compact"',
     "\n\n  // Pi awaits session_compact handlers"
   );
   assert.match(before, /prepareCompactionEpoch\(event\)/);
+  assert.match(before, /prepared\?\.native_compactor_instructions/);
+  assert.match(before, /event\.customInstructions =/);
+  assert.match(before, /slice\(0, 12_000\)/);
   assert.match(before, /return undefined/);
-  assert.equal(before.includes("customInstructions:"), false);
   assert.equal(before.includes("compaction: {"), false);
   assert.match(before, /using Pi native compaction/);
+});
+
+test("Focusa postinstall overlays Pi with safe active-loop native compaction", () => {
+  assert.match(piPatchSource, /FOCUSA_TOOL_BOUNDARY_COMPACTION_V2/);
+  assert.match(piPatchSource, /_pendingExtensionToolBoundaryCompaction/);
+  assert.match(piPatchSource, /event\.type === "turn_end"/);
+  assert.match(piPatchSource, /_runAutoCompaction\(reason, false, request\?\.customInstructions\)/);
+  assert.match(piPatchSource, /customInstructions = compactionEvent\.customInstructions/);
+  assert.match(piPatchSource, /_focusaRefreshCompactedMessagesOnNextTurn/);
+  assert.match(piPatchSource, /messages: refreshCompactedMessages/);
+  assert.match(piPatchSource, /this\.agent\.state\.messages\.slice\(\)/);
+  assert.match(piPatchSource, /A Focusa compaction request is already queued/);
+  assert.doesNotMatch(piPatchSource, /PI_TOOL_BOUNDARY_COMPACTION_TOKEN_CAP/);
+});
+
+test("Cardinal Rule keeps Focusa active around one Pi native call", () => {
+  assert.match(spec130a, /FOCUSA COMPACTION MUST ONLY IMPROVE ON PI'S COMPACTION/);
+  assert.match(spec130a, /ACTIVE ENHANCEMENT/);
+  assert.match(spec130a, /FAILURE MONOTONICITY/);
+  assert.match(spec130a, /must not replace the integrated path with Pi-only compaction/);
 });
 
 test("resume projection is explicit nextTurn with unknown completion and no retry", () => {
@@ -105,6 +139,13 @@ test("delivery outcome and pending epoch state are typed and operator-supersedab
   assert.match(turnsSource, /compactResumeDeliveryState = "superseded_by_operator"/);
   assert.match(turnsSource, /focusa-compaction-delivery-outcome/);
   assert.match(extensionSource, /compactResumeDeliveryState === "superseded_by_operator"/);
+  // An already-acknowledged delivery (delivered at agent_start) is supporting
+  // context under new steering; it must never be falsely superseded.
+  assert.match(turnsSource, /\["pending", "unknown_completion", "deferred_to_next_turn"\]/);
+  assert.doesNotMatch(
+    turnsSource,
+    /\["pending", "unknown_completion", "deferred_to_next_turn", "delivered"\]/
+  );
 });
 
 test("daemon exposes bounded prepare and verify routes off the async core writer", () => {

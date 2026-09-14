@@ -1,0 +1,170 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "parent": "focusa-vbcqu.20.14",
+  "phase": "01",
+  "schema": "focusa.spec152f_implementation_phase.v1",
+  "task_count": 9,
+  "tasks": [
+    {
+      "code": "01.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.2",
+        "focusa-vbcqu.20.14.3"
+      ],
+      "done_condition": "All registry values round-trip and illegal combinations fail construction before runtime execution.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.5-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/feature_decision.rs; crates/focusa-license/src/lib.rs; crates/focusa-license/src/entitlement_policy.rs (new)",
+      "id": "focusa-vbcqu.20.14.5",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Typed policy model exported only through focusa-license public API.",
+      "required_steps": "Add enums/structs for operation class, capability family, commercial treatment, policy activation, entitlement state, required feature, limit bucket, recovery allowance, and decision reason. Use serde stable names from the policy registry; reject unknown active values.",
+      "title": "Add canonical capability-family and policy types",
+      "verification": "cargo test -p focusa-license entitlement_policy_types"
+    },
+    {
+      "code": "01.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.5"
+      ],
+      "done_condition": "Production policy is deterministic, digest-bound, and rejects malformed or externally substituted policy.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.6-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; docs/contracts/spec152f-entitlement-policy.v1.yaml; build/generation entrypoint chosen in Cargo.toml",
+      "id": "focusa-vbcqu.20.14.6",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Validated embedded policy registry with digest available to receipts/status.",
+      "required_steps": "Load or compile the canonical registry deterministically. Validate family uniqueness, base/premium rules, recovery invariants, feature references, and dormant dimensions. Production must not accept an arbitrary user-supplied registry path.",
+      "title": "Implement deterministic operation-policy registry loader",
+      "verification": "cargo test -p focusa-license entitlement_policy_registry"
+    },
+    {
+      "code": "01.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.5"
+      ],
+      "done_condition": "Every Spec 152F grid cell has a positive and negative table case with deterministic reasons.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.7-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; crates/focusa-license/tests/entitlement_policy_grid.rs",
+      "id": "focusa-vbcqu.20.14.7",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Pure reducer returning typed allow/read/base/feature/deny posture.",
+      "required_steps": "Implement Pending, VerifiedNoGrant, Evaluation, ActivePaid, OfflineGrace, Expired, RefundedOrRevoked, and MissingOrCorrupt. Resolve only policy posture; do not create customers, keys, leases, roles, or operator authority.",
+      "title": "Implement the entitlement-state grid reducer",
+      "verification": "cargo test -p focusa-license --test entitlement_policy_grid state_grid"
+    },
+    {
+      "code": "01.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.6",
+        "focusa-vbcqu.20.14.7"
+      ],
+      "done_condition": "Base core mutations need one usable signed product entitlement, not three separately purchased core feature flags.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.8-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; crates/focusa-license/src/lib.rs; crates/focusa-core/src/license.rs",
+      "id": "focusa-vbcqu.20.14.8",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Canonical BASE decision and compatibility projection.",
+      "required_steps": "Treat usable Evaluation/Active/OfflineGrace product=focusa as the base gate for value-producing core mutations. Preserve core.mission/workpoint/evidence claims for compatibility and telemetry, but do not require separate purchases. Keep legacy parsing non-authoritative.",
+      "title": "Implement base Focusa product resolution",
+      "verification": "cargo test -p focusa-license base_product_resolution && cargo test -p focusa-core license"
+    },
+    {
+      "code": "01.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.6",
+        "focusa-vbcqu.20.14.7"
+      ],
+      "done_condition": "Every blocked entitlement state retains required customer-control paths and none of those paths grants production capability.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.9-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; crates/focusa-api/src/middleware/entitlement.rs; docs/contracts/spec152f-entitlement-policy.v1.yaml",
+      "id": "focusa-vbcqu.20.14.9",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Typed allowance decisions with explicit security prerequisites.",
+      "required_steps": "Resolve account/recovery, safe read, basic customer-data export, diagnostics, repair, stable security update, rollback, node deactivation, and uninstall without commercial entitlement while preserving identity, role, device, confirmation, and scope checks.",
+      "title": "Implement recovery, read, export, and security-maintenance allowances",
+      "verification": "cargo test -p focusa-license recovery_allowances && cargo test -p focusa-api recovery_allowances"
+    },
+    {
+      "code": "01.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.6",
+        "focusa-vbcqu.20.14.7"
+      ],
+      "done_condition": "All premium decisions are authority-owned, base-first, sequence-bound, and fail closed on missing/mismatched grants.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.10-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; docs/contracts/spec152-feature-registry.v1.yaml",
+      "id": "focusa-vbcqu.20.14.10",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Typed FEATURE decisions with exact missing-feature reasons.",
+      "required_steps": "Resolve automation, team_remote, release_proof, and premium_updates only after BASE. Map existing feature IDs exactly. Evaluation receives only authority-granted premium features. Offline Grace permits only cached unexpired grants and never expands them.",
+      "title": "Implement four premium-family resolution",
+      "verification": "cargo test -p focusa-license premium_family_resolution"
+    },
+    {
+      "code": "01.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.6",
+        "focusa-vbcqu.20.14.7"
+      ],
+      "done_condition": "Dormant fields are observable but cannot deny or grant capability; active fields require registered policy and authority claims.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.11-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; docs/contracts/spec152f-entitlement-policy.v1.yaml",
+      "id": "focusa-vbcqu.20.14.11",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Dormant-dimension model and activation guard.",
+      "required_steps": "Represent operation, sub-capability, role, origin, channel, plan, limit, and time dimensions with explicit active/dormant status. Ignore absent dormant claims for authorization. Reject unapproved runtime activation and prevent licensing from granting roles/operator authority.",
+      "title": "Preserve dormant future-granularity dimensions",
+      "verification": "cargo test -p focusa-license dormant_granularity"
+    },
+    {
+      "code": "01.08",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.11",
+        "focusa-vbcqu.20.14.8",
+        "focusa-vbcqu.20.14.9"
+      ],
+      "done_condition": "Every presenter can render the same decision without recomputing policy or exposing credentials.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.12-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; crates/focusa-license/src/lib.rs; crates/focusa-api/src/routes/license.rs; crates/focusa-cli/src/commands/license.rs",
+      "id": "focusa-vbcqu.20.14.12",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Presenter-neutral EntitlementDecision projection.",
+      "required_steps": "Project one redacted decision envelope: state, family, treatment, required feature/limit, reason, recovery action, policy digest, lease sequence, and no raw key/token. Keep API/CLI JSON names stable.",
+      "title": "Add canonical entitlement decision projection",
+      "verification": "cargo test -p focusa-license entitlement_decision_projection && python3 tests/spec152_entitlement_projection_test.py"
+    },
+    {
+      "code": "01.09",
+      "dependencies": [
+        "focusa-vbcqu.20.14.12"
+      ],
+      "done_condition": "All consumers produce byte-stable semantic decisions for the same vector and reject negative cases.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.13-acceptance.txt",
+      "exact_surfaces": "tests/fixtures/spec152f-entitlement-policy-cases.v1.json; crates/focusa-license/tests/entitlement_policy_grid.rs; tests/spec152f_entitlement_policy_vectors_test.py",
+      "id": "focusa-vbcqu.20.14.13",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Canonical vectors consumed by Rust and Python/static clients.",
+      "required_steps": "Create vectors for every state/family combination, base compatibility, premium missing/present, recovery, read, limits, dormant fields, unknown family, stale sequence, wrong product/node/audience, and refund/revoke override.",
+      "title": "Freeze cross-language policy golden vectors",
+      "verification": "cargo test -p focusa-license --test entitlement_policy_grid && python3 tests/spec152f_entitlement_policy_vectors_test.py"
+    }
+  ]
+}

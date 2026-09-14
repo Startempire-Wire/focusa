@@ -5,6 +5,7 @@
 //        §38.3 (health toggle)
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 import { existsSync } from "fs";
 import { join } from "path";
 import { classifyPiSessionProject, persistedProjectRootFromState } from "./session-classification.js";
@@ -62,6 +63,9 @@ import {
   setTurnCount,
   getSessionCwd,
   getContinuityId,
+  currentAttachmentKey,
+  promoteCurrentSessionAttachment,
+  clearPublishedAttachmentEnvironment,
 } from "./state.js";
 import { loadPersistedRecoveryState } from "./persistence.js";
 import { measureNativeSessionPressure, type NativeSessionPressureV1 } from "./session-pressure.js";
@@ -76,10 +80,122 @@ import {
   type ProjectBindingDecisionV1,
 } from "./project-binding.js";
 import { publishScopedStateChange, rehydrateScopedStateChanges } from "./scoped-surface-refresh.js";
+import {
+  PI_BACKGROUND_COMPLETION_ENTRY_SCHEMA,
+  completionEntryData,
+  eventTargetsAttachment,
+  formatBackgroundCompletion,
+  type BackgroundJobVisualEvent,
+} from "./background-progress.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+// docs/165 v2 + #496 — one seed fetch and SSE updates, partitioned by the
+// verified AttachmentKey held in AsyncLocalStorage. Unscoped/foreign events are
+// inert: no status, widget, notification, or transcript entry.
+function bgSeedFromLedger(): void {
+  const attachment = currentAttachmentKey();
+  if (!attachment || attachment.workstream.continuity_id === "extension-bootstrap") return;
+  const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+  fetch(`${base}/background-jobs?limit=20`)
+    .then((r) => r.json())
+    .then((data: any) => {
+      const visual = getAttachmentRuntime().backgroundJobs;
+      for (const job of Array.isArray(data?.jobs) ? data.jobs : []) {
+        if (job?.status === "running" && job?.job_id && eventTargetsAttachment(job, attachment)) {
+          visual.running.set(String(job.job_id), {
+            name: String(job.name || job.job_id),
+            startedAt: String(job.started_at || ""),
+          });
+        }
+      }
+      renderBgSurfaces();
+    })
+    .catch(() => {
+      // Seed is advisory; the durable scoped SSE envelope remains authoritative.
+    });
+}
+
+function renderBgSurfaces(): void {
+  const runtime = getAttachmentRuntime();
+  const ui = runtime.uiCtx;
+  if (!ui?.setStatus) return;
+  const { running, recent } = runtime.backgroundJobs;
+  const last = recent[0];
+  if (running.size > 0) {
+    const names = [...running.values()]
+      .slice(0, 2)
+      .map((job) => job.name)
+      .join(", ");
+    ui.setStatus(
+      "focusa-bg",
+      `⚙ bg: ${running.size} running${names ? ` (${names})` : ""}${last ? ` · last ${last.name}` : ""}`
+    );
+  } else if (last) {
+    const mark = last.status === "completed" ? "✓" : "✗";
+    ui.setStatus("focusa-bg", `⚙ bg idle · last ${last.name} ${mark}`);
+  } else {
+    ui.setStatus("focusa-bg", undefined);
+  }
+  if (!ui.setWidget) return;
+  if (running.size === 0 && recent.length === 0) {
+    ui.setWidget("focusa-bg", undefined);
+    return;
+  }
+  ui.setWidget("focusa-bg", (_tui: unknown, theme: any) => {
+    const lines: string[] = [];
+    for (const [id, job] of running) {
+      lines.push(theme.fg("accent", `⚙ ${job.name}`) + theme.fg("muted", `  ${id.slice(0, 8)} running`));
+    }
+    for (const job of recent.slice(0, 3)) {
+      const mark = job.status === "completed" ? "✓" : "✗";
+      const color = job.status === "completed" ? "success" : "error";
+      lines.push(
+        theme.fg(color, `${mark} ${job.name}`) +
+          theme.fg("muted", `  exit ${job.exitCode ?? "?"} · ${job.status}`)
+      );
+    }
+    return { render: () => lines, invalidate: () => {} };
+  });
+}
+
+function handleBgStarted(event: BackgroundJobVisualEvent): void {
+  const attachment = currentAttachmentKey();
+  if (!eventTargetsAttachment(event, attachment)) return;
+  const jobId = String(event.job_id || "");
+  if (!jobId) return;
+  getAttachmentRuntime().backgroundJobs.running.set(jobId, {
+    name: String(event.name || jobId),
+    startedAt: String(event.started_at || ""),
+  });
+  renderBgSurfaces();
+}
+
+function handleBgCompletion(event: BackgroundJobVisualEvent): void {
+  const attachment = currentAttachmentKey();
+  if (!attachment || !eventTargetsAttachment(event, attachment)) return;
+  const entry = completionEntryData(event, attachment);
+  const visual = getAttachmentRuntime().backgroundJobs;
+  visual.running.delete(entry.job_id);
+  visual.recent.unshift({
+    name: entry.name,
+    status: entry.status,
+    exitCode: entry.exit_code,
+  });
+  if (visual.recent.length > 6) visual.recent.length = 6;
+  renderBgSurfaces();
+
+  const rendered = formatBackgroundCompletion(entry, false);
+  getAttachmentRuntime().uiCtx?.notify(
+    `${rendered.headline}${rendered.details}`,
+    rendered.ok ? "info" : "error"
+  );
+  // appendEntry is durable TUI-only content. Never call `sendMessage`: progress
+  // must not enter the model transcript/context.
+  getAttachmentRuntime().pi?.appendEntry("focusa-bg-completion", entry);
+}
 const healthLifecycle = new LifecycleGenerationGuard();
 
 export function nativeSessionPressureOperatorAction(
@@ -1002,10 +1118,22 @@ function connectSSE() {
         if (getAttachmentRuntime().focusaAvailable) connectSSE();
       }, getAttachmentRuntime().healthBackoffMs);
     });
+  if (!getAttachmentRuntime().bgSeeded) {
+    getAttachmentRuntime().bgSeeded = true;
+    bgSeedFromLedger();
+  }
 }
 
 // §30: Metacognitive awareness indicators + §37.10: Cross-surface events
 function handleSSEEvent(evt: any) {
+  // docs/165 v2 §3 — background jobs deliver to the front terminal;
+  // the agent never polls or tails logs.
+  const bgType = String(evt?.event_type || "");
+  if (bgType === "background_job_started") {
+    handleBgStarted(evt);
+  } else if (bgType === "background_job_completion") {
+    handleBgCompletion(evt);
+  }
   const scopedRefreshEvents = new Set([
     "project_bound",
     "project_verified",
@@ -1160,6 +1288,16 @@ async function ensureProjectGenesis(
 }
 
 export function registerSession(pi: ExtensionAPI) {
+  pi.registerEntryRenderer("focusa-bg-completion", (entry, { expanded }, theme) => {
+    const data = (entry.data || {}) as any;
+    if (data.schema !== PI_BACKGROUND_COMPLETION_ENTRY_SCHEMA || !data.attachment?.workstream?.root_scope) {
+      return new Text("", 0, 0);
+    }
+    const rendered = formatBackgroundCompletion(data, expanded);
+    const color = rendered.ok ? "success" : "error";
+    return new Text(theme.fg(color, rendered.headline) + theme.fg("muted", rendered.details), 0, 0);
+  });
+
   // ── session_start — single merged handler ──────────────────────────────────
   pi.on("session_start", async (event, ctx) => {
     const lifecycleGeneration = healthLifecycle.begin();
@@ -1170,6 +1308,7 @@ export function registerSession(pi: ExtensionAPI) {
     // Pi 0.81 SessionStartEvent carries a reason, not a synthetic sessionId.
     // sessionManager.getSessionId() is the stable temporal identity boundary.
     const eventSessionId = String(ctx.sessionManager.getSessionId());
+    clearPublishedAttachmentEnvironment();
     const sessionStartReason = event.reason;
     getAttachmentRuntime().sessionFrameKey = eventSessionId;
     getAttachmentRuntime().sessionCwd = adoptPiProjectRoot(ctx.cwd);
@@ -1514,6 +1653,11 @@ export function registerSession(pi: ExtensionAPI) {
       ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
       return;
     }
+    promoteCurrentSessionAttachment({
+      projectRoot,
+      continuityId: ensureContinuityId(projectRoot),
+      sessionId: eventSessionId,
+    });
     await ensureFocusaSession({ ...ctx, cwd: projectRoot });
     await ensureActiveFrame(
       { ...ctx, cwd: projectRoot },
@@ -1681,6 +1825,7 @@ export function registerSession(pi: ExtensionAPI) {
   // ── session_shutdown — single handler (§33.8, §34.2A, §37.9) ──────────────
   pi.on("session_shutdown", async (_event, _ctx) => {
     healthLifecycle.end();
+    clearPublishedAttachmentEnvironment(currentAttachmentKey()?.session_id);
     if (getAttachmentRuntime().healthInterval) {
       clearTimeout(getAttachmentRuntime().healthInterval);
       getAttachmentRuntime().healthInterval = null;
@@ -1720,6 +1865,7 @@ export function registerSession(pi: ExtensionAPI) {
 
   // ── session_before_switch (§37.7) ─────────────────────────────────────────
   pi.on("session_before_switch", async (_event, _ctx) => {
+    clearPublishedAttachmentEnvironment(currentAttachmentKey()?.session_id);
     await persistAuthoritativeState();
     if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {
       await pushDelta({

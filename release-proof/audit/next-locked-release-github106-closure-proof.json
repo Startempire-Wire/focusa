@@ -1,0 +1,26 @@
+{
+  "governance_proof_commits": [
+    "616c98a701ece85714237fde8d560004bfcc1e8c",
+    "7084a65075c52d8ac743e8748c7a7f3c2d750c83",
+    "7a572cb0d3523639384483a46e9d87a19a613849"
+  ],
+  "issue": {
+    "closed_at": "2026-08-04T21:26:20Z",
+    "labels": [
+      "bug"
+    ],
+    "number": 106,
+    "state": "CLOSED",
+    "state_reason": "COMPLETED",
+    "title": "Release governance: reconcile v0.9.141 with the locked issue and Bead closure gate",
+    "updated_at": "2026-08-04T21:26:20Z",
+    "url": "https://github.com/Startempire-Wire/focusa/issues/106"
+  },
+  "mutation_policy": {
+    "publish_release": false,
+    "rewrite_v0.9.143": false
+  },
+  "repository": "Startempire-Wire/focusa",
+  "schema": "focusa.github_issue_closure_proof.v1",
+  "scope": "governance closure only; release readiness remains independently gated"
+}

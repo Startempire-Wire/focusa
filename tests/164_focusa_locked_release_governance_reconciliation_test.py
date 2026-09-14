@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""Structural gate for the GH#106.2 governance reconciliation snapshot."""
+
+from __future__ import annotations
+
+import json
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+AUDIT = ROOT / "release-proof" / "audit"
+LEDGER = json.loads(
+    (AUDIT / "next-locked-release-governance-reconciliation.json").read_text()
+)
+MEMBERS = [
+    json.loads(line)
+    for line in (AUDIT / "next-locked-release-workset-members.jsonl")
+    .read_text()
+    .splitlines()
+    if line
+]
+INVENTORY = json.loads(
+    (AUDIT / "next-locked-release-governance-inventory.json").read_text()
+)
+EVIDENCE_LINKS = json.loads(
+    (AUDIT / "next-locked-release-governance-evidence-links.json").read_text()
+)
+MACOS_OTA_PROOF = json.loads(
+    (AUDIT / "next-locked-release-macos-ota-run-proof.json").read_text()
+)
+
+assert LEDGER["schema"] == "focusa.locked_release_governance_reconciliation.v1"
+assert LEDGER["workset_id"] == "workset:focusa-next-locked-release:r7"
+assert LEDGER["inventory_digest"] == INVENTORY["inventory_digest"]
+assert LEDGER["evidence_links_digest"].startswith("sha256:")
+assert EVIDENCE_LINKS["schema"] == "focusa.locked_release_governance_evidence_links.v1"
+assert len({row["bead_id"] for row in EVIDENCE_LINKS["links"]}) == len(
+    EVIDENCE_LINKS["links"]
+)
+for link in EVIDENCE_LINKS["links"]:
+    assert link.get("evidence_refs") or link.get("implementation_commit_refs")
+    for ref in link.get("evidence_refs", []):
+        assert (ROOT / ref).is_file(), ref
+    for ref in link.get("implementation_commit_refs", []):
+        assert ref.startswith("git:") and len(ref) == 44
+        subprocess.run(
+            ["git", "cat-file", "-e", f"{ref.removeprefix('git:')}^{{commit}}"],
+            cwd=ROOT,
+            check=True,
+        )
+assert MACOS_OTA_PROOF["schema"] == "focusa.locked_release_macos_ota_run_proof.v1"
+assert MACOS_OTA_PROOF["github_run"]["database_id"] == 30355152821
+assert MACOS_OTA_PROOF["github_run"]["conclusion"] == "success"
+assert MACOS_OTA_PROOF["native_job"]["conclusion"] == "success"
+assert all(
+    step["conclusion"] == "success"
+    for step in MACOS_OTA_PROOF["native_job"]["verified_steps"]
+)
+assert set(MACOS_OTA_PROOF["bead_bindings"]) == {
+    "focusa-vbcqu.5.5",
+    "focusa-vbcqu.5.6",
+}
+assert LEDGER["provider_snapshot"]["sha256"].startswith("sha256:")
+assert len(LEDGER["provider_snapshot"]["sha256"]) == 71
+
+mappings = LEDGER["mappings"]
+ids = [row["bead_id"] for row in mappings]
+assert len(ids) == len(set(ids)) == LEDGER["admitted_mapping_count"]
+assert LEDGER["immutable_mapping_count"] == len(MEMBERS) == 275
+assert {row["member_id"] for row in MEMBERS}.issubset(ids)
+overlay_mappings = [
+    row for row in mappings if row["authority"] == "authorized_release_repair_overlay"
+]
+assert LEDGER["repair_overlay_mapping_count"] == len(overlay_mappings)
+assert LEDGER["repair_overlay_mapping_count"] > 14
+assert {"focusa-vbcqu.14", "focusa-vbcqu.19", "focusa-vbcqu.20"}.issubset(ids)
+
+state_total = sum(LEDGER["provider_state_counts"].values())
+evidence_total = sum(LEDGER["evidence_state_counts"].values())
+assert state_total == evidence_total == len(mappings)
+
+non_drift_gaps = {
+    key: value for key, value in LEDGER["gaps"].items() if key != "projection_drift_ids"
+}
+assert LEDGER["unresolved_gap_count"] == sum(map(len, non_drift_gaps.values()))
+assert LEDGER["status"] == (
+    "reconciled" if LEDGER["unresolved_gap_count"] == 0 else "blocked"
+)
+
+# Authority identity and release-label coverage are already reconciled. Remaining
+# blockers must stay explicit rather than being erased by administrative closure.
+assert LEDGER["gaps"]["orphan_bead_ids"] == []
+assert LEDGER["gaps"]["duplicate_provider_ids"] == []
+assert LEDGER["gaps"]["untracked_locked_release_ids"] == []
+assert LEDGER["status"] == "blocked"
+assert LEDGER["gaps"]["pending_technical_acceptance_ids"]
+assert LEDGER["gaps"]["closed_without_proof_ids"] == []
+assert LEDGER["gaps"]["ambiguous_duplicate_closure_ids"] == []
+assert LEDGER["gaps"]["duplicate_target_without_proof_ids"] == []
+
+allowed_evidence_states = {
+    "orphan",
+    "pending_technical_acceptance",
+    "ambiguous_duplicate_closure",
+    "aggregate_child_evidence",
+    "duplicate_target_without_proof",
+    "exact_duplicate_receipt",
+    "evidence_linked",
+    "closed_without_proof",
+}
+by_id = {row["bead_id"]: row for row in mappings}
+# Detailed task descriptions name intended paths, but are never acceptance proof.
+pending_inventory = by_id["focusa-vbcqu.20.13.2"]
+assert pending_inventory["provider_state"] == "open"
+assert pending_inventory["implementation_commit_refs"] == []
+assert pending_inventory["runtime_or_acceptance_evidence_refs"] == []
+assert pending_inventory["evidence_state"] == "pending_technical_acceptance"
+# Explicit Bead notes do contribute bounded proof while incomplete status remains visible.
+decision_replay = by_id["focusa-vbcqu.20.1"]
+assert "git:70536860" in decision_replay["implementation_commit_refs"]
+assert decision_replay["provider_state"] == "in_progress"
+assert decision_replay["evidence_state"] == "pending_technical_acceptance"
+assert decision_replay["technical_acceptance_claim"] is False
+
+for row in mappings:
+    assert row["authority"] in {
+        "immutable_workset_r7",
+        "authorized_release_repair_overlay",
+    }
+    assert row["evidence_state"] in allowed_evidence_states
+    if row["provider_state"] == "closed":
+        assert row["closure_receipt"] is not None
+    else:
+        assert row["closure_receipt"] is None
+    if row["evidence_state"] == "evidence_linked":
+        assert (
+            row["implementation_commit_refs"]
+            or row["runtime_or_acceptance_evidence_refs"]
+        )
+    if row["evidence_state"] == "aggregate_child_evidence":
+        refs = row["aggregate_evidence_member_refs"]
+        assert refs and all(ref.startswith(f"bead:{row['bead_id']}.") for ref in refs)
+        by_id = {candidate["bead_id"]: candidate for candidate in mappings}
+        assert all(
+            by_id[ref.removeprefix("bead:")]["evidence_state"]
+            in {
+                "evidence_linked",
+                "exact_duplicate_receipt",
+                "aggregate_child_evidence",
+            }
+            for ref in refs
+        )
+
+print("GH#106.2 locked-release governance reconciliation: PASS (truthfully blocked)")

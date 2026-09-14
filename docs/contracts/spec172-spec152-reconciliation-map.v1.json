@@ -1,0 +1,576 @@
+{
+  "schema": "focusa.spec172_spec152_reconciliation_map.v1",
+  "authority": "docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md",
+  "scope": {
+    "sections": [
+      "22",
+      "23"
+    ],
+    "requirement_count": 28,
+    "covered_requirement_count": 28,
+    "uncovered_requirement_count": 0
+  },
+  "duplicate_implementation_policy": "Each requirement has exactly one implementation_task in exactly one root; overlays alter semantics but MUST NOT create a second implementation. Cross-root dependencies sequence reuse rather than authorize duplicate work.",
+  "requirements": [
+    {
+      "requirement_id": "S172-R22-01",
+      "source": "section_22",
+      "requirement": "Reconcile Spec 152 Evaluation terminology and issuance state.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.1",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-02",
+      "source": "section_22",
+      "requirement": "Reconcile Spec 152E identity, customer creation, product registry, checkout, key, and lease flows.",
+      "implementation_root": "spec152e",
+      "implementation_task": "focusa-vbcqu.20.13.3",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-03",
+      "source": "section_22",
+      "requirement": "Reconcile Spec 152F policy grid, no-license base access, family defaults, and dormant-dimension rules.",
+      "implementation_root": "spec152f",
+      "implementation_task": "focusa-vbcqu.20.14.6",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-04",
+      "source": "section_22",
+      "requirement": "Replace focusa_evaluation contracts and fixtures with verified_no_license posture and legacy input handling.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.10",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-05",
+      "source": "section_22",
+      "requirement": "Define Operator v1 family sets, manifest digest, seats, nodes, local rights, and hosted exclusions.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.20",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-06",
+      "source": "section_22",
+      "requirement": "Represent Bundle as two underlying grants and one order/key.",
+      "implementation_root": "spec152e",
+      "implementation_task": "focusa-vbcqu.20.13.47",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-07",
+      "source": "section_22",
+      "requirement": "Repair product registry codes, prices, sale status, refund rules, and dedicated EDD mappings.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.8",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-08",
+      "source": "section_22",
+      "requirement": "Implement operation-level inheritance across core/API/workers and all presenters.",
+      "implementation_root": "spec152f",
+      "implementation_task": "focusa-vbcqu.20.14.22",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-09",
+      "source": "section_22",
+      "requirement": "Add Cockpit, Focusa Desktop, menubar, generated UI, dynamic tool, and mixed-product conformance.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.29",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-10",
+      "source": "section_22",
+      "requirement": "Reconcile installers and public websites, including broken routes and machine-readable commerce.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.31",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-11",
+      "source": "section_22",
+      "requirement": "Prove no sales across all rails or trigger a preserved customer-rights migration decision.",
+      "implementation_root": "spec152e",
+      "implementation_task": "focusa-vbcqu.20.13.49",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R22-12",
+      "source": "section_22",
+      "requirement": "Rerun build-independent, exact-SHA installed, refund/revoke, offline, recovery, privacy, and release gates.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.40",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-01",
+      "source": "section_23",
+      "requirement": "Mailbox verification gates all product capability.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.10",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-02",
+      "source": "section_23",
+      "requirement": "Verified no-license limited mode works without expiry or an EDD license key.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.11",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-03",
+      "source": "section_23",
+      "requirement": "Focusa Operator v1, UIAI Operator v1, and their Bundle are dedicated canonical records.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.12",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-04",
+      "source": "section_23",
+      "requirement": "Bundle price is exactly $1,254.60 and grants the exact two underlying License Types.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.15",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-05",
+      "source": "section_23",
+      "requirement": "Operator naming remains intact and future types cannot mutate it.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.9",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-06",
+      "source": "section_23",
+      "requirement": "First-sale freeze and future family/product defaults are enforced.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.9",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-07",
+      "source": "section_23",
+      "requirement": "Node/seat semantics treat multiple clients on one node consistently.",
+      "implementation_root": "spec152e",
+      "implementation_task": "focusa-vbcqu.20.13.59",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-08",
+      "source": "section_23",
+      "requirement": "Hosted-resource exclusions are explicit.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.14",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-09",
+      "source": "section_23",
+      "requirement": "Every execution surface inherits canonical operation decisions.",
+      "implementation_root": "spec152f",
+      "implementation_task": "focusa-vbcqu.20.14.29",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-10",
+      "source": "section_23",
+      "requirement": "Unknown and dynamic operations fail closed.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.23",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-11",
+      "source": "section_23",
+      "requirement": "Lifetime entitlement and bounded credential lifetime remain distinct.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.22",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-12",
+      "source": "section_23",
+      "requirement": "Refunds/revokes preserve data and return verified accounts to limited mode.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.16",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-13",
+      "source": "section_23",
+      "requirement": "No-sales proof is complete or a customer-preserving migration is approved.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.6",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-14",
+      "source": "section_23",
+      "requirement": "All public contradictions in Section 18 are removed.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.39",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-15",
+      "source": "section_23",
+      "requirement": "Specs 152/152E/152F, contracts, task graph, runtime, presenters, authority, websites, and evidence agree.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.42",
+      "implementation_rule": "single_owner_no_duplicate"
+    },
+    {
+      "requirement_id": "S172-R23-16",
+      "source": "section_23",
+      "requirement": "REL.4–REL.7 pass at the final exact SHA.",
+      "implementation_root": "spec172",
+      "implementation_task": "focusa-vbcqu.20.15.41",
+      "implementation_rule": "single_owner_no_duplicate"
+    }
+  ],
+  "superseded_overlays": [
+    {
+      "overlay_id": "evaluation",
+      "status": "superseded",
+      "supersedes": "Timed, local, anonymous, or EDD-backed Evaluation as a value-producing access posture.",
+      "replacement": "Mailbox-verified verified_no_license limited access without expiry or EDD key.",
+      "applies_to": [
+        "spec152",
+        "spec152e",
+        "spec152f"
+      ]
+    },
+    {
+      "overlay_id": "optional_premium_sale_assumptions",
+      "status": "superseded",
+      "supersedes": "Optional-premium family sale assumptions, separate initial premium SKUs, the $1,097 Bundle, and implicit future-family inheritance.",
+      "replacement": "Frozen Operator v1 family grants and $1,254.60 exact-union Bundle; future products, types, and materially new families default excluded.",
+      "applies_to": [
+        "spec152e",
+        "spec152f"
+      ]
+    }
+  ],
+  "cross_root_edges": [
+    {
+      "blocked": "focusa-vbcqu.20.15.6",
+      "blocker": "focusa-vbcqu.20.13.2",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.8",
+      "blocker": "focusa-vbcqu.20.13.2",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.10",
+      "blocker": "focusa-vbcqu.20.13.12",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.11",
+      "blocker": "focusa-vbcqu.20.13.20",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.11",
+      "blocker": "focusa-vbcqu.20.13.34",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.12",
+      "blocker": "focusa-vbcqu.20.13.15",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.13",
+      "blocker": "focusa-vbcqu.20.13.19",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.14",
+      "blocker": "focusa-vbcqu.20.13.46",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.15",
+      "blocker": "focusa-vbcqu.20.13.47",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.16",
+      "blocker": "focusa-vbcqu.20.13.21",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.16",
+      "blocker": "focusa-vbcqu.20.13.36",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.17",
+      "blocker": "focusa-vbcqu.20.13.24",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.18",
+      "blocker": "focusa-vbcqu.20.14.5",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.19",
+      "blocker": "focusa-vbcqu.20.14.8",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.19",
+      "blocker": "focusa-vbcqu.20.14.9",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.19",
+      "blocker": "focusa-vbcqu.20.14.14",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.20",
+      "blocker": "focusa-vbcqu.20.14.10",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.20",
+      "blocker": "focusa-vbcqu.20.14.11",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.20",
+      "blocker": "focusa-vbcqu.20.14.22",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.21",
+      "blocker": "focusa-vbcqu.20.14.35",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.21",
+      "blocker": "focusa-vbcqu.20.13.46",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.21",
+      "blocker": "focusa-vbcqu.10.9.1",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.22",
+      "blocker": "focusa-vbcqu.20.14.47",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.23",
+      "blocker": "focusa-vbcqu.20.14.22",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.23",
+      "blocker": "focusa-vbcqu.20.14.29",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.24",
+      "blocker": "focusa-vbcqu.20.14.43",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.25",
+      "blocker": "focusa-vbcqu.20.14.20",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.25",
+      "blocker": "focusa-vbcqu.20.14.24",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.26",
+      "blocker": "focusa-vbcqu.20.14.37",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.26",
+      "blocker": "focusa-vbcqu.20.14.39",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.27",
+      "blocker": "focusa-vbcqu.20.14.38",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.29",
+      "blocker": "focusa-vbcqu.20.14.35",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.29",
+      "blocker": "focusa-vbcqu.20.14.44",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.29",
+      "blocker": "focusa-vbcqu.20.13.59",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.30",
+      "blocker": "focusa-vbcqu.20.13.40",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.30",
+      "blocker": "focusa-vbcqu.20.13.41",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.30",
+      "blocker": "focusa-vbcqu.20.13.42",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.30",
+      "blocker": "focusa-vbcqu.20.13.45",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.30",
+      "blocker": "focusa-vbcqu.20.14.40",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.31",
+      "blocker": "focusa-vbcqu.20.13.31",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.31",
+      "blocker": "focusa-vbcqu.20.14.41",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.32",
+      "blocker": "focusa-vbcqu.20.13.49",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.32",
+      "blocker": "focusa-vbcqu.20.13.53",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.32",
+      "blocker": "focusa-vbcqu.20.13.54",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.33",
+      "blocker": "focusa-vbcqu.20.13.58",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.33",
+      "blocker": "focusa-vbcqu.20.14.45",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.34",
+      "blocker": "focusa-vbcqu.20.13.56",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.34",
+      "blocker": "focusa-vbcqu.20.13.57",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.34",
+      "blocker": "focusa-vbcqu.20.13.61",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.34",
+      "blocker": "focusa-vbcqu.20.14.46",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.35",
+      "blocker": "focusa-vbcqu.20.13.59",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.35",
+      "blocker": "focusa-vbcqu.20.13.61",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.38",
+      "blocker": "focusa-vbcqu.20.14.44",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.38",
+      "blocker": "focusa-vbcqu.20.14.47",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.41",
+      "blocker": "focusa-vbcqu.20.13.62",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.15.41",
+      "blocker": "focusa-vbcqu.20.14.50",
+      "direction": "upstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.13.3",
+      "blocker": "focusa-vbcqu.20.15.8",
+      "direction": "downstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.13.20",
+      "blocker": "focusa-vbcqu.20.15.10",
+      "direction": "downstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.6",
+      "blocker": "focusa-vbcqu.20.15.18",
+      "direction": "downstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.7",
+      "blocker": "focusa-vbcqu.20.15.18",
+      "direction": "downstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.49",
+      "blocker": "focusa-vbcqu.20.15.40",
+      "direction": "downstream"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.52",
+      "blocker": "focusa-vbcqu.20.15.42",
+      "direction": "downstream"
+    }
+  ],
+  "cross_root_edge_count": 62
+}

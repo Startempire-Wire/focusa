@@ -43,4 +43,6 @@ if rg -n 'git log .*head -[0-9]+' "$WORKFLOW" >/dev/null; then
 fi
 pass "release workflow does not truncate tag-delta commit history"
 
+python3 "${ROOT_DIR}/tests/release_notes_preview_test.py"
+
 echo "Release notes workflow static test: PASS"

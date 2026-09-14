@@ -1,0 +1,388 @@
+# Codemagic macOS build lanes — Spec 177 CI parity stop-gap (2026-08-24).
+#
+# WHY: GitHub Actions hosted runners are billing-locked for this account.
+# The Linux self-hosted OVH lane remains canonical for Linux. AppVeyor is
+# Windows-only. Codemagic personal accounts include 500 free macOS M2
+# minutes/month and this file intentionally spends those minutes only on
+# release tags or an explicitly authorized immutable-tag recovery build.
+# See docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
+workflows:
+  menubar-macos-package-proof:
+    name: Menubar macOS package proof
+    max_build_duration: 45
+    instance_type: mac_mini_m2
+    environment:
+      node: 22
+      xcode: latest
+      vars:
+        FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc
+        VITE_FOCUSA_MACOS_RELEASE_MODE: beta_ad_hoc
+      groups:
+        - github_credentials
+        - focusa_release_signing
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
+    cache:
+      cache_paths:
+        - $HOME/.cargo/registry
+        - $HOME/.cargo/git
+        - apps/menubar/node_modules
+        - apps/menubar/src-tauri/target
+    scripts:
+      - name: Verify immutable release identity
+        script: |
+          set -euo pipefail
+          recovery_file="config/codemagic-release-recovery.json"
+          if [[ "${FOCUSA_CODEMAGIC_RECOVERY:-disabled}" == "enabled" ]]; then
+            [[ -f "$recovery_file" ]]
+            identity="$(python3 - "$recovery_file" <<'PY'
+          import json, sys
+          payload = json.load(open(sys.argv[1], encoding="utf-8"))
+          print("true" if payload.get("enabled") is True else "false", payload.get("tag", ""), payload.get("sha", ""), sep="\t")
+          PY
+            )"
+            IFS=$'\t' read -r recovery_enabled release_tag release_sha <<< "$identity"
+            [[ "$recovery_enabled" == "true" ]]
+          else
+            release_tag="${CM_TAG:-}"
+            release_sha="${CM_COMMIT:-}"
+          fi
+          [[ "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --force origin "refs/tags/${release_tag}:refs/tags/${release_tag}"
+          tag_sha="$(git rev-parse "${release_tag}^{commit}")"
+          [[ "$tag_sha" == "$release_sha" ]]
+          git checkout --detach "$release_sha"
+          [[ "$(git rev-parse HEAD)" == "$release_sha" ]]
+          printf 'FOCUSA_RELEASE_TAG=%s\nFOCUSA_RELEASE_SHA=%s\n' "$release_tag" "$release_sha" >> "$CM_ENV"
+          echo "codemagic_recovery_identity=passed tag=$release_tag sha=$release_sha"
+      - name: Show build context
+        script: |
+          set -euo pipefail
+          echo "Tag: ${FOCUSA_RELEASE_TAG:?missing verified release tag}"
+          echo "Commit: ${FOCUSA_RELEASE_SHA:?missing verified release SHA}"
+          sw_vers
+          uname -m
+          node --version
+          npm --version
+          rustc --version || true
+      - name: Install dependencies + Rust + both macOS targets
+        script: |
+          set -euo pipefail
+          cd apps/menubar
+          npm ci
+          command -v brew >/dev/null
+          if ! brew list --versions libsodium >/dev/null 2>&1; then
+            brew install libsodium
+          fi
+          sodium_lib_dir="$(brew --prefix libsodium)/lib"
+          test -s "$sodium_lib_dir/libsodium.dylib"
+          export DYLD_FALLBACK_LIBRARY_PATH="$sodium_lib_dir${DYLD_FALLBACK_LIBRARY_PATH:+:$DYLD_FALLBACK_LIBRARY_PATH}"
+          printf 'DYLD_FALLBACK_LIBRARY_PATH=%s\n' "$DYLD_FALLBACK_LIBRARY_PATH" >> "$CM_ENV"
+          python3 - <<'PY'
+          import ctypes.util
+          assert ctypes.util.find_library("sodium"), "installed libsodium is not discoverable"
+          PY
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain nightly-2026-08-28
+            export PATH="$HOME/.cargo/bin:$PATH"
+            printf 'PATH=%s\n' "$PATH" >> "$CM_ENV"
+          fi
+          rustup toolchain install nightly-2026-08-28 --profile minimal
+          rustup default nightly-2026-08-28
+          rustup target add --toolchain nightly-2026-08-28 aarch64-apple-darwin x86_64-apple-darwin
+      - name: Typecheck + web build
+        script: |
+          set -euo pipefail
+          cd apps/menubar
+          npm run check
+          npm run build
+      - name: Tauri package both macOS archs (.app + .dmg)
+        script: |
+          set -euo pipefail
+          cd apps/menubar
+          : "${TAURI_SIGNING_PRIVATE_KEY:?missing base64 Tauri updater signing key payload}"
+          : "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:?missing Tauri updater signing password}"
+          python3 - <<'PY'
+          import base64, os
+          raw = base64.b64decode(os.environ["TAURI_SIGNING_PRIVATE_KEY"], validate=True)
+          lines = raw.splitlines()
+          assert len(lines) == 2, "Tauri signing key payload must contain exactly two lines"
+          assert lines[0].startswith(b"untrusted comment:"), "Tauri signing key comment missing"
+          base64.b64decode(lines[1], validate=True)
+          PY
+          TAURI_SIGNING_PRIVATE_KEY="$(python3 ../../scripts/ci/convert-legacy-tauri-signing-key.py)"
+          export TAURI_SIGNING_PRIVATE_KEY
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            case "$target" in
+              aarch64-apple-darwin) arch="aarch64" ;;
+              x86_64-apple-darwin) arch="x64" ;;
+              *) echo "Unsupported macOS updater target: $target" >&2; exit 1 ;;
+            esac
+            rm -rf "src-tauri/target/$target/release/bundle"
+            npx tauri build --target "$target" --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":true}}'
+            app="src-tauri/target/$target/release/bundle/macos/Focusa.app"
+            dmg="$(find "src-tauri/target/$target/release/bundle/dmg" -maxdepth 1 -name '*.dmg' -print -quit)"
+            updater="$(find "src-tauri/target/$target/release/bundle/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit)"
+            test -d "$app"
+            test -s "$dmg"
+            test -s "$updater"
+            test -s "${updater}.sig"
+
+            # Tauri's ad-hoc executable signature does not seal the completed
+            # .app resource tree. Seal the complete bundle, then regenerate
+            # every distributable from these exact verified bytes.
+            codesign --force --deep --sign - "$app"
+            test -s "$app/Contents/_CodeSignature/CodeResources"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            codesign -dv --verbose=4 "$app" 2>&1 | grep -F 'Signature=adhoc'
+
+            dmg_stage="$(mktemp -d)"
+            ditto "$app" "$dmg_stage/Focusa.app"
+            ln -s /Applications "$dmg_stage/Applications"
+            hdiutil create -volname Focusa -srcfolder "$dmg_stage" -ov -format UDZO "$dmg"
+            test -s "$dmg"
+
+            mv "${updater}.sig" "${updater}.sig.tauri-original"
+            tar -czf "$updater" -C "$(dirname "$app")" "$(basename "$app")"
+            tar -tzf "$updater" | grep -Fx 'Focusa.app/Contents/_CodeSignature/CodeResources'
+            npx tauri signer sign "$updater"
+            test -s "${updater}.sig"
+
+            mkdir -p ../../dist/menubar
+            ditto -c -k --keepParent "$app" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.app.zip"
+            cp "$dmg" "../../dist/menubar/Focusa-${FOCUSA_RELEASE_TAG}-${target}.dmg"
+            cp "$updater" "../../dist/menubar/Focusa_${arch}.app.tar.gz"
+            cp "${updater}.sig" "../../dist/menubar/Focusa_${arch}.app.tar.gz.sig"
+          done
+          ls -lh ../../dist/menubar
+      - name: Validate macOS bundles (ad-hoc signature)
+        script: |
+          set -euo pipefail
+          cd apps/menubar
+          expected_identifier="$(python3 -c 'import json; print(json.load(open("src-tauri/tauri.conf.json", encoding="utf-8"))["identifier"])')"
+          [[ "$expected_identifier" == "com.focusa.menubar" ]]
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            case "$target" in
+              aarch64-apple-darwin) arch="aarch64" ;;
+              x86_64-apple-darwin) arch="x64" ;;
+              *) echo "Unsupported macOS updater target: $target" >&2; exit 1 ;;
+            esac
+            app="src-tauri/target/$target/release/bundle/macos/Focusa.app"
+            plutil -lint "$app/Contents/Info.plist"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "${FOCUSA_RELEASE_TAG#v}"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = "$expected_identifier"
+            test -s "$app/Contents/_CodeSignature/CodeResources"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            codesign -dv --verbose=4 "$app" 2>&1 | grep -F 'Signature=adhoc'
+            tar -tzf "../../dist/menubar/Focusa_${arch}.app.tar.gz" | grep -Fx 'Focusa.app/Contents/_CodeSignature/CodeResources'
+            test -s "../../dist/menubar/Focusa_${arch}.app.tar.gz.sig"
+          done
+      - name: Upload menubar bundles to canonical GitHub Release
+        script: |
+          set -euo pipefail
+          : "${GITHUB_TOKEN:?missing GitHub release upload credential}"
+          release_tag="${FOCUSA_RELEASE_TAG:?missing verified release tag}"
+          expected=(
+            "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.app.zip"
+            "dist/menubar/Focusa-${release_tag}-aarch64-apple-darwin.dmg"
+            "dist/menubar/Focusa_aarch64.app.tar.gz"
+            "dist/menubar/Focusa_aarch64.app.tar.gz.sig"
+            "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.app.zip"
+            "dist/menubar/Focusa-${release_tag}-x86_64-apple-darwin.dmg"
+            "dist/menubar/Focusa_x64.app.tar.gz"
+            "dist/menubar/Focusa_x64.app.tar.gz.sig"
+          )
+          for file in "${expected[@]}"; do test -s "$file"; done
+          for attempt in $(seq 1 60); do
+            gh release view "$release_tag" >/dev/null 2>&1 && break
+            sleep 10
+          done
+          gh release view "$release_tag" >/dev/null 2>&1
+          gh release upload "$release_tag" "${expected[@]}" --clobber
+    artifacts:
+      - dist/menubar/*
+
+  rust-macos-release-binaries:
+    name: Rust macOS release binaries
+    max_build_duration: 45
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      vars:
+        # Public production verification root, compiled into release binaries.
+        FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
+      groups:
+        - github_credentials
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
+    cache:
+      cache_paths:
+        - $HOME/.cargo/registry
+        - $HOME/.cargo/git
+        - target
+    scripts:
+      - name: Verify immutable release identity
+        script: |
+          set -euo pipefail
+          recovery_file="config/codemagic-release-recovery.json"
+          if [[ "${FOCUSA_CODEMAGIC_RECOVERY:-disabled}" == "enabled" ]]; then
+            [[ -f "$recovery_file" ]]
+            identity="$(python3 - "$recovery_file" <<'PY'
+          import json, sys
+          payload = json.load(open(sys.argv[1], encoding="utf-8"))
+          print("true" if payload.get("enabled") is True else "false", payload.get("tag", ""), payload.get("sha", ""), sep="\t")
+          PY
+            )"
+            IFS=$'\t' read -r recovery_enabled release_tag release_sha <<< "$identity"
+            [[ "$recovery_enabled" == "true" ]]
+          else
+            release_tag="${CM_TAG:-}"
+            release_sha="${CM_COMMIT:-}"
+          fi
+          [[ "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --force origin "refs/tags/${release_tag}:refs/tags/${release_tag}"
+          tag_sha="$(git rev-parse "${release_tag}^{commit}")"
+          [[ "$tag_sha" == "$release_sha" ]]
+          git checkout --detach "$release_sha"
+          [[ "$(git rev-parse HEAD)" == "$release_sha" ]]
+          printf 'FOCUSA_RELEASE_TAG=%s\nFOCUSA_RELEASE_SHA=%s\n' "$release_tag" "$release_sha" >> "$CM_ENV"
+          echo "codemagic_recovery_identity=passed tag=$release_tag sha=$release_sha"
+      - name: Show build context
+        script: |
+          set -euo pipefail
+          echo "Tag: ${FOCUSA_RELEASE_TAG:?missing verified release tag}"
+          echo "Commit: ${FOCUSA_RELEASE_SHA:?missing verified release SHA}"
+          sw_vers
+          uname -m
+          rustc --version || true
+      - name: Install Rust targets
+        script: |
+          set -euo pipefail
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain nightly-2026-08-28
+            export PATH="$HOME/.cargo/bin:$PATH"
+            printf 'PATH=%s\n' "$PATH" >> "$CM_ENV"
+          fi
+          rustup toolchain install nightly-2026-08-28 --profile minimal
+          rustup default nightly-2026-08-28
+          rustup target add --toolchain nightly-2026-08-28 aarch64-apple-darwin x86_64-apple-darwin
+      - name: Build + package both macOS targets
+        script: |
+          set -euo pipefail
+          lock_before=""
+          if [[ "${FOCUSA_CODEMAGIC_RECOVERY:-}" == "enabled" ]]; then
+            [[ "$FOCUSA_RELEASE_TAG" == "v0.9.187" ]]
+            [[ "$FOCUSA_RELEASE_SHA" == "01aae7ea9ab886627d49b68e7aed2349d9ceafc0" ]]
+            lock_before="$(mktemp "${TMPDIR:-/tmp}/focusa-cargo-lock-before.XXXXXX")"
+            cp Cargo.lock "$lock_before"
+            cargo metadata --format-version 1 >/dev/null
+            python3 - "$lock_before" Cargo.lock "${FOCUSA_RELEASE_TAG#v}" <<'PY'
+          import collections
+          import copy
+          import json
+          import sys
+          import tomllib
+
+          before_path, after_path, target_version = sys.argv[1:]
+          allowed = {
+              "agent-stateful-cognitive-runtime",
+              "cognitive-state-projection",
+              "letta-adapter",
+              "pi-client-tool-gateway",
+          }
+
+          def load(path):
+              with open(path, "rb") as handle:
+                  return tomllib.load(handle)["package"]
+
+          before = load(before_path)
+          after = load(after_path)
+
+          def local_allowed(packages, name):
+              matches = [p for p in packages if p["name"] == name and "source" not in p]
+              assert len(matches) == 1, f"expected one local lock package for {name}"
+              return matches[0]
+
+          for name in sorted(allowed):
+              old = local_allowed(before, name)
+              new = local_allowed(after, name)
+              assert old["version"] == "0.9.186", f"unexpected recovery source version for {name}"
+              assert new["version"] == target_version, f"unexpected recovery target version for {name}"
+              old_without_version = {k: v for k, v in old.items() if k != "version"}
+              new_without_version = {k: v for k, v in new.items() if k != "version"}
+              assert old_without_version == new_without_version, f"non-version lock drift for {name}"
+
+          def normalized(packages):
+              records = []
+              for package in packages:
+                  record = copy.deepcopy(package)
+                  if record["name"] in allowed and "source" not in record:
+                      record["version"] = "__RECOVERY_LOCAL_VERSION__"
+                  records.append(json.dumps(record, sort_keys=True, separators=(",", ":")))
+              return collections.Counter(records)
+
+          assert normalized(before) == normalized(after), "Cargo.lock drift exceeds recovery allowlist"
+          print(
+              "codemagic_recovery_lock_normalization=passed "
+              f"packages={','.join(sorted(allowed))} from=0.9.186 to={target_version}"
+          )
+          PY
+            changed="$(git diff --name-only)"
+            [[ "$changed" == "Cargo.lock" ]]
+          else
+            cargo metadata --locked --format-version 1 >/dev/null
+          fi
+          mkdir -p dist
+          authority_binaries=()
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --locked --release --target "$target" -p focusa-cli -p focusa-api -p focusa-tui -p focusa-session-runner
+            for bin in focusa focusa-daemon focusa-tui focusa-session-runner; do
+              test -x "target/$target/release/$bin"
+              destination="dist/${bin}-${FOCUSA_RELEASE_TAG}-${target}"
+              cp "target/$target/release/$bin" "$destination"
+              if [[ "$bin" == "focusa" || "$bin" == "focusa-daemon" ]]; then
+                authority_binaries+=("$destination")
+              fi
+            done
+          done
+          python3 scripts/verify-embedded-authority-root.py "${authority_binaries[@]}"
+          if [[ -n "$lock_before" ]]; then
+            cp "$lock_before" Cargo.lock
+            git diff --exit-code -- Cargo.lock
+            echo "codemagic_recovery_lock_restore=passed"
+          fi
+          ls -lh dist
+      - name: Upload Rust binaries to canonical GitHub Release
+        script: |
+          set -euo pipefail
+          : "${GITHUB_TOKEN:?missing GitHub release upload credential}"
+          release_tag="${FOCUSA_RELEASE_TAG:?missing verified release tag}"
+          expected=(
+            "dist/focusa-${release_tag}-aarch64-apple-darwin"
+            "dist/focusa-daemon-${release_tag}-aarch64-apple-darwin"
+            "dist/focusa-tui-${release_tag}-aarch64-apple-darwin"
+            "dist/focusa-session-runner-${release_tag}-aarch64-apple-darwin"
+            "dist/focusa-${release_tag}-x86_64-apple-darwin"
+            "dist/focusa-daemon-${release_tag}-x86_64-apple-darwin"
+            "dist/focusa-tui-${release_tag}-x86_64-apple-darwin"
+            "dist/focusa-session-runner-${release_tag}-x86_64-apple-darwin"
+          )
+          for file in "${expected[@]}"; do test -s "$file"; done
+          for attempt in $(seq 1 60); do
+            gh release view "$release_tag" >/dev/null 2>&1 && break
+            sleep 10
+          done
+          gh release view "$release_tag" >/dev/null 2>&1
+          gh release upload "$release_tag" "${expected[@]}" --clobber
+    artifacts:
+      - dist/*

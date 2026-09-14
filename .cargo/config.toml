@@ -1,0 +1,12 @@
+# Canonical build configuration.
+#
+# Deployment binaries are static-pie (musl) so the daemon runs on hosts
+# with older glibc (AlmaLinux 8 ships glibc 2.28). musl headers lack the
+# BSD u_int*_t types that sqlite-vec.c expects; the shim defines below are
+# the standard musl workaround and are scoped to the musl target only.
+
+[target.x86_64-unknown-linux-musl]
+linker = "x86_64-linux-musl-gcc"
+
+[env]
+CFLAGS_x86_64_unknown_linux_musl = "-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int32_t=uint32_t -Du_int64_t=uint64_t"

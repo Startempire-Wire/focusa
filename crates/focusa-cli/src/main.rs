@@ -139,9 +139,20 @@ enum Commands {
     #[command(subcommand)]
     Compaction(commands::compaction::CompactionCmd),
 
+    /// Resolve explicit project/worktree/session routing without global daemon inference.
+    #[command(subcommand, name = "daemon-routing")]
+    DaemonRouting(commands::daemon_routing::DaemonRoutingCmd),
+
     /// Daemon-native durable Silent Session control plane (Spec 133).
     #[command(subcommand)]
     Silent(commands::silent::SilentCmd),
+
+    /// Durable background execution with completion notification (docs/165).
+    /// The ONLY sanctioned terminal-blocking-query surface (AGENTS.md TBQ rule).
+    Bg {
+        #[command(subcommand)]
+        cmd: commands::bg::BgCmd,
+    },
 
     /// Upgrade an existing Focusa install via the atomic installer path.
     Upgrade(commands::upgrade::UpgradeArgs),
@@ -217,6 +228,28 @@ enum Commands {
 
     /// Resume governed continuous work and refresh state.
     Continue(commands::continue_work::ContinueArgs),
+
+    /// Governed Work Loop status, frontier, writer lease, and control operations.
+    #[command(subcommand, name = "work-loop")]
+    WorkLoop(commands::work_loop::WorkLoopCmd),
+
+    /// Spec 149 Workset membership, event, and replay projection operations.
+    Workset(commands::workset::WorksetArgs),
+
+    /// Workstream-rooted migration operations.
+    Workstream(commands::workstream::WorkstreamArgs),
+
+    /// Remote workspace binding lifecycle operations.
+    Remote(commands::remote::RemoteArgs),
+
+    /// Infrastructure inventory operations.
+    Infra(commands::infra::InfraArgs),
+
+    /// Rebuild daemon projection state from durable ledgers.
+    RebuildState(commands::rebuild_state::RebuildStateArgs),
+
+    /// CallGraph export projections.
+    Callgraph(commands::callgraph::CallgraphArgs),
 
     /// Launch the focusa-tui dashboard or run a headless self-test snapshot.
     Tui(commands::tui::TuiArgs),
@@ -374,6 +407,11 @@ enum Commands {
     #[command(subcommand)]
     Cache(commands::cache::CacheCmd),
 
+    /// Ontology working-set surface: scoped members, membership classes, freshness (Spec 49).
+    #[command(name = "working-set")]
+    #[command(subcommand)]
+    WorkingSet(commands::working_set::WorkingSetCmd),
+
     /// Guided evaluator workflow: project selection → Workpoint → proof → Mission Deck handoff.
     #[command(name = "first-mission")]
     FirstMission(commands::first_mission::FirstMissionArgs),
@@ -393,6 +431,31 @@ enum Commands {
     /// Project-scoped temporal authority, commitments, observations, and forecasts (Spec137).
     #[command(subcommand)]
     Temporal(commands::temporal::TemporalCmd),
+
+    /// Trusted clock facts and awareness (Spec137).
+    #[command(subcommand)]
+    Time(commands::temporal_clients::TimeCmd),
+    /// Canonical external deadline authority (Spec137).
+    #[command(subcommand)]
+    Deadline(commands::temporal_clients::DeadlineCmd),
+    /// Grounded estimate and calibration authority (Spec137).
+    #[command(subcommand)]
+    Estimate(commands::temporal_clients::EstimateCmd),
+    /// Evidence-backed material progress (Spec137).
+    #[command(subcommand)]
+    Progress(commands::temporal_clients::ProgressCmd),
+    /// No-progress incident inspection (Spec137).
+    #[command(subcommand, name = "no-progress")]
+    NoProgress(commands::temporal_clients::NoProgressCmd),
+    /// Lost-time incident inspection (Spec137).
+    #[command(subcommand, name = "lost-time")]
+    LostTime(commands::temporal_clients::LostTimeCmd),
+    /// Opportunity posture inspection (Spec137).
+    #[command(subcommand)]
+    Opportunity(commands::temporal_clients::OpportunityCmd),
+    /// Distributed cancellation inspection (Spec137).
+    #[command(subcommand)]
+    Cancellation(commands::temporal_clients::CancellationCmd),
 
     /// Per-project Trajectory Projection (Spec96).
     #[command(subcommand)]
@@ -429,6 +492,10 @@ enum Commands {
     /// API token management (docs/25).
     #[command(subcommand)]
     Tokens(commands::tokens::TokensCmd),
+
+    /// Customer-owned SMS/communications intelligence broker (Plan 180).
+    #[command(subcommand)]
+    Sms(commands::sms::SmsCmd),
 
     /// Launch Pi only after bounded native-session preflight (Spec 130).
     #[command(subcommand)]
@@ -523,6 +590,45 @@ fn main() -> anyhow::Result<()> {
 #[tokio::main]
 async fn async_main() -> anyhow::Result<()> {
     let raw_args: Vec<String> = std::env::args().collect();
+    // Machine-readable errors must name the INVOKED command, not the recovery
+    // suggestion (#367). Capture the subcommand line before clap moves it — but
+    // argv is not a secret store: values of user-content flags (operator message
+    // text, interactive keys, license keys, credentials) must never be echoed
+    // into JSON error output, so their values are redacted in place.
+    const REDACTED_VALUE_FLAGS: &[&str] = &[
+        "--text",
+        "--key",
+        "--license-key",
+        "--password",
+        "--token",
+        "--secret",
+        "--message",
+        "--body",
+        "--input",
+        "--note",
+    ];
+    let mut invoked_args: Vec<String> = Vec::new();
+    let mut redact_next = false;
+    for arg in raw_args.iter().skip(1) {
+        if redact_next {
+            invoked_args.push("[REDACTED]".to_string());
+            redact_next = false;
+            continue;
+        }
+        let flag = arg.split('=').next().unwrap_or(arg);
+        if REDACTED_VALUE_FLAGS.contains(&flag) {
+            if arg.contains('=') {
+                let (name, _) = arg.split_once('=').unwrap_or((arg.as_str(), ""));
+                invoked_args.push(format!("{name}=[REDACTED]"));
+            } else {
+                invoked_args.push(arg.clone());
+                redact_next = true;
+            }
+            continue;
+        }
+        invoked_args.push(arg.clone());
+    }
+    let invoked: String = invoked_args.join(" ");
     // Handle -v (lowercase) as version before clap parsing.
     // Clap 4 auto-assigns -V for version but not -v.
     if raw_args.iter().any(|arg| arg == "-v") {
@@ -626,7 +732,9 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Install(args) => commands::install::run(args).await,
         Commands::Update(cmd) => commands::update::run(cmd, cli.json).await,
         Commands::Compaction(cmd) => commands::compaction::run(cmd, cli.json).await,
+        Commands::DaemonRouting(cmd) => commands::daemon_routing::run(cmd, cli.json).await,
         Commands::Silent(cmd) => commands::silent::run(cmd, cli.json).await,
+        Commands::Bg { cmd } => commands::bg::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,
         Commands::Uninstall(args) => commands::uninstall::run(args).await,
         Commands::Codesign(args) => commands::codesign::run(args).await,
@@ -1051,6 +1159,13 @@ async fn async_main() -> anyhow::Result<()> {
         }
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
+        Commands::WorkLoop(cmd) => commands::work_loop::run(cmd, cli.json).await,
+        Commands::Workset(args) => commands::workset::run(args.cmd, cli.json).await,
+        Commands::Workstream(args) => commands::workstream::run(args.cmd, cli.json).await,
+        Commands::Remote(args) => commands::remote::run(args.cmd, cli.json).await,
+        Commands::Infra(args) => commands::infra::run(args.cmd, cli.json).await,
+        Commands::RebuildState(args) => commands::rebuild_state::run(args, cli.json).await,
+        Commands::Callgraph(args) => commands::callgraph::run(args.cmd, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Init(args) => commands::init::run(args, cli.json).await,
         Commands::Walkthrough(args) => {
@@ -1126,11 +1241,26 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Export(cmd) => commands::export::run(cmd, cli.json).await,
         Commands::Contribute(cmd) => commands::contribute::run(cmd, cli.json).await,
         Commands::Cache(cmd) => commands::cache::run(cmd, cli.json).await,
+        Commands::WorkingSet(cmd) => commands::working_set::run(cmd, cli.json).await,
         Commands::FirstMission(args) => commands::first_mission::run(args, cli.json).await,
         Commands::Setup(cmd) => commands::setup::run(cmd, cli.json).await,
         Commands::Project(cmd) => commands::project::run(cmd, cli.json).await,
         Commands::Resource(cmd) => commands::resource::run(cmd, cli.json).await,
         Commands::Temporal(cmd) => commands::temporal::run(cmd, cli.json).await,
+        Commands::Time(cmd) => commands::temporal_clients::run_time(cmd, cli.json).await,
+        Commands::Deadline(cmd) => commands::temporal_clients::run_deadline(cmd, cli.json).await,
+        Commands::Estimate(cmd) => commands::temporal_clients::run_estimate(cmd, cli.json).await,
+        Commands::Progress(cmd) => commands::temporal_clients::run_progress(cmd, cli.json).await,
+        Commands::NoProgress(cmd) => {
+            commands::temporal_clients::run_no_progress(cmd, cli.json).await
+        }
+        Commands::LostTime(cmd) => commands::temporal_clients::run_lost_time(cmd, cli.json).await,
+        Commands::Opportunity(cmd) => {
+            commands::temporal_clients::run_opportunity(cmd, cli.json).await
+        }
+        Commands::Cancellation(cmd) => {
+            commands::temporal_clients::run_cancellation(cmd, cli.json).await
+        }
         Commands::Trajectory(cmd) => commands::trajectory::run(cmd, cli.json).await,
         Commands::Hlt(cmd) => commands::hlt::run(cmd, cli.json).await,
         Commands::Traverse(cmd) => commands::traverse::run(cmd, cli.json).await,
@@ -1149,6 +1279,7 @@ async fn async_main() -> anyhow::Result<()> {
         }
         Commands::Workpoint(cmd) => commands::workpoint::run(cmd, cli.json).await,
         Commands::Tokens(cmd) => commands::tokens::run(cmd, cli.json).await,
+        Commands::Sms(cmd) => commands::sms::run(cmd, cli.json).await,
         Commands::Pi(cmd) => commands::pi_launch::run(cmd, cli.json),
         Commands::Wrap { command } => commands::wrap::run(command, cli.verbose).await,
     };
@@ -1165,7 +1296,7 @@ async fn async_main() -> anyhow::Result<()> {
                     "what_failed": what_failed,
                     "likely_why": likely_why,
                     "safe_recovery": safe_recovery,
-                    "command": safe_recovery,
+                    "command": invoked,
                     "fallback": "focusa doctor",
                     "docs": ["docs/current/ERROR_EMPTY_STATES.md", "docs/current/TROUBLESHOOTING_CURRENT.md"],
                     "evidence_refs": [],

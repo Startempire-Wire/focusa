@@ -1,0 +1,49 @@
+Spec 152E pending activation-registration schema/repository acceptance evidence
+Work item: focusa-vbcqu.20.13.7
+Owner boundary: WPUIAI/wpuiai
+Scope: wp_wpuiai_activation_registrations migration/repository, reducer, CAS transitions, TTL, replay/idempotency, encrypted identity, verification/poll hashes, cleanup, and preservation-only rollback
+Implementation commits:
+- 60fe89ecf0238a2c680a263b91b2002382dc82ec
+- d0541d9057bfc221eadc70dea86041f304b0ff0f
+- 4a1f79c23f2e2a009e67cf20d097d3ae7b6e766f
+- 1466f42b2d70b1805a634afd988364af13615c07
+
+EXACT VERIFICATION
+Command (repository root):
+  php tests/spec152e_registration_schema_test.php
+Exit code: 0
+Bounded result:
+  {"schema":"focusa.spec152e.registration_schema_validation.v1","registration_state":"email_challenge_sent","required_columns":42,"transition_columns":11,"idempotency_columns":9,"result":"passed_fail_closed"}
+
+Command (repository root):
+  php tests/spec152e_registration_transition_test.php
+Exit code: 0
+Bounded result:
+  {"schema":"focusa.spec152e.registration_transition_validation.v1","legal_transition_rows":10,"final_state":"delivered","expired_cleanup":1,"retention_deleted":1,"result":"passed_fail_closed"}
+
+IMMUTABLE RESULT HANDLE
+- handle: sha256:37f0d43c16645aa7d6f60973e0ed2a6a25d51759bf387bc6d22118fea4a778c6
+- input: the two bounded result JSON lines above, joined by one LF and terminated by one LF
+
+PROVED BOUNDARIES
+- The migration creates the pending-registration table, transition journal, idempotency journal, migration journal, and state/expiry, facade/state, email-digest, poll-hash, request, and retention indexes; schema checks reject commerce, delivery, and node authority references on pending states.
+- Pending creation encrypts normalized identity data and stores only keyed verification/poll digests; account, EDD customer/order/license, node, and delivery-authority references remain absent.
+- The reducer matches the Spec 152E state graph and rejects backward, unknown, unverified, stale-version, pending-authority-field, extra-authority-on-promotion, and canonical-account-rebinding transitions.
+- Every state transition uses expected state plus expected state_version compare-and-set guards and an append transition row; every mutation binds its idempotency digest to the request identity, repeated requests replay only with the same request digest, and changed idempotency reuse fails closed. Failed verifier retries are journaled without a second attempt increment.
+- Verification is single-use, mailbox verification precedes account/customer reference attachment, and the presenter/poll snapshot excludes encrypted identity, hashes, and EDD internals.
+- Registration, challenge, and poll TTLs are bounded. Expired pending attempts cannot promote or poll; cleanup records expiry and removes only unpromoted records after the retention horizon.
+- Rollback is preservation-only and journaled; it does not delete registration rows, credential hashes, or migration state.
+
+PINNED SOURCE DIGESTS
+- docs/contracts/spec152e-activation-registration.v1.php sha256:ae2c1934b32389078b55eb10082ff9b82fcfed312b46a0ea17dd566ed314d7cb
+- tests/spec152e_registration_schema_test.php sha256:5da7591c966a693de4a2d0beb18b45df9aea532b43dd476ac5adfbb63adf8dc0
+- tests/spec152e_registration_transition_test.php sha256:f826a16cec41a89c23636d76bf5efb022dabdbdfcc05cba275400992521fea46
+
+PUBLIC-SAFETY AND DELIVERY BOUNDARY
+The tests use only in-memory SQLite and synthetic identifiers. No deployed WordPress database, customer record, administrative URL, secret, raw credential, or unmasked real-email evidence was read or changed. Cargo/release builds, publication, deploy, merge, push, and Beads mutation are excluded.
+
+ROLLBACK
+Revert only this registration atom: implementation commits 60fe89ecf0238a2c680a263b91b2002382dc82ec, d0541d9057bfc221eadc70dea86041f304b0ff0f, and 4a1f79c23f2e2a009e67cf20d097d3ae7b6e766f, plus its test/evidence commits. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.
+
+RESULT
+TECHNICAL_ACCEPTANCE: PASSED

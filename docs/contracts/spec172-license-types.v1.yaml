@@ -1,0 +1,75 @@
+schema: focusa.spec172.license_types.v1
+registry_version: 1
+authority: WPUIAI.com EDD
+policy_status: frozen_pre_first_sale
+semantic_digest: sha256:b67a175a319f55539d967f7e6b7b4af84def25cfc7dae6d6e86d1c358ad35b7d
+postures:
+  - code: verified_no_license
+    kind: account_runtime_posture
+    is_license_type: false
+    price_usd: '0.00'
+    duration: no_automatic_expiry
+    edd_software_license_key: false
+    grant_source: authority_signed_limited_access_assertion
+    anonymous_access: false
+license_types:
+  - code: focusa_operator_lifetime_v1
+    product_code: focusa
+    human_name: Focusa Operator Lifetime v1
+    sale_status: approved_not_yet_enabled
+    price_usd: '697.00'
+    term: lifetime
+    operator_seats: 1
+    node_set: operator_shared_v1
+    node_limit: 3
+    refund_policy: whole_order_30_days
+    future_license_types_included: false
+    future_products_included: false
+  - code: uiai_operator_lifetime_v1
+    product_code: uiai_engine
+    human_name: UIAI Engine Operator Lifetime v1
+    sale_status: approved_not_yet_enabled
+    price_usd: '697.00'
+    term: lifetime
+    operator_seats: 1
+    node_set: operator_shared_v1
+    node_limit: 3
+    refund_policy: whole_order_30_days
+    future_license_types_included: false
+    future_products_included: false
+composite_skus:
+  - code: focusa_uiai_operator_bundle_lifetime_v1
+    kind: commerce_sku_exact_grant_union
+    sale_status: approved_not_yet_enabled
+    price_usd: '1254.60'
+    discount_basis_points: 1000
+    standalone_sum_usd: '1394.00'
+    grants:
+      - focusa_operator_lifetime_v1
+      - uiai_operator_lifetime_v1
+    independent_feature_catalog: false
+    human_key_count: 1
+    operator_seats: 1
+    node_set: operator_shared_v1
+    node_limit: 3
+    refund_policy: whole_order_30_days
+    component_refunds_allowed: false
+    future_license_types_included: false
+    future_products_included: false
+refund_policies:
+  whole_order_30_days:
+    window_days: 30
+    scope: whole_order
+    component_refunds_allowed: false
+defaults:
+  unknown_product: excluded
+  future_product: excluded
+  unknown_license_type: excluded
+  future_license_type: excluded
+  caller_supplied_commercial_policy: forbidden
+invariants:
+  - verified_no_license_is_not_a_license_type
+  - bundle_grants_exactly_the_two_operator_v1_license_types
+  - bundle_price_is_ten_percent_below_standalone_sum
+  - bundle_nodes_are_one_shared_three_node_set
+  - future_products_and_license_types_never_inherit

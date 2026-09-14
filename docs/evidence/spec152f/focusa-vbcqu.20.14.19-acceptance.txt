@@ -1,0 +1,42 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.19
+Title: 152F.01.06 Enforce internal-maintenance inheritance for silent-session scheduler dispatch
+
+Exact surfaces
+- crates/focusa-core/src/silent_session_scheduler.rs
+- crates/focusa-core/src/entitlement_execution_guard.rs
+
+Bounded result
+- Updated `silent_session_scheduler` default entitlement path to use
+  `InternalMaintenance` (`focusa.silent_session.dispatch`) with no
+  feature/limit requirements, so runtime dispatch inherits canonical operation
+  authority rather than enforcing a separate internal premium gate.
+- Added explicit posture plumbing for scheduler evaluation, including:
+  - optional initiating posture + initiating operation id context,
+  - new public helper `select_silent_session_dispatch_with_entitlement_with_initiating_context`,
+  - new default helper `select_silent_session_dispatch_with_default_entitlement_with_initiating_context`,
+  - compatibility fallback that resolves initiating posture from base-licensed runtime state for existing callsites.
+- Extended scheduler entitlement error payload with `initiating_posture` and
+  `initiating_operation_id` for bounded traceability.
+- Renamed internal-maintenance-related tests to the
+  `internal_maintenance_entitlement` filter so maintenance coverage is explicitly
+  executable and observed.
+
+Exact verification (exit codes)
+1. `cargo test --workspace internal_maintenance_entitlement -- --nocapture` — exit 0.
+   Result: 3 matching tests passed (0 failed), including
+   `entitlement_execution_guard_internal_maintenance_entitlement_requires_initiating_posture`,
+   `delayed_dispatch_internal_maintenance_entitlement_rejects_without_posture`,
+   `delayed_dispatch_internal_maintenance_entitlement_inherits_initiating_posture`.
+2. `cargo fmt --all` — exit 0.
+
+Regression checks (exit codes)
+- `python3 tests/spec152f_surface_scanner_test.py` — exit 1 (repository runtime coverage index is stale in this workspace snapshot).
+- `python3 tests/spec152f_surface_reconciliation_contract_test.py` — exit 1 (reconciliation index is stale in this workspace snapshot).
+- `cargo test --workspace internal_maintenance_entitlement` output remains clean after formatter pass and still exits 0.
+
+Rollback
+- Revert only this file set and this evidence record if required.
+  Preserve user/project history, leases, snapshots, recovery records, migration,
+  and signed entitlement/evidence state.
+No push, deploy, release, merge, or Beads mutation was performed.

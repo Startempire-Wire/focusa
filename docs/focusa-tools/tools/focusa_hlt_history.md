@@ -79,4 +79,4 @@ Likely next: `focusa_trajectory_view`, `focusa_trajectory_define_goal`, `focusa_
 - CLI: `focusa hlt history`, `focusa hlt sessions`, `focusa hlt fallback`.
 - REST: `GET /v1/hlt/history`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:59245d79812cb1de31d7120b6ddda5530c3fefb8d54493b5261382c7ca0de7ae`.
+- Descriptor digest: `sha256:19ec12f728fd64769c4801c1273925e3a47504ca30695ebd8409359f3658e0d3`.

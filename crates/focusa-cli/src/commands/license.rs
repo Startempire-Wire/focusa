@@ -12,6 +12,7 @@
 //! unless the operator explicitly opts in via `--persist-key`.
 
 use crate::api_client::ApiClient;
+use anyhow::Context;
 use clap::{Args, Subcommand};
 use focusa_core::license::{
     LicenseStatus, activate as core_activate, check_feature as core_check_feature,
@@ -29,8 +30,17 @@ pub struct LicenseArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum LicenseCmd {
+    /// Interactive authority activation (Spec 152E §14.1): one shared flow
+    /// renders email → verify → offer → checkout/poll → key/lease, existing
+    /// key, Evaluation (Spec 172 limited-access overlay), resume, cancel,
+    /// timeout, and recovery. Never accepts card data and never self-issues.
+    ActivateFlow(ActivateFlowArgs),
     /// Activate a Focusa license key. Saves the local license state file.
     Activate(ActivateArgs),
+    /// Re-send the email verification code for a pending activation
+    /// registration (recovery for delayed/lost delivery). Reports the
+    /// authority's honest delivery disposition.
+    Resend(ResendArgs),
     /// Show current license status (mode, status, features, offline-valid-until).
     Status,
     /// Deactivate the current license. The local file is removed.
@@ -39,6 +49,11 @@ pub enum LicenseCmd {
     Doctor,
     /// Check whether a specific feature is enabled by the current license.
     CheckFeature(CheckFeatureArgs),
+    /// Fast preflight against the canonical entitlement decision (Spec 152F
+    /// §6 chokepoint 4): renders base/premium/recovery reason and next action
+    /// from the authority snapshot only, and exits nonzero when the target
+    /// gate would deny. Never self-issues a grant.
+    Preflight(PreflightArgs),
     /// End-to-end license provisioning harness. Generates a fresh test
     /// key, validates it against the registry (dev_mode is acceptable for
     /// operator testing but downgrades commercial_use to false), writes
@@ -56,6 +71,60 @@ pub enum LicenseCmd {
     /// is printed. Use this as a long-running sidecar after a purchase
     /// so refunds and revokes propagate within the poll interval.
     Watch(WatchArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct ActivateFlowArgs {
+    /// Override the registry URL (default: https://wpuiai.com).
+    #[arg(long, value_name = "URL")]
+    pub registry: Option<String>,
+
+    /// Resume a persisted activation registration (bounded poll
+    /// continuation). The poll credential is re-supplied from the protected
+    /// store; the snapshot never contains it.
+    #[arg(long, value_name = "REGISTRATION_ID")]
+    pub resume: Option<String>,
+
+    /// Explicit email for a new activation (prompted interactively
+    /// otherwise). The email only creates a pending attempt; verification is
+    /// always required before any promotion.
+    #[arg(long, value_name = "EMAIL")]
+    pub email: Option<String>,
+
+    /// Bounded poll wall-clock timeout in seconds (default: the
+    /// registration poll budget governs; timeout settles fail-closed via
+    /// cancel → recovery_only).
+    #[arg(long, value_name = "SECONDS")]
+    pub poll_timeout: Option<u64>,
+
+    /// Agent/JSON protocol (Spec 152E §14.2): non-interactive, never
+    /// prompts, never invents an email, verification code, consent, payment
+    /// confirmation, or license. Returns typed human-action envelopes with a
+    /// resumable registration handle; requires --email for a new attempt or
+    /// --resume for a bounded poll continuation, unless --license-key is
+    /// supplied for an already-paid license fast-path.
+    #[arg(long)]
+    pub agent: bool,
+
+    /// Customer-controlled key reveal opt-in (agent mode): full key output
+    /// is masked by default; revealing the one-time key requires BOTH this
+    /// flag and --confirm-reveal.
+    #[arg(long)]
+    pub reveal_key: bool,
+
+    /// Paid fast-path (all products through the license authority): redeem
+    /// an already-paid license key in ONE request — no email verification,
+    /// no offer menu, no polling. The server verifies the key, promotes the
+    /// account, binds this device (verbatim node identity), and returns a
+    /// root-signed lease that is persisted locally. Works for every product
+    /// in the authority registry (Focusa, UIAI Engine, bundles).
+    #[arg(long, value_name = "KEY", conflicts_with_all = ["email", "resume"])]
+    pub license_key: Option<String>,
+
+    /// Explicit confirmation for the customer-controlled key reveal
+    /// (agent mode). Without it the key stays masked.
+    #[arg(long)]
+    pub confirm_reveal: bool,
 }
 
 #[derive(Args, Debug)]
@@ -116,10 +185,30 @@ pub struct ActivateArgs {
 }
 
 #[derive(Args, Debug)]
+pub struct ResendArgs {
+    /// Persisted activation registration id to re-send the challenge for.
+    #[arg(long, value_name = "REGISTRATION_ID")]
+    pub registration_id: String,
+
+    /// Override the registry URL (default: https://wpuiai.com).
+    #[arg(long, value_name = "URL")]
+    pub registry: Option<String>,
+}
+
+#[derive(Args, Debug)]
 pub struct CheckFeatureArgs {
     /// Feature key (e.g. packaged_installer, public_stream).
     #[arg(value_name = "FEATURE")]
     pub feature: String,
+}
+
+#[derive(Args, Debug)]
+pub struct PreflightArgs {
+    /// Canonical operation family to preflight: base_focusa (default),
+    /// automation, team_remote, release_proof, premium_updates, or
+    /// customer_data_export.
+    #[arg(long, value_name = "FAMILY")]
+    pub family: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -432,25 +521,13 @@ fn print_human_status(status: &LicenseStatus, license_file: &Path) {
             println!("  - {}", f);
         }
     }
-    let disabled = [
-        "team_writer_arbitration",
-        "hosted_service_use",
-        "client_delivery_use",
-        "commercial_export",
-        "official_release_bundle",
-    ];
-    let enabled_set: std::collections::HashSet<&str> =
-        status.features.iter().map(String::as_str).collect();
-    let disabled_active: Vec<&&str> = disabled
-        .iter()
-        .filter(|f| !enabled_set.contains(**f))
-        .collect();
-    if !disabled_active.is_empty() {
-        println!("\nDisabled features:");
-        for f in &disabled_active {
-            println!("  - {}", f);
-        }
-    }
+    println!(
+        "\nRecovery policy: recovery, export, repair, and uninstall remain available when execution is locked."
+    );
+    println!(
+        "Locked capabilities and remaining limits are authority-signed; no local cap list is inferred."
+    );
+    println!("Marketing preference is managed separately from terms and entitlement.");
 }
 
 fn print_human_doctor(doctor: &focusa_core::license::DoctorReport) {
@@ -504,17 +581,239 @@ fn print_license_gate_matrix(matrix: &[Value], missing_gates: &[Value], recovery
     println!("Recovery hint: {recovery_hint}");
 }
 
+/// Paid fast-path (Spec 180 §2.2): one request -> verified key -> signed bundle lease persisted.
+/// Stable, secret-free receipt reference for one delivered signed lease.
+/// Hashing the signed envelope lets a consumer distinguish a committed result
+/// without exposing the license key, lease payload, or authority credentials.
+fn redemption_receipt_reference(lease_envelope: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut digest = Sha256::new();
+    digest.update(lease_envelope.as_bytes());
+    format!("sha256:{:x}", digest.finalize())
+}
+
+async fn run_redeem_fast_path(
+    json_output: bool,
+    license_key: &str,
+    registry_override: Option<&str>,
+) -> anyhow::Result<()> {
+    use focusa_license::authority::{LeaseVerificationContext, SignedEnvelope};
+    use focusa_license::authority_store::{
+        AUTHORITY_STATE_FILE, PersistedAuthorityState, embedded_production_trust_roots,
+    };
+    let registry = registry_override
+        .map(str::to_string)
+        .unwrap_or_else(|| DEFAULT_REGISTRY.to_string());
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/root".into());
+    let config_dir = std::path::PathBuf::from(home).join(".config/focusa");
+    let identity = crate::commands::activation_flow::resolve_flow_node_identity(&config_dir)?;
+    // Fail closed before contacting the authority: a build without embedded
+    // production roots must not redeem a key and then lose the signed lease
+    // locally (upstream #376).
+    let roots = match embedded_production_trust_roots() {
+        Ok(roots) => roots,
+        Err(error) => {
+            let out = json!({
+                "ok": false,
+                "status": "blocked",
+                "stage": "trust_root_preflight",
+                "code": "TRUST_ROOTS_UNAVAILABLE",
+                "authority_request_sent": false,
+                "receipt": {"state": "not_sent", "reference": null},
+                "recovery_hint": "Use the canonical Focusa release installer or a build with the production public verification root embedded.",
+                "detail": error.to_string(),
+            });
+            if json_output {
+                println!("{}", serde_json::to_string_pretty(&out)?);
+            } else {
+                eprintln!("Activation blocked before submission: TRUST_ROOTS_UNAVAILABLE");
+                eprintln!("Recovery: use the canonical Focusa release installer.");
+            }
+            std::process::exit(2);
+        }
+    };
+    let url = format!(
+        "{}/wp-json/wpuiai-ai-cloud/v1/activation/redeem",
+        registry.trim_end_matches('/')
+    );
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?;
+    let resp = client
+        .post(&url)
+        .json(&serde_json::json!({
+            "license_key": license_key.trim(),
+            "device_public_key": identity.node_id,
+        }))
+        .send()
+        .await
+        .context("reach license authority for redemption")?;
+    let status = resp.status();
+    let body: serde_json::Value = resp.json().await.context("decode redemption reply")?;
+    if !status.is_success() || body.get("lease_envelope").is_none() {
+        let code = body
+            .pointer("/error/code")
+            .and_then(|v| v.as_str())
+            .unwrap_or("AUTHORITY_UNAVAILABLE")
+            .to_string();
+        let out = json!({
+            "ok": false,
+            "code": code,
+            "error": code.to_lowercase(),
+            "recovery_hint": "Verify the key with support; paid keys redeem in one request. Retry is idempotent.",
+        });
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&out)?);
+        } else {
+            eprintln!("Redemption failed: {code}");
+        }
+        std::process::exit(2);
+    }
+    let envelope_str = body["lease_envelope"].as_str().unwrap_or("{}").to_string();
+    let envelope: serde_json::Value =
+        serde_json::from_str(&envelope_str).context("decode lease delivery envelope")?;
+    let key_set_raw = envelope["key_set"].to_string();
+    let lease_raw = envelope["lease"].to_string();
+    let key_set: SignedEnvelope =
+        serde_json::from_str(&key_set_raw).context("decode key-set envelope")?;
+    let lease: SignedEnvelope =
+        serde_json::from_str(&lease_raw).context("decode lease envelope")?;
+    let receipt_reference = redemption_receipt_reference(&lease_raw);
+    let context = LeaseVerificationContext {
+        expected_product: "focusa".into(),
+        expected_node_id: identity.node_id.clone(),
+        now: chrono::Utc::now(),
+        minimum_sequence: None,
+        expected_previous_digest: None,
+    };
+    let (state, _snapshot) =
+        PersistedAuthorityState::from_verified_envelopes(key_set, lease, &roots, &context)
+            .context("verify issued authority lease")?;
+    if let Err(error) = state.write_atomic(&config_dir.join(AUTHORITY_STATE_FILE)) {
+        let out = json!({
+            "ok": false,
+            "status": "partial_delivery",
+            "stage": "local_persist",
+            "code": "AUTHORITY_COMMITTED_LOCAL_PERSIST_FAILED",
+            "authority_request_sent": true,
+            "receipt": {
+                "state": "authority_committed",
+                "reference": receipt_reference,
+            },
+            "recovery_hint": "Retry the same key on this device; redemption is idempotent and the authority has already committed the lease.",
+            "detail": error.to_string(),
+        });
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&out)?);
+        } else {
+            eprintln!(
+                "Activation partially completed: authority committed the lease but local persistence failed."
+            );
+            eprintln!("Recovery: retry the same key; redemption is idempotent.");
+        }
+        std::process::exit(2);
+    }
+    let out = json!({
+        "ok": true,
+        "status": "verified_and_persisted",
+        "node_id": identity.node_id,
+        "authority_request_sent": true,
+        "receipt": {
+            "state": "verified_and_persisted",
+            "reference": receipt_reference,
+        },
+        "state_file": config_dir.join(AUTHORITY_STATE_FILE).display().to_string(),
+    });
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        println!("✅ Activated — full operator bundle is live on this device.");
+        println!("   {}", config_dir.join(AUTHORITY_STATE_FILE).display());
+    }
+    Ok(())
+}
+
 pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
     match args.command {
-        LicenseCmd::Activate(a) => run_activate(json_output, a).await,
         LicenseCmd::Status => run_status(json_output).await,
-        LicenseCmd::Deactivate => run_deactivate(json_output).await,
         LicenseCmd::Doctor => run_doctor(json_output).await,
         LicenseCmd::CheckFeature(a) => run_check_feature(json_output, a).await,
-        LicenseCmd::DevmodeFull(a) => run_devmode_full(json_output, a).await,
-        LicenseCmd::Refresh(a) => run_refresh(json_output, a).await,
-        LicenseCmd::Watch(a) => run_watch(json_output, a).await,
+        LicenseCmd::Preflight(a) => run_preflight(json_output, a).await,
+        LicenseCmd::ActivateFlow(a) => {
+            if let (Some(key), false) = (a.license_key.as_ref(), a.agent) {
+                run_redeem_fast_path(json_output, key, a.registry.as_deref()).await
+            } else if a.agent {
+                run_agent_activation_command(json_output, a).await
+            } else {
+                run_activation_flow_command(json_output, a).await
+            }
+        }
+        LicenseCmd::Activate(a) => {
+            run_redeem_fast_path(json_output, a.key.trim(), a.registry.as_deref()).await
+        }
+        LicenseCmd::Resend(a) => run_resend(json_output, a).await,
+        LicenseCmd::Deactivate
+        | LicenseCmd::DevmodeFull(_)
+        | LicenseCmd::Refresh(_)
+        | LicenseCmd::Watch(_) => anyhow::bail!(
+            "E_AUTHORITY_COMMAND_RETIRED: deactivation, dev-mode issuance, registry refresh, and watch cannot grant or mutate production entitlement; use signed authority device authorization"
+        ),
     }
+}
+
+/// Re-send the verification code for a pending registration. Direct HTTP to
+/// the authority's /activation/resend; reports honest delivery status.
+/// #365 recovery: never claims the code was sent unless the authority says so.
+async fn run_resend(json_output: bool, args: ResendArgs) -> anyhow::Result<()> {
+    let registry = args
+        .registry
+        .clone()
+        .unwrap_or_else(|| DEFAULT_REGISTRY.to_string());
+    let url = format!(
+        "{}/wp-json/wpuiai-ai-cloud/v1/activation/resend",
+        registry.trim_end_matches('/')
+    );
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?;
+    let resp = client
+        .post(&url)
+        .json(&serde_json::json!({ "registration_id": args.registration_id.trim() }))
+        .send()
+        .await
+        .context("reach license authority to resend verification code")?;
+    let status = resp.status();
+    let body: serde_json::Value = resp.json().await.context("decode resend reply")?;
+    if !status.is_success() {
+        let code = body
+            .pointer("/error/code")
+            .and_then(|v| v.as_str())
+            .unwrap_or("AUTHORITY_UNAVAILABLE")
+            .to_string();
+        let out = json!({ "ok": false, "code": code });
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&out)?);
+        } else {
+            eprintln!("Resend failed: {code}");
+        }
+        std::process::exit(2);
+    }
+    let delivery = body
+        .get("verification_delivery_status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("queued")
+        .to_string();
+    let out = serde_json::json!({ "ok": true, "verification_delivery_status": delivery });
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        match delivery.as_str() {
+            "queued" => println!("Verification code queued; delivery pending."),
+            "sent" => println!("Verification code re-sent."),
+            other => println!("Verification code delivery: {other}."),
+        }
+    }
+    Ok(())
 }
 
 async fn run_activate(json_output: bool, args: ActivateArgs) -> anyhow::Result<()> {
@@ -598,13 +897,674 @@ async fn run_activate(json_output: bool, args: ActivateArgs) -> anyhow::Result<(
     Ok(())
 }
 
-async fn run_status(json_output: bool) -> anyhow::Result<()> {
-    let license_file = local_license_path();
-    let status = core_status()?;
-    if json_output {
-        println!("{}", serde_json::to_string_pretty(&status)?);
+/// Canonical decision presenter (Spec 152F §5/§6). These helpers render the
+/// authority snapshot's base/premium/recovery decisions through the same
+/// projections the core, REST, TUI, and Pi surfaces inherit; the CLI never
+/// grants, prices, or reinterprets entitlement (Spec 152F P5/P9) and never
+/// exposes raw keys, tokens, or customer identity.
+///
+/// Render the canonical base-product decision plus the optional premium-family
+/// decisions and the permanent recovery allowance for one snapshot.
+fn canonical_decision_payload(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> Value {
+    let base_product = match focusa_license::base_product_projection(snapshot) {
+        Ok(projection) => serde_json::to_value(projection)
+            .unwrap_or_else(|_| json!({ "decision": "denied", "permits_base_mutations": false })),
+        Err(_) => json!({
+            "schema": "focusa.base_product_projection.v1",
+            "product": "unknown",
+            "decision": "denied",
+            "permits_base_mutations": false,
+            "compatibility": {},
+        }),
+    };
+    json!({
+        "base_product": base_product,
+        "premium": canonical_premium_presenter(snapshot),
+        "recovery_allowance": canonical_recovery_presenter(snapshot),
+    })
+}
+
+/// Render the canonical optional-premium family decisions (Spec 152F §3/§4).
+/// Every decision is re-resolved from the authority snapshot only; the feature
+/// identifiers are the exact registered registry entries and can never request
+/// or expand a grant (Spec 152F P9).
+fn canonical_premium_presenter(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> Vec<Value> {
+    let Some(snapshot) = snapshot else {
+        return Vec::new();
+    };
+    let now = chrono::Utc::now();
+    let mut rows = Vec::new();
+    for (family, feature) in [
+        (
+            focusa_license::CapabilityFamily::Automation,
+            "focusa.agent.silent_sessions",
+        ),
+        (
+            focusa_license::CapabilityFamily::TeamRemote,
+            "focusa.team.multi_operator",
+        ),
+        (
+            focusa_license::CapabilityFamily::ReleaseProof,
+            "focusa.release.proof",
+        ),
+        (
+            focusa_license::CapabilityFamily::PremiumUpdates,
+            "focusa.update.unattended",
+        ),
+        (
+            focusa_license::CapabilityFamily::CustomerDataExport,
+            "focusa.export.packaged",
+        ),
+    ] {
+        rows.push(render_premium_decision(snapshot, family, feature, now));
+    }
+    rows
+}
+
+/// Render one premium family decision with a stable reason and recovery action.
+fn render_premium_decision(
+    snapshot: &focusa_license::authority::EntitlementSnapshot,
+    family: focusa_license::CapabilityFamily,
+    feature: &str,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Value {
+    let decision = if family == focusa_license::CapabilityFamily::CustomerDataExport {
+        focusa_license::resolve_export_packaged(snapshot, feature, now)
     } else {
-        print_human_status(&status, &license_file);
+        focusa_license::resolve_premium_family(snapshot, family, feature, now)
+    };
+    let (decision_label, reason_code, recovery_action, offline_cached) = match &decision {
+        focusa_license::PremiumFamilyDecision::Feature { offline_cached, .. } => (
+            "feature",
+            focusa_license::DecisionReason::RequireFeature.label(),
+            focusa_license::DecisionReason::RequireFeature.recovery_action(),
+            *offline_cached,
+        ),
+        focusa_license::PremiumFamilyDecision::Denied(denial) => {
+            let (reason, recovery) = premium_denial_reason(denial);
+            ("denied", reason, recovery, false)
+        }
+    };
+    json!({
+        "family": family.label(),
+        "required_feature": feature,
+        "decision": decision_label,
+        "reason_code": reason_code,
+        "recovery_action": recovery_action,
+        "offline_cached": offline_cached,
+    })
+}
+
+/// Stable snake_case reason and canonical recovery action for one premium
+/// denial. Recovery guidance never exposes internal or raw authority material.
+fn premium_denial_reason(
+    denial: &focusa_license::PremiumFamilyDenial,
+) -> (&'static str, &'static str) {
+    use focusa_license::{DecisionReason, PremiumFamilyDenial};
+    let _ = DecisionReason::RequireBase.label(); // canonical reason vocabulary
+    match denial {
+        PremiumFamilyDenial::BaseProductRequired { .. } => (
+            "base_product_required",
+            DecisionReason::RequireBase.recovery_action(),
+        ),
+        PremiumFamilyDenial::MissingLeaseSequence => (
+            "missing_lease_sequence",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::MissingLeaseBinding => (
+            "missing_lease_binding",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::InvalidRequiredFeature { .. } => (
+            "invalid_required_feature",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::FeatureNotRegistered { .. } => (
+            "feature_not_registered",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::MissingFeature { .. } => (
+            "missing_feature",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::MissingCachedGrantExpiry => (
+            "missing_cached_grant_expiry",
+            DecisionReason::RequireCachedFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::CachedGrantExpired => (
+            "cached_grant_expired",
+            DecisionReason::RequireCachedFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::ActiveLeaseExpired => (
+            "active_lease_expired",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::EntitlementStateNotUsable { .. } => (
+            "entitlement_state_not_usable",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+        PremiumFamilyDenial::NotPremiumFamily { .. } => (
+            "not_premium_family",
+            DecisionReason::RequireFeature.recovery_action(),
+        ),
+    }
+}
+
+/// Render the permanent recovery allowance (Spec 152F §3 account_recovery,
+/// §3.1 stable updates/repair, §3.3 export). Recovery, read, export, repair,
+/// stable security update, rollback, and uninstall remain available regardless
+/// of commercial state; the CLI never blocks them.
+fn canonical_recovery_presenter(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> Value {
+    let reason = snapshot
+        .and_then(|entry| entry.recovery_reason.clone())
+        .unwrap_or_else(|| "no_recovery_event".to_string());
+    json!({
+        "schema": "focusa.recovery_projection.v1",
+        "reason": reason,
+        "next_action": "recovery, export, repair, and uninstall remain available when execution is locked",
+        "always_available": true,
+    })
+}
+
+/// Spec 172 canonical presenter projection (Spec 172 §2.6, §4.1, §11, §21).
+///
+/// Renders the canonical posture, product, License Type, capability family,
+/// denial, retained access, and upgrade/recovery action for one family from
+/// the authority snapshot only. The CLI is a presenter surface: it never
+/// accepts a caller-selected product, price, License Type, family, feature,
+/// limit, node, or commercial right, never infers a grant from the installed
+/// client, pairing, tool discovery, or email, and executes through the core
+/// license guard (`focusa_license::resolve_license_guard`) that REST, TUI, Pi,
+/// and agents inherit. JSON stays stable and redacted: no raw email, key,
+/// token, or customer row.
+const SPEC172_PRESENTER_SCHEMA: &str = "focusa.spec172.presenter_projection.v1";
+
+/// Canonical Spec 172 postures (Spec 172 §4.1). `verified_no_license` is the
+/// explicit authority-issued limited-access posture; a presenter never
+/// synthesizes it from a paid-lease snapshot.
+const SPEC172_POSTURES: [&str; 7] = [
+    "unverified",
+    "verified_no_license",
+    "active_paid_operator",
+    "offline_grace",
+    "refunded_or_revoked",
+    "expired",
+    "missing_or_corrupt",
+];
+
+/// Canonical License Type codes and the composite Bundle SKU (Spec 172 §4.1).
+/// The presenter renders only the frozen code matching the snapshot's own
+/// product; it never selects, prices, or invents a License Type.
+const SPEC172_LICENSE_TYPE_CODES: [&str; 3] = [
+    "focusa_operator_lifetime_v1",
+    "uiai_operator_lifetime_v1",
+    "focusa_uiai_operator_bundle_lifetime_v1",
+];
+
+/// Stable error vocabulary (Spec 172 §21). Denials use only these codes.
+const SPEC172_STABLE_ERRORS: [&str; 13] = [
+    "EMAIL_VERIFICATION_REQUIRED",
+    "VERIFIED_LIMITED_ACCESS",
+    "LICENSE_TYPE_REQUIRED",
+    "LICENSE_TYPE_NOT_INCLUDED",
+    "PRODUCT_NOT_INCLUDED",
+    "CAPABILITY_FAMILY_NOT_INCLUDED",
+    "ENTITLEMENT_POLICY_UNKNOWN",
+    "ENTITLEMENT_PRODUCT_MISMATCH",
+    "NODE_LIMIT_REACHED",
+    "OPERATOR_SEAT_LIMIT_REACHED",
+    "HOSTED_RESOURCE_NOT_INCLUDED",
+    "UPGRADE_AVAILABLE",
+    "RECOVERY_ONLY",
+];
+
+/// Frozen retained-access set (Spec 172 §5.3/§17, Spec 152F P6): navigation,
+/// status, account, read, export, recovery, repair, update, and uninstall stay
+/// available regardless of commercial state. Byte-identical across CLI, Pi,
+/// and agent presenters.
+const SPEC172_RETAINED_ACCESS: [&str; 9] = [
+    "navigation",
+    "status",
+    "account",
+    "read",
+    "export",
+    "recovery",
+    "repair",
+    "update",
+    "uninstall",
+];
+
+/// Stable upgrade actions a denial may recommend (presentation vocabulary
+/// only; the action never grants or prices anything).
+const SPEC172_UPGRADE_ACTIONS: [&str; 4] = [
+    "none_required",
+    "verify_email_or_manage_entitlement",
+    "review_offer_or_manage_entitlement",
+    "purchase_or_manage_entitlement",
+];
+
+const SPEC172_RECOVERY_ACTION: &str =
+    "recovery, export, repair, and uninstall remain available when execution is locked";
+
+/// Canonical Spec 172 posture label derived ONLY from the authority snapshot
+/// state. A missing snapshot fails closed as `missing_or_corrupt`; the
+/// presenter never invents `verified_no_license`.
+fn spec172_posture(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> &'static str {
+    use focusa_license::authority::EntitlementState;
+    match snapshot.map(|entry| entry.state) {
+        Some(EntitlementState::Active) => "active_paid_operator",
+        Some(EntitlementState::OfflineGrace) => "offline_grace",
+        Some(EntitlementState::Unactivated) => "unverified",
+        Some(EntitlementState::RecoveryOnly) => "refunded_or_revoked",
+        None => "missing_or_corrupt",
+    }
+}
+
+/// Canonical License Type code for the snapshot's own product (Spec 172 §4.1).
+/// Only usable authority states carry a License Type; the presenter renders
+/// the frozen code for the snapshot's product and never a caller-chosen code.
+fn spec172_license_type(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+) -> &'static str {
+    use focusa_license::authority::EntitlementState;
+    let Some(snapshot) = snapshot else {
+        return "none";
+    };
+    if !matches!(
+        snapshot.state,
+        EntitlementState::Active | EntitlementState::OfflineGrace
+    ) {
+        return "none";
+    }
+    match snapshot.product.as_str() {
+        "focusa" => "focusa_operator_lifetime_v1",
+        "uiai_engine" => "uiai_operator_lifetime_v1",
+        _ => "none",
+    }
+}
+
+/// Stable Spec 172 denial code and upgrade action for a denied base gate.
+fn spec172_base_denial(posture: &str, product: &str) -> (Option<&'static str>, &'static str) {
+    match posture {
+        "unverified" => (
+            Some("EMAIL_VERIFICATION_REQUIRED"),
+            "verify_email_or_manage_entitlement",
+        ),
+        "refunded_or_revoked" => (Some("RECOVERY_ONLY"), "review_offer_or_manage_entitlement"),
+        "expired" => (
+            Some("LICENSE_TYPE_REQUIRED"),
+            "purchase_or_manage_entitlement",
+        ),
+        "missing_or_corrupt" => (
+            Some("ENTITLEMENT_POLICY_UNKNOWN"),
+            "review_offer_or_manage_entitlement",
+        ),
+        _ if product != "focusa" => (
+            Some("PRODUCT_NOT_INCLUDED"),
+            "review_offer_or_manage_entitlement",
+        ),
+        _ => (
+            Some("LICENSE_TYPE_REQUIRED"),
+            "purchase_or_manage_entitlement",
+        ),
+    }
+}
+
+/// Resolve one family's canonical Spec 172 denial + upgrade action from the
+/// same base/premium decisions the other presenters inherit. `None` denial
+/// means the family is usable. All vocabulary comes from the frozen constants
+/// above; no caller-supplied product, price, License Type, feature, limit,
+/// node, or commercial right is accepted.
+fn spec172_denial_and_upgrade(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+    family: &str,
+    posture: &str,
+    product: &str,
+) -> (Option<&'static str>, &'static str) {
+    let Some(snapshot) = snapshot else {
+        return (
+            Some("ENTITLEMENT_POLICY_UNKNOWN"),
+            "review_offer_or_manage_entitlement",
+        );
+    };
+    if family == "base_focusa" {
+        use focusa_license::BaseProductDecision;
+        return match focusa_license::resolve_base_focusa_product(
+            &snapshot.product,
+            focusa_license::authority_policy_state(snapshot),
+        ) {
+            BaseProductDecision::Entitled => (None, "none_required"),
+            BaseProductDecision::Limited => (
+                Some("VERIFIED_LIMITED_ACCESS"),
+                "review_offer_or_manage_entitlement",
+            ),
+            BaseProductDecision::Denied => spec172_base_denial(posture, product),
+        };
+    }
+    // Optional families re-resolve the exact registered feature identifier so
+    // the denial mirrors the canonical premium decision (never a stored claim).
+    let (family_enum, feature) = match family {
+        "automation" => (
+            focusa_license::CapabilityFamily::Automation,
+            "focusa.agent.silent_sessions",
+        ),
+        "team_remote" => (
+            focusa_license::CapabilityFamily::TeamRemote,
+            "focusa.team.multi_operator",
+        ),
+        "release_proof" => (
+            focusa_license::CapabilityFamily::ReleaseProof,
+            "focusa.release.proof",
+        ),
+        "premium_updates" => (
+            focusa_license::CapabilityFamily::PremiumUpdates,
+            "focusa.update.unattended",
+        ),
+        "customer_data_export" => (
+            focusa_license::CapabilityFamily::CustomerDataExport,
+            "focusa.export.packaged",
+        ),
+        _ => {
+            return (
+                Some("CAPABILITY_FAMILY_NOT_INCLUDED"),
+                "review_offer_or_manage_entitlement",
+            );
+        }
+    };
+    let now = chrono::Utc::now();
+    let decision = if family == "customer_data_export" {
+        focusa_license::resolve_export_packaged(snapshot, feature, now)
+    } else {
+        focusa_license::resolve_premium_family(snapshot, family_enum, feature, now)
+    };
+    use focusa_license::PremiumFamilyDecision;
+    match decision {
+        PremiumFamilyDecision::Feature { .. } => (None, "none_required"),
+        PremiumFamilyDecision::Denied(_) => {
+            use focusa_license::BaseProductDecision;
+            let base = focusa_license::resolve_base_focusa_product(
+                &snapshot.product,
+                focusa_license::authority_policy_state(snapshot),
+            );
+            if !base.permits_base_mutations() {
+                spec172_base_denial(posture, product)
+            } else {
+                (
+                    Some("CAPABILITY_FAMILY_NOT_INCLUDED"),
+                    "review_offer_or_manage_entitlement",
+                )
+            }
+        }
+    }
+}
+
+/// Render the Spec 172 canonical presenter projection for one family. The
+/// envelope is byte-stable across CLI, Pi, and agent presenters and matches
+/// the committed parity fixtures (`crates/focusa-cli/tests/fixtures/`).
+fn spec172_projection(
+    snapshot: Option<&focusa_license::authority::EntitlementSnapshot>,
+    family: &str,
+) -> Value {
+    let posture = spec172_posture(snapshot);
+    let license_type = spec172_license_type(snapshot);
+    let product = snapshot
+        .map(|entry| entry.product.as_str())
+        .unwrap_or("unknown");
+    let (denial, upgrade_action) = spec172_denial_and_upgrade(snapshot, family, posture, product);
+    json!({
+        "schema": SPEC172_PRESENTER_SCHEMA,
+        "posture": posture,
+        "product": product,
+        "license_type": license_type,
+        "family": family,
+        "denial": denial,
+        "retained_access": SPEC172_RETAINED_ACCESS,
+        "upgrade_action": upgrade_action,
+        "recovery_action": SPEC172_RECOVERY_ACTION,
+        "grant_inferred_from_surface": false,
+    })
+}
+
+/// Fast preflight against the canonical entitlement decision (Spec 152F §6
+/// chokepoint 4). Renders the same base/premium/recovery envelope as `status`
+/// and exits nonzero when the target gate would deny, giving commands fast
+/// feedback before side effects. The decision is resolved from the authority
+/// snapshot only; no local grant is ever issued.
+async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result<()> {
+    let guard = focusa_license::resolve_license_guard();
+    let snapshot = guard.entitlement.as_ref();
+    let authority = focusa_license::entitlement_projection(snapshot)?;
+    let entitlement_decision = focusa_license::entitlement_decision_projection(snapshot)?;
+    let decision = canonical_decision_payload(snapshot);
+    let family = args.family.as_deref().unwrap_or("base_focusa");
+    let payload = json!({
+        "schema": "focusa.authority_preflight.v1",
+        "authority": authority,
+        "entitlement_decision": entitlement_decision,
+        "base_product": decision["base_product"],
+        "premium": decision["premium"],
+        "recovery_allowance": decision["recovery_allowance"],
+        "spec172": spec172_projection(snapshot, family),
+        "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
+    });
+    let (decision_label, reason_code, next_action) = match family {
+        "base_focusa" => {
+            let label = decision["base_product"]["decision"]
+                .as_str()
+                .unwrap_or("denied")
+                .to_string();
+            (
+                label,
+                focusa_license::DecisionReason::RequireBase
+                    .label()
+                    .to_string(),
+                focusa_license::DecisionReason::RequireBase
+                    .recovery_action()
+                    .to_string(),
+            )
+        }
+        "automation"
+        | "team_remote"
+        | "release_proof"
+        | "premium_updates"
+        | "customer_data_export" => {
+            let row = decision["premium"]
+                .as_array()
+                .and_then(|rows| {
+                    rows.iter()
+                        .find(|row| row["family"].as_str() == Some(family))
+                })
+                .cloned()
+                .unwrap_or_else(|| {
+                    json!({
+                        "decision": "denied",
+                        "reason_code": "missing_feature",
+                        "recovery_action": "review_offer_or_manage_entitlement",
+                    })
+                });
+            let label = row["decision"].as_str().unwrap_or("denied").to_string();
+            let reason = row["reason_code"].as_str().unwrap_or("denied").to_string();
+            let next = row["recovery_action"]
+                .as_str()
+                .unwrap_or("license_status")
+                .to_string();
+            (label, reason, next)
+        }
+        _ => anyhow::bail!("E_AUTHORITY_UNKNOWN_PREFLIGHT_FAMILY: unknown family {family}"),
+    };
+
+    if json_output {
+        let mut out = payload;
+        out["preflight"] = json!({
+            "family": family,
+            "decision": decision_label,
+            "reason_code": reason_code,
+            "next_action": next_action,
+        });
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        println!("Focusa entitlement preflight");
+        println!("Family:         {family}");
+        println!(
+            "Posture:        {}",
+            payload["spec172"]["posture"].as_str().unwrap_or("unknown")
+        );
+        println!(
+            "License type:   {}",
+            payload["spec172"]["license_type"]
+                .as_str()
+                .unwrap_or("none")
+        );
+        println!("Decision:       {decision_label}");
+        println!("Reason:         {reason_code}");
+        println!("Next action:    {next_action}");
+        if let Some(denial) = payload["spec172"]["denial"].as_str() {
+            println!("Denial:         {denial}");
+        }
+        println!(
+            "Recovery:       {}",
+            decision["recovery_allowance"]["next_action"]
+                .as_str()
+                .unwrap_or("recovery, export, repair, and uninstall remain available when execution is locked")
+        );
+    }
+
+    // Nonzero exit semantics: a denied (or base-limited) gate fails closed.
+    if decision_label == "denied" || decision_label == "limited" {
+        anyhow::bail!(
+            "E_AUTHORITY_ENTITLEMENT_REQUIRED: family={family} decision={decision_label}"
+        );
+    }
+    Ok(())
+}
+
+async fn run_status(json_output: bool) -> anyhow::Result<()> {
+    // #342 field evidence: a customer who completed activation manually on the
+    // authority website must see licensed state here. Before projecting, give
+    // any persisted registration one bounded chance to reconcile with the
+    // authority. Fail-closed: errors leave the local projection untouched.
+    {
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        if let Some(home) = home {
+            let config_dir = home.join(".config/focusa");
+            let guard_probe = focusa_license::resolve_license_guard();
+            let activated = guard_probe
+                .entitlement
+                .as_ref()
+                .map(|entitlement| {
+                    entitlement.state != focusa_license::authority::EntitlementState::Unactivated
+                })
+                .unwrap_or(false);
+            if !activated {
+                let _ =
+                    crate::commands::activation_flow::reconcile_status_with_authority(&config_dir);
+            }
+        }
+    }
+    let guard = focusa_license::resolve_license_guard();
+    let authority = focusa_license::entitlement_projection(guard.entitlement.as_ref())?;
+    let entitlement_decision =
+        focusa_license::entitlement_decision_projection(guard.entitlement.as_ref())?;
+    let decision = canonical_decision_payload(guard.entitlement.as_ref());
+    let payload = json!({
+        "schema": "focusa.authority_license_status.v1",
+        "authority": authority,
+        "entitlement_decision": entitlement_decision,
+        "base_product": decision["base_product"],
+        "premium": decision["premium"],
+        "recovery_allowance": decision["recovery_allowance"],
+        "spec172": spec172_projection(guard.entitlement.as_ref(), "base_focusa"),
+        "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
+        "marketing_preference": "managed_separately"
+    });
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+    } else {
+        println!("Focusa Signed Authority Status\n");
+        println!(
+            "State:          {}",
+            payload["authority"]["state"]
+                .as_str()
+                .unwrap_or("unactivated")
+        );
+        println!(
+            "Product:        {}",
+            payload["authority"]["product"].as_str().unwrap_or("focusa")
+        );
+        println!(
+            "Posture:        {}",
+            payload["spec172"]["posture"].as_str().unwrap_or("unknown")
+        );
+        println!(
+            "License type:   {}",
+            payload["spec172"]["license_type"]
+                .as_str()
+                .unwrap_or("none")
+        );
+        println!(
+            "Decision:       {} ({})",
+            payload["entitlement_decision"]["status"]
+                .as_str()
+                .unwrap_or("unknown"),
+            payload["entitlement_decision"]["reason_code"]
+                .as_str()
+                .unwrap_or("unknown")
+        );
+        println!(
+            "Recovery action: {}",
+            payload["entitlement_decision"]["recovery_action"]
+                .as_str()
+                .unwrap_or("unknown")
+        );
+        if let Some(sequence) = payload["authority"]["lease_sequence"].as_u64() {
+            println!("Lease sequence: {sequence}");
+        }
+        println!(
+            "Base product:   {} (product={})",
+            payload["base_product"]["decision"]
+                .as_str()
+                .unwrap_or("denied"),
+            payload["base_product"]["product"]
+                .as_str()
+                .unwrap_or("unknown")
+        );
+        let premium_summary = payload["premium"]
+            .as_array()
+            .map(|rows| {
+                rows.iter()
+                    .map(|row| {
+                        format!(
+                            "{}={}",
+                            row["family"].as_str().unwrap_or("unknown"),
+                            row["decision"].as_str().unwrap_or("denied")
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+            .unwrap_or_default();
+        if !premium_summary.is_empty() {
+            println!("Premium:        {premium_summary}");
+        }
+        println!(
+            "Recovery:       {}",
+            payload["recovery_allowance"]["next_action"]
+                .as_str()
+                .unwrap_or("recovery, export, repair, and uninstall remain available when execution is locked")
+        );
+        println!(
+            "Recovery policy: {}",
+            payload["recovery_policy"].as_str().unwrap_or_default()
+        );
+        println!("Marketing preference: managed separately");
     }
     Ok(())
 }
@@ -654,7 +1614,7 @@ fn license_gate_matrix() -> Vec<Value> {
         json!({"command":"focusa install", "side_effect":"install_or_replace_binaries_and_service", "required_gate":"registry_validate_or_eval_mode", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/install.rs:phase_license"}),
         json!({"command":"focusa upgrade", "side_effect":"atomic_binary_swap", "required_gate":"delegates_to_focusa_install_license_gate", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/upgrade.rs"}),
         json!({"command":"focusa release prove", "side_effect":"official_release_bundle_proof", "required_gate":"official_release_bundle", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/release.rs:require_feature"}),
-        json!({"command":"focusa export", "side_effect":"commercial_export_artifact", "required_gate":"commercial_export", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/export.rs:require_feature"}),
+        json!({"command":"focusa export", "side_effect":"premium_export_packaging", "required_gate":"focusa.export.packaged", "gate_status":"gated", "evidence":"crates/focusa-core/src/license.rs:require_export_packaged"}),
         json!({"command":"focusa binary", "side_effect":"packaged_installer_generation", "required_gate":"packaged_installer", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/binary.rs:require_feature"}),
         json!({"command":"focusa device pair-qr", "side_effect":"qr_pwa_device_handoff", "required_gate":"qr_pwa_handoff", "gate_status":"gated", "evidence":"crates/focusa-cli/src/commands/device_pairing.rs:require_feature"}),
         json!({"command":"focusa license activate/deactivate", "side_effect":"local_license_state_admin", "required_gate":"not_required_license_administration", "gate_status":"not_required", "evidence":"crates/focusa-cli/src/commands/license.rs"}),
@@ -670,42 +1630,33 @@ fn missing_license_gates(matrix: &[Value]) -> Vec<Value> {
 }
 
 async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow::Result<()> {
-    let license_file = local_license_path();
     let feature = args.feature.as_str();
-    // Spec §5.2: returns JSON with enabled + reason, or 402-equivalent error JSON
-    let result = core_check_feature(&license_file, feature);
-    match result {
-        Ok(reason) => {
-            let out = json!({
-                "feature": feature,
-                "enabled": true,
-                "reason": reason,
-            });
-            if json_output {
-                println!("{}", serde_json::to_string_pretty(&out)?);
-            } else {
-                println!("feature={} enabled=true reason={}", feature, reason);
-            }
-        }
-        Err(err) => {
-            let purchase = "https://focusa.dev";
-            let docs_url = "https://focusa.dev/support";
-            let out = json!({
-                "error": "license_required",
-                "feature": feature,
-                "message": err.to_string(),
-                "purchase_url": purchase,
-                "docs_url": docs_url,
-            });
-            if json_output {
-                println!("{}", serde_json::to_string_pretty(&out)?);
-            } else {
-                eprintln!("feature={} license_required", feature);
-                eprintln!("reason: {}", err);
-                eprintln!("purchase: {}", purchase);
-            }
-            std::process::exit(2);
-        }
+    let guard = focusa_license::resolve_license_guard();
+    let enabled = guard
+        .entitlement
+        .as_ref()
+        .and_then(|snapshot| snapshot.features.get(feature))
+        .copied()
+        .unwrap_or(false);
+    let out = json!({
+        "schema": "focusa.authority_feature_decision.v1",
+        "feature": feature,
+        "enabled": enabled,
+        "reason": if enabled { "signed_feature_grant" } else { "unknown_or_not_granted" },
+        "recovery_policy": "recovery, export, repair, and uninstall remain available"
+    });
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        println!(
+            "feature={} enabled={} reason={}",
+            feature,
+            enabled,
+            out["reason"].as_str().unwrap_or("unknown_or_not_granted")
+        );
+    }
+    if !enabled {
+        anyhow::bail!("ENTITLEMENT_FEATURE_REQUIRED: unknown or ungranted feature {feature}");
     }
     Ok(())
 }
@@ -1447,12 +2398,234 @@ async fn run_devmode_full(json_output: bool, args: DevmodeFullArgs) -> anyhow::R
     Ok(())
 }
 
+// ── Spec 152E §14.1 interactive activation (shared flow) ────────────────
+
+/// Interactive authority activation through the shared activation flow
+/// (crates/focusa-cli/src/commands/activation_flow.rs). The flow drives the
+/// shared `ActivationSession`; this command only wires the HTTP transport,
+/// the terminal prompt source, and safe persistence (snapshot + poll
+/// credential + verified signed lease). Card data is never accepted and
+/// nothing is self-issued.
+async fn run_activation_flow_command(
+    json_output: bool,
+    args: ActivateFlowArgs,
+) -> anyhow::Result<()> {
+    use crate::commands::activation_flow::{
+        ActivationFlowSessionPersist, CLI_FLOW, StdinFlowInput, load_poll_credential,
+        load_registration_snapshot, persist_poll_credential, persist_registration_snapshot,
+        resolve_flow_node_identity, resume_activation_flow, run_activation_flow,
+    };
+    use focusa_license::activation_client::ActivationSession;
+    use focusa_license::authority_credentials::KeyringCredentialStore;
+    use focusa_license::{ActivationHttpClient, ActivationHttpPolicy};
+
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| anyhow::anyhow!("HOME not set; cannot resolve activation state"))?;
+    let config_dir = home.join(".config/focusa");
+    let identity =
+        resolve_flow_node_identity(&config_dir).map_err(|error| anyhow::anyhow!("{error}"))?;
+
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
+        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string());
+    let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
+    let policy = ActivationHttpPolicy {
+        base_url,
+        timeout: std::time::Duration::from_secs(30),
+        max_response_bytes: 1024 * 1024,
+    };
+    let client = ActivationHttpClient::new(policy)
+        .map_err(|error| anyhow::anyhow!("initialize activation authority transport: {error}"))?;
+    let persist = ActivationFlowSessionPersist::new(&config_dir);
+
+    if let Some(registration_id) = args.resume.as_deref() {
+        let registration = load_registration_snapshot(&config_dir, registration_id)?;
+        let credential = load_poll_credential(&KeyringCredentialStore, registration_id)?;
+        let outcome = resume_activation_flow(
+            client,
+            CLI_FLOW,
+            registration,
+            credential,
+            args.poll_timeout,
+            json_output,
+            Some(&persist),
+        )?;
+        if json_output {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "resumed": true,
+                    "presenter_state": outcome.presenter_state,
+                    "terminal": outcome.terminal,
+                    "registration_id": outcome.registration_id,
+                }))?
+            );
+        } else if outcome.terminal {
+            println!("Resumed activation settled as {}.", outcome.presenter_state);
+        } else {
+            println!("Resumed activation is {}.", outcome.presenter_state);
+        }
+        return Ok(());
+    }
+
+    let mut input = StdinFlowInput;
+    let outcome = run_activation_flow(
+        client,
+        CLI_FLOW,
+        &mut input,
+        args.email,
+        Some(identity.node_id.clone()),
+        None,
+        args.poll_timeout,
+        json_output,
+        Some(&persist),
+    )?;
+    if json_output {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "resumed": false,
+                "presenter_state": outcome.presenter_state,
+                "terminal": outcome.terminal,
+                "registration_id": outcome.registration_id,
+            }))?
+        );
+    } else if outcome.terminal && outcome.presenter_state == "activated" {
+        println!("Activation complete: device is entitled.");
+    } else if outcome.terminal {
+        println!(
+            "Activation settled as {}; recovery, export, repair, and uninstall remain available.",
+            outcome.presenter_state
+        );
+    } else {
+        println!(
+            "Activation paused at {}; resume with --resume {}.",
+            outcome.presenter_state, outcome.registration_id
+        );
+    }
+    Ok(())
+}
+
+/// Agent/JSON protocol (Spec 152E §14.2): non-interactive, fail-closed. The
+/// agent begins with `--email` (pending attempt only) or resumes with
+/// `--resume <handle>`, and receives typed human-action envelopes with a
+/// resumable registration handle. The agent never invents an email,
+/// verification code, consent, payment confirmation, or license; the full key
+/// stays masked unless the customer explicitly opts in AND confirms
+/// (--reveal-key --confirm-reveal).
+async fn run_agent_activation_command(
+    json_output: bool,
+    args: ActivateFlowArgs,
+) -> anyhow::Result<()> {
+    use crate::commands::activation_flow::{
+        ActivationFlowError, CLI_FLOW, load_poll_credential, load_registration_snapshot,
+        persist_poll_credential, persist_registration_snapshot, resolve_flow_node_identity,
+        resume_agent_activation, run_agent_activation,
+    };
+    use focusa_license::activation_client::ActivationSession;
+    use focusa_license::authority_credentials::KeyringCredentialStore;
+    use focusa_license::{ActivationHttpClient, ActivationHttpPolicy, AgentKeyReveal};
+
+    let reveal = AgentKeyReveal {
+        reveal_key: args.reveal_key,
+        reveal_confirmation: args.confirm_reveal,
+    };
+
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| anyhow::anyhow!("HOME not set; cannot resolve activation state"))?;
+    let config_dir = home.join(".config/focusa");
+    let identity =
+        resolve_flow_node_identity(&config_dir).map_err(|error| anyhow::anyhow!("{error}"))?;
+
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
+        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/".to_string());
+    let base_url = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
+    let policy = ActivationHttpPolicy {
+        base_url,
+        timeout: std::time::Duration::from_secs(30),
+        max_response_bytes: 1024 * 1024,
+    };
+    let client = ActivationHttpClient::new(policy)
+        .map_err(|error| anyhow::anyhow!("initialize activation authority transport: {error}"))?;
+
+    // Agent-mode continuity: every state change persists the registration
+    // snapshot and protected poll credential so any later process can resume
+    // with --resume <registration_id> (#370). Mirrors the interactive path.
+    let agent_persist = |session: &ActivationSession<ActivationHttpClient>| -> Result<
+        (),
+        crate::commands::activation_flow::ActivationFlowError,
+    > {
+        persist_registration_snapshot(&config_dir, session.registration())?;
+        if let Some(credential) = session.poll_credential() {
+            persist_poll_credential(&KeyringCredentialStore, session.registration_id(), credential)?;
+        }
+        Ok(())
+    };
+
+    // Already-paid agent installs use the one-request authority path. Do not
+    // route this through new-registration mode, which would demand email/OTP
+    // and payment again.
+    if let Some(key) = args.license_key.as_deref() {
+        return run_redeem_fast_path(json_output, key, args.registry.as_deref()).await;
+    }
+
+    let outcome = if let Some(registration_id) = args.resume.as_deref() {
+        let registration = load_registration_snapshot(&config_dir, registration_id)?;
+        let credential = load_poll_credential(&KeyringCredentialStore, registration_id)?;
+        resume_agent_activation(
+            client,
+            CLI_FLOW,
+            registration,
+            credential,
+            args.poll_timeout,
+            reveal,
+            Some(&agent_persist),
+        )?
+    } else {
+        let email = args.email.ok_or_else(|| {
+            anyhow::anyhow!(
+                "EMAIL_REQUIRED: agent mode never prompts; pass --email for a new attempt or --resume <registration_id> to continue"
+            )
+        })?;
+        run_agent_activation(
+            client,
+            CLI_FLOW,
+            Some(email),
+            Some(identity.node_id.clone()),
+            reveal,
+            Some(&agent_persist),
+        )?
+    };
+
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&outcome.envelope)?);
+    } else if outcome.terminal {
+        println!(
+            "Activation settled as {}; recovery, export, repair, and uninstall remain available.",
+            outcome.envelope.state
+        );
+    } else {
+        println!(
+            "Human action required: {} (registration {}) — resume with --resume {} after the human completes it.",
+            outcome
+                .envelope
+                .human_action
+                .as_deref()
+                .unwrap_or("human_action"),
+            outcome.registration_id,
+            outcome.registration_id
+        );
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn registry_error_codes_are_stable() {
+    fn license_registry_error_codes_are_stable() {
         // WP code values are part of the wire contract; lock them down.
         assert_eq!(RegistryError::NotFound.code(), "focusa_license_not_found");
         assert_eq!(RegistryError::Invalid.code(), "focusa_license_invalid");
@@ -1480,7 +2653,7 @@ mod tests {
     }
 
     #[test]
-    fn registry_error_recovery_hints_are_actionable() {
+    fn license_registry_error_recovery_hints_are_actionable() {
         // Every variant must produce a non-empty hint that mentions a URL,
         // a retry, or a remediation — never blank.
         let variants: Vec<RegistryError> = vec![
@@ -1517,7 +2690,7 @@ mod tests {
     }
 
     #[test]
-    fn wp_envelope_status_to_error() {
+    fn license_wp_envelope_status_to_error() {
         // 404 → NotFound
         let body = serde_json::json!({"code": "focusa_license_not_found", "message": "missing"});
         assert!(matches!(

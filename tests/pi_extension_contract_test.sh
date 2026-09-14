@@ -16,29 +16,30 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
+BODY_FILE="${FOCUSA_CONTRACT_BODY:-/tmp/focusa-pi-contract-body.$(id -u).json}"
 http_code() {
   curl -sS \
     -H "x-scope-project-root: ${ROOT_DIR}" \
     -H "x-scope-continuity-id: pi-extension-contract" \
-    -o /tmp/focusa-pi-contract-body.json -w "%{http_code}" "$@"
+    -o "$BODY_FILE" -w "%{http_code}" "$@"
 }
 
 json_assert() {
   local expr="$1"
   local desc="$2"
-  if jq -e "$expr" /tmp/focusa-pi-contract-body.json >/dev/null 2>&1; then
+  if jq -e "$expr" "$BODY_FILE" >/dev/null 2>&1; then
     log_pass "$desc"
   else
-    log_fail "$desc :: $(cat /tmp/focusa-pi-contract-body.json)"
+    log_fail "$desc :: $(cat "$BODY_FILE")"
   fi
 }
 
 json_assert_degraded_envelope() {
   local desc="$1"
-  if jq -e '((.failure_class // .details.tool_result_v1.failure_class) as $f | ($f == "daemon_unavailable" or $f == "resource_exhausted")) and (((.next_tools // .details.tool_result_v1.next_tools // []) | length) > 0)' /tmp/focusa-pi-contract-body.json >/dev/null 2>&1; then
+  if jq -e '((.failure_class // .details.tool_result_v1.failure_class) as $f | ($f == "daemon_unavailable" or $f == "resource_exhausted")) and (((.next_tools // .details.tool_result_v1.next_tools // []) | length) > 0)' "$BODY_FILE" >/dev/null 2>&1; then
     log_pass "$desc degraded envelope surfaced"
   else
-    log_fail "$desc failed :: $(cat /tmp/focusa-pi-contract-body.json)"
+    log_fail "$desc failed :: $(cat "$BODY_FILE")"
   fi
 }
 
@@ -179,13 +180,13 @@ fi
 decision_visible=0
 for i in $(seq 1 20); do
   code=$(http_code "${BASE_URL}/v1/ascc/state")
-  if [ "$code" = "200" ] && jq -e '((.active_frame != null) or (.frame_id != null)) and (((.decisions // .ascc.decisions // []) | length) > 0)' /tmp/focusa-pi-contract-body.json >/dev/null 2>&1; then
+  if [ "$code" = "200" ] && jq -e '((.active_frame != null) or (.frame_id != null)) and (((.decisions // .ascc.decisions // []) | length) > 0)' "$BODY_FILE" >/dev/null 2>&1; then
     decision_visible=1
     break
   fi
 
   code=$(http_code "${BASE_URL}/v1/focus/stack")
-  if [ "$code" = "200" ] && jq -e '(.stack.frames | length > 0) and (.stack.frames | any((.focus_state.decisions // []) | length > 0))' /tmp/focusa-pi-contract-body.json >/dev/null 2>&1; then
+  if [ "$code" = "200" ] && jq -e '(.stack.frames | length > 0) and (.stack.frames | any((.focus_state.decisions // []) | length > 0))' "$BODY_FILE" >/dev/null 2>&1; then
     decision_visible=1
     break
   fi
@@ -194,7 +195,7 @@ done
 if [ "$decision_visible" = "1" ]; then
   log_pass "Input 2/5: frame-thesis and seeded recent decisions accessible"
 else
-  log_fail "Input 2/5: seeded recent decisions not observable in ASCC or focus stack :: $(cat /tmp/focusa-pi-contract-body.json)"
+  log_fail "Input 2/5: seeded recent decisions not observable in ASCC or focus stack :: $(cat "$BODY_FILE")"
 fi
 
 code=$(http_code "${BASE_URL}/v1/memory/semantic")

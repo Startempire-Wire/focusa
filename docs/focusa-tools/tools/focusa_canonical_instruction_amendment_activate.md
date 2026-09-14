@@ -78,4 +78,4 @@ Likely next: `focusa_instruction_integrity_evaluate`, `focusa_agent_runtime_effe
 - CLI: `focusa agent-runtime amendment-activate`.
 - REST: `POST /v1/agent-runtime/amendments/activate`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:46efedb0f7aa9fb9e3ccbbf85eb36bf7dd6b3104ba22d7cc9eef17e54ba8c2f6`.
+- Descriptor digest: `sha256:fd4c4f0bedf0ec2e340e82b865586dc98ea5f6c9e454f763a09cea3501ebb03a`.

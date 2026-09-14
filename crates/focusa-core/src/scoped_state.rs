@@ -193,6 +193,14 @@ impl AttachmentKey {
             attachment_id: required(attachment_id, "attachment_id")?,
         })
     }
+
+    pub fn validate(&self) -> Result<(), ScopeKeyError> {
+        self.workstream.validate()?;
+        required(self.instance_id.clone(), "instance_id")?;
+        required(self.session_id.clone(), "session_id")?;
+        required(self.attachment_id.clone(), "attachment_id")?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

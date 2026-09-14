@@ -1,0 +1,6 @@
+focusa-t6izm — 2026-08-18
+Commit: e0973364927619f495b24d292d03bb7457c6e936
+cargo fmt --all -- --check PASS
+cargo clippy -p focusa-core -p focusa-api --all-targets -- -D warnings PASS
+cargo test -p focusa-api entitlement PASS (29)
+cargo test -p focusa-core --lib install_lifecycle PASS (34)

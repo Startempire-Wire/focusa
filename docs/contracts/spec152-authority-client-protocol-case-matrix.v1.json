@@ -1,0 +1,101 @@
+{
+  "schema": "focusa.spec152.authority_client_protocol_case_matrix.v1",
+  "transport": {
+    "origin_policy": "https_or_exact_loopback_http_same_origin",
+    "request_headers": ["Idempotency-Key", "X-Request-Id", "X-Focusa-Operation"],
+    "redirects": "disabled",
+    "response_body": "streamed_with_hard_byte_limit",
+    "timeout_seconds": {"minimum": 1, "maximum": 120},
+    "polling": "challenge_expiry_and_max_poll_bounded"
+  },
+  "cases": [
+    {
+      "case": "evaluation",
+      "authority_response": "AUTHORIZED_SIGNED_LEASE",
+      "client_result": "verify_explicit_evaluation_grants",
+      "recovery": "none",
+      "request_transcript": {"operation": "device_code_poll", "device_code": "[REDACTED]"},
+      "response_transcript": {"signed_lease": "[REDACTED]", "refresh_credential": "[REDACTED]"}
+    },
+    {
+      "case": "paid",
+      "authority_response": "AUTHORIZED_SIGNED_LEASE",
+      "client_result": "verify_explicit_paid_grants",
+      "recovery": "none",
+      "request_transcript": {"operation": "lease_refresh", "refresh_credential": "[REDACTED]"},
+      "response_transcript": {"signed_lease": "[REDACTED]"}
+    },
+    {
+      "case": "bundle",
+      "authority_response": "AUTHORIZED_SIGNED_LEASE",
+      "client_result": "verify_explicit_focusa_and_uiai_grants",
+      "recovery": "none",
+      "request_transcript": {"operation": "device_code_poll", "device_code": "[REDACTED]"},
+      "response_transcript": {"signed_lease": "[REDACTED]"}
+    },
+    {
+      "case": "pending",
+      "authority_response": "AUTHORIZATION_PENDING",
+      "client_result": "wait_base_interval_without_local_issuance",
+      "recovery": "bounded_poll",
+      "request_transcript": {"operation": "device_code_poll", "device_code": "[REDACTED]"},
+      "response_transcript": {"error": "AUTHORIZATION_PENDING"}
+    },
+    {
+      "case": "slow_down",
+      "authority_response": "SLOW_DOWN",
+      "client_result": "wait_base_interval_plus_5000ms",
+      "recovery": "bounded_poll",
+      "request_transcript": {"operation": "device_code_poll", "device_code": "[REDACTED]"},
+      "response_transcript": {"error": "SLOW_DOWN", "retry_after_ms": 5000}
+    },
+    {
+      "case": "expiry",
+      "authority_response": "AUTHORIZATION_EXPIRED",
+      "client_result": "terminal_challenge_expired",
+      "recovery": "restart_device_authorization",
+      "request_transcript": {"operation": "device_code_poll", "device_code": "[REDACTED]"},
+      "response_transcript": {"error": "AUTHORIZATION_EXPIRED"}
+    },
+    {
+      "case": "wrong_product",
+      "authority_response": "WRONG_PRODUCT",
+      "client_result": "reject_without_local_downgrade",
+      "recovery": "request_correct_product_authority_lease",
+      "request_transcript": {"operation": "lease_refresh", "refresh_credential": "[REDACTED]"},
+      "response_transcript": {"error": "WRONG_PRODUCT"}
+    },
+    {
+      "case": "revoke",
+      "authority_response": "LEASE_REVOKED",
+      "client_result": "recovery_only",
+      "recovery": "refresh_or_manage_authority_license",
+      "request_transcript": {"operation": "lease_refresh", "refresh_credential": "[REDACTED]"},
+      "response_transcript": {"error": "LEASE_REVOKED"}
+    },
+    {
+      "case": "refund",
+      "authority_response": "LICENSE_REFUNDED",
+      "client_result": "recovery_only",
+      "recovery": "manage_authority_license",
+      "request_transcript": {"operation": "lease_refresh", "refresh_credential": "[REDACTED]"},
+      "response_transcript": {"error": "LICENSE_REFUNDED"}
+    },
+    {
+      "case": "node_limit",
+      "authority_response": "NODE_LIMIT_EXHAUSTED",
+      "client_result": "deny_new_node_without_eviction",
+      "recovery": "list_and_explicitly_deactivate_node",
+      "request_transcript": {"operation": "device_code_start", "node_id": "node-redacted"},
+      "response_transcript": {"error": "NODE_LIMIT_EXHAUSTED"}
+    },
+    {
+      "case": "outage",
+      "authority_response": "AUTHORITY_UNAVAILABLE",
+      "client_result": "no_new_local_license",
+      "recovery": "use_only_existing_signed_offline_policy_or_recovery_only",
+      "request_transcript": {"operation": "lease_refresh", "refresh_credential": "[REDACTED]"},
+      "response_transcript": {"error": "AUTHORITY_UNAVAILABLE"}
+    }
+  ]
+}

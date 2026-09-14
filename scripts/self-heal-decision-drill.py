@@ -158,8 +158,15 @@ def main(argv: list[str]) -> int:
             {"fixture": name, "classification": classification, "decision": decision}
         )
 
+    result_path = audit_path.with_name("self-heal-result.json")
     subprocess.run(
-        [sys.executable, str(AUTO_HEAL), str(audit_path)],
+        [
+            sys.executable,
+            str(AUTO_HEAL),
+            str(audit_path),
+            "--result",
+            str(result_path),
+        ],
         cwd=ROOT,
         check=True,
         stdout=subprocess.DEVNULL,

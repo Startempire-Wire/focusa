@@ -85,4 +85,4 @@ Likely next: `focusa_work_loop_writer_status`, `focusa_work_loop_status`, `focus
 - CLI: none.
 - REST: `POST /v1/work-loop/enable`, `POST /v1/work-loop/pause`, `POST /v1/work-loop/resume`, `POST /v1/work-loop/stop`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3d4f0c80175e6381518c72b4e87947a9f260002159888d33eedb98ad41ecb58c`.
+- Descriptor digest: `sha256:5edec67c3939e8c4fb57cc43db48afa4707642a6894fdead274571e449b81a17`.

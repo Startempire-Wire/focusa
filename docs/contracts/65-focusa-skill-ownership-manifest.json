@@ -1,7 +1,7 @@
 {
   "schema": "focusa.skill_ownership_manifest.v1",
-  "advertised_capability_count": 116,
-  "tool_contract_sha256": "cc3beef5394883ee1720efb5351fc4b985bd595dad7ec55a94855ef511b0a24f",
+  "advertised_capability_count": 129,
+  "tool_contract_sha256": "e30ff4bcad3e531bd12b3811e8f6e7b7b75b1b229bcce833957814273294b4b3",
   "generated": true,
   "capabilities": [
     {
@@ -24,6 +24,24 @@
     },
     {
       "tool": "focusa_awareness_packet",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_bg_run",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_bg_run_many",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_bg_status",
       "owner_skill": "focusa",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
@@ -125,6 +143,24 @@
       "failure_handoff": "focusa-troubleshooting"
     },
     {
+      "tool": "focusa_callgraph_observe",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_callgraph_validate",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_cockpit_projection",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
       "tool": "focusa_constraint",
       "owner_skill": "focusa",
       "authority_boundary": "tool contract and daemon remain canonical",
@@ -173,7 +209,19 @@
       "failure_handoff": "focusa-troubleshooting"
     },
     {
+      "tool": "focusa_credentials_verify",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
       "tool": "focusa_current_focus",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_daemon_routing_status",
       "owner_skill": "focusa",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
@@ -245,6 +293,12 @@
       "failure_handoff": "focusa-troubleshooting"
     },
     {
+      "tool": "focusa_epistemic_operation",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
       "tool": "focusa_evidence_capture",
       "owner_skill": "focusa-evidence-outcomes",
       "authority_boundary": "tool contract and daemon remain canonical",
@@ -252,6 +306,12 @@
     },
     {
       "tool": "focusa_failure",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_fast_forward",
       "owner_skill": "focusa",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
@@ -341,7 +401,19 @@
       "failure_handoff": "focusa-troubleshooting"
     },
     {
+      "tool": "focusa_north_star_gate",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
       "tool": "focusa_note",
+      "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_ontology_scope_migration",
       "owner_skill": "focusa",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
@@ -697,6 +769,12 @@
     {
       "tool": "focusa_workpoint_resume",
       "owner_skill": "focusa-workpoint",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_workset_projection",
+      "owner_skill": "focusa",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
     }

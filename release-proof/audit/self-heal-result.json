@@ -1,0 +1,69 @@
+{
+  "audit_path": "/tmp/focusa-self-heal-drill-7g4tixz4/audit.jsonl",
+  "decisions": [
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "auto_heal_process_error"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "ci_clippy_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "ci_test_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "deploy_health_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "release_static_proof_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "runner_resource_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "rust_compile_api_drift"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "rust_compile_format_arg_drift"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "transient_github_or_network_failure"
+    },
+    {
+      "action": "log_only",
+      "count_7d": 0,
+      "failure_class": "unknown_process_failure"
+    }
+  ],
+  "intervention_rate": {
+    "event": "intervention_rate",
+    "manual_interventions_required": 0,
+    "operator_intervention_rate_pct": 0.0,
+    "total_CI_runs": 0,
+    "ts": "2026-08-16T00:15:21Z",
+    "window_days": 7
+  },
+  "proposed_self_heal_rows": [],
+  "schema": "focusa.self_heal.result.v1",
+  "self_heal_rows": 0,
+  "should_commit": false,
+  "status": "completed",
+  "wrote_deliverable": false
+}

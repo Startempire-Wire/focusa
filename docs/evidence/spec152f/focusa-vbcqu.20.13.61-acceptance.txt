@@ -1,0 +1,141 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.61
+Title: 152E.07.07 Prove refund, revoke, node-limit, sequence, and outage behavior
+Implementation commit: fdc96735 (feat(spec152e): prove refund, revoke, node-limit,
+sequence, and outage behavior); this evidence record is committed separately.
+
+Exact surfaces
+- EDD lifecycle (spec 152E §7.5/§17: order/license/subscription/refund/Stripe
+  transitions, monotonic authority sequence, terminal states)
+- Outbox/reconciler (spec 152E §7.6/§17: transactional outbox, idempotent
+  dispatcher, missed-callback reconciliation)
+- Node reservations (spec 152E §10, §23 "Node limit": atomic reserve/settle,
+  write-locked counter, explicit node management)
+- Signer/refresh (spec 152E §10 POST /v1/lease/refresh, §15, §18: signed lease
+  rotation, one-time refresh credentials, signed recovery-only refusals)
+- Offline policy / authority outage (spec 152E §18, §20, §23 "Authority outage",
+  §22.4: existing signed offline policy only; no new local license)
+- Recovery surfaces (spec 152E §18: recovery-only posture contract, safe next
+  actions, forbidden protected mutations)
+
+Bounded result
+- Added tests/spec152e_lifecycle_outage_e2e_test.py: a build-independent,
+  offline, deterministic end-to-end journey over every named surface on one
+  sqlite kernel (fixed clock, synthetic EDD fixture tables, frozen contracts
+  loaded read-only). The php harness runs twice and its stdout is byte-identical
+  (replayable from the pinned commit); every positive/negative check is counted.
+- Node limit: three concurrent registrations settle within the limit (atomic
+  reservation + settlement, write-locked counter 3/3); the fourth fails closed
+  with NODE_LIMIT_EXHAUSTED and creates no node or reservation row; explicit
+  deactivation releases the slot exactly once and the freed slot is reused
+  through the explicit reserve/settle flow; a malformed device key fails closed
+  before any reservation.
+- Signed lease issuance and refresh rotation: lease issued at server sequence 12,
+  refresh rotates to a strictly monotonic sequence 13 chained to the exact prior
+  payload digest, old lease settles superseded/refresh_rotated, rotation
+  journals lease_superseded + lease_issued outbox events and re-seeds a one-time
+  credential (digest at rest).
+- EDD lifecycle terminal matrix: refund, chargeback (Stripe dispute), revoke,
+  expiry, and subscription cancel each project to the exact EDD license state
+  (refunded/revoked/expired/cancelled) with recovery_only refresh posture and a
+  monotonic sequence increment; each refresh is denied with a SIGNED
+  recovery-only refusal (REFUNDED / REFUNDED / REVOKED / EXPIRED / CANCELLED)
+  whose envelope independently verifies (verifyRefusal); the leases settle
+  refunded/edd_refunded, revoked/edd_revoked, superseded/stale_sequence.
+  Refund redelivery journals as replayed with no sequence bump; a completed
+  order can never reactivate a refunded license (LICENSE_TERMINAL_REACTIVATION_DENIED);
+  an out-of-order authority ordinal can never roll the sequence back
+  (ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED); revocation carries a durable audit
+  (license_revoked + lease_revoked outbox events retained with the projection
+  history); unknown statuses, raw email, client-controlled price, mismatched
+  customers, and terminal events without prior entitlement truth all fail closed
+  (EDD_STATUS_UNKNOWN / INPUT_RAW_EMAIL_FORBIDDEN / CLIENT_COMMERCIAL_FIELDS_FORBIDDEN
+  / EDD_CUSTOMER_RESOLUTION_FAILED / ENTITLEMENT_REQUIRED).
+- Stale sequence/software: after upgrade + suspend, a client presenting the old
+  lease is denied refresh with a signed STALE_SEQUENCE recovery-only refusal and
+  the lease settles superseded/stale_sequence; client-side envelope verification
+  rejects the stale envelope (STALE_SEQUENCE) and a wrong node (WRONG_NODE).
+- Missed callback + reconciler: canonical EDD license revoked with no projection
+  and no outbox event (the hook never fired) is repaired by the reconciler — the
+  terminal projection is applied, the signed license_revoked outbox event is
+  appended, the run converges (second apply repairs nothing), the authority
+  sequence advances strictly monotonically, and stale access can no longer
+  refresh (signed REVOKED recovery-only refusal). Canonical EDD revoke truth is
+  preserved untouched; unknown modes/scopes and client commerce fields fail
+  closed (RECONCILIATION_MODE_UNKNOWN / RECONCILIATION_SCOPE_UNKNOWN /
+  CLIENT_COMMERCIAL_FIELDS_FORBIDDEN).
+- Outbox: exactly 26 signed events across all journeys; a failed consumer cannot
+  lose canonical state (every row preserved, bounded retry state, no delivery
+  recorded); retry after backoff dispatches every legitimate event exactly once
+  (delivery ledger == consumer applications == 26, second pass duplicates
+  nothing); a tampered envelope dead-letters with OUTBOX_ENVELOPE_TAMPERED, is
+  re-queued by retryDeadLetter, rejected again on re-dispatch, never delivers,
+  and repairState() exposes the bounded dead-letter row; append outside a
+  transaction and unmapped EDD statuses fail closed (OUTBOX_APPEND_REQUIRES_TRANSACTION
+  / EDD_STATUS_UNKNOWN).
+- Authority outage / offline policy: adverse EDD truth (license unusable) denies
+  refresh with a signed EDD_LICENSE_UNUSABLE recovery-only refusal and a durable
+  lease_superseded outbox event; with EDD truth fully unreachable, a new lease
+  cannot be issued (EDD_LICENSE_UNUSABLE; lease count unchanged — no outage or
+  rollback creates a new local license); the existing signed lease remains the
+  sole offline authority — verifyEnvelope returns active inside expiry,
+  offline_grace inside expiry+grace, and EXPIRED past grace; the signed outage
+  refusal still verifies (recovery remains available).
+- Refresh credentials: a lease without an issued credential fails closed
+  (REFRESH_CREDENTIAL_REQUIRED), a wrong credential is denied with a signed
+  REFRESH_CREDENTIAL_INVALID recovery-only refusal without settling the lease,
+  an unknown node fails closed (LEASE_NOT_FOUND), caller-controlled grant fields
+  and unknown product codes on issuance fail closed (CALLER_CONTROLLED_GRANT_DENIED
+  / PRODUCT_MAPPING_REQUIRED), and a forged refusal envelope fails closed
+  (INVALID_SIGNATURE).
+- Rollback is preservation-only: preserveForRollback journals schema events on
+  the lifecycle, outbox, reconciliation, refresh, node, and account schemas and
+  deletes nothing; EDD customer/order/license truth (including the refunded/
+  revoked/expired rows), lifecycle journals, outbox rows and delivery ledgers,
+  leases, nodes, refresh credentials, and the lease-schema migration journal are
+  preserved; refund and revoke projections are never rolled back.
+- Redaction: no raw email, payment/signing secret, EDD key material, or
+  plaintext refresh credential appears anywhere in outbox/lifecycle/lease/
+  refresh/reconciliation storage or in the harness output.
+
+Exact verification (exit codes)
+1. `python3 tests/spec152e_lifecycle_outage_e2e_test.py` — exit 0 (run three
+   times; deterministic, byte-identical output).
+   {"atom":"focusa-vbcqu.20.13.61","harness_negative_checks":23,"harness_output_sha256":"8d3c6c209332f410f39583157d28f93d9c9995bafa2d0c82176e038a4b840655","harness_positive_checks":104,"harness_replay_identical":true,"harness_sha256":"071f991f0c07a4945cffdb37a2c57a177250dc4f0424d73a0d310019799da6b9","leases_total":12,"lifecycle":{"chargeback":true,"expiry":true,"reactivation_denied":true,"refund":true,"revoke":true,"rollback_denied":true,"subscription_cancel":true},"lifecycle_events_total":22,"missed_callback":{"converged":true,"refresh_denied":true,"repaired":true},"node_limit":{"exhausted":true,"slot_released":true,"three_registered":true},"outage":{"no_new_lease":true,"offline_policy":{"active":true,"expired":true,"grace":true},"refresh_denied_recovery_only":true},"outbox":{"exactly_once":true,"pending":26,"state_preserved":true,"tampered_dead_letter":true},"outbox_events_total":27,"recovery":{"refusals_verifiable":true,"surface_contract":"focusa.spec152e.recovery_only_surface.v1"},"refresh":{"cancel_denied":true,"expiry_denied":true,"refund_denied":true,"revoke_denied":true,"rotation_sequence":13,"stale_sequence_denied":true},"result":"passed","result_handle":"8d3c6c209332f410f39583157d28f93d9c9995bafa2d0c82176e038a4b840655","rollback_preservation_only":true,"schema":"focusa.spec152e.lifecycle_outage_e2e_validation.v1","static_negative_checks":0,"static_positive_checks":91}
+   Bounded immutable result handle (SHA-256 of the exact harness output):
+   8d3c6c209332f410f39583157d28f93d9c9995bafa2d0c82176e038a4b840655
+
+Regression checks (exit codes)
+- `php tests/spec152e_authority_outbox_test.php` — exit 0.
+- `php tests/spec152e_authority_reconciliation_test.php` — exit 0.
+- `php tests/spec152e_authority_node_reservation_test.php` — exit 0.
+- `php tests/spec152e_lease_refresh_lifecycle_test.php` — exit 0.
+- `php tests/spec152e_edd_lifecycle_projection_test.php` — exit 0.
+- `python3 tests/spec152e_recovery_only_surface_test.py` — exit 0.
+All regression suites on the named surfaces pass with exit 0. No pre-existing
+unrelated failures were introduced; the diff contains only this atom's test
+surface (no contract, source, or other atom's files were modified).
+
+Tests added
+- tests/spec152e_lifecycle_outage_e2e_test.py: 104 positive + 23 negative
+  harness checks (refund/chargeback/revoke/expiry/subscription-cancel projections
+  with monotonic sequence and replay; terminal-reactivation and sequence-rollback
+  denials; signed refresh refusals with verification; stale sequence/software
+  denial; missed-callback reconciliation with convergence; node-limit
+  concurrency with release and slot reuse; outbox exactly-once dispatch, tamper
+  dead-lettering, and state preservation; outage refusal and no-new-lease;
+  offline policy active -> offline_grace -> expired; refresh-credential
+  negatives; preservation-only rollback; storage redaction) plus 91 static
+  binding checks (recovery-only-surface contract bindings, signed-refusal
+  posture maps, lifecycle terminal-state map, outbox/reconciler registries,
+  spec 152E §23 acceptance-matrix rows, and email/secret/key hygiene on the
+  harness output and the gate source).
+
+Rollback
+- Revert only this atom's implementation commit (tests/spec152e_lifecycle_outage_e2e_test.py)
+  and this evidence record if required. Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence,
+  and migration journals; no contract, source, or other atom's file was changed, so
+  rollback touches no canonical state.
+
+No push, deploy, release, merge, or Beads mutation was performed.

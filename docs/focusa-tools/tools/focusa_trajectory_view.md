@@ -79,4 +79,4 @@ Likely next: `focusa_temporal_authority`, `focusa_trajectory_assess`, `focusa_tr
 - CLI: `focusa trajectory view`.
 - REST: `GET /v1/trajectory/view`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3abe8a95d43543299f2d8bba750813e0579d1841d9189a5fe796036beb734b62`.
+- Descriptor digest: `sha256:2b055c5084a7ada25f1b8eeea4c4cc85b5a24c5f2827a80821e8cdd94ca2b43d`.

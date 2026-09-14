@@ -1,0 +1,85 @@
+Spec 152F / Spec 150A acceptance record
+Work item: focusa-vbcqu.20.14.40
+Title: 152F.05.04 Bind installer and lifecycle receipts to simple policy
+Implementation commit: `5f20c525` (feat(spec152f): bind installer and lifecycle receipts to simple policy)
+
+Exact surfaces
+- crates/focusa-core/src/install_lifecycle (receipts.rs, receipt_tests.rs)
+- Rust installer/CLI (verified unchanged; already authority-backed)
+- scripts/install-focusa.sh, scripts/install-focusa.ps1 (verified unchanged)
+- Spec150A lifecycle acceptance receipts
+- tests/spec152f_lifecycle_policy_test.py (new verification gate)
+
+Bounded result
+- Added `LifecyclePolicyBinding` to every Spec 150A `LifecycleReceiptV1`:
+  records the digest of the single embedded entitlement policy
+  (`focusa_license::embedded_entitlement_policy_registry().digest()`), the
+  canonical capability family (base_focusa for value-producing install/repair/
+  rerun mutations, premium_updates for update, read_projection for inspect,
+  account_recovery for uninstall/purge/rollback and every recovery or denied
+  posture), the entitlement state, the lease sequence, the recovery posture,
+  and the reconciled product-ready flag. The binding is derived only from the
+  canonical registry and the receipt's own authority fields; no caller
+  product/price/grant/family/policy identity is accepted, and receipts never
+  record raw keys, tokens, credentials, or customer PII (structural by
+  construction; verified in `receipt_policy_binding_never_records_raw_key_material`).
+- Added `LifecycleReceiptV1::reconcile_policy()`: re-checks the recorded
+  binding against the embedded registry digest and the family/state/sequence/
+  recovery posture recomputed from the receipt's own fields; drifted or forged
+  policy identity fails closed with the new `PolicyReconciliation` error.
+  Structural validation (`validate_content`) enforces the policy-digest
+  format, canonical family/state vocabulary, recovery-product exclusivity,
+  lease-sequence equality with the flattened binding, and product-ready
+  reconciliation; product-ready claims still require a verified signed lease
+  (`UnverifiedProductReady` unchanged).
+- Installer surfaces were already bound to the same simple policy and were
+  not modified: the Rust installer acquires authority-backed
+  Evaluation/paid leases through the device-code activation client, verifies
+  envelopes before persistence, and performs entitlement acquisition before
+  asset download (license gate precedes asset download); `install-focusa.sh`
+  and `install-focusa.ps1` delegate to the canonical Rust installer, forward
+  only intent (e.g. `--eval`), never create local Evaluation, and reject raw
+  license keys/emails. Official and source installs therefore use the same
+  policy with no duplicated commercial logic.
+
+Exact verification (exit codes)
+1. `python3 tests/170_focusa_installer_entitlement_activation_gate_test.py` — exit 0.
+   Focusa installer entitlement activation gate: PASS.
+2. `python3 tests/spec152f_lifecycle_policy_test.py` — exit 0.
+   Spec152f lifecycle policy binding gate: PASS (4 reconcile tests, 9 canonical families).
+   Combined exact command `python3 tests/170_focusa_installer_entitlement_activation_gate_test.py && python3 tests/spec152f_lifecycle_policy_test.py` — exit 0.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-core install_lifecycle` — exit 0: 34 passed; 0 failed
+  (881 filtered out), including the four new reconcile tests.
+- `cargo test -p focusa-core` — exit 101: 914 passed; 1 failed
+  (`work_item::lifecycle::tests::spec79_canary_advances_ordered_bd_graph_without_manual_reprompt`).
+  This failure is PRE-EXISTING and unrelated to this atom: it reproduces
+  identically on the canonical base commit `b8fedaeb` (atom 20.14.39 merge)
+  with none of this atom's changes, lives in `work_item/lifecycle.rs` (outside
+  the exact surfaces), and fails deterministically in isolation. It is not a
+  regression from commit `5f20c525`.
+- `cargo check -p focusa-core` — exit 0.
+- `cargo check -p focusa-cli` — exit 0 (installer/CLI chain intact).
+- `cargo clippy -p focusa-core --lib` — exit 0, no receipt-related warnings.
+
+Tests added
+- crates/focusa-core/src/install_lifecycle/receipt_tests.rs:
+  receipt_records_canonical_simple_policy_binding,
+  receipt_recovery_posture_records_recovery_family_state_and_sequence,
+  receipt_tampered_policy_binding_fails_reconciliation,
+  receipt_policy_binding_never_records_raw_key_material.
+- tests/spec152f_lifecycle_policy_test.py: build-independent static gate
+  (policy binding markers, canonical family/state vocabulary, no raw key
+  material, reconcile test presence, orchestrator entitlement ordering,
+  official/source installer same-policy and no-Evaluation/no-commercial-logic
+  checks).
+
+Rollback
+- Revert only implementation commit `5f20c525` (and this evidence record if
+  required). Preserve customers, orders, refunds, licenses, nodes, sequences,
+  customer data, migration journals, evidence, and already accepted
+  authority/installer behavior. The pre-existing `spec79` failure is owned by
+  `work_item::lifecycle` and must not be attributed to this atom.
+
+No push, deploy, release, merge, or Beads mutation was performed.

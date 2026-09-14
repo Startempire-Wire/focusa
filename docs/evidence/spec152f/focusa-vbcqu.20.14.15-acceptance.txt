@@ -1,0 +1,29 @@
+Spec 152F / canonical entitlement execution guard in API middleware
+Work item: focusa-vbcqu.20.14.15
+Title: 152F.02.02 Delegate REST entitlement prehandler to canonical policy decision path
+
+Implementation commit: `68ab22742d2d38703e37b9200e5158286cd80b56`
+
+Exact touched surfaces
+- crates/focusa-api/src/middleware/entitlement.rs
+- tests/spec152_rest_entitlement_gate_test.py
+- tests/spec152f_call_stack_contract_test.py
+
+Validation steps
+1) cargo test -p focusa-api entitlement_middleware
+   - command exit code: 0
+   - 0 unit tests matched filter (command executed successfully)
+2) cargo test -p focusa-api entitlement
+   - command exit code: 0
+   - 5 tests passed, 0 failed
+3) python3 tests/spec152_rest_entitlement_gate_test.py
+   - command exit code: 0
+   - printed pass payload: exact_routes=122, feature_gate="pre_handler", limit_gate="pre_handler", pairing_bypass=false
+4) python3 tests/spec152f_call_stack_contract_test.py
+   - command exit code: 0
+   - printed pass payload: stages=11, execution_paths=3, errors=10, presenters=7
+5) python3 tests/spec152_entitlement_projection_test.py
+   - command exit code: 0
+   - printed: "Spec152 canonical entitlement projection: PASS (golden vector + core/API/CLI parity)"
+
+Outcome: passed

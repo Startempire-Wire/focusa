@@ -1,0 +1,74 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.32
+Title: 152F.04.03 Enforce release-proof premium boundary
+Implementation commit: `f8cf4c3fa456a90641dc34fdfec92a901129e36d`
+
+Exact surfaces
+- release operation registry: crates/focusa-core/src/release_adapters.rs
+- crates/focusa-api/src/routes/release.rs (via entitlement_routes.rs reclassification)
+- CLI release commands: crates/focusa-cli/src/commands/release.rs
+- core release modules: crates/focusa-core/src/license.rs
+
+Bounded result
+- Added `require_release_proof()` to `crates/focusa-core/src/license.rs`:
+  one canonical entitlement execution check against the `ReleaseProof`
+  premium family with required feature `focusa.release.proof` and limit
+  bucket `release_proof_runs`. Uses the same `evaluate_entitlement_execution`
+  path as `require_base_product()` and follows the Spec 152F canonical
+  decision order (P5: presenters never invent entitlement).
+- Replaced the legacy `require_feature("official_release_bundle")` call in
+  the CLI `ReleaseCmd::Prove` handler with `require_release_proof()`.
+  The legacy path checked local license features outside the 152F
+  entitlement policy; the new path goes through the canonical premium
+  family resolution.
+- Added `capability_family()` and `required_feature()` methods to
+  `ReleaseOperation` in the release operation registry. Mutating release
+  operations resolve to `ReleaseProof` premium; non-mutating operations
+  resolve to `ReadProjection`. No caller-controlled product, price, grant,
+  or feature input is accepted.
+- Reclassified the `/v1/release/proof/status` route from
+  `feature: "focusa.release.proof"` with `limit_bucket: Some("release_proof_runs")`
+  to `feature: "focusa.core.evidence"` with `limit_bucket: None`. The
+  endpoint is a GET that reads proof status; safe release status/read
+  projection remains available without premium. Only advanced governed
+  proof/orchestration operations require the release_proof premium grant.
+- No base temporal/evidence capability is gated by filename. The
+  classification is driven by operation semantics (mutation vs read), not
+  by the presence of "release" in file paths.
+
+Exact verification (exit codes)
+1. `cargo test --workspace spec152f_release_proof_entitlement` — exit 0.
+   test result: ok. 32 passed; 0 failed.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 137 tests passed (49 unit +
+  11 authority-lease + 8 entitlement-grid + 34 automation + 32 release-proof +
+  3 spec172), 0 failed.
+- `cargo test -p focusa-core license` — exit 0: 10 passed, 0 failed.
+- `cargo test -p focusa-core entitlement` — exit 0: 36 passed, 0 failed.
+- `cargo test --workspace spec152f_automation_entitlement` — exit 0:
+  34 passed, 0 failed.
+
+Tests added
+- focusa-license: 32 release-proof entitlement boundary tests covering:
+  family map (exact one feature, premium family feature ids, non-premium
+  empty, is_optional_premium), state grid (verified-no-license, active-paid,
+  offline-grace, expired, revoked, corrupt, pending-unverified), premium
+  resolution (feature grant, missing feature, base product first, non-zero
+  sequence, lease binding, cross-family rejection, unqualified identifier,
+  offline grace within/expired window, active lease expired, non-premium
+  family rejection), read vs premium boundary (read projection always
+  available, available for expired/revoked/corrupt states), interactive
+  base vs release proof separation, authority-owned feature ID, caller
+  cannot control grants, all four premium families distinct, dispatch
+  revalidation, limits reservation, release operation registry
+  classification, release status route is read not premium, and recovery
+  paths remain available.
+
+Rollback
+- Revert only implementation commit `f8cf4c3fa456a90641dc34fdfec92a901129e36d`
+  (and this evidence record if required). Preserve customers, orders,
+  refunds, licenses, nodes, sequences, customer data, migration journals,
+  and already accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.

@@ -1,7 +1,27 @@
 schema: focusa.spec152.next_command.v1
+authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+simplification_authority: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+current_work_item: focusa-vbcqu.20.13.2
+parallel_policy_work_item: focusa-vbcqu.20.14.1
 next_action: >-
-  In WPUIAI/wpuiai, claim the local Beads issue and execute the read-only Phase 0
-  checklist from docs/LICENSE_AUTHORITY_START_HERE_2026-08-01.md. Do not mutate
-  production. Produce repository/live parity, route, database, commerce/refund,
-  email/consent, infrastructure, backup/restore, and operator-decision evidence.
-after_phase0: freeze lease v1 schema and cross-language golden vectors
+  Freeze the deployed WPUIAI.com EDD and install.focusa.dev authority/facade parity
+  inventory using bounded read-only evidence. Record repository-versus-deployment hashes,
+  routes, databases, EDD product/order/license/refund ownership, direct Stripe issuance,
+  installer aliases, bridge absence or presence, and rollback boundaries without secrets
+  or customer data.
+after_inventory: implement verified-mailbox pending registration and atomic EDD customer promotion in WPUIAI/wpuiai
+after_policy_registration: freeze the machine-readable base premium recovery and dormant-granularity policy in focusa-vbcqu.20.14.2
+publication: forbidden_until_focusa-vbcqu.20.13.63_and_focusa-vbcqu.20.14.52_close
+post_spec152f_closure: >-
+  Spec 152F closure is accepted with receipts (focusa-vbcqu.20.14.52,
+  docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt). The next
+  release-blocking commands are the Spec 152E final release milestone
+  (focusa-vbcqu.20.13.63) and REL.4-REL.7 governance acceptance at the final
+  exact SHA; publication stays forbidden until those close.
+post_spec152e_closure: >-
+  Spec 152E correction closure is sealed with receipts (focusa-vbcqu.20.13.63,
+  docs/evidence/spec152f/focusa-vbcqu.20.13.63-acceptance.txt). The remaining
+  release-blocking commands are REL.4-REL.7 governance acceptance and live-server
+  deployment verification at the final exact SHA; publication stays forbidden
+  until those close.
+spec_158: excluded

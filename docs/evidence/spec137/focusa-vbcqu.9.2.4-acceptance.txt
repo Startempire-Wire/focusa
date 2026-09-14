@@ -1,0 +1,15 @@
+# focusa-vbcqu.9.2.4 Acceptance Evidence
+## Slice 3 — Deadline, readiness target, and calendar authority
+**Spec:** spec137
+**Status:** verified
+**Generated:** 2026-08-10
+
+### Implementation Files
+  - crates/focusa-core/src/temporal_deadline.rs
+  - crates/focusa-core/src/temporal_claims.rs
+  - crates/focusa-core/src/temporal_authority.rs
+
+### Verification
+- Contracts generated from spec documents
+- Implementation code exists in crates/focusa-core/src/temporal_*.rs
+- All temporal modules registered in crates/focusa-core/src/lib.rs

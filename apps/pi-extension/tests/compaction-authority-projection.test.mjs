@@ -36,15 +36,30 @@ const events = [
     epoch_id: "epoch-1",
     coordinator_state: "verified",
   },
+  {
+    schema: "focusa.auto_compaction_event.v1",
+    kind: "policy_rollback_required",
+    epoch_id: "epoch-1",
+    coordinator_state: "verified",
+    outcome_evaluation: {
+      schema: "focusa.compaction_outcome_evaluation.v1",
+      policyKey: "policy-bad",
+      rollbackRequired: true,
+      rollbackRoute: "checkpoint",
+    },
+  },
 ];
 const first = reduceCompactionAuthorityEvents(events);
 const replay = reduceCompactionAuthorityEvents(events);
 assert.deepEqual(first, replay);
-assert.equal(first.eventCount, 3);
-assert.equal(first.lastKind, "projection_rehydrated");
+assert.equal(first.eventCount, 4);
+assert.equal(first.lastKind, "policy_rollback_required");
 assert.equal(first.lastEpochId, "epoch-1");
 assert.equal(first.coordinatorState, "verified");
-assert.equal(first.recoveryRequired, false);
+assert.equal(first.recoveryRequired, true);
+assert.deepEqual(first.quarantinedPolicyKeys, ["policy-bad"]);
+assert.equal(first.rollbackRoute, "checkpoint");
+assert.equal(first.lastOutcomeEvaluation.policyKey, "policy-bad");
 assert.deepEqual(first.lastPolicySelection, { route: "checkpoint" });
 assert.deepEqual(first.lastPressureTelemetry, { tokens: 80_000, contentIncluded: false });
 

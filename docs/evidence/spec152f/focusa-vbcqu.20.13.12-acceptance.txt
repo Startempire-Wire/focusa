@@ -1,0 +1,97 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.12
+Title: 152E.01.08 Implement atomic verified-account promotion and merge
+Implementation commit: (see below)
+
+Exact surfaces
+- docs/contracts/spec152e-account-promotion.v1.php (new transactional promotion service)
+- docs/contracts/spec152e-activation-registration.v1.php (adds promoteVerifiedInTransaction)
+- docs/contracts/spec152e-email-identity.v1.php (adds storeVerifiedInTransaction,
+  settleConsentAtPromotionInTransaction, hasPrimaryForAccount)
+- docs/contracts/spec152e-authority-account.v1.php (adds
+  resolveForPromotionInTransaction, findByWordpressUserId, findByStripeCustomerId)
+- docs/contracts/spec152e-edd-customer-adapter.v1.php (adds
+  createCustomerInTransaction)
+- tests/spec152e_account_promotion_test.php
+
+Bounded result
+- Added FocusaSpec152eAccountPromotionService: one caller-owned idempotent
+  transaction that, only for a mailbox-verified registration whose email digest
+  binds the submitted email, (1) resolves or creates the EDD customer by exact
+  verified email, (2) resolves or creates the authority account for that customer,
+  (3) links the optional WordPress user and Stripe reference without creating
+  duplicates, (4) resolves or creates the verified email identity bound to the
+  resolved account and marks it primary (first) or linked, (5) persists
+  transactional consent separately from optional promotional consent without
+  overwriting earlier consent, (6) links prior evidence-backed EDD orders and
+  licenses (order must be owned by the customer and status 'complete'; license
+  must be owned by the customer and not revoked/disabled), and (7) advances the
+  registration to account_promoted through the registration repository's new
+  in-transaction primitive.
+- Crash/retry is atomic: a failed attempt rolls back all writes (verified by row
+  counts) and a retry yields exactly one account, one resolved customer, and one
+  identity; identical replays return the stored bounded result with no duplicates.
+- Conflicts enter review without partial writes:
+  ACCOUNT_MERGE_REVIEW_REQUIRED for an identity already bound to another account,
+  a WordPress user or Stripe customer already linked to another account, or an
+  order/license already claimed by another account;
+  EDD_ORDER_UNVERIFIED for orders not owned by the customer or non-complete
+  (including refunded) orders; EDD_LICENSE_UNUSABLE for revoked/disabled or
+  non-owned licenses.
+- Unverified, mismatched, or expired input never promotes: unverified
+  registration and wrong registration email both fail closed
+  (EMAIL_VERIFICATION_REQUIRED / ACCOUNT_EMAIL_MISMATCH); expired registrations
+  fail with REGISTRATION_EXPIRED; changed requests cannot reuse an idempotency
+  key (IDEMPOTENCY_CONFLICT); missing transactional consent is rejected.
+- Email aliases are never merged through dot/plus rewriting: identity resolution
+  uses the exact keyed digest only.
+- The result envelope and idempotency payload are masked: no raw email, no
+  secrets, no authority credentials. Promotion truth (purchase links, consent,
+  account/customer/identity references) is journaled and rollback is
+  preservation-only.
+
+Exact verification (exit codes)
+1. php tests/spec152e_account_promotion_test.php — exit 0.
+   {"schema":"focusa.spec152e.account_promotion_test.v1","positive_checks":64,"negative_checks":13,"accounts":6,"customers":10,"identities":8,"purchase_links":3,"result":"passed_fail_closed"}
+
+Regression checks (exit codes)
+- All 13 spec152e PHP tests pass with exit 0 (listed with their schemas):
+  - spec152e_account_promotion_test.php — exit 0
+  - spec152e_authority_account_schema_test.php — exit 0
+  - spec152e_edd_customer_adapter_test.php — exit 0
+  - spec152e_email_delivery_consent_test.php — exit 0
+  - spec152e_email_identity_schema_test.php — exit 0
+  - spec152e_facade_protocol_test.php — exit 0
+  - spec152e_facade_registry_test.php — exit 0
+  - spec152e_facade_security_test.php — exit 0
+  - spec152e_product_registry_test.php — exit 0
+  - spec152e_registration_schema_test.php — exit 0
+  - spec152e_registration_transition_test.php — exit 0
+  - spec152e_verification_complete_test.php — exit 0
+  - spec152e_verification_start_test.php — exit 0
+- python tests/spec152e_state_machine_contract_test.py — exit 0 (48 transitions
+  validated); tests/spec152e_api_contract_test.py — exit 0. The
+  spec152e_document_authority_test.py failure (spec152-final-audit-status.v1.yaml
+  publication token tied to atoms 20.13.63/20.14.52) is pre-existing and
+  unrelated to this atom; verified identical on the base commit.
+
+Tests added
+- spec152e_account_promotion_test.php: 64 positive checks + 13 negative checks
+  covering fresh promotion atomicity (one account/customer/identity), identical
+  replay idempotency, evidence-backed prior order/license linking, same-email
+  merge resolution, secondary-email linked identity, WordPress/Stripe link
+  without duplicates, crash/retry with zero partial writes, unverified denial,
+  registration-email mismatch denial, expired registration denial, merge-review
+  conflicts (identity account binding, WordPress user, Stripe customer, claimed
+  license), foreign/refunded order denial, revoked license denial, missing
+  transactional consent rejection, idempotency-conflict rejection, masked
+  envelope (no raw email), and rollback preservation.
+
+Rollback
+- Revert only this atom's files (spec152e-account-promotion.v1.php,
+  spec152e_account_promotion_test.php, and the added methods in the four named
+  repository contracts). Preserve EDD customer/order/refund truth, verified
+  identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and
+  migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.

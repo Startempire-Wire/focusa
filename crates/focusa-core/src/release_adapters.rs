@@ -52,6 +52,29 @@ pub struct ReleaseOperation {
 }
 
 impl ReleaseOperation {
+    /// Returns the canonical capability family for this release operation.
+    ///
+    /// All release orchestration operations (mutating stages) require the
+    /// `release_proof` premium family. Read-only operations like status
+    /// checks are classified as `ReadProjection` and do not require premium.
+    pub fn capability_family(&self) -> focusa_license::CapabilityFamily {
+        if self.mutates {
+            focusa_license::CapabilityFamily::ReleaseProof
+        } else {
+            focusa_license::CapabilityFamily::ReadProjection
+        }
+    }
+
+    /// Returns the required premium feature identifier for this operation,
+    /// if it is a premium operation.
+    pub fn required_feature(&self) -> Option<&'static str> {
+        if self.mutates {
+            Some("focusa.release.proof")
+        } else {
+            None
+        }
+    }
+
     fn validate(&self, topology: &ReleaseTopology) -> anyhow::Result<()> {
         ensure!(
             !self.operation_id.trim().is_empty(),

@@ -88,4 +88,4 @@ Likely next: `focusa_predict_stats`, `focusa_workpoint_checkpoint`, `focusa_meta
 - CLI: `focusa metacognition loop run`.
 - REST: `POST /v1/metacognition/capture`, `POST /v1/metacognition/retrieve`, `POST /v1/metacognition/reflect`, `POST /v1/metacognition/adjust`, `POST /v1/metacognition/evaluate`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:f10ca22bd3c8ed432db3b863183ce93b02dcbc6bdfdfdd03bb63e61aeb98843b`.
+- Descriptor digest: `sha256:c8abe94c4dad63eb612cbc22229b56b6676775c211f371cadfc887dfce0959af`.

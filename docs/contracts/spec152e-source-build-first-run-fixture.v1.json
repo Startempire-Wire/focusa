@@ -1,0 +1,71 @@
+{
+  "schema": "focusa.spec152e.source_build_first_run_fixture.v1",
+  "surface": "source-build run path / direct binary first protected action / config-credential discovery / activation CLI-API",
+  "spec_authority": "docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md §14.3 source and unofficial builds, §24.9 source builds and agents use the same flow; Specs 152, 150A, 152A-D; Spec 158 implementation excluded",
+  "locked_release": true,
+  "environment": {
+    "invocation": ["cargo run -- focusa ...", "./target/debug/focusa ...", "manually copied binary (no installer)"],
+    "config_dir": "$HOME/.config/focusa (fresh; may not exist before first run)",
+    "installer_provenance": "absent by definition: no installer receipt, no install root, no service unit, no PATH edits",
+    "legacy_license_file": "absent on a clean source build; if present it is a migration/verification input only and never a runtime grant",
+    "authority_lease_file": "absent until the universal activation flow issues a signed lease (authority-lease.json)"
+  },
+  "install_channel": {
+    "value": "source_build",
+    "advisory_only": true,
+    "recorded_in": [
+      "ActivationRegistration.install_channel",
+      "ActivationRequestContext.install_channel",
+      "activation start HTTP payload"
+    ],
+    "never_consulted_by": [
+      "activation_reducer",
+      "authority_store.resolve_authority_state",
+      "entitlement_policy",
+      "focusa-core require_base_product",
+      "daemon entitlement middleware"
+    ]
+  },
+  "first_run_expected": {
+    "status_projection": "unactivated -> presenter_state email_required",
+    "protected_first_action": "require_base_product -> LicenseError::BaseProductRequired until a signed lease exists; daemon gate -> ENTITLEMENT_BASE_REQUIRED",
+    "activation": "same universal authority flow as the installer: email -> verify -> offer -> checkout/poll -> signed lease; noninteractive -> device-code authorization; --agent -> typed human-action envelopes with a resumable registration handle",
+    "reaches": ["paid (checkout)", "Evaluation (limited-access overlay)", "existing key"],
+    "terminal": "activated (device-bound signed lease persisted at authority-lease.json)"
+  },
+  "non_grant_matrix": [
+    { "condition": "missing installer files", "effect": "grants nothing (unactivated)" },
+    { "condition": "missing authority-lease.json", "effect": "grants nothing (unactivated, authority_lease_missing)" },
+    { "condition": "install_channel=source_build", "effect": "grants nothing (advisory telemetry only)" },
+    { "condition": "install_channel=official_installer", "effect": "grants nothing (advisory telemetry only)" },
+    { "condition": "presence of installer markers", "effect": "changes nothing" },
+    { "condition": "legacy plaintext license", "effect": "never a runtime grant (migration/verification only)" },
+    { "condition": "corrupt authority-lease.json", "effect": "recovery_only (fail closed)" },
+    { "condition": "missing embedded trust roots", "effect": "recovery_only (fail closed)" }
+  ],
+  "deletion_matrix": [
+    { "delete": "installer receipts / install root / service unit", "effect": "none - runtime entitlement is decided by the signed lease only" },
+    { "delete": "authority-lease.json (signed lease)", "effect": "locked: unactivated; protected work denied" },
+    { "delete": "authority-lease.json while already unactivated", "effect": "no change (still unactivated)" },
+    { "add": "installer markers while unactivated", "effect": "no change (still unactivated)" }
+  ],
+  "activation_cli_api": {
+    "cli_interactive": "focusa license activate-flow",
+    "cli_agent": "focusa license activate-flow --agent (noninteractive, never invents email/code/payment/license)",
+    "cli_plaintext": "retired: E_AUTHORITY_COMMAND_RETIRED",
+    "api": ["GET /v1/license/status", "GET /v1/activation/status"],
+    "bindings": [
+      "activation_flow.rs CLI_FLOW (presenter=cli, install_channel=source_build)",
+      "license.rs run_activation_flow_command / run_agent_activation_command",
+      "authority_credentials.rs load_or_create_node_identity",
+      "authority_store.rs resolve_authority_state",
+      "focusa-core license.rs require_base_product",
+      "focusa-api middleware/entitlement.rs"
+    ]
+  },
+  "evidence_replay": {
+    "python_first_run_test": "tests/spec152e_source_build_activation_test.py (static bindings; exit 0)",
+    "rust_store_tests": "cargo test -p focusa-license authority_store (first-run / delete-matrix / channel-neutral unit tests; exit 0)",
+    "transcript_replay": "crates/focusa-cli/src/commands/activation_flow.rs unit tests: paid terminal, existing key, limited-access overlay, recovery journeys through the shared ActivationSession"
+  }
+}

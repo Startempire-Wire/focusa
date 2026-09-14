@@ -1,0 +1,174 @@
+Spec 152E canonical node schema and atomic limit reservation — acceptance evidence
+Work item: focusa-vbcqu.20.13.34
+Title: 152E.04.03 Add canonical node schema and atomic limit reservation
+Scope: wp_wpuiai_authority_nodes migration/repository; account/license/product/node
+public-key binding; reservation/settlement
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§7.4 wp_wpuiai_authority_nodes, §11 paid journey
+"device registers", §13 existing-license journey "enforce status/product/node limit"
+and "A key and unrelated verified email cannot activate a node", §20 stable failure
+semantics NODE_LIMIT_EXHAUSTED, §23 acceptance matrix "Node limit → deny and offer
+explicit node management"); Specs 152, 150A, 152A-D; Spec 158 implementation
+excluded.
+
+Exact surfaces (this atom only)
+- wp_wpuiai_authority_nodes migration/repository:
+  docs/contracts/spec152e-authority-node.v1.php
+  (FocusaSpec152eAuthorityNodeMigration — wp_wpuiai_authority_nodes,
+  wp_wpuiai_authority_node_limits atomic counter ledger,
+  wp_wpuiai_authority_node_reservations, node idempotency journal, schema
+  migration/event journals; FocusaSpec152eAuthorityNodeRepository — registerNode,
+  reserve, settleReservation, releaseReservation, deactivateNode, recordLastSeen,
+  listNodes, findNodeByUuid)
+- account/license/product/node public-key binding: node rows bind the verified
+  authority account UUID, the canonical EDD license ID, the server-owned product
+  code, the device public key, and the assurance class; the node limit is never
+  caller-controlled.
+- reservation/settlement: two-phase reserve/settle/release plus the atomic
+  one-transaction register path; the atomic counter can never exceed the EDD
+  product node limit; failed attempts release or settle reservations exactly.
+- tests/spec152e_authority_node_reservation_test.php (exact verification)
+
+Implementation commits: `07144405` (node contract + exact-verification test).
+
+Bounded result
+- Added the canonical authority-node schema/repository seam. registerNode() works
+  only for a verified authority account (wp_wpuiai_authority_accounts status
+  active with mailbox_verified/account_promoted reason; EMAIL_VERIFICATION_REQUIRED
+  or ACCOUNT_NOT_FOUND otherwise) and a usable canonical EDD license
+  (wp_edd_licenses status active, positive activation_limit, matching EDD
+  customer, unexpired; EDD_LICENSE_UNUSABLE / LICENSE_ACCOUNT_MISMATCH otherwise).
+  The node binds account UUID, EDD license ID, server-owned product code (frozen
+  spec 172 protected-offer allowlist; PRODUCT_MAPPING_REQUIRED otherwise), device
+  public key (bounded base64url token; NODE_PUBLIC_KEY_REQUIRED), and assurance
+  class, and records activation/last-seen/deactivation timestamps plus
+  node-limit reservation and settlement references.
+- Atomic limit reservation: a per-account/product counter ledger
+  (wp_wpuiai_authority_node_limits) is incremented with one conditional UPDATE
+  (reserved_count < node_limit) inside the registration transaction, so
+  concurrent activations serialize on the write lock and can never exceed the EDD
+  product node limit (NODE_LIMIT_EXHAUSTED). The limit is read from the canonical
+  license row's activation_limit — set by the spec 152E issuance adapter from the
+  server-owned offer — never from the caller. A denied attempt creates no node,
+  no reservation, and no idempotency row; the counter stays exactly at the limit
+  (released exactly).
+- Reservation/settlement lifecycle: two-phase reserve() (validated, committed
+  'reserved' row occupying one slot), settleReservation() (binds the active node
+  row, state settled, counter kept), releaseReservation() (state released, counter
+  decremented exactly once, explicit reason), and the atomic registerNode() path
+  (reserve+settle in one transaction with one idempotency record; failure rolls
+  back everything). Replays are idempotent for every operation; changed reuse of a
+  key fails closed with IDEMPOTENCY_CONFLICT.
+- Explicit management and device history: deactivateNode() requires the owning
+  account (NODE_NOT_FOUND otherwise), marks the node deactivated (never deleted),
+  releases its slot, and re-releases the settled reservation; a deactivated node
+  cannot be deactivated again (NODE_NOT_ACTIVE) and an already-active device cannot
+  register twice (DEVICE_PUBLIC_KEY_IN_USE). After explicit deactivation the same
+  device may register a fresh node, with the full history preserved in listNodes().
+  recordLastSeen() journals active-node heartbeats idempotently.
+- No unverified-email promotion, local/self-issued entitlement, independent facade
+  authority, client-controlled EDD price/grants/node limits, secret or unmasked
+  real-email evidence, or publication. Node/reservation/ledger rows and all
+  returned structures contain no email address, no EDD license key material, and
+  no secret material (redaction scan asserts no '@', no FOCUSA key prefix, no
+  cus_/sk_ prefixes).
+
+Exact verification (exit code)
+1. php tests/spec152e_authority_node_reservation_test.php — exit 0 (run three
+   times; deterministic, byte-identical output, sha256
+   d747aaf7f286bcc639964f90b187a84111687f981f93ce1bb00847fecccfa0c3).
+   Bounded result:
+   {"schema":"focusa.spec152e.authority_node_reservation_validation.v1",
+   "positive_checks":116,"negative_checks":22,"nodes_registered":7,
+   "reservations":8,"ledger_account_a":3,
+   "limit_fixtures":["atomic_register","two_phase_reserve_settle_release",
+   "concurrent_activation_denied","device_history_preserved"],
+   "result":"passed_fail_closed"}
+   Positive: version-idempotent migration preserving first provenance; node and
+   reservation schemas contain every §7.4 required field; atomic registration
+   binding account/license/product/device-key/assurance with active status,
+   activation timestamp, reservation and settlement references; reservation
+   settled with the server-owned node limit; idempotent replay returning the same
+   node with no duplicate row and no double reservation; three nodes filling a
+   limit-3 license; the fourth activation denied with NODE_LIMIT_EXHAUSTED and no
+   leaked node/reservation/idempotency state; the race fixture (two committed
+   reservations on a limit-2 license deny a third concurrent activation even with
+   zero node rows — the counter, not the node count, is the authority); release
+   exactly once with explicit reason and timestamp, release replay never
+   double-decrementing; the freed slot accepting the previously denied device;
+   two-phase settlement activating the reserved node and keeping its slot with
+   idempotent replay; deactivation preserving device history, freeing the slot,
+   replay idempotency, and re-registration of the same device after explicit
+   management; last-seen heartbeats; listNodes returning the full active and
+   deactivated history; the account-A deactivation freeing a slot for a previously
+   denied fourth device; the registry agreement check (product allowlist equals
+   the frozen spec 172 protected offers, each with server-owned node limit 3);
+   rollback preservation journaling; and the redaction scan (no email, no license
+   key, no secrets anywhere in node state or results).
+   Negative: EMAIL_VERIFICATION_REQUIRED (unverified and suspended accounts),
+   ACCOUNT_NOT_FOUND, EDD_LICENSE_UNUSABLE (unknown, revoked, expired, and
+   zero-capacity licenses), LICENSE_ACCOUNT_MISMATCH (key with unrelated account),
+   PRODUCT_MAPPING_REQUIRED, NODE_PUBLIC_KEY_REQUIRED, DEVICE_PUBLIC_KEY_IN_USE,
+   NODE_LIMIT_EXHAUSTED, RESERVATION_NOT_PENDING (double release), IDEMPOTENCY_
+   CONFLICT, NODE_NOT_FOUND (wrong-account deactivation), NODE_NOT_ACTIVE
+   (re-deactivation and last-seen on a deactivated node), and
+   InvalidArgumentException for malformed UUIDs, unbounded idempotency keys,
+   non-positive license IDs, and unbounded status reasons.
+
+Regression checks (exit codes)
+- All 29 tests/spec152e_*.php suites pass with exit 0, including the new
+  authority-node-reservation test and the prior account, registration, issuance,
+  dual-delivery, outbox, and lifecycle suites.
+- All 3 tests/spec172_*.php suites pass with exit 0.
+- python3 tests/spec152e_api_contract_test.py — exit 0 (generated activation
+  contracts are current; no public API surface changed).
+- python3 tests/spec152e_state_machine_contract_test.py — exit 0.
+- python3 tests/spec152e_product_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_registry_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_golden_vector_test.py — exit 0.
+- python3 tests/spec152e_migration_inventory_test.py — exit 0.
+- python3 tests/spec152e_deployed_surface_inventory_test.py — exit 0.
+- python3 tests/spec152e_terminal_envelope_vector_test.py — exit 0.
+- python3 scripts/generate-spec152e-product-registry.py --check — exit 0 (frozen
+  registry outputs current).
+- python3 scripts/generate-spec152e-facade-registry.py --check — exit 0.
+- python3 scripts/generate-spec152e-activation-contracts.py --check — exit 0.
+- python3 scripts/generate-spec152e-installer-route-manifest.py --check — exit 0.
+- Pre-existing, unrelated failure (reproduces identically without this atom's
+  files; its target file is not touched by this atom):
+  tests/spec152e_document_authority_test.py — exit 1, missing publication-rule
+  token 'publication_rule: forbidden until focusa-vbcqu.20.13.63 and
+  focusa-vbcqu.20.14.52 close' in docs/contracts/spec152-final-audit-status.v1.yaml.
+
+Tests added
+- tests/spec152e_authority_node_reservation_test.php (exact verification; 116
+  positive / 22 negative checks) covering the canonical node schema and
+  repository, the account/license/product/device-key binding matrix, the atomic
+  limit reservation with race fixtures (concurrent activation denied by the
+  counter ledger, two-phase reserve/settle/release with exact release and
+  settlement, freed-slot re-registration), explicit node management with device
+  history preservation, idempotent replay and changed-key conflicts, fail-closed
+  authority paths, rollback preservation, registry agreement, and log hygiene.
+
+Acceptance criteria
+- Concurrent activation cannot exceed the EDD product node limit and failed
+  attempts release or settle reservations exactly: verified — the atomic counter
+  UPDATE is the single authority; a limit-2 license with two committed
+  reservations denies a third concurrent activation before any node row exists
+  (counter, not node count, governs), and denied attempts leave zero node,
+  reservation, and idempotency residue; two-phase releases decrement exactly once
+  and settlements keep their slot.
+- All named positive and negative checks pass; diff contains only named surfaces
+  (node contract, node reservation test); generated contracts are current
+  (api_contract_test.py and all generator --check scripts exit 0); secrets and
+  unmasked real email are absent (redaction scan passes); evidence is replayable
+  from the pinned commit (offline, deterministic, byte-identical output across
+  runs).
+
+Rollback
+- Revert only this atom's commits: 07144405 (node contract + test) and the
+  evidence commit containing this file. Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals; node-schema rollback is preservation-only.
+
+No push, deploy, release, merge, or Beads mutation was performed.

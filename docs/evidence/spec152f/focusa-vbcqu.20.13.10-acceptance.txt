@@ -1,0 +1,56 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.10
+Title: 152E.01.06 Implement verification completion, expiry, and replay defense
+Implementation commit: (see below)
+
+Exact surfaces
+- docs/contracts/spec152e-verification-complete-handler.v1.php
+- tests/spec152e_verification_complete_test.php
+
+Bounded result
+- Added FocusaSpec152eVerificationCompleteHandler: consumes exactly one valid
+  challenge bound to registration/facade/action; validates facade/origin against
+  the registry, enforces cross-facade binding (tokens from one facade cannot
+  verify registrations on another), respects max verification attempts (5),
+  delegates hash comparison/expiry/replay to the repository, and returns
+  enumeration-resistant safe errors. Only a live matching challenge transitions
+  the registration to email_verified. No EDD customer, order, license, node,
+  or lease is created during verification.
+- All negative cases return non-authoritative, non-enumerating errors:
+  wrong verifier → EMAIL_VERIFICATION_FAILED, expired challenge →
+  EMAIL_VERIFICATION_EXPIRED, cross-facade token → EMAIL_VERIFICATION_REQUIRED,
+  nonexistent UUID → EMAIL_VERIFICATION_REQUIRED, already verified →
+  EMAIL_VERIFICATION_REQUIRED, empty verifier → EMAIL_VERIFICATION_FAILED,
+  max attempts → EMAIL_VERIFICATION_FAILED, wrong origin → FACADE_ORIGIN_DENIED,
+  rate-limited → ACTIVATION_REQUEST_ACCEPTED.
+- Cross-facade and nonexistent UUID errors are indistinguishable (enumeration
+  resistance). Known and unknown facade origin failures are indistinguishable.
+- Idempotency replay returns the same verified result without side effects.
+- Challenge hash is cleared after successful verification; verified_at is set;
+  verification_state transitions to mailbox_verified.
+- Rollback preserves verified registration state (preservation-only).
+
+Exact verification (exit codes)
+1. php tests/spec152e_verification_complete_test.php — exit 0.
+   {"schema":"focusa.spec152e.verification_complete_test.v1","positive_checks":22,"negative_checks":18,"result":"passed_fail_closed"}
+
+Regression checks (exit codes)
+- php tests/spec152e_verification_start_test.php — exit 0.
+  {"schema":"focusa.spec152e.verification_start_test.v1","positive_checks":30,"negative_checks":12,"result":"passed_fail_closed"}
+- Full test suite (11 tests) — all passed, 0 failed.
+
+Tests added
+- spec152e_verification_complete_test.php: 22 positive checks + 18 negative checks
+  covering valid verification, idempotency replay, wrong verifier, empty verifier,
+  expired challenge, cross-facade token, wrong origin, wrong UUID, already verified
+  registration, max attempts exhausted, rate limiting, enumeration resistance
+  (known/unknown facade, cross-facade/nonexistent UUID indistinguishability),
+  no authority references created, and rollback preservation.
+
+Rollback
+- Revert only this atom's files (spec152e-verification-complete-handler.v1.php and
+  spec152e_verification_complete_test.php). Preserve EDD customer/order/refund
+  truth, verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals.
+
+No push, deploy, release, merge, or Beads mutation was performed.

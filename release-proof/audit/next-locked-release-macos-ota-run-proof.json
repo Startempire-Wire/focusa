@@ -1,0 +1,51 @@
+{
+  "schema": "focusa.locked_release_macos_ota_run_proof.v1",
+  "status": "verified",
+  "github_run": {
+    "database_id": 30355152821,
+    "url": "https://github.com/Startempire-Wire/focusa/actions/runs/30355152821",
+    "workflow_name": "v0.9.135 locked-scope E2E reverification",
+    "head_sha": "7983e138133d91865265a11a879668b976cc8c38",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "native_job": {
+    "database_id": 90261511526,
+    "name": "macOS Intel OTA and stale-runtime E2E",
+    "url": "https://github.com/Startempire-Wire/focusa/actions/runs/30355152821/job/90261511526",
+    "status": "completed",
+    "conclusion": "success",
+    "verified_steps": [
+      {
+        "number": 5,
+        "name": "Prove updater integration and rollback on native Intel macOS",
+        "conclusion": "success"
+      },
+      {
+        "number": 6,
+        "name": "Exercise official signed extension through a ServBay-like npm path",
+        "conclusion": "success"
+      },
+      {
+        "number": 7,
+        "name": "Exercise v0.9.134 updater against v0.9.135 with nonstandard npm",
+        "conclusion": "success"
+      },
+      {
+        "number": 8,
+        "name": "Reproduce immediate-previous stale runtime through actual Pi",
+        "conclusion": "success"
+      },
+      {
+        "number": 9,
+        "name": "Enforce immediate-previous-version OTA acceptance",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "bead_bindings": {
+    "focusa-vbcqu.5.5": [5, 6, 7],
+    "focusa-vbcqu.5.6": [8, 9]
+  },
+  "observed_via": "gh run view 30355152821 --repo Startempire-Wire/focusa"
+}

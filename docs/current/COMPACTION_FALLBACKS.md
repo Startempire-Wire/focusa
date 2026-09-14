@@ -35,7 +35,7 @@ Fallback order:
 
 Compaction must never look like a frozen conversation. While native compaction is active, the Pi status surface reports phase, elapsed seconds, context pressure, and attempt number; long attempts emit a bounded visible heartbeat. Retry notices include the bounded primary error and retry delay. Terminal, coordinator, and resume-context failures are shown in the UI as well as durable telemetry or console logs. Timers are cleared on completion, failure, compact reset, session start, and shutdown.
 
-Pi owns queued operator input and native continuation after manual or automatic compaction. Focusa queues its hidden resume projection with explicit `deliverAs:"nextTurn", triggerTurn:false`; it never uses the default steering mode and never starts a competing post-compaction turn. Because Pi's API returns `void`, Focusa records `unknown_completion`, performs no blind retry, and relies on the next-turn context path. Operator text submitted during compaction therefore remains authoritative and flows into Pi's native queue. Agents must use bounded polling rather than long blocking `--watch` commands so steering can be observed and acted on promptly.
+Pi owns queued operator input and native continuation after manual or automatic compaction. Focusa queues its hidden resume projection with explicit `deliverAs:"nextTurn", triggerTurn:false`; it never uses the default steering mode and never starts a competing post-compaction turn. Because Pi's API returns `void`, Focusa records `unknown_completion`, performs no blind retry, and relies on the next-turn context path. The harness still offers a truthful receipt signal: the next agent turn consumes the queued message, so its start is the delivery event. Focusa acknowledges that event with a same-session-scoped `agent_start` handler (pure `compactionDeliveryAckEligible` decision; only the session that queued the delivery may ack it) that flips `unknown_completion`/`deferred_to_next_turn` to `delivered` and writes a durable `focusa-compaction-delivery-acknowledged` entry. Settled deliveries (`delivered`, `superseded_by_operator`, `failed`) are never re-acknowledged. Operator text submitted during compaction therefore remains authoritative and flows into Pi's native queue. Agents must use bounded polling rather than long blocking `--watch` commands so steering can be observed and acted on promptly.
 
 ## Guard
 
@@ -44,3 +44,13 @@ node scripts/validate-compaction-fallbacks.mjs
 ```
 
 This static guard fails if legacy bare `none` summary fallbacks return or if Workpoint/current-ask/session fallback hooks disappear.
+
+## Extension replacement and tool registration
+
+Pi tears down extension instances on reload, new/resume, and fork. The retiring
+compaction coordinator must release registration ownership and its request
+callback so the replacement registers all tools and commands. Duplicate loads
+without shutdown remain suppressed. An actual in-flight attempt retains its
+exclusion until its own terminal callback settles; retired callbacks must not
+use stale session contexts. `npm run test:reload-tools` exercises native SDK
+reload and checks the complete active tool set, not daemon liveness alone.

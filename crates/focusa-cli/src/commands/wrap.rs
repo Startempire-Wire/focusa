@@ -1,15 +1,10 @@
-//! Mode A — Wrap harness CLI with full session capture.
+//! Wrap harnesses with semantic events as the primary interactive Pi surface.
 //!
 //! Usage: focusa wrap -- <command> [args...]
 //!
-//! This implementation uses the `script` command to record full terminal sessions,
-//! then parses the recording for observability.
-//!
-//! Responsibilities:
-//! 1. Ensures daemon is running (auto-start)
-//! 2. Records harness session with `script`
-//! 3. Parses recording to extract user input and assistant output
-//! 4. Sends parsed data to daemon
+//! Interactive Pi preserves its native terminal and emits typed events through
+//! the Focusa extension. Raw PTY capture is explicit, redacted, bounded to 8 MiB,
+//! externalized to ECS, and never inlined as assistant output.
 
 use crate::api_client::ApiClient;
 use anyhow::{Context, Result};
@@ -18,7 +13,6 @@ use rand::random;
 use serde_json::{Value, json};
 use shlex::try_quote;
 use std::fs;
-use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -409,70 +403,36 @@ fn redact_diagnostic_transcript(transcript: &str) -> String {
         .join("\n")
 }
 
-fn store_diagnostic_artifacts(client: &ApiClient, transcript: &str) -> Vec<String> {
+async fn store_diagnostic_artifacts(client: &ApiClient, transcript: &str) -> Vec<String> {
     const ECS_CHUNK_BYTES: usize = 512 * 1024;
     let content = redact_diagnostic_transcript(transcript);
-    let url = format!("{}/v1/ecs/store", client.base_url().trim_end_matches('/'));
     let timestamp = Utc::now().timestamp_millis();
-    content
+    let mut handles = Vec::new();
+    for (index, chunk) in content
         .as_bytes()
         .chunks(ECS_CHUNK_BYTES)
         .take(16)
         .enumerate()
-        .filter_map(|(index, chunk)| {
-            let body = json!({
-                "kind": "text",
-                "label": format!("bounded-pty-diagnostic-{timestamp}-part-{:02}", index + 1),
-                "content": String::from_utf8_lossy(chunk),
-            })
-            .to_string();
-            let mut child = Command::new("curl")
-                .args([
-                    "-fsS",
-                    "-X",
-                    "POST",
-                    "-H",
-                    "Content-Type: application/json",
-                    "--data-binary",
-                    "@-",
-                    "-m",
-                    "10",
-                    &url,
-                ])
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .ok()?;
-            child.stdin.as_mut()?.write_all(body.as_bytes()).ok()?;
-            let output = child.wait_with_output().ok()?;
-            if !output.status.success() {
-                eprintln!(
-                    "[WARN] ECS diagnostic chunk {} rejected: status={} error={}",
-                    index + 1,
-                    output.status,
-                    String::from_utf8_lossy(&output.stderr)
-                        .lines()
-                        .next()
-                        .unwrap_or("unknown")
-                );
-                return None;
+    {
+        let body = json!({
+            "kind": "text",
+            "label": format!("bounded-pty-diagnostic-{timestamp}-part-{:02}", index + 1),
+            "content": String::from_utf8_lossy(chunk),
+        });
+        match client.post("/v1/ecs/store", &body).await {
+            Ok(response) => {
+                if let Some(handle) = response.get("id").and_then(Value::as_str) {
+                    handles.push(handle.to_string());
+                }
             }
-            serde_json::from_slice::<Value>(&output.stdout)
-                .map_err(|error| {
-                    eprintln!(
-                        "[WARN] ECS diagnostic chunk {} response invalid: {}",
-                        index + 1,
-                        error
-                    );
-                    error
-                })
-                .ok()?
-                .get("id")
-                .and_then(Value::as_str)
-                .map(ToString::to_string)
-        })
-        .collect()
+            Err(error) => eprintln!(
+                "[WARN] ECS diagnostic chunk {} rejected: {}",
+                index + 1,
+                error
+            ),
+        }
+    }
+    handles
 }
 
 fn run_with_recording(
@@ -796,7 +756,7 @@ pub async fn run(command: Vec<String>, verbose: bool) -> anyhow::Result<()> {
     // 5. Turn complete - send bounded semantic output/handles to daemon.
     let raw_pty_capture = is_tui && std::env::var("FOCUSA_RAW_PTY_CAPTURE").as_deref() == Ok("1");
     let diagnostic_handles = if raw_pty_capture {
-        store_diagnostic_artifacts(&client, &transcript)
+        store_diagnostic_artifacts(&client, &transcript).await
     } else {
         Vec::new()
     };

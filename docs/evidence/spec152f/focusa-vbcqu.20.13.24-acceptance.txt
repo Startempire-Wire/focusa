@@ -1,0 +1,181 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.24
+Title: 152E.02.10 Run complete EDD commerce acceptance matrix
+Implementation commit: `c9c28704` (tests/spec152e_edd_commerce_acceptance_test.php)
+This atom is build-independent (locked-release correction; Cargo/release builds remain
+deferred until the operator's 50% gate). No contract, schema, or Rust file was changed.
+
+Exact surfaces
+- Product gate, checkout, identity hold, order binding, EDD SL issuance, Evaluation,
+  lifecycle, outbox, and reconciliation, exercised end to end through ONE
+  EDD-centered authority with one customer/order/license flow and no independent
+  install-site issuance:
+  tests/spec152e_edd_commerce_acceptance_test.php (exact verification)
+
+Bounded result
+- Paid Focusa (website/terminal/agent row): verified email -> product gate
+  (cart_gate_passed on a verified single-use token, exact server-owned mapping) ->
+  one branded EDD checkout intent (server price 697.00, opaque intent/cart/session
+  refs, registration -> checkout_pending) -> identity hold (matching verified
+  checkout email passes, issuance deferred) -> canonical order binding (one
+  issuance request, linked payment, opaque ir_ handle) -> canonical EDD Software
+  Licensing issuance (exactly one canonical key, one license row, registration ->
+  entitlement_issued, activation_limit 3 from the server-owned offer) -> lifecycle
+  projection (active/allowed, sequence 0 -> 1) -> transactional outbox (order_completed
+  appended in the same transaction as canonical truth; injected crash loses no
+  committed event and creates no orphan; dispatch exactly once) -> reconciliation
+  convergence. One customer, one order, one license; the full key appears only in the
+  bounded delivery envelope; journals store only keyed digests.
+- Paid UIAI: explicit UIAI mapping only (gate -> checkout intent -> binding ->
+  issuance with license_type_ref uiai_operator_lifetime_v1). Paid bundle: explicit
+  Focusa + UIAI grants in one account flow (exact_union at 1254.60, one account,
+  gate/intent/binding settle the composite; the composite carries no single
+  license_type_ref, so it can never masquerade as an implicit component grant; the
+  two component keys issue only through their explicit offers). One deterministic
+  non-fatal PHP 8.3 "Undefined array key license_type_ref" warning is emitted by the
+  locked spec152e-edd-order-binding contract when binding the composite offer (the
+  bundle intentionally defines no single license type); it is a pre-existing
+  contract artifact, not produced by this test's code, and the default run exits 0
+  with empty stderr.
+- Evaluation: verified account + eligibility -> exactly one verified_no_license
+  limited-access posture and one signed assertion, zero EDD order/key; prior
+  evaluation duplicate denied (EVALUATION_NOT_ELIGIBLE, no second posture); active
+  paid customer preserved (PAID_POSTURE_PRESERVED, no downgrade); no-automatic-expiry
+  duration.
+- Wrong product: cross-product cart and settlement denied (FACADE_PRODUCT_DENIED /
+  EMAIL_VERIFICATION_REQUIRED fail-closed), paid customer never downgraded.
+- Arbitrary amount/grants: caller commerce fields rejected on every surface
+  (gate, checkout intent incl. redirects, binding, issuance, lifecycle, outbox,
+  evaluation, reconciliation scope) with CLIENT_COMMERCIAL_FIELDS_FORBIDDEN /
+  FACADE_REDIRECT_DENIED / INPUT_RAW_EMAIL_FORBIDDEN.
+- Unrelated download: proven non-entitlement at gate, identity hold, and binding
+  (no_entitlement, zero protected items, zero licenses); frozen-registry scan shows
+  no catalog download reaches Focusa entitlement.
+- Duplicate/replayed order: idempotency replay returns the byte-identical decision;
+  duplicate completion returns the existing settlement (existing=true, 0 settled,
+  same issuance request handle); issuance retry returns the identical canonical key
+  with zero keys created; lifecycle replay is idempotent with no sequence bump. One
+  account/order/license result.
+- Changed email: fulfillment held (ACCOUNT_EMAIL_MISMATCH, opaque fh_/hr_ handles,
+  zero licenses); payment success alone can never release; a separately verified
+  link review releases to entitlement_ready with issuance still deferred.
+- Refund/revoke/expiry: canonical refund/revoke/expiry truth projected through the
+  lifecycle projector (refunded/revoked/expired, recovery_only, strictly monotonic
+  sequence 1 -> 2 -> 4 -> 6) with matching signed outbox events (refund_issued,
+  license_revoked, license_expired) appended in the canonical transaction; terminal
+  truth never reactivates (LICENSE_TERMINAL_REACTIVATION_DENIED for stale
+  completion, dispute-won, and expired reactivation); customers/orders/licenses
+  preserved; final sequence 8 after reconciliation repairs.
+- Authority outage: frozen registry fails closed at gate, checkout intent, and
+  binding (PRODUCT_MAPPING_REQUIRED / EDD_CHECKOUT_REQUIRED) with zero new local
+  licenses; the existing signed offline policy (evaluation posture + assertion)
+  stays valid and replayable; the authority sequence is untouched; a consumer outage
+  records bounded failure state, backs off, dead-letters after the attempt budget,
+  repairs, and redelivers exactly once without ever blocking or reverting the
+  canonical EDD commit.
+- Legacy install-site records: frozen registry classifies install-site records as
+  evidence-backed migration (install_stripe_active_*), quarantine (install_api_*),
+  or retire (install_refunded/revoked_*); a synthetic focusa_live_* key is preserved
+  and blocks canonical issuance (EDD_LICENSE_UNUSABLE) — never deleted, never
+  re-issued.
+- Reconciliation: dry-run applies nothing and reports the exact would-be repair set;
+  apply repairs every missing lifecycle projection + signed outbox event and
+  converges; repeated apply and post-apply dry-run report zero would-be repairs;
+  the focusa authority sequence advances monotonically by exactly the two repaired
+  focusa completions (5003 cancel + 5004 complete -> sequence 8); the EDD-free
+  evaluation posture without a signed lease event quarantines for operator review
+  (quarantine_ambiguous/lease) and the quarantine set stays stable on repeated
+  runs; the result handle is deterministic across identical runs.
+- Redaction: no raw email, customer/payment secret (cus_*), payment transaction id
+  (txn_commerce_*), full license key (outside the bounded delivery envelope), or
+  signing secret in any of the 16 scanned authority journals (gate decisions,
+  checkout intents, cart sessions, identity holds/releases, order bindings,
+  issuance requests, license issuances, evaluation issuances, lifecycle events,
+  outbox, deliveries, reconciliation runs/findings/repairs/quarantine). Exactly four
+  canonical EDD keys and the one preserved synthetic install-site key exist; the
+  adapter never issues a synthetic-prefixed key. Rollback is preservation-only on
+  every surface schema.
+
+Exact verification (exit codes)
+1. `php tests/spec152e_edd_commerce_acceptance_test.php` — exit 0 (run three times;
+   deterministic byte-identical output, md5 fce14d79af8e578f8e2aaf30e584426a,
+   empty stderr under the default PHP 8.3 CLI error settings).
+   {"schema":"focusa.spec152e.edd_commerce_acceptance_test.v1","positive_checks":284,
+   "negative_checks":32,"matrix_rows":["website_paid_focusa","terminal_paid_focusa",
+   "agent_paid_focusa","paid_uiai","bundle_exact_union","evaluation","wrong_product",
+   "arbitrary_amount_grants","unrelated_download","duplicate_replayed_order",
+   "changed_email_hold","refund","revocation","expiry","authority_outage",
+   "legacy_install_site"],"canonical_licenses_created":4,"synthetic_legacy_preserved":1,
+   "licenses_table":7,"bindings":5,"issuance_requests":5,"issuances":4,"postures":1,
+   "assertions":1,"evaluation_decisions":4,"lifecycle_events":11,"outbox_events":6,
+   "deliveries":5,"consumer_applications":5,"final_sequence":8,
+   "reconciliation_repairs":3,"reconciliation_converged":true,
+   "reconciliation_quarantine_stable":2,"reconciliation_handle_deterministic":true,
+   "identity_hold_release":"verified_link_review_only",
+   "entitlement_issuance":"canonical_edd_software_licensing_single_authority",
+   "authority":"one_customer_order_license_authority_no_install_site_issuance",
+   "storage":"opaque_refs_only_no_email_no_secrets_no_keys","result":"passed_fail_closed",
+   "result_handle":"ba74cf9baa78a4925d3db53560b4eb5f7e42b0c74996c0977d7468a58ffc5fd9"}
+   Bounded immutable result handle (SHA-256 of the exact output above):
+   ba74cf9baa78a4925d3db53560b4eb5f7e42b0c74996c0977d7468a58ffc5fd9
+
+Regression checks (exit codes)
+- All `tests/spec152e_*.php` tests pass with exit 0 (including the new
+  acceptance-matrix test and every prior surface test: product gate, checkout
+  intent, checkout email integrity, order binding, license issuance, evaluation
+  issuance, lifecycle projection, authority outbox, authority reconciliation,
+  verification/registration/identity/promotion/customer-adapter tests).
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry current: 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0.
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0.
+- `python3 tests/spec152e_facade_registry_contract_test.py` — exit 0.
+- `python3 tests/spec172_limited_access_contract_test.py` — exit 0.
+- `git diff --check` — exit 0, no whitespace errors.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom): spec152e
+  document_authority_test.py (exit 1, spec152-final-audit-status.v1.yaml missing a
+  publication-rule token for later atoms) and spec152f_surface_reconciliation_
+  contract_test.py (exit 1, Spec 152F reconciliation index stale at the base commit).
+  Cargo checks/builds remain deferred per the operator's 50% gate (this atom is
+  build-independent).
+
+Tests added
+- spec152e_edd_commerce_acceptance_test.php: 284 positive + 32 negative checks
+  covering the complete Spec 152E section 23 commerce matrix through one
+  EDD-centered customer/order/license authority: paid Focusa website/terminal/agent
+  journey (gate -> branded checkout -> identity hold -> binding -> canonical EDD SL
+  key -> lifecycle -> outbox -> reconciliation, one customer/order/license); paid
+  UIAI (explicit UIAI grants only); bundle (explicit Focusa + UIAI exact_union
+  grants in one account flow; composite never masquerades as an implicit component
+  grant); Evaluation (verified eligibility -> one verified_no_license posture +
+  signed assertion, no EDD key; duplicate denied; paid posture preserved); wrong
+  product (no cross-product cart/settlement, no downgrade); arbitrary
+  amount/grants (caller commerce fields forbidden across gate, checkout intent,
+  binding, issuance, lifecycle, outbox, evaluation, reconciliation); unrelated
+  download (non-entitlement at gate/hold/binding + frozen catalog scan); duplicate/
+  replayed order (byte-identical replay, existing settlement, identical key on
+  retry, lifecycle replay idempotent); changed email (fulfillment held,
+  verified-link-only release); refund/revoke/expiry (monotonic sequence,
+  recovery_only, terminal never reactivates, history preserved, signed outbox
+  events dispatched exactly once); authority outage (no new local license, signed
+  offline policy replayable, consumer-outage backoff/dead-letter/repair with
+  exactly-once delivery and canonical commit never blocked); legacy install-site
+  records (evidence-backed migrate/quarantine/retire classification; synthetic key
+  preserved and blocking); reconciliation (dry-run semantics, apply convergence,
+  monotonic sequence, ambiguous-lease quarantine stability, deterministic result
+  handle); redaction across 16 authority journals; preservation-only rollback on
+  every surface schema; bounded immutable result handle.
+
+Rollback
+- Revert only this atom's implementation commit `c9c28704` (the acceptance test and
+  this evidence record if required). Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints,
+  Evidence, and migration journals; rollback is preservation-only and never deletes
+  customer/order/license/sequence/audit truth.
+
+No push, deploy, release, merge, or Beads mutation was performed.

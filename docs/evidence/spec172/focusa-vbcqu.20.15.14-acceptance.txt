@@ -1,0 +1,152 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.15.14
+Title: 172.02.05 Issue UIAI Operator Lifetime v1 with hosted-resource exclusions
+Implementation commit: `4d25c015` (base HEAD `75058feb`, branch atom/focusa-vbcqu.20.15.14,
+based on local/luna-152f-reducer)
+Recorded at: 2026-08-06 (worktree execution)
+
+Exact surfaces
+- WPUIAI EDD License Type projector for UIAI:
+  `docs/contracts/spec172-uiai-edd-license-type-projector.v1.php`
+  (`UiaiSpec172UiaiOperatorProjector`, reusing the shared projection journal
+  schema migration from the prior atom's `FocusaSpec172LicenseTypeProjectionMigration`).
+  Consumes the issued canonical EDD Software Licensing key for one verified complete
+  eligible UIAI order and projects `uiai_operator_lifetime_v1` from canonical EDD truth
+  (order binding journal, SL issuance journal, canonical order/item/license rows,
+  server-owned dedicated Downloads offer).
+- UIAI grant/child-token fixture:
+  `docs/contracts/spec172-uiai-grant-child-token-fixture.v1.php` (derives the machine
+  execution credential payload and the bounded operator-node child token exclusively
+  from the accepted projection; bounded credential lifetime for the lifetime
+  entitlement; 15-minute child-token TTL matching the runtime broker bound in
+  crates/focusa-license/src/uiai_child_token.rs).
+- Hosted-resource exclusion registry:
+  `docs/contracts/spec172-uiai-hosted-resource-exclusion-registry.v1.php` (frozen
+  first-sale deny list and fail-closed inclusion checks).
+- `tests/spec172_uiai_operator_issuance_test.php` (exact verification).
+
+Bounded result
+- One verified complete eligible UIAI order (download binding 1002 ->
+  uiai_operator_lifetime_v1 at the canonical 697.00 USD price) settles exactly one
+  issuance request, issues exactly one canonical EDD Software Licensing human key, and
+  projects exactly one `uiai_operator_lifetime_v1` grant. The projection freezes the
+  seven local/product family set (uiai_public_observation, uiai_browser_action,
+  uiai_persistence, uiai_diagnostics, uiai_proof_packets, uiai_batch_responsive,
+  uiai_supported_integrations; SHA-256 family digest
+  `7d6ffc5b…`, Spec 172 section 7.2), seat/node limits (1 operator seat, 3 shared
+  operator_shared_v1 nodes), price version (`uiai_operator_lifetime_v1.697.00.v1`,
+  minor units 69700), the frozen hosted-resource exclusion list and digest
+  (`e2848b6e…`, eight exclusions: unlimited hosted compute, paid proxies, third-party
+  API consumption, paid model usage, managed hosting, resale, redistribution, and
+  product embedding; `hosted_resources_included` empty), and a strictly monotonic
+  per-account authority sequence (first projection sequence 1, advanced atomically with
+  the journal row; ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED on regression).
+- Duplicate issuance is impossible: idempotency-key replay returns the byte-identical
+  decision with zero new rows, and a duplicate projection call for the same issued
+  request returns the same projection with existing=true and projections_created=0 (the
+  projection journal is UNIQUE on issuance_request_key). The authority sequence is never
+  bumped by replays or duplicates.
+- Hosted/metered rights remain denied: the exclusion registry denies every one of the
+  eight frozen exclusions and any unknown hosted resource with the public-safe stable
+  code `HOSTED_RESOURCE_NOT_INCLUDED`; the projection and the grant/child-token fixture
+  carry the frozen exclusion list and digest so no runtime can re-derive hosted rights
+  from local or caller tables.
+- Focusa-only orders cannot obtain UIAI: a fully eligible Focusa order issues its own
+  canonical Focusa key but can never project a UIAI grant (LICENSE_TYPE_NOT_INCLUDED at
+  projection, zero rows, sequence never advanced). The reverse holds too: a UIAI license
+  can never project focusa_operator_lifetime_v1 (LICENSE_TYPE_NOT_INCLUDED in the prior
+  atom's Focusa projector), and replaying an already-projected UIAI handle through the
+  Focusa projector returns the existing UIAI projection (product uiai_engine), never a
+  fabricated Focusa grant, with zero new rows.
+- Wrong price (a settled item whose price id no longer matches the dedicated offer:
+  PRODUCT_MAPPING_REQUIRED; a never-matching price id fails at the binding boundary),
+  wrong account (EDD_ORDER_UNVERIFIED), refunded/revoked/pending orders
+  (REFUNDED/REVOKED/EDD_ORDER_PENDING), projection before issuance, revoked or tampered
+  canonical licenses (EDD_LICENSE_UNUSABLE), checkout-disabled offers
+  (EDD_CHECKOUT_REQUIRED), drifted download mappings (PRODUCT_MAPPING_REQUIRED),
+  caller-controlled commerce fields including hosted-resource metadata
+  (CLIENT_COMMERCIAL_FIELDS_FORBIDDEN), and idempotency conflicts
+  (IDEMPOTENCY_CONFLICT) create zero projections and never advance the sequence. The
+  truly frozen dedicated Downloads contract (checkout disabled, no fixture mapping) also
+  denies.
+- The UIAI grant/child-token fixture derives the `focusa.uiai_grant.v1` payload and the
+  `focusa.uiai_child_token.v1` child token exclusively from the projection: explicit
+  product (uiai_engine), license type, price version, frozen family digest, one seat,
+  three shared nodes, the denied hosted-resource boundary with its frozen digest,
+  whole-order 30-day refund policy, and the projection sequence; the credential refresh
+  window is bounded (90 days), offline grace is bounded (30 days past the refresh
+  window) while the entitlement term stays `lifetime` (Spec 172 section 14), and the
+  child token TTL never exceeds 15 minutes (Spec 172 section 14 runtime bound).
+  Tampered limits, family digest, hosted-resource boundary (a granted exclusion, a
+  tampered exclusion digest), over-TTL child tokens, and non-projection inputs fail
+  validation closed.
+- No anonymous product capability, no local/self-issued grant, no caller-controlled
+  product, price, License Type, family, feature, limit, node, seat, hosted right, or
+  commercial right, and no presenter-owned policy. No raw email, key, token, customer
+  row, credential, or card data in journals, decisions, fixtures, or evidence (verified
+  by regex scans: no email address, no full canonical key, no payment key, no card
+  pattern). The projection journal stores only the keyed license digest and mask. Legacy
+  Download 453 is never referenced and cannot grant.
+
+Exact verification (exit codes)
+Command (run literally from the canonical project root):
+  php tests/spec172_uiai_operator_issuance_test.php
+Exit code: 0
+  schema=focusa.spec172.uiai_operator_issuance_test.v1
+  positive_checks=172 negative_checks=37 projections_created=1
+  canonical_licenses_created=11 license_type=uiai_operator_lifetime_v1
+  product=uiai_engine price_version=uiai_operator_lifetime_v1.697.00.v1
+  price_usd=697.00 family_count=7
+  family_digest=7d6ffc5bacf1fd8132d2bbfd5db028587ca932aeb4b97c8085684cf4a3149da0
+  hosted_resource_exclusions=8
+  hosted_resource_exclusion_digest=e2848b6e556b9c2d29c06b879091c6bdbfb0110629e1c409187d0116ec98c241
+  operator_seats=1 node_limit=3 node_set=operator_shared_v1 term=lifetime
+  sequence=1 grant_child_token_fixture=derived_from_projection_bounded_credential_explicit_hosted_boundary
+  result=passed_fail_closed
+No cargo build was required: this atom's exact surfaces are PHP contracts plus the PHP
+test; the exact verification command is the PHP test above (PHP-only worktree, matching
+the prior 172.02.03/172.02.04 and 152E.02.05 atoms).
+
+Regression checks (exit codes)
+- php tests/spec172_focusa_operator_issuance_test.php — exit 0 (prior atom, shared
+  projection journal).
+- php tests/spec172_edd_operator_products_test.php — exit 0 (dedicated Downloads).
+- php tests/spec152e_edd_license_issuance_test.php — exit 0 (SL issuance dependency).
+- php tests/spec152e_edd_order_binding_test.php — exit 0 (order binding dependency).
+- php tests/spec172_verified_access_schema_test.php — exit 0.
+- php tests/spec172_limited_assertion_test.php — exit 0.
+- Full sweep of tests/spec152e_*.php — all exit 0.
+- python3 tests/spec172_*.py (call_stack_contract, document_authority,
+  dynamic_operation_manifest, family_inheritance, focusa_limited_project,
+  license_type_contract, license_type_lifecycle, limited_access_contract,
+  limited_assertion_vector, no_sales_inventory, public_commerce_baseline,
+  taskgraph_contract) — all exit 0.
+
+Tests added
+- tests/spec172_uiai_operator_issuance_test.php (209 checks: 172 positive + 37
+  negative): one eligible UIAI item -> one canonical key + one frozen projection with
+  family digest, seat/node limits, price version, hosted-resource exclusion list and
+  digest, and sequence; idempotent replay; duplicate projection call; grant/child-token
+  fixture derivation and validation (including hosted-boundary tampering and child-token
+  TTL); hosted-resource exclusion registry fail-closed denials; wrong product
+  (Focusa-only order) and cross-product guards; wrong price/account;
+  refunded/revoked/pending orders; pre-issuance, revoked and tampered licenses;
+  checkout-disabled and drifted offers; caller commerce fields including hosted-resource
+  metadata; idempotency conflicts; rollback preservation event; full redaction scans.
+
+Remaining blockers
+- None for this atom. Checkout activation, Bundle single-SKU/two-grant implementation
+  (172.02.06), refund/revoke/downgrade settlement (172.02.07), and the full commerce
+  matrix (172.02.08) remain downstream approved atoms.
+
+Rollback
+- Revert only this atom's commit (the UIAI projector contract, the hosted-resource
+  exclusion registry, the UIAI grant/child-token fixture, the test, and this evidence
+  file). Preserve verified identities, customers, orders, refunds, License Types, keys,
+  nodes, sequences, customer data, migration journals, evidence, and accepted unrelated
+  work.
+- Rollback must not invent an implicit mapping for Download 453, enable checkout, or
+  delete the frozen dedicated Downloads, Spec 152E registry, or prior projection journal
+  records.
+
+No push, deploy, release, merge, or Beads mutation was performed.

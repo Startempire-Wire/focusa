@@ -1,0 +1,74 @@
+Spec 172 atom acceptance: focusa-vbcqu.20.15.19
+Date: 2026-08-06
+Repository state: working tree (no commit yet)
+
+Implemented surfaces:
+- crates/focusa-core/src/limited_project.rs (new)
+- crates/focusa-core/src/entitlement_execution_guard.rs (modified)
+- crates/focusa-core/src/lib.rs (modified)
+- crates/focusa-core/src/license.rs (modified)
+- tests/spec172_focusa_limited_project_test.py (new)
+
+Acceptance summary:
+- Added ActiveProjectGuard with check_mutation that enforces exactly one
+  mutable project in verified-no-license posture. Mutation in the explicitly
+  selected active project is allowed; mutation in a second project denies
+  with DeniedSecondProject carrying upgrade/switch action; mutation without
+  any explicit selection denies with DeniedNoSelection requiring operator
+  choice.
+- Paid entitlement (BaseProductDecision::Entitled) bypasses the project
+  guard entirely — the base product gate handles the rest.
+- ActiveProjectSelection persists to ~/.config/focusa/active-project-selection.json
+  with schema "focusa.active_project_selection.v1".
+- switch_active_project and persist_active_project_from_path provide
+  explicit switching — always permitted, preserves all project data, never
+  deletes. clear_active_project_selection removes the persisted selection.
+- Added evaluate_entitlement_execution_for_project wrapper in the
+  entitlement execution guard that applies the project guard only for
+  BaseFocusa ValueMutation operations with AllowVerifiedLimited reason
+  (verified-no-license posture). All other postures and families pass
+  through unchanged.
+- Read projection and customer data export remain always available
+  regardless of active project selection — verified by
+  verified_limited_project_read_export_always_available and
+  verified_limited_project_export_always_available tests.
+- No activity heuristics are used; no data is deleted; the guard is a pure
+  function of posture + explicit selection + project root.
+
+Exact verification:
+1. python3 tests/spec172_focusa_limited_project_test.py — exit 0
+   Spec 172 limited project test passed
+   verification=verified_limited_project
+2. cargo test -p focusa-core verified_limited_project — exit 0
+   test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 893 filtered out
+
+Regression checks:
+- cargo test -p focusa-core license — exit 0: 10 passed, 0 failed (900 filtered out)
+- cargo check -p focusa-core — exit 0, finished cleanly (no warnings)
+
+Tests added (17 total):
+- limited_project::tests::verified_limited_project_allows_mutation_in_active_project
+- limited_project::tests::verified_limited_project_denies_mutation_in_second_project
+- limited_project::tests::verified_limited_project_denies_mutation_without_selection
+- limited_project::tests::verified_limited_project_allows_paid_entitlement_regardless_of_selection
+- limited_project::tests::verified_limited_project_denied_posture_is_denied
+- limited_project::tests::verified_limited_project_switch_preserves_and_does_not_delete
+- limited_project::tests::verified_limited_project_empty_project_root_is_rejected
+- limited_project::tests::verified_limited_project_read_export_never_blocked
+- limited_project::tests::verified_limited_project_serialization_round_trips
+- limited_project::tests::verified_limited_project_decision_serialization_round_trips
+- entitlement_execution_guard::tests::verified_limited_project_allows_mutation_in_active_project
+- entitlement_execution_guard::tests::verified_limited_project_denies_second_project_mutation
+- entitlement_execution_guard::tests::verified_limited_project_denies_mutation_without_explicit_selection
+- entitlement_execution_guard::tests::verified_limited_project_paid_entitlement_bypasses_project_guard
+- entitlement_execution_guard::tests::verified_limited_project_read_export_always_available
+- entitlement_execution_guard::tests::verified_limited_project_export_always_available
+- entitlement_execution_guard::tests::verified_limited_project_switch_preserves_read_access
+
+Rollback:
+Revert only the five files listed in "Implemented surfaces". Preserve
+verified identities, customers, orders, refunds, License Types, keys,
+nodes, sequences, data, migration journals, evidence, and accepted
+unrelated work.
+
+No push, deploy, release, merge, or Beads mutation was performed.

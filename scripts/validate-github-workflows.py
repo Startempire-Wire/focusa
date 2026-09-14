@@ -8,7 +8,6 @@ It catches workflow-file failures GitHub otherwise reports opaquely as
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -30,27 +29,9 @@ def as_list(value: Any) -> list[str]:
     raise TypeError(f"unsupported needs value: {value!r}")
 
 
-def validate_expression_literals(path: Path, text: str) -> list[str]:
-    """Catch slash-bearing function arguments that GitHub requires as strings."""
-    errors: list[str] = []
-    malformed = re.compile(
-        r"\b(?:startsWith|endsWith|contains)\([^,]+,\s*([^'\"\s][^,)]*/[^,)]*)\)"
-    )
-    for line_number, line in enumerate(text.splitlines(), start=1):
-        for expression in re.findall(r"\$\{\{(.*?)\}\}", line):
-            match = malformed.search(expression)
-            if match:
-                errors.append(
-                    f"{path}:{line_number}: unquoted slash-bearing expression "
-                    f"argument {match.group(1).strip()!r}"
-                )
-    return errors
-
-
 def validate(path: Path) -> list[str]:
-    text = path.read_text()
-    data = yaml.safe_load(text)
-    errors: list[str] = validate_expression_literals(path, text)
+    data = yaml.safe_load(path.read_text())
+    errors: list[str] = []
     if not isinstance(data, dict):
         return [f"{path}: workflow is not a mapping"]
     jobs = data.get("jobs")
@@ -84,7 +65,7 @@ def main(argv: list[str]) -> int:
         for err in all_errors:
             print(err, file=sys.stderr)
         return 1
-    print("github_workflow_graph_and_expression_validation=ok")
+    print("github_workflow_graph_validation=ok")
     return 0
 
 

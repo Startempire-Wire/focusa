@@ -1,0 +1,75 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "parent": "focusa-vbcqu.20.14",
+  "phase": "00",
+  "schema": "focusa.spec152f_implementation_phase.v1",
+  "task_count": 4,
+  "tasks": [
+    {
+      "code": "00.01",
+      "dependencies": [],
+      "done_condition": "All authority contracts name Spec 152F, root .20.14, and final .52; no active text requires 395 independent paywalls or weakens EDD authority.",
+      "estimate_minutes": 90,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.1-acceptance.txt",
+      "exact_surfaces": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md; docs/contracts/spec152-document-set.v1.yaml; spec152 implementation-owner, next-command, open-gap, blocker, final-audit, and supersession contracts; tests/spec152_documentation_consistency_gate.py; tests/spec152f_document_authority_test.py",
+      "id": "focusa-vbcqu.20.14.1",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Updated authority contracts and a static document-authority test.",
+      "required_steps": "Add Spec 152F to every active licensing authority index. State that it simplifies enforcement but does not weaken Spec 152E identity/EDD/lease authority. Register work root focusa-vbcqu.20.14, final atom .52, Spec 158 exclusion, and stable-publication prohibition.",
+      "title": "Register Spec 152F authority and release block",
+      "verification": "python3 tests/spec152_documentation_consistency_gate.py && python3 tests/spec152e_document_authority_test.py && python3 tests/spec152f_document_authority_test.py"
+    },
+    {
+      "code": "00.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.1"
+      ],
+      "done_condition": "Every grid cell and feature identifier in Spec 152F has exactly one machine policy; dormant dimensions cannot deny capability.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.2-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec152f-entitlement-policy.v1.yaml; docs/contracts/spec152-feature-registry.v1.yaml; tests/fixtures/spec152f-entitlement-policy-cases.v1.json; tests/spec152f_entitlement_policy_contract_test.py",
+      "id": "focusa-vbcqu.20.14.2",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Versioned policy registry, JSON cases, deterministic validator, and digest.",
+      "required_steps": "Encode the nine capability families, base/add-on/recovery treatment, eight entitlement states, four premium families, current feature-ID compatibility, stable-update/export exceptions, and dormant future dimensions. Reject duplicate family IDs, unknown active features, and recovery entries that require commercial grants.",
+      "title": "Freeze machine-readable entitlement policy registry",
+      "verification": "python3 tests/spec152f_entitlement_policy_contract_test.py"
+    },
+    {
+      "code": "00.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.2"
+      ],
+      "done_condition": "A weaker model can locate every implementation stage and no presenter or facade owns a commercial decision.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.3-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec152f-entitlement-call-stack.v1.yaml; docs/contracts/spec152f-entitlement-errors.v1.json; crates/focusa-license/src; crates/focusa-core/src/license.rs; crates/focusa-api/src/middleware/entitlement.rs",
+      "id": "focusa-vbcqu.20.14.3",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Typed call-stack contract and stable error fixture.",
+      "required_steps": "Document entrypoint -> classifier -> identity/permission -> recovery/read -> lease -> base/premium -> reservation -> execution for HTTP and non-HTTP paths. Assign one owner per stage. Reuse existing ENTITLEMENT_* errors; add only typed errors needed for unknown policy, family, or dormant activation.",
+      "title": "Freeze resolver call stack, ownership, and stable errors",
+      "verification": "python3 tests/spec152f_call_stack_contract_test.py"
+    },
+    {
+      "code": "00.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.2"
+      ],
+      "done_condition": "Counts equal 395, each row appears once, no row is silently called free, and the manifest contains no pricing/SKU decision per surface.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.4-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec152-entitlement-coverage.v1.json; docs/contracts/spec152f-surface-reconciliation.v1.json; scripts/generate-spec152-entitlement-coverage.py",
+      "id": "focusa-vbcqu.20.14.4",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Deterministic reconciliation manifest with source digests and counts.",
+      "required_steps": "Snapshot the 199 REST, 86 CLI, 83 menubar, and 27 filename-derived entries. Preserve the 31 unknown-method routes. Mark seven test-only file matches as scanner exclusions. Assign every row a future resolution owner: base, premium family, recovery/read, metadata repair, or inherited operation.",
+      "title": "Freeze the 395-surface reconciliation baseline",
+      "verification": "python3 tests/spec152f_surface_reconciliation_contract_test.py"
+    }
+  ]
+}

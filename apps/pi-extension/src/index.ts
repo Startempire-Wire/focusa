@@ -14,6 +14,7 @@ import {
   getActiveWorkpointPacket,
   isProjectRootAuthoritySafe,
   makeAttachmentKey,
+  makeSessionBootstrapAttachmentKey,
   runWithAttachmentRuntime,
 } from "./state.js";
 import {
@@ -36,25 +37,29 @@ import { registerSession } from "./session.js";
 import { registerTurns } from "./turns.js";
 import { registerPolishHooks } from "./polish.js";
 import { registerMissionCanvasWidget } from "./mission-canvas-widget.js";
+import { registerModelPlanAdvisory } from "./model-plan-advisory.js";
 
+// 321: Windows TUI scheduled render can raise uncaught write UNKNOWN on process.stdout.write.
+// Contain it at host boundary so a Focusa session does not exit. Upstream pi-tui fix is canonical.
+if (process.platform === "win32") {
+  const writeUnknownGuard = (err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("write UNKNOWN") || msg.includes("EPIPE") || msg.includes("ERR_STREAM_WRITE_AFTER_END")) {
+      try {
+        console.warn(`[focusa-pi-bridge] suppressed host write exception on Windows: ${msg}`);
+      } catch {}
+      return;
+    }
+    // Not our containment case — rethrow to preserve semantics
+    throw err;
+  };
+  // Guard both uncaughtException and unhandledRejection that surfaces the write
+  process.on("uncaughtException", writeUnknownGuard as NodeJS.UncaughtExceptionListener);
+}
 export default function focusaPiBridge(pi: ExtensionAPI) {
   // Extension module load happens before daemon-backed project verification.
   // Bootstrap on a host scope; never fabricate project authority just to load Pi.
-  const extensionKey: AttachmentKey = {
-    workstream: {
-      root_scope: {
-        scope_kind: "host",
-        scope_id: "host:pi-extension-bootstrap",
-        root_path: "/",
-        canonical_name: "Pi Extension Bootstrap",
-        fingerprint: "bootstrap:pi-extension",
-      },
-      continuity_id: "extension-bootstrap",
-    },
-    instance_id: "extension-bootstrap",
-    session_id: `pi-extension-${process.pid}`,
-    attachment_id: "extension-bootstrap",
-  };
+  const extensionKey: AttachmentKey = makeSessionBootstrapAttachmentKey(`pi-extension-${process.pid}`);
   const withRuntime = <T>(fn: () => T): T => runWithAttachmentRuntime(extensionKey, fn);
   const sessionBinding = new PiExtensionSessionBinding();
   return withRuntime(() => {
@@ -79,7 +84,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
       );
       // Let session_start establish verified identity from the host bootstrap.
       // Promote only after initFocusa has registered the exact project ScopeRef.
-      if (!verifiedScopeRefForRoot(projectRoot)) return extensionKey;
+      if (!verifiedScopeRefForRoot(projectRoot)) return makeSessionBootstrapAttachmentKey(sessionId);
       return makeAttachmentKey({ projectRoot, continuityId, sessionId, attachmentId: sessionId });
     };
     const prepareRuntime = (key: AttachmentKey) => {
@@ -162,10 +167,13 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     }
 
     // ── Wire all modules ────────────────────────────────────────────────────
-    // Acquire the process-wide lease before any Focusa handlers are registered.
-    // A duplicate installation emits one diagnostic and registers nothing.
-    const ownsCompactionCoordinator = registerAutoCompaction(pi, () =>
-      proactiveCompactionPolicy(getAttachmentRuntime().cfg)
+    // Acquire or rebind the process-wide lease before any Focusa handlers are
+    // registered. Only a simultaneously active duplicate registers nothing;
+    // a stale session/reload owner must yield so the rebuilt registry is complete.
+    const ownsCompactionCoordinator = registerAutoCompaction(
+      pi,
+      () => proactiveCompactionPolicy(getAttachmentRuntime().cfg),
+      () => getAttachmentRuntime().cfg
     );
     if (!ownsCompactionCoordinator) return;
     registerTools(pi);
@@ -177,6 +185,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     registerSession(pi);
     registerTurns(pi);
     registerPolishHooks(pi);
+    registerModelPlanAdvisory(pi);
 
     // ── §33.6: Optional proxy provider registration ───────────────────────
     // Default off: normal Focusa/Pi bridge sessions use direct providers plus
@@ -202,7 +211,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     }
 
     // ── §37.4: Keyboard shortcuts ──────────────────────────────────────────
-    pi.registerShortcut("ctrl+shift+f", {
+    pi.registerShortcut("ctrl+alt+f", {
       description: "Show Focusa status",
       handler: async (ctx) => {
         const up = getFocusaAvailable() ? "✅" : "❌";

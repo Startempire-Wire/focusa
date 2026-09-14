@@ -1,0 +1,24 @@
+Spec 152E facade security acceptance evidence
+Work item: focusa-vbcqu.20.13.29
+Scope: facade security contract/middleware and exact adversarial PHP/Node tests
+Pinned source/test commit: 5680aa12c1041a1c998b235cc61a23690631864d
+Immutable result handle: git:5680aa12c1041a1c998b235cc61a23690631864d:docs/evidence/spec152e/focusa-vbcqu.20.13.29-acceptance.txt
+
+Command: php tests/spec152e_facade_security_test.php
+Exit code: 0
+Bounded result: {"schema":"focusa.spec152e.facade_security_adversarial_matrix.v1","positive_checks":16,"negative_checks":19,"result":"passed_fail_closed"}
+
+Command: node tests/spec152e_facade_browser_security_test.mjs
+Exit code: 0
+Bounded result: {"schema":"focusa.spec152e.facade_browser_security_adversarial_matrix.v1","positive_checks":17,"negative_checks":34,"result":"passed_fail_closed"}
+
+Counts:
+- PHP: 16 positive checks; 19 negative checks.
+- Node: 17 positive checks; 34 negative checks.
+- Total: 33 positive checks; 53 negative checks.
+
+Remaining issues:
+- None within this scoped acceptance atom. Administrative closure, publication, deployment, merge, release, and push were not performed.
+
+Rollback:
+Revert pinned atom commit 5680aa12c1041a1c998b235cc61a23690631864d and the evidence-link follow-up commit containing this revision. This removes only docs/contracts/spec152e-facade-security.v1.php, public/activation/focusa-facade-security.mjs, tests/spec152e_facade_security_test.php, tests/spec152e_facade_browser_security_test.mjs, and this evidence file. Preserve EDD customer/order/refund truth, verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence, and migration journals.

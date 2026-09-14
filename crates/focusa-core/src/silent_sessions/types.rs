@@ -301,11 +301,15 @@ mod tests {
         Utc.with_ymd_and_hms(2026, 7, 17, 12, 0, 0).unwrap()
     }
 
+    fn project_root() -> String {
+        crate::test_support::absolute_path_string("silent-session-types-project")
+    }
+
     fn config() -> SilentSessionConfig {
         SilentSessionConfig::new(
             IdentityConfig {
                 display_name: "proof".into(),
-                project_root: "/repo/focusa".into(),
+                project_root: project_root(),
                 continuity_id: "cont-1".into(),
                 work_item_ref: Some("focusa-a6yq6.2.1".into()),
                 mission: "prove domain".into(),
@@ -345,7 +349,7 @@ mod tests {
             Err(SilentSessionTypeError::ProjectRootNotAbsolute)
         ));
         assert!(matches!(
-            SilentSessionAuthority::new("/repo", " "),
+            SilentSessionAuthority::new(project_root(), " "),
             Err(SilentSessionTypeError::EmptyField {
                 field: "continuity_id"
             })
@@ -365,7 +369,7 @@ mod tests {
     #[test]
     fn draft_session_is_scope_bound_and_versioned() {
         let revision = ConfigRevisionId::new();
-        let authority = SilentSessionAuthority::new("/repo/focusa", "cont-1").unwrap();
+        let authority = SilentSessionAuthority::new(project_root(), "cont-1").unwrap();
         let session =
             SilentSession::draft(authority.clone(), "proof", "mission", revision, now()).unwrap();
         assert_eq!(session.authority, authority);
@@ -376,7 +380,7 @@ mod tests {
     #[test]
     fn owned_draft_captures_immutable_authorization_facts() {
         let session = SilentSession::draft_owned(
-            SilentSessionAuthority::new("/repo/focusa", "cont-1").unwrap(),
+            SilentSessionAuthority::new(project_root(), "cont-1").unwrap(),
             "principal:device:mac",
             "wirebot",
             "proof",
@@ -390,7 +394,7 @@ mod tests {
         assert_eq!(session.owner_os_user, "wirebot");
         assert!(
             SilentSession::draft_owned(
-                SilentSessionAuthority::new("/repo/focusa", "cont-1").unwrap(),
+                SilentSessionAuthority::new(project_root(), "cont-1").unwrap(),
                 "",
                 "wirebot",
                 "proof",
@@ -404,7 +408,7 @@ mod tests {
 
     #[test]
     fn legacy_projection_without_ownership_deserializes_fail_closed() {
-        let authority = SilentSessionAuthority::new("/repo/focusa", "cont-1").unwrap();
+        let authority = SilentSessionAuthority::new(project_root(), "cont-1").unwrap();
         let session = SilentSession::draft(
             authority,
             "proof",

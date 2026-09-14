@@ -29,7 +29,12 @@ async function getJson(endpoint) {
     checkedEndpoints.push(endpoint);
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(requestTimeoutMs) });
-      if (!res.ok) throw new Error(`${endpoint} returned HTTP ${res.status}`);
+      if (!res.ok) {
+        const err = new Error(`${endpoint} returned HTTP ${res.status}`);
+        err.status = res.status;
+        err.body = await res.text().catch(() => "");
+        throw err;
+      }
       return await res.json();
     } catch (err) {
       lastErr = err;
@@ -90,8 +95,8 @@ if (!apiRef.includes('/v1/ontology/tool-contracts')) fail('API reference missing
 if (safeFixturesMode) {
   const safeFixtureEndpoints = [
     { family: 'workpoint', representative_tools: ['focusa_workpoint_resume'], endpoint: '/v1/workpoint/current' },
-    { family: 'work_loop', representative_tools: ['focusa_work_loop_status'], endpoint: '/v1/work-loop/status?summary_only=true' },
-    { family: 'tree_lineage', representative_tools: ['focusa_tree_head', 'focusa_lineage_tree'], endpoint: '/v1/lineage/head' },
+    { family: 'work_loop', representative_tools: ['focusa_work_loop_status'], endpoint: '/v1/work-loop/status?summary_only=true&project_root=%2Ftmp%2Ffocusa-safe-fixture&continuity_id=safe-fixture' },
+    { family: 'tree_lineage', representative_tools: ['focusa_tree_head', 'focusa_lineage_tree'], endpoint: '/v1/lineage/head?session_id=safe-fixture-session' },
     { family: 'metacognition', representative_tools: ['focusa_metacog_recent_reflections'], endpoint: '/v1/metacognition/reflections/recent' },
     { family: 'focus_state', representative_tools: ['focusa_current_focus'], endpoint: '/v1/focus/frame/current' },
   ];
@@ -100,8 +105,16 @@ if (safeFixturesMode) {
       const body = await getJson(probe.endpoint);
       fixtureChecks.push({ ...probe, status: 'passed', response_kind: typeof body, mutates: false });
     } catch (err) {
-      fixtureChecks.push({ ...probe, status: 'blocked', error: err.message, mutates: false });
-      fail('safe fixture read-only probe failed', { endpoint: probe.endpoint, error: err.message });
+      // #305: authority-gated or validation responses are typed evidence, not
+      // daemon failure. Only transport-level errors fail a safe fixture.
+      if (err?.status === 403 || /entitlement|authority/.test(String(err?.body || ''))) {
+        fixtureChecks.push({ ...probe, status: 'authority_gated', error: err.message, mutates: false });
+      } else if (err?.status === 400 || err?.status === 422) {
+        fixtureChecks.push({ ...probe, status: 'validation_typed', error: err.message, mutates: false });
+      } else {
+        fixtureChecks.push({ ...probe, status: 'blocked', error: err.message, mutates: false });
+        fail('safe fixture read-only probe failed', { endpoint: probe.endpoint, error: err.message });
+      }
     }
   }
 }

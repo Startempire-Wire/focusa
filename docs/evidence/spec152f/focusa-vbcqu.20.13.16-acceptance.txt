@@ -1,0 +1,115 @@
+Spec 152E acceptance record
+Work item: focusa-vbcqu.20.13.16
+Title: 152E.02.02 Create branded EDD checkout intent from verified registration
+Implementation commit: `bd728b52` (code + test)
+
+Exact surfaces
+- Checkout service: docs/contracts/spec152e-edd-checkout-intent.v1.php
+  (FocusaSpec152eEddCheckoutIntentService — activation.checkout intent creation)
+- EDD cart/session adapter: docs/contracts/spec152e-edd-checkout-intent.v1.php
+  (FocusaSpec152eEddCartSessionAdapter — server-owned synthetic cart session and
+  synthetic order fixture)
+- Server-owned product registry (read-only, consumed via constructor injection):
+  the frozen docs/contracts/spec152e-edd-product-registry.v1.php remains
+  byte-identical; the checkout service resolves offers only through it
+- Facade return-handle registry: docs/contracts/spec152e-edd-checkout-intent.v1.php
+  (FocusaSpec152eFacadeReturnHandleRegistry — named allowlisted return handles and
+  branded facade checkout URL)
+- tests/spec152e_edd_checkout_intent_test.php (exact verification)
+
+Bounded result
+- Added the Spec 152E branded EDD checkout intent contract. activation.checkout
+  creates exactly one server-owned EDD checkout intent for a mailbox-verified,
+  live, promoted (authority account + EDD customer bound) registration and returns
+  a branded facade checkout URL. Unverified, expired, denied, and unpromoted
+  registrations fail closed (EMAIL_VERIFICATION_REQUIRED, REGISTRATION_EXPIRED,
+  EDD_CUSTOMER_RESOLUTION_FAILED); wrong facades/origins fail with
+  FACADE_ORIGIN_DENIED and facade product-allowlist mismatches with
+  FACADE_PRODUCT_DENIED.
+- The product is resolved exclusively from the registration's product code through
+  the server-owned registry: unknown codes fail PRODUCT_MAPPING_REQUIRED and
+  offers that are not operator-approved/checkout-enabled fail EDD_CHECKOUT_REQUIRED.
+  Caller-controlled price, amount, total, grants, features, limits, product,
+  license-type, commercial, and EDD-id fields are impossible
+  (CLIENT_COMMERCIAL_FIELDS_FORBIDDEN); caller-supplied callback/redirect/success/
+  cancel/return URLs and arbitrary handles are never honored
+  (FACADE_REDIRECT_DENIED).
+- The branded facade URL is composed only of the facade's exact origin plus the
+  allowlisted facade checkout path and an opaque intent token
+  (https://install.focusa.dev/activate/checkout?intent=<opaque>); return handles
+  are named facade-registry callbacks (success/cancel/recovery) resolved to branded
+  callback URLs. Facades remain presenters only; no independent facade authority.
+- Exactly one intent per promoted registration/product: an idempotency-key replay
+  returns the same intent (replayed=true), a repeated canonical request with a new
+  idempotency key returns the existing intent (existing=true) instead of creating a
+  second one, and idempotency-key reuse with a different request fails
+  IDEMPOTENCY_CONFLICT. The registration advances through the legal state machine
+  path account_promoted -> offer_selected -> checkout_pending (the offer_selected
+  hop journals independently via a derived key); an already-checkout_pending
+  registration is not re-transitioned.
+- Each intent binds registration, account UUID, EDD customer id, facade, product
+  code, node request (node UUID plus device-public-key SHA-256 digest — the raw key
+  is never stored), a server-owned cart session (synthetic fixture with the exact
+  registry download/price relationship), the branded return URL, and the
+  idempotency journal. No raw email, raw device key, license key, or secret is
+  stored or returned; intent/cart rows are opaque bounded tokens.
+- The EDD cart/session adapter projects the synthetic order fixture
+  (focusa.spec152e.edd_order_fixture.v1) with order_id null, exact registry
+  price_id/download and unit/total amounts, and no email. Zero EDD order/license
+  rows are created: real order creation and issuance stay deferred to EDD payment
+  and the order-completion atom.
+
+Exact verification (exit codes)
+1. `php tests/spec152e_edd_checkout_intent_test.php` — exit 0 (run three times;
+   deterministic).
+   {"schema":"focusa.spec152e.edd_checkout_intent_test.v1","positive_checks":87,"negative_checks":38,"intents_created":4,"cart_sessions":4,"licenses_created":0,"customers":9,"protected_offer_fixture":"operator_approved_test_mapping_download_1001","branded_checkout_url":"facade_origin_plus_allowlisted_checkout_path_plus_opaque_intent_token","entitlement_issuance":"deferred","result":"passed_fail_closed"}
+
+Regression checks (exit codes)
+- All 17 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  checkout-intent test and the prior EDD product gate test.
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry outputs current; 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  (no new error codes; activation contracts current).
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_facade_golden_vector_test.py` — exit 0.
+- `python3 tests/spec152e_migration_inventory_test.py` — exit 0.
+- Pre-existing, unrelated failures (reproduce identically without this atom's
+  files; their target files are not touched by this atom): spec152e
+  document_authority_test.py (exit 1, audit-status wording registered by an
+  earlier atom) and spec152f_surface_reconciliation_contract_test.py (exit 1,
+  Spec 152F reconciliation index stale at the base commit).
+
+Tests added
+- spec152e_edd_checkout_intent_test.php: 87 positive + 38 negative checks covering
+  frozen-registry invariants; facade return-handle resolution for success/cancel/
+  recovery and branded checkout URL composition; denial of unknown/URL/absolute
+  handles, caller-supplied callback URLs, wrong origins, and unregistered facades;
+  checkout-intent denial for unknown, unverified, verified-unpromoted, expired,
+  denied, wrong-facade, wrong-origin, unknown-product, frozen-registry (no
+  checkout-enabled offer), blocked-mapping, and facade-product-mismatch cases;
+  rejection of every client-controlled commerce field and every caller-supplied
+  redirect field; input bound failures; one-intent creation from a promoted
+  registration with the branded facade URL, server-owned registry price, opaque
+  cart/session tokens, and registration advance to checkout_pending; idempotent
+  replay and repeated-canonical dedupe returning the same intent; IDEMPOTENCY_CONFLICT
+  on key reuse; node-request binding stored only as a device-key digest; the
+  offer_selected path; a second allowlisted handle on a fresh registration; the
+  synthetic order fixture with the exact server-owned price relationship and no
+  email/order row; rollback preservation; and redaction (no raw email, device key,
+  or license key in results, intents, or cart journals; opaque bounded tokens).
+  The positive mapping fixture is explicitly operator-approved test-only
+  (download 1001 -> focusa_operator_lifetime_v1) and never mutates the frozen
+  registry contract.
+
+Rollback
+- Revert only this atom's implementation commit (checkout-intent contract, the
+  checkout-intent test, and this evidence record if required). Preserve EDD
+  customer/order/refund truth, verified identities, licenses, nodes, sequences,
+  credentials, Workpoints, Evidence, and migration journals; checkout-intent and
+  cart-session journals are preservation-only.
+
+No push, deploy, release, merge, or Beads mutation was performed.

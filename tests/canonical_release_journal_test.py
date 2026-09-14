@@ -14,6 +14,56 @@ module = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 spec.loader.exec_module(module)
 
+original_subprocess_run = module.subprocess.run
+try:
+    def failed_proof(args, **_kwargs):
+        return subprocess.CompletedProcess(
+            args,
+            17,
+            stdout=("discarded-prefix\n" * 300) + "FAILED latency_p95_budget\n",
+            stderr="Authorization: Bearer super-secret-token\ntoken=another-secret\n",
+        )
+
+    module.subprocess.run = failed_proof
+    try:
+        module.command([sys.executable, "scripts/spec135-live-performance-proof.py"])
+        raise AssertionError("failing proof command must raise")
+    except RuntimeError as error:
+        diagnostic = str(error)
+        assert "scripts/spec135-live-performance-proof.py" in diagnostic
+        assert '"exit_code": 17' in diagnostic
+        assert "FAILED latency_p95_budget" in diagnostic
+        assert "super-secret-token" not in diagnostic
+        assert "another-secret" not in diagnostic
+        assert "[REDACTED]" in diagnostic
+        assert len(diagnostic.encode()) < 5000
+
+    unchecked = module.command(
+        [sys.executable, "scripts/spec135-live-performance-proof.py"], check=False
+    )
+    assert unchecked.returncode == 17
+finally:
+    module.subprocess.run = original_subprocess_run
+
+original_focusa_token = module.os.environ.get("FOCUSA_AUTH_TOKEN")
+try:
+    module.os.environ["FOCUSA_AUTH_TOKEN"] = "test-release-token"
+    assert module.focusa_headers()["Authorization"] == "Bearer test-release-token"
+finally:
+    if original_focusa_token is None:
+        module.os.environ.pop("FOCUSA_AUTH_TOKEN", None)
+    else:
+        module.os.environ["FOCUSA_AUTH_TOKEN"] = original_focusa_token
+
+original_focusa_get = module.focusa_get
+try:
+    module.focusa_get = lambda _path: (_ for _ in ()).throw(
+        module.urllib.error.HTTPError("http://focusa.test", 403, "Forbidden", {}, None)
+    )
+    assert module.record_release_predictions("v0.9.151") == {}
+finally:
+    module.focusa_get = original_focusa_get
+
 improved = module.metric_comparison(80, 100, "seconds", True)
 assert improved == {
     "current": 80,
@@ -41,6 +91,50 @@ assert payload["release_id"] == "focusa:v0.9.136"
 assert payload["phase"] == "plan"
 assert payload["sequence"] == 1
 json.dumps(payload, sort_keys=True)
+
+api_calls = []
+replication_reads = iter(
+    [
+        {"status": "pending", "state": "local_durable"},
+        {
+            "status": "ok",
+            "state": "master_accepted",
+            "master_event_hash": "master-hash",
+        },
+    ]
+)
+original_api_request = module.api_request
+original_sleep = module.time.sleep
+original_ack_setting = module.os.environ.get("AGENT_KB_REQUIRE_MASTER_ACK")
+
+
+def fake_api_request(method, path, body=None):
+    api_calls.append((method, path, body))
+    if method == "POST":
+        return {"status": "appended", "event_hash": "local-hash"}
+    return next(replication_reads)
+
+
+try:
+    module.api_request = fake_api_request
+    module.time.sleep = lambda _seconds: None
+    module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = "1"
+    receipt = module.publish(payload)
+finally:
+    module.api_request = original_api_request
+    module.time.sleep = original_sleep
+    if original_ack_setting is None:
+        module.os.environ.pop("AGENT_KB_REQUIRE_MASTER_ACK", None)
+    else:
+        module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = original_ack_setting
+
+assert receipt["master_acknowledged"] is True
+assert receipt["replication"]["state"] == "master_accepted"
+assert api_calls[1][1].startswith(
+    "/v1/releases/journal?view=replication&event_id="
+)
+assert "focusa%3Av0.9.136%3Aplan%3Atest" in api_calls[1][1]
+assert "view=projection" not in SCRIPT.read_text()
 
 actuals = {"total_elapsed_seconds": 900, "remote_pipeline_seconds": 600, "asset_count": 60, "problems_count": 1}
 estimates = {"total_elapsed_seconds": 1200, "remote_pipeline_seconds": 500, "asset_count": 60, "problems_count": 0}

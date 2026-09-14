@@ -1,0 +1,84 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.14.31
+Title: 152F.04.02 Enforce team and remote premium boundaries
+Implementation commit: (see below)
+
+Exact surfaces
+- crates/focusa-api/src/middleware/entitlement_routes.rs — activation/recovery pairing routes reclassified from premium to base; session-transfer reclassified from base to premium
+- crates/focusa-api/src/middleware/entitlement.rs — updated test assertion for reclassified route
+- crates/focusa-license/tests/spec152f_team_remote_entitlement.rs — team/remote boundary tests
+
+Bounded result
+- Reclassified activation/recovery pairing routes from TeamRemote premium to
+  BaseFocusa: /connect/firstrun, /v1/connect/room/firstrun,
+  /v1/device/pair/start (activation pairing), /v1/device/pair/revoke
+  (recovery). These operations are now reachable without a premium grant and
+  use the BaseFocusa family with no limit bucket, so they are available to
+  VerifiedNoLicense users (limited) and ActivePaid users (base).
+- Reclassified read-only device/connect status routes from TeamRemote premium
+  to BaseFocusa (core.evidence): /v1/device/pair/list (read-only),
+  /v1/device/pair/status (read-only, also recovery), /v1/connect/rooms
+  (read-only), /v1/connect/status (read-only), /v1/connect/room/{room_id}/status
+  (read-only). These are now classified as evidence/read operations with no
+  limit bucket.
+- Reclassified /v1/project/session-transfer from BaseFocusa (core.mission) to
+  TeamRemote premium (team.multi_operator) with team_operators limit bucket.
+  Session transfer between peers now requires the premium grant.
+- Additional peers/operators/remote collaboration routes remain premium:
+  /connect, /connect/{room_id}, /connect/room/{room_id}/scan,
+  /v1/connect/approve, /v1/connect/room/create, /v1/connect/room/start,
+  /v1/connect/room/{room_id}/approve, /v1/connect/room/{room_id}/join,
+  /v1/connect/room/{room_id}/mac-offer, /v1/connect/start,
+  /v1/device/pair/complete (all require team.multi_operator).
+  All sync and instances routes remain premium (require remote.stream).
+- Token management routes (/v1/tokens/*) remain BaseFocusa — API token
+  management is core functionality, not team expansion.
+- Node management routes (lineage) remain BaseFocusa (core.evidence) — base
+  node management is not premium.
+- Added 42 team/remote entitlement boundary tests covering: family map (exact
+  two premium features, qualified identifiers), state grid (denied for
+  unlicensed states, requires feature for active paid, requires cached feature
+  for offline grace), premium family resolution (multi_operator and
+  remote.stream require feature grants, denied without grants, base product
+  first, sequence binding, cross-family rejection, unqualified identifier
+  rejection, offline grace window, active lease expiry), activation/recovery
+  pairing is base not premium, additional peers/operators require premium,
+  remote collaboration requires premium, session transfer is premium, node
+  management is base, device listing is base, token management is base,
+  node/seat reservations (team_operators and remote_stream_minutes limits),
+  caller-controlled grant rejection, all four premium families are distinct,
+  dispatch revalidation, recovery/refund does not grant team_remote, offline
+  grace cannot expand team grants, and interactive base vs team_remote boundary.
+
+Exact verification (exit codes)
+1. `cargo test --workspace spec152f_team_remote_entitlement` — exit 0.
+   test result: ok. 42 passed; 0 failed.
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 49 unit + 11 authority-lease +
+  8 entitlement-grid + 34 automation-entitlement + 42 team-remote-entitlement
+  + 3 family-inheritance tests passed, 0 failed.
+- `cargo test -p focusa-core --lib entitlement_execution` — exit 0:
+  6 passed, 0 failed.
+- `cargo test -p focusa-core --lib silent_session_scheduler` — exit 0:
+  8 passed, 0 failed.
+- `cargo test -p focusa-core --lib daemon_dispatch` — exit 0:
+  8 passed, 0 failed.
+
+Tests added
+- focusa-license/tests/spec152f_team_remote_entitlement.rs: 42 tests covering
+  team/remote family map, state grid, premium family resolution,
+  activation/recovery pairing is base, additional peers/operators require
+  premium, remote collaboration requires premium, session transfer is premium,
+  node management is base, device listing is base, token management is base,
+  node/seat reservations, caller-controlled grant rejection, all four premium
+  families are distinct, dispatch revalidation, recovery/refund does not grant
+  team_remote, offline grace cannot expand team grants, and interactive base
+  vs team_remote boundary.
+
+Rollback
+- Revert only this atom's implementation commit. Preserve customers, orders,
+  refunds, licenses, nodes, sequences, customer data, migration journals,
+  and accepted authority/evidence state.
+
+No push, deploy, release, merge, or Beads mutation was performed.

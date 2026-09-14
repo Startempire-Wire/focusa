@@ -150,8 +150,3 @@ Change which view is active for a given actor or process.
 # 4. Success Condition
 
 Projection and View Semantics is successful when Focusa can show different actors and processes the right bounded representation of truth without fragmenting or mutating canonical ontology state.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-verification-projections -->
-## Spec 144 projection semantics
-
-Verification Plans, findings, conflicts, appeals, placement, independence, obligation coverage, and settlement posture are canonical or reducer-backed read-model sources as declared by their owners. UI cards, dashboards, summaries, and agent packets are projections only and MUST preserve exact status, scope, freshness, Evidence, limitations, and recovery.

@@ -1,0 +1,118 @@
+Spec 152E / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.13.20
+Title: 152E.02.06 Issue Evaluation as verified EDD-backed entitlement
+Binding overlay: Spec 172 (replace expiring EDD-backed Evaluation issuance with
+verified_no_license limited-access assertion issuance after mailbox verification;
+create no EDD order/key; paid existing customers never downgrade through this path)
+Implementation commit: local (unpinned; see git log for this atom)
+
+Exact surfaces
+- Evaluation eligibility service; dedicated EDD product/license mapping;
+  customer/order/license history; device/refund state:
+  docs/contracts/spec152e-evaluation-issuance.v1.php
+  (FocusaSpec152eEvaluationProductMapping — server-owned dedicated EDD product/license
+  mapping for the Evaluation journey: `focusa_evaluation` resolves to the
+  verified_no_license posture with NO dedicated EDD download, NO EDD price, and NO EDD
+  Software Licensing key; caller-supplied EDD/commercial/grant/limit/duration fields
+  fail closed with CLIENT_COMMERCIAL_FIELDS_FORBIDDEN and unknown product codes fail
+  closed with PRODUCT_MAPPING_REQUIRED;
+  FocusaSpec152eEvaluationEligibilityState — the canonical 7-row authority-private
+  eligibility matrix;
+  FocusaSpec152eEvaluationIssuanceMigration — bounded, idempotent, append-audited,
+  preservation-only journal (wp_wpuiai_evaluation_issuances) whose rows always record
+  edd_order_id = NULL and edd_license_id = NULL;
+  FocusaSpec152eEvaluationIssuanceService — evaluates verified-account eligibility from
+  verified identity, EDD customer/order/license history, and device/refund state, then
+  issues exactly one verified_no_license posture and one signed limited-access assertion
+  per eligible verified account, creating no EDD order and no EDD key)
+- tests/spec152e_evaluation_issuance_test.php (exact verification)
+
+Bounded result
+- Eligible verified customer receives exactly ONE verified_no_license limited-access
+  issuance: one posture row, one signed limited-access assertion row, one journal row,
+  one registered device node, authority sequence 1, duration `no_automatic_expiry`
+  (permanent Spec 172 limited posture; no countdown, no timed Evaluation), grant source
+  `authority_signed_limited_access_assertion`, and the canonical explicit Focusa
+  limited-mode allowlist. No EDD order and no EDD Software Licensing key is created:
+  wp_edd_licenses stays at zero for eligible customers, every journal row records
+  edd_order_id = NULL and edd_license_id = NULL, and the posture/assertion schemas
+  remain EDD-free by introspection (assertEddFree).
+- Idempotent replay of an identical request returns the byte-identical result with no
+  duplicate journal/posture/assertion/node row; a different request body on the same
+  idempotency key fails closed with IDEMPOTENCY_CONFLICT.
+- Dedicated EDD product/license mapping is explicit and server-owned: the eligibility
+  matrix has exactly 7 rows (verified_eligible -> limited_access_issued;
+  terminal_history_only -> limited_access_issued with terminal rows preserved and never
+  reactivated; unverified_email -> EMAIL_VERIFICATION_REQUIRED; active_paid_customer ->
+  paid_posture_preserved; prior_evaluation_duplicate -> evaluation_not_eligible;
+  caller_mapping_control -> CLIENT_COMMERCIAL_FIELDS_FORBIDDEN; unknown_product_code ->
+  PRODUCT_MAPPING_REQUIRED).
+- All bypass/downgrade/repeat cases fail closed: unverified or missing-proof input
+  (EMAIL_VERIFICATION_REQUIRED) creates nothing; an active paid EDD license preserves
+  paid posture (PAID_POSTURE_PRESERVED) with the paid license row untouched and never
+  downgraded to limited mode; a prior Evaluation (including a facade-switched repeat
+  with a new request key, node, and facade) denies the duplicate
+  (EVALUATION_NOT_ELIGIBLE) with no new posture/assertion; refunded/revoked/expired/
+  cancelled EDD history is preserved and never reactivated (the refunded license row
+  stays terminal; no new EDD key); registration/account mismatch
+  (ACCOUNT_EMAIL_MISMATCH), unknown authority account (ENTITLEMENT_REQUIRED), and
+  registration/customer mismatch (EDD_CUSTOMER_RESOLUTION_FAILED) fail closed before
+  any creation.
+- Journal is bounded and redacted: every decision row (3 limited_access_issued,
+  1 paid_posture_preserved, 1 evaluation_not_eligible) is scanned for raw email,
+  key material, and customer secrets and contains none; rollback is preservation-only
+  and never deletes journal rows.
+
+Exact verification (exit codes)
+1. `php tests/spec152e_evaluation_issuance_test.php` — exit 0 (run three times;
+   deterministic, byte-identical output).
+   {"schema":"focusa.spec152e.evaluation_issuance_test.v1","positive_checks":203,
+   "negative_checks":12,"limited_access_issued":3,"paid_posture_preserved":1,
+   "evaluation_not_eligible":1,"postures":3,"assertions":3,"nodes":3,"edd_licenses":2,
+   "edd_orders_created":0,"edd_free":true,"duration":"no_automatic_expiry",
+   "matrix_rows":7,"result":"passed_fail_closed"}
+   Bounded immutable result handle (SHA-256 of the exact output above):
+   8b8db1cef6a6eae6629d2ced0a23df850511b513f122c370e40d429b46417a41
+
+Regression checks (exit codes)
+- All 22 `tests/spec152e_*.php` tests pass with exit 0, including the new
+  evaluation-issuance test and all prior order-binding, license-issuance,
+  lifecycle-projection, product-gate, customer-adapter, promotion, identity,
+  verification, and registration tests.
+- `php tests/spec172_verified_access_schema_test.php` — exit 0 (upstream 172.02.01
+  posture/assertion schema test unchanged and green).
+- `git diff --check` — exit 0, no whitespace errors.
+- `python3 scripts/generate-spec152e-product-registry.py --check` — exit 0
+  (frozen registry current: 0 assigned downloads, 0 checkout-enabled).
+- `python3 scripts/generate-spec152e-facade-registry.py --check` — exit 0.
+- `python3 scripts/generate-spec152e-activation-contracts.py --check` — exit 0
+  (activation contracts current; no error-code changes from this atom).
+- `python3 tests/spec172_limited_access_contract_test.py` — exit 0
+  (cases=30, postures=unverified,verified_no_license).
+- `python3 tests/spec152e_product_registry_contract_test.py` — exit 0.
+- `python3 tests/spec152e_api_contract_test.py` — exit 0.
+- `python3 tests/spec152e_state_machine_contract_test.py` — exit 0.
+
+Tests added
+- spec152e_evaluation_issuance_test.php (203 positive + 12 negative checks): canonical
+  7-row eligibility matrix asserted verbatim; dedicated EDD product/license mapping
+  (focusa_evaluation -> verified_no_license, no EDD download/price/key, permanent
+  duration) and canonical focusa code resolution; eligible verified issuance with
+  exactly one posture/assertion/journal/node and no EDD key; idempotent replay with no
+  duplicates; refunded-history-only issuance with terminal rows preserved and never
+  reactivated; unverified and missing-proof denials creating nothing; caller-controlled
+  edd_download_id/price denial and unknown/invented product-code denial; active-paid
+  posture preservation with the paid license untouched and never downgraded; prior-
+  evaluation and facade-switched duplicate denial; IDEMPOTENCY_CONFLICT;
+  ACCOUNT_EMAIL_MISMATCH; ENTITLEMENT_REQUIRED for unknown accounts;
+  EDD_CUSTOMER_RESOLUTION_FAILED; EDD-free schema introspection; redacted journal scans
+  (no raw email, no key material, no customer secret); preservation-only rollback.
+
+Rollback
+- Revert only this atom's implementation commit (evaluation-issuance contract, its
+  test, and this evidence record if required). Preserve EDD customer/order/refund truth,
+  verified identities, licenses, nodes, sequences, credentials, Workpoints, Evidence,
+  and migration journals; evaluation journals and the verified-no-license posture/
+  assertion rows are preservation-only and never deleted.
+
+No push, deploy, release, merge, or Beads mutation was performed.

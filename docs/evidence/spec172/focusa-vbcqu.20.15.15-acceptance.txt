@@ -1,0 +1,173 @@
+Spec 152F / Spec 172 overlay acceptance record
+Work item: focusa-vbcqu.20.15.15
+Title: 172.02.06 Implement Bundle as one SKU/key and two underlying grants
+Implementation commit: `c6012d41` (base HEAD `d36f0acb`, branch
+atom/focusa-vbcqu.20.15.15, based on local/luna-152f-reducer)
+Recorded at: 2026-08-06 (worktree execution)
+
+Exact surfaces
+- WPUIAI Bundle order/SL adapter and License Type registry:
+  `docs/contracts/spec172-bundle-edd-license-type-projector.v1.php`
+  (`FocusaSpec172LicenseTypeRegistry` frozen composite-SKU registry entry +
+  `FocusaSpec172BundleOrderSlAdapter` + `FocusaSpec172BundleOperatorProjector`).
+  The adapter binds one verified complete $1,254.60 Bundle order/item (exactly one
+  order item resolving to the server-owned composite Bundle offer) through the
+  canonical order-binding journal and issues exactly ONE canonical EDD Software
+  Licensing human key for the whole Bundle. The projector consumes that issued key
+  and projects `focusa_uiai_operator_bundle_lifetime_v1` from canonical EDD truth
+  (order binding journal, SL issuance journal, canonical order/item/license rows,
+  server-owned dedicated Downloads offer) into the shared projection journal.
+- Signed lease claims: `docs/contracts/spec172-bundle-signed-lease-fixture.v1.php`
+  (`FocusaSpec172BundleSignedLeaseFixture`; derives the `focusa.bundle_signed_lease.v1`
+  payload exclusively from the composite projection).
+- `tests/spec172_bundle_composition_test.php` (exact verification).
+
+Bounded result
+- One verified complete eligible Bundle order (download binding 1003 ->
+  focusa_uiai_operator_bundle_lifetime_v1 at the canonical 1254.60 USD price) settles
+  exactly one issuance request, issues exactly ONE canonical EDD Software Licensing
+  human key, and projects exactly one composite Bundle projection. The Bundle is one
+  SKU/key: `sku`, `product`, and `license_type` are all the single composite code
+  `focusa_uiai_operator_bundle_lifetime_v1`, `human_key_count` is 1, and the projection
+  journal row carries the composite code in both product_code and license_type_ref.
+- Bundle semantic grants equal the exact union of both Operator records: the projection
+  and the signed lease claims carry `grants = [focusa_operator_lifetime_v1,
+  uiai_operator_lifetime_v1]` with `grants_union = exact_union`; the offer composition
+  is validated against the server-owned dedicated Downloads record (grant_composition
+  exact_union, component_refunds_allowed false). A non-exact-union offer (a future
+  License Type appended to grants) fails closed with PRODUCT_MAPPING_REQUIRED.
+- No third copied family list: the Bundle family set is DERIVED as the exact union of
+  the two underlying frozen records (FocusaSpec172FocusaOperatorProjector::FROZEN_FAMILIES
+  5 + UiaiSpec172UiaiOperatorProjector::FROZEN_FAMILIES 7 = 12 families), verified in
+  the test as `underlyingFamilies() === array_merge(underlying focusa, underlying uiai)`
+  and `familySets() === [focusa => ..., uiai_engine => ...]`; the frozen SHA-256 union
+  digest (`80d4034f…`) is carried by the projection and the lease fixture.
+- Three shared node identities, not six: the Bundle projection, journal, and lease
+  fixture freeze node_set `operator_shared_v1`, node_limit 3, and one operator seat —
+  the same shared three-node set as both underlying Operator records (asserted equal to
+  the dedicated offer node set), never six unrelated activations.
+- No additional/future product: `future_products_included=false`,
+  `future_license_types_included=false`, the grant set is exactly the two underlying
+  codes, and the family set contains exactly the 12 derived families; a future-product
+  offer fails registry composition with PRODUCT_NOT_INCLUDED and a future family or
+  grant in the lease fixture fails validation (FIXTURE_FAMILY_MISMATCH /
+  FIXTURE_GRANT_UNION_MISMATCH).
+- Server-owned price version `focusa_uiai_operator_bundle_lifetime_v1.1254.60.v1`,
+  price_usd 1254.60, amount_minor 125460 (ten percent below the 1394.00 standalone
+  sum), lifetime term, whole-order 30-day refund policy, and a strictly monotonic
+  per-account authority sequence (first Bundle projection sequence 1, advanced
+  atomically with the journal row; ENTITLEMENT_SEQUENCE_ROLLBACK_DENIED on regression).
+- Duplicate issuance is impossible: idempotency-key replay returns the byte-identical
+  decision with zero new rows, and a duplicate projection call for the same issued
+  request returns the same projection with existing=true and projections_created=0 (the
+  projection journal is UNIQUE on issuance_request_key). The authority sequence is never
+  bumped by replays or duplicates.
+- Wrong product cannot obtain the Bundle: a fully eligible standalone Focusa order and
+  a fully eligible standalone UIAI order each issue their own canonical key but can
+  never project the Bundle (LICENSE_TYPE_NOT_INCLUDED, zero rows, sequence never
+  advanced); an issued-but-unprojected Bundle handle fails closed in both prior atoms'
+  standalone projectors (LICENSE_TYPE_NOT_INCLUDED); two standalone items in one order
+  are never folded into a Bundle (BUNDLE_ITEM_COUNT_REQUIRED at the adapter); a
+  standalone Operator item can never bind through the Bundle adapter
+  (LICENSE_TYPE_NOT_INCLUDED). Replaying an already-projected Bundle handle through the
+  Focusa projector returns the existing Bundle projection (product
+  focusa_uiai_operator_bundle_lifetime_v1), never a fabricated Focusa grant, with zero
+  new rows.
+- Wrong price (a settled Bundle item whose price id no longer matches the dedicated
+  offer: PRODUCT_MAPPING_REQUIRED; a never-matching price id fails at the binding
+  boundary), wrong account (EDD_ORDER_UNVERIFIED), refunded/revoked/pending orders
+  (REFUNDED/REVOKED/EDD_ORDER_PENDING), projection before issuance, revoked or tampered
+  canonical licenses (EDD_LICENSE_UNUSABLE), checkout-disabled offers
+  (EDD_CHECKOUT_REQUIRED), drifted download mappings (PRODUCT_MAPPING_REQUIRED), the
+  truly frozen dedicated Downloads contract (no fixture mapping: PRODUCT_MAPPING_REQUIRED),
+  caller-controlled commerce fields including grants/products/family_sets/future-product
+  metadata (CLIENT_COMMERCIAL_FIELDS_FORBIDDEN), and idempotency conflicts
+  (IDEMPOTENCY_CONFLICT) create zero projections and never advance the sequence.
+- The Bundle signed lease fixture derives the `focusa.bundle_signed_lease.v1` payload
+  exclusively from the composite projection: both underlying grants, the derived
+  12-family union with per-product family sets, one seat, three shared nodes, one human
+  key, whole-order refunds, and zero future products; the credential refresh window is
+  bounded (90 days) and offline grace is bounded (30 days past the refresh window) while
+  the entitlement term stays `lifetime` (Spec 172 section 14). Tampered grants (missing,
+  extra, or future License Type), extra families, node limits, digests, human key count,
+  future products, component refunds, and collapsed credential windows fail validation
+  closed.
+- No anonymous product capability, no local/self-issued grant, no caller-controlled
+  product, price, License Type, family, feature, limit, node, seat, grant, or commercial
+  right, and no presenter-owned policy. No raw email, key, token, customer row,
+  credential, or card data in journals, decisions, fixtures, or evidence (verified by
+  regex scans: no email address, no full canonical key, no payment key, no card
+  pattern). The projection journal stores only the keyed license digest and mask. Legacy
+  Download 453 is never referenced and cannot grant.
+
+Exact verification (exit codes)
+Command (run literally from the canonical project root):
+  php tests/spec172_bundle_composition_test.php
+Exit code: 0
+  schema=focusa.spec172.bundle_composition_test.v1
+  positive_checks=180 negative_checks=42 projections_created=1
+  canonical_licenses_created=12 sku=focusa_uiai_operator_bundle_lifetime_v1
+  grants=["focusa_operator_lifetime_v1","uiai_operator_lifetime_v1"]
+  grants_union=exact_union human_key_count=1
+  price_version=focusa_uiai_operator_bundle_lifetime_v1.1254.60.v1
+  price_usd=1254.60 amount_minor=125460
+  family_count=12 family_sets={"focusa":5,"uiai_engine":7}
+  family_digest=80d4034fc056b4bf930c33d6c71a8f93b291b5b330482f06f8fe531a0d1b7d2e
+  operator_seats=1 node_limit=3 node_set=operator_shared_v1 term=lifetime
+  sequence=1 bundle_signed_lease_fixture=derived_from_composite_projection_exact_grant_union_shared_nodes
+  result=passed_fail_closed
+No cargo build was required: this atom's exact surfaces are PHP contracts plus the PHP
+test; the exact verification command is the PHP test above (PHP-only worktree, matching
+the prior 172.02.03/172.02.04/172.02.05 atoms).
+
+Regression checks (exit codes)
+- php tests/spec172_focusa_operator_issuance_test.php — exit 0 (prior atom, shared
+  projection journal).
+- php tests/spec172_uiai_operator_issuance_test.php — exit 0 (prior atom, shared
+  projection journal).
+- php tests/spec172_edd_operator_products_test.php — exit 0 (dedicated Downloads).
+- php tests/spec152e_edd_license_issuance_test.php — exit 0 (SL issuance dependency).
+- php tests/spec152e_edd_order_binding_test.php — exit 0 (order binding dependency).
+- php tests/spec172_verified_access_schema_test.php — exit 0.
+- php tests/spec172_limited_assertion_test.php — exit 0.
+- Full sweep of tests/spec172_*.php — all exit 0.
+- python3 tests/spec172_*.py (call_stack_contract, document_authority,
+  dynamic_operation_manifest, family_inheritance, focusa_limited_project,
+  license_type_contract, license_type_lifecycle, limited_access_contract,
+  limited_assertion_vector, no_sales_inventory, public_commerce_baseline,
+  taskgraph_contract) — all exit 0.
+
+Tests added
+- tests/spec172_bundle_composition_test.php (222 checks: 180 positive + 42 negative):
+  one eligible Bundle item -> one adapter key + one frozen composite projection with
+  exact two-grant union, derived 12-family union digest, one seat, three shared nodes,
+  price version, one human key, and sequence; frozen dedicated Downloads and License
+  Type registry invariants (grants exactly the two underlying records, derived family
+  sets, no future product, fail-closed composition checks); idempotent replay;
+  duplicate projection call; Bundle signed lease fixture derivation and validation
+  (grant-union, family, limit, digest, human-key, future-product, component-refund, and
+  credential-window tampering); adapter shape guards (two standalone items never become
+  a Bundle; standalone items never bind; caller fields forbidden); wrong product
+  (standalone Focusa/UIAI orders) and cross-product guards; wrong price/account;
+  refunded/revoked/pending orders; pre-issuance, revoked and tampered licenses;
+  checkout-disabled, frozen, drifted, and non-exact-union offers; caller commerce
+  fields; idempotency conflicts; rollback preservation event; full redaction scans.
+
+Remaining blockers
+- None for this atom. Checkout activation, refund/revoke/downgrade settlement
+  (172.02.07), the full Spec 172 EDD commerce matrix (172.02.08), and Bundle price/
+  union/shared-nodes/whole-refund proof (172.05.04) remain downstream approved atoms.
+
+Rollback
+- Revert only this atom's commits (the Bundle order/SL adapter + License Type registry
+  + composite Bundle projector contract, the Bundle signed lease fixture, the test, and
+  this evidence file). Preserve verified identities, customers, orders, refunds,
+  License Types, keys, nodes, sequences, customer data, migration journals, evidence,
+  and accepted unrelated work (including the prior atoms' Focusa and UIAI projector
+  contracts, fixtures, tests, and evidence).
+- Rollback must not invent an implicit mapping for Download 453, enable checkout, or
+  delete the frozen dedicated Downloads, Spec 152E registry, prior projection journal
+  records, or the frozen spec172-license-types.v1.yaml composite-SKU entry (which
+  predates this atom).
+
+No push, deploy, release, merge, or Beads mutation was performed.

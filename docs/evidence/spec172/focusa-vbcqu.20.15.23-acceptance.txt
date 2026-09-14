@@ -1,0 +1,121 @@
+Spec 172 / Spec 152F acceptance record
+Work item: focusa-vbcqu.20.15.23
+Title: 172.03.06 Require trusted manifests for dynamic and generated operations
+Implementation commit: `104cc16c` (code, generator, regenerated contracts,
+Python contract test); evidence recorded in the follow-up evidence commit
+(referenced in the atom hand-off).
+
+Exact surfaces
+- operation registry runtime intake:
+  scripts/generate-spec135-operation-contracts.py
+  docs/contracts/spec135/generated-contract-v1/operation-registry.json
+  docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json
+- MCP/extension/capsule/A2UI manifest verifier:
+  crates/focusa-license/src/dynamic_operation_manifest.rs (new)
+  crates/focusa-license/src/lib.rs (exports)
+- generated UI bindings:
+  crates/focusa-license/tests/spec172_dynamic_operation_manifest.rs
+  (cross-checks ui-action-bindings.fixture.json, a2ui-catalog.json)
+- tests/spec172_dynamic_operation_manifest_test.py (new)
+
+Bounded result
+- Added `DynamicOperationManifest` (operation_id, product_owner,
+  operation_class, capability_family, side_effect_class, signed,
+  declared_policy_fields) and `verify_dynamic_operation_manifest()`: a
+  fail-closed verifier for operation registry runtime intake. Unsigned
+  manifests, unknown operations, unknown owners, unknown mutation classes,
+  unknown side effects, and unregistered families all quarantine before
+  execution. A tool cannot self-label as `recovery` to bypass licensing
+  (`QuarantinedSelfLabeledRecovery`); any claim that differs from the
+  canonical registry, or any declared client policy field (product, price,
+  License Type, family, feature, limit, node, commercial right), quarantines
+  as client-selected policy. Trusted operations inherit canonical policy;
+  they never become limited/paid by client metadata.
+- Added `ManifestQuarantineLedger` + `QuarantinedManifestRecord`: rejected
+  dynamic manifests and UI bindings are recorded with monotonic sequence and
+  the stable Spec 172 Section 21 error `ENTITLEMENT_POLICY_UNKNOWN`;
+  quarantine is checked before execution so a quarantined operation can never
+  run even if a later manifest looks canonical.
+- Added `verify_generated_ui_action()`: generated UI may render only canonical
+  registered actions; a signed binding outside the canonical registered action
+  set quarantines as grant expansion (`QuarantinedGeneratedUiGrantExpansion`),
+  and unsigned bindings quarantine. Verified against the 108 canonical
+  ui-action-bindings.fixture.json actions (every one maps to a registry
+  operation with `allowed_in_generated_ui == true`, exactly equal sets), and
+  the a2ui-catalog.json presenter catalog carries zero commercial policy
+  fields (no presenter-owned policy).
+- Operation registry runtime intake now stamps trusted metadata on all 108
+  canonical operations: `product_owner: focusa` and a canonical
+  `side_effect_class` (`none` for reads, `remote` for device pairing,
+  `local` otherwise), alongside the existing operation_class,
+  capability_family, and spec172_family fields. The generated OpenAPI
+  `x-focusa` projection carries the same two fields. Regeneration is
+  deterministic (`generated_at` preserved) and `--check` passes.
+- 12 adversarial fixtures all fail closed: unsigned, unknown operation,
+  unknown owner, unknown mutation class, unknown side effect, unregistered
+  family, self-labeled recovery, declared License Type, declared
+  product+price, mutation reclassified as read, future product, and
+  generated-UI grant expansion.
+
+Exact verification (exit codes)
+1. `python3 tests/spec172_dynamic_operation_manifest_test.py` — exit 0.
+   Spec172 dynamic operation manifest gate passed.
+   operation_count=108, trusted_exact_manifests=108,
+   generated_ui_bindings=108, adversarial_fixtures=12,
+   a2ui_presenter_policy_fields=0.
+2. `cargo test --workspace spec172_dynamic_operation_manifest` — exit 0.
+   Integration binary `tests/spec172_dynamic_operation_manifest.rs`:
+   test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+   Unit tests in dynamic_operation_manifest module:
+   test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out.
+   Tests:
+   - spec172_dynamic_operation_manifest_registry_metadata_uses_registered_vocabulary
+   - spec172_dynamic_operation_manifest_all_registry_operations_trusted_when_signed
+   - spec172_dynamic_operation_manifest_unsigned_manifest_quarantined
+   - spec172_dynamic_operation_manifest_unknown_operation_quarantined
+   - spec172_dynamic_operation_manifest_unknown_owner_quarantined
+   - spec172_dynamic_operation_manifest_unknown_mutation_class_quarantined
+   - spec172_dynamic_operation_manifest_unknown_side_effect_quarantined
+   - spec172_dynamic_operation_manifest_unregistered_family_quarantined
+   - spec172_dynamic_operation_manifest_self_labeled_recovery_quarantined
+   - spec172_dynamic_operation_manifest_client_selected_policy_quarantined
+   - spec172_dynamic_operation_manifest_generated_ui_only_canonical_registered_actions
+   - spec172_dynamic_operation_manifest_quarantine_prevents_execution
+   - dynamic_operation_manifest::tests::spec172_dynamic_operation_manifest_decision_labels_are_stable
+   - dynamic_operation_manifest::tests::spec172_dynamic_operation_manifest_registered_vocabularies_are_exact
+   - dynamic_operation_manifest::tests::spec172_dynamic_operation_manifest_quarantine_ledger_blocks_execution
+
+Regression checks (exit codes)
+- `cargo test -p focusa-license` — exit 0: 232 tests passed, 0 failed
+  across all test binaries (49 unit + 11 authority-lease + 8 grid +
+  34 automation + 29 export + 32 release-proof + 42 team-remote +
+  12 spec172-family-inheritance + 12 spec172-dynamic-operation-manifest
+  integration + 3 manifest unit).
+- `cargo check -p focusa-license` — exit 0, finished cleanly, 0 warnings.
+- `python3 tests/spec172_family_inheritance_test.py` — exit 0
+  (operation_count=108, spec172_family_coverage=108).
+- `python3 tests/spec152f_operation_policy_metadata_test.py` — exit 0
+  (108 canonical operations, 135 Agent Descriptor V2 capabilities).
+- All 11 `tests/spec172_*.py` gates — exit 0 each.
+- `python3 scripts/generate-spec135-operation-contracts.py --check` — exit 0
+  (status passed, operations=108).
+
+Tests added
+- crates/focusa-license/tests/spec172_dynamic_operation_manifest.rs:
+  12 integration tests as listed above, plus 3 unit tests in
+  crates/focusa-license/src/dynamic_operation_manifest.rs.
+- tests/spec172_dynamic_operation_manifest_test.py: 6 Python gate functions
+  (registry trusted metadata, all signed exact manifests trusted, 12
+  adversarial fixtures fail closed, generated UI bindings only canonical
+  actions, A2UI catalog has no presenter-owned policy, quarantine state
+  blocks execution) plus the generator --check.
+
+Rollback
+- Revert only this atom's commits (implementation commit `104cc16c` and the
+  evidence commit). Preserve verified identities, customers, orders, refunds,
+  License Types, keys, nodes, sequences, customer data, migration journals,
+  and accepted unrelated work. The registry regeneration is deterministic and
+  --check-verified; reverting the generator change alone would require
+  regenerating the two contract files to their prior state.
+
+No push, deploy, release, merge, or Beads mutation was performed.

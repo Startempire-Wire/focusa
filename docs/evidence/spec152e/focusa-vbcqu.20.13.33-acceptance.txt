@@ -1,0 +1,180 @@
+Spec 152E dual email and terminal delivery of one canonical key — acceptance evidence
+Work item: focusa-vbcqu.20.13.33
+Title: 152E.04.02 Settle dual email and terminal delivery of one canonical key
+Scope: EDD transactional license email, terminal envelope, registration
+delivery state, recovery/reissue service
+Spec authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-
+branded-facade-addendum.md (§7.3 registration delivery state, §11 paid journey
+"EDD emails key/receipt" and "terminal poll receives encrypted key envelope",
+§15 human key as recovery credential, §16 dual-channel delivery, §19 security
+and privacy, §20 stable failure semantics, §23 acceptance matrix "Terminal
+delivery loss"); Specs 152, 150A, 152A-D; Spec 158 implementation excluded.
+
+Exact surfaces (this atom only)
+- EDD transactional license email: FocusaSpec152eTransactionalMailAdapter::
+  sendLicenseDelivery() sends the branded license email with product and order
+  identity, the full human license key, safe activation instructions,
+  account-management and recovery links, and support information; no
+  promotional content. Delivery attempts, bounces, and suppression are
+  recorded by the caller with masked outcomes only; the plaintext key never
+  returns or logs through the adapter.
+- Registration delivery state: the activation registration gains
+  email_delivery_status / email_delivery_attempts / email_delivered_at /
+  email_delivery_outcome (bounded values, PHP-enforced) with an idempotent
+  upgrade path (addColumnIfMissing) and a bounded, idempotent
+  recordEmailDeliveryState() repository surface; the presenter snapshot
+  exposes the masked email delivery status.
+- Dual-delivery coordinator: docs/contracts/spec152e-dual-delivery-
+  coordinator.v1.php — FocusaSpec152eDualLicenseDeliveryMigration journals
+  one delivery record per registration (wp_wpuiai_dual_license_deliveries)
+  holding the canonical license_key_digest/mask plus per-channel status,
+  attempts, timestamps, masked outcome, resolved state, and sealed recovery
+  envelope; settlement resolves the ONE canonical EDD key from
+  wp_edd_licenses (never mints), sends the license email, and confirms the
+  terminal channel resolved the same license ID/key
+  (noteTerminalDelivered fails closed with DUAL_DELIVERY_KEY_MISMATCH on any
+  digest/license divergence).
+- Recovery/reissue service: coordinator recover() requires the registration's
+  poll credential (authenticated recovery), re-delivers the SAME canonical
+  key through the failed channel — email re-send with masked outcome
+  journaling, or a fresh one-time device-encrypted terminal envelope (same
+  license, same key digest) — and never creates a second key. Recovery is
+  refused once both channels are settled (DUAL_DELIVERY_ALREADY_SETTLED) and
+  fails closed while the canonical license is unusable.
+
+Implementation commits: `31fc652f` (coordinator contract, license email
+adapter surface, registration email delivery state, and the exact-verification
+test).
+
+Bounded result
+- Added FocusaSpec152eDualLicenseDeliveryCoordinator::settle(): one canonical
+  EDD key is resolved only from wp_edd_licenses (active status, canonical hex
+  pattern) and delivered through the branded transactional license email
+  (registered facade sender identity focusa_install_transactional_v1, full
+  key in the approved §16.1 content, masked outcomes) while the terminal
+  channel is marked pending. Settlement is journaled once per registration;
+  a replayed settle (same idempotency key) and a repeated settle (different
+  key) both return the existing journal with zero additional emails and zero
+  new licenses. No response, journal, or log contains the plaintext key or
+  unmasked email.
+- recordEmailOutcome() maps provider events to bounded masked states
+  (delivered / bounced soft|hard / complained -> failed with
+  suppressed_transactional), idempotently replays per request key
+  (IDEMPOTENCY_CONFLICT on changed identity), and refuses later failure
+  outcomes after a delivered channel.
+- noteTerminalDelivered() confirms the terminal envelope bound the same
+  license ID and license_key_digest recorded at settlement (one-key rule);
+  a different key or license ID fails closed with DUAL_DELIVERY_KEY_MISMATCH.
+- Resolved state settles only when both channels resolve (both_delivered with
+  recovery_resolved_at); partial delivery is email_only / terminal_only;
+  hard bounce, suppression, provider failure, or terminal failure without any
+  delivery resolves recovery_required and mints a bounded rec_ handle.
+- recover() authenticates with the registration poll credential (wrong or
+  expired credentials fail closed), re-delivers the SAME canonical key:
+  email recovery re-sends the license email (attempts +1, never a second
+  key); terminal recovery seals a fresh one-time device-encrypted envelope to
+  the bound device key whose claims decrypt to the exact canonical EDD key,
+  with identical-envelope idempotent replay. Unbound device keys
+  (NODE_PUBLIC_KEY_REQUIRED), unusable licenses (EDD_LICENSE_UNUSABLE), and
+  fully settled deliveries (DUAL_DELIVERY_ALREADY_SETTLED) fail closed.
+- Partial-failure fixtures (exact verification): (A) email hard-bounce while
+  terminal delivers -> authenticated email recovery re-delivers the same key;
+  (B) terminal delivery loss while email delivers -> authenticated terminal
+  recovery seals a fresh envelope for the same key; (C) both channels failed
+  (suppressed email, revoked license) -> recovery re-delivers and both
+  channels settle. Every fixture ends with the EDD license count unchanged.
+- No unverified-email promotion, local/self-issued entitlement, independent
+  facade authority, client-controlled price/grants, secret or unmasked
+  real-email evidence, or publication.
+
+Exact verification (exit code)
+1. php tests/spec152e_dual_license_delivery_test.php — exit 0.
+   Bounded result: {"schema":"focusa.spec152e.dual_license_delivery_validation.v1",
+   "fixtures":"partial_failure_email_hard_bounce_terminal_ok_terminal_loss_email_ok_both_failed",
+   "emails_sent":8,"delivery_journals":6,"edd_licenses_created":9,
+   "positive_checks":131,"negative_checks":14,"result":"passed_fail_closed"}
+   Positive: schema migration is version-idempotent and preservation-aware;
+   journal and registration delivery-state columns; branded license email with
+   full key, order identity, manage/recovery links, support info, and no
+   promotional content; exactly one email at settle and none on replay;
+   masked settle/state responses; provider delivered/bounced/suppressed
+   outcomes with attempts and masked outcome codes; terminal envelope
+   decrypts to the exact canonical EDD key and same license ID;
+   noteTerminalDelivered same-key confirmation; resolved_state progression
+   pending -> email_only -> both_delivered; recovery_required with bounded
+   recovery handle on hard bounce; authenticated email and terminal recovery
+   re-delivering the SAME key with identical-envelope replay; both-failed
+   fixture recovering to full settlement; EDD license count constant through
+   every fixture; hygiene (no plaintext key or unmasked email in any returned
+   structure or journal; journals store digest/mask and sealed payloads only);
+   rollback preservation journaling.
+   Negative: DUAL_DELIVERY_ALREADY_SETTLED, POLL_CREDENTIAL_REQUIRED,
+   POLL_CREDENTIAL_EXPIRED, NODE_PUBLIC_KEY_REQUIRED, LICENSE_DELIVERY_PENDING,
+   EMAIL_VERIFICATION_REQUIRED, EDD_LICENSE_UNUSABLE,
+   DUAL_DELIVERY_KEY_MISMATCH (wrong digest and wrong license ID),
+   IDEMPOTENCY_CONFLICT, InvalidArgumentException for already-delivered later
+   failure and unknown provider statuses.
+
+Regression checks (exit codes)
+- php tests/spec152e_registration_schema_test.php — exit 0.
+- php tests/spec152e_registration_transition_test.php — exit 0.
+- php tests/spec152e_terminal_envelope_test.php — exit 0.
+- php tests/spec152e_edd_license_issuance_test.php — exit 0.
+- php tests/spec152e_edd_customer_adapter_test.php — exit 0.
+- php tests/spec152e_edd_order_binding_test.php — exit 0.
+- php tests/spec152e_edd_commerce_acceptance_test.php — exit 0.
+- php tests/spec152e_authority_outbox_test.php — exit 0.
+- php tests/spec152e_verification_start_test.php — exit 0.
+- php tests/spec152e_verification_complete_test.php — exit 0.
+- php tests/spec152e_identity_acceptance_test.php — exit 0.
+- php tests/spec152e_email_delivery_consent_test.php — exit 0.
+- php tests/spec172_focusa_operator_issuance_test.php — exit 0.
+- php tests/spec172_verified_access_schema_test.php — exit 0.
+- python3 tests/spec152e_api_contract_test.py — exit 0 (generated activation
+  contracts are current; no public API surface changed).
+- python3 tests/spec152e_state_machine_contract_test.py — exit 0.
+- python3 tests/spec152e_facade_golden_vector_test.py — exit 0.
+- python3 tests/spec152e_terminal_envelope_vector_test.py — exit 0.
+- Full sweep: all 28 tests/spec152e_*.php suites pass; all 10 of 11
+  tests/spec152e_*.py suites pass except tests/spec152e_document_authority_
+  test.py, which fails identically on the pre-atom HEAD (missing
+  publication-rule token for atoms 20.13.63 / 20.14.52) and is unrelated to
+  this atom's surfaces.
+
+Tests added
+- tests/spec152e_dual_license_delivery_test.php (exact verification; 131
+  positive / 14 negative checks across branded license email delivery,
+  one-key email+terminal settlement, masked outcome/bounce journaling,
+  idempotent settlement and replay, registration email delivery state,
+  authenticated email/terminal recovery, partial-failure fixtures, no-second-
+  key guarantees, fail-closed authority paths, log hygiene, and rollback
+  preservation).
+
+Acceptance criteria
+- Email and terminal resolve one license ID/key, and every partial failure
+  retries/recoveries without minting a second key: verified — settle resolves
+  one canonical key from EDD and journals one digest/mask; the terminal
+  envelope claims decrypt to the exact same key and license ID; a divergent
+  terminal digest or license ID fails closed (DUAL_DELIVERY_KEY_MISMATCH);
+  email hard-bounce, terminal delivery loss, and both-failed fixtures recover
+  through authenticated channels with the EDD license count constant.
+- All named positive and negative checks pass; diff contains only named
+  surfaces (license email adapter method, registration email delivery state,
+  dual-delivery coordinator + journal, recovery surface, and the exact-
+  verification test); generated contracts are current (api_contract_test.py
+  passes); secrets and unmasked real email are absent (hygiene checks pass);
+  evidence is replayable from the pinned commit (the test is offline and
+  deterministic).
+
+Rollback
+Revert only this atom's commits: docs/contracts/spec152e-dual-delivery-
+coordinator.v1.php, the sendLicenseDelivery() addition in
+docs/contracts/spec152e-transactional-mail-adapter.v1.php, the email
+delivery-state columns/repository surface in docs/contracts/spec152e-
+activation-registration.v1.php, tests/spec152e_dual_license_delivery_test.php
+(and this evidence file if required). Preserve EDD customer/order/refund
+truth, verified identities, licenses, nodes, sequences, credentials,
+Workpoints, Evidence, and migration journals; dual-delivery schema rollback
+is preservation-only.
+
+No push, deploy, release, merge, or Beads mutation was performed.

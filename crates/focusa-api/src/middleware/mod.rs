@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod entitlement;
+pub(crate) mod entitlement_routes;
 pub mod error_envelope;
 pub mod json_guard;
 pub mod principal;

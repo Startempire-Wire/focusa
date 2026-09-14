@@ -18,6 +18,17 @@ pub const LEASE_SCHEMA: &str = "focusa.authority_lease.v1";
 pub const KEY_SET_SCHEMA: &str = "focusa.authority_key_set.v1";
 pub const ENVELOPE_SCHEMA: &str = "focusa.signed_envelope.v1";
 
+fn node_ids_equivalent(received: &str, expected: &str) -> bool {
+    fn normalize(value: &str) -> Option<&str> {
+        let normalized = value.strip_prefix("node-").unwrap_or(value);
+        uuid::Uuid::parse_str(normalized).ok().map(|_| normalized)
+    }
+    match (normalize(received), normalize(expected)) {
+        (Some(received), Some(expected)) => received == expected,
+        _ => received == expected,
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthorityKeyStatus {
@@ -64,6 +75,11 @@ pub struct AuthorityLeasePayload {
     pub schema: String,
     pub lease_id: String,
     pub product: String,
+    /// Issuer-owned offer/License Type, distinct from the runtime product.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub posture: Option<String>,
     pub subject_id: String,
     pub node_id: String,
     pub sequence: u64,
@@ -95,7 +111,18 @@ pub enum EntitlementState {
 pub struct EntitlementSnapshot {
     pub state: EntitlementState,
     pub product: String,
+    /// Preserved from the verified signed payload; never inferred from Active.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub posture: Option<String>,
     pub node_id: String,
+    /// Account UUID the signed lease was issued to (Spec 152E §7.1 / §15
+    /// lease `subject_id`). Same-account UIAI activation routes the Focusa
+    /// parent and the independent UIAI grant through one EDD account; a
+    /// verified lease always carries it, synthetic snapshots may omit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subject_id: Option<String>,
     pub lease_id: Option<String>,
     pub sequence: Option<u64>,
     pub lease_digest: Option<String>,
@@ -111,7 +138,10 @@ impl EntitlementSnapshot {
         Self {
             state: EntitlementState::Unactivated,
             product: product.into(),
+            product_code: None,
+            posture: None,
             node_id: node_id.into(),
+            subject_id: None,
             lease_id: None,
             sequence: None,
             lease_digest: None,
@@ -280,7 +310,10 @@ impl AuthorityLeaseVerifier {
                 actual: payload.product,
             });
         }
-        if payload.node_id != context.expected_node_id {
+        // `node-<uuid>` is a legacy serialization of the same UUID. Accept
+        // equivalence only when both values reduce to a valid UUID; all other
+        // node bindings remain exact and fail closed.
+        if !node_ids_equivalent(&payload.node_id, &context.expected_node_id) {
             return Err(AuthorityVerificationError::WrongNode {
                 expected: context.expected_node_id.clone(),
                 actual: payload.node_id,
@@ -319,7 +352,10 @@ impl AuthorityLeaseVerifier {
         Ok(EntitlementSnapshot {
             state,
             product: payload.product,
+            product_code: payload.product_code,
+            posture: payload.posture,
             node_id: payload.node_id,
+            subject_id: Some(payload.subject_id),
             lease_id: Some(payload.lease_id),
             sequence: Some(payload.sequence),
             lease_digest: Some(lease_digest),
@@ -421,5 +457,29 @@ fn error_code(error: &AuthorityVerificationError) -> &'static str {
         AuthorityVerificationError::RevokedLease => "revoked_lease",
         AuthorityVerificationError::ExpiredKeySet => "expired_key_set",
         AuthorityVerificationError::EmptyKeySet => "empty_key_set",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::node_ids_equivalent;
+
+    #[test]
+    fn node_ids_equivalent_accepts_legacy_prefix() {
+        let id = "01a040ac-a798-7ae3-ac22-d310a87a3aa8";
+        assert!(node_ids_equivalent(id, &format!("node-{id}")));
+        assert!(node_ids_equivalent(&format!("node-{id}"), id));
+        assert!(node_ids_equivalent(id, id));
+    }
+
+    #[test]
+    fn node_ids_equivalent_rejects_mismatch() {
+        let a = "01a040ac-a798-7ae3-ac22-d310a87a3aa8";
+        let b = "02a040ac-a798-7ae3-ac22-d310a87a3aa8";
+        assert!(!node_ids_equivalent(a, b));
+        assert!(!node_ids_equivalent(
+            &format!("node-{a}"),
+            &format!("node-{b}")
+        ));
     }
 }

@@ -113,17 +113,21 @@ push_candidate_main_with_auto_rebase() {
   local attempt=1
 
   while [[ "$attempt" -le "$max_attempts" ]]; do
-    echo "Pushing stamped release candidate to main (attempt ${attempt}/${max_attempts})..."
+    echo "Pushing candidate main (attempt ${attempt}/${max_attempts})..."
     if git push origin HEAD:main; then
       return 0
     fi
 
-    echo "candidate_push_race: rebasing the still-untagged candidate onto origin/main" >&2
+    echo "candidate_main_push_race: auto-healing with git pull --rebase" >&2
+    # Audit Recorder/Watchdog commits can move origin/main while this helper is
+    # stamping a release. Rebase and retry the candidate main push. The release
+    # tag intentionally does not exist yet: stable candidate CI must accept the
+    # exact rebased SHA before the immutable-tag stage creates and pushes it.
     git pull --rebase origin main
     attempt=$((attempt + 1))
   done
 
-  echo "release_candidate_push_failed_after_auto_rebase: inspect gh/audit logs; no tag was created" >&2
+  echo "candidate_main_push_failed_after_auto_rebase: inspect gh/audit logs and fix the pipeline system" >&2
   return 1
 }
 
@@ -157,14 +161,17 @@ wait_for_source_workflow() {
   while (( SECONDS < deadline )); do
     local runs
     runs="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json status,conclusion,url,headSha 2>/dev/null || echo '[]')"
-    status="$(jq -r 'map(select(.headSha == $sha)) | .[0].status // "missing"' --arg sha "$sha" <<<"$runs")"
-    conclusion="$(jq -r 'map(select(.headSha == $sha)) | .[0].conclusion // ""' --arg sha "$sha" <<<"$runs")"
-    url="$(jq -r 'map(select(.headSha == $sha)) | .[0].url // ""' --arg sha "$sha" <<<"$runs")"
-    if [[ "$status" == "completed" && "$conclusion" == "success" ]]; then
+    # Duplicate/superseded runs on the same SHA are possible (double dispatch,
+    # cache races). The gate passes when ANY completed run succeeded and fails
+    # only when every completed run failed.
+    if jq -e --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | any(.conclusion == "success")' <<<"$runs" >/dev/null; then
+      url="$(jq -r --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed" and .conclusion == "success")) | .[0].url // ""' <<<"$runs")"
       echo "source_gate_passed: workflow=${workflow} sha=${sha} url=${url}"
       return 0
     fi
-    if [[ "$status" == "completed" && "$conclusion" != "success" ]]; then
+    if jq -e --arg sha "$sha" 'map(select(.headSha == $sha)) | length > 0 and all(.status == "completed") and all(.conclusion != "success")' <<<"$runs" >/dev/null; then
+      conclusion="$(jq -r --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | .[0].conclusion // ""' <<<"$runs")"
+      url="$(jq -r --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | .[0].url // ""' <<<"$runs")"
       echo "source_gate_failed: workflow=${workflow} sha=${sha} conclusion=${conclusion} url=${url}" >&2
       return 1
     fi
@@ -348,7 +355,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
     RELEASE_RETRY_DIRTY=1
     while IFS= read -r dirty_path; do
       case "$dirty_path" in
-        Cargo.toml|Cargo.lock|README.md|docs/current/.release-version-stamp|docs/current/CURRENT_RUNTIME_STATUS.md|docs/contracts/spec141/generated-capability-v2/agent-card.json|apps/menubar/package.json|apps/menubar/package-lock.json|apps/menubar/src-tauri/Cargo.toml|apps/menubar/src-tauri/Cargo.lock|apps/menubar/src-tauri/tauri.conf.json|apps/menubar/src/lib/components/Settings.svelte|apps/pi-extension/package.json|apps/pi-extension/package-lock.json|apps/pi-extension/src/auto-compaction.ts) ;;
+        Cargo.toml|Cargo.lock|README.md|scripts/install-focusa.sh|docs/current/.release-version-stamp|docs/current/CURRENT_RUNTIME_STATUS.md|docs/contracts/spec141/generated-capability-v2/agent-card.json|docs/contracts/spec141/generated-capability-v2/distribution-manifest.json|apps/menubar/package.json|apps/menubar/package-lock.json|apps/menubar/src-tauri/Cargo.toml|apps/menubar/src-tauri/Cargo.lock|apps/menubar/src-tauri/tauri.conf.json|apps/menubar/src/lib/components/Settings.svelte|apps/pi-extension/package.json|apps/pi-extension/package-lock.json|apps/pi-extension/src/auto-compaction.ts) ;;
         *) RELEASE_RETRY_DIRTY=0; break ;;
       esac
     done < <(git status --porcelain | cut -c4-)
@@ -389,6 +396,27 @@ fi
 echo "Next release tag: ${TAG}"
 python3 scripts/verify-release-tag-trigger.py "${TAG}"
 
+# Release strategy preflight (docs/release-strategy.md): fail fast on policy
+# violations before stamping/pushing. --force-release remains the override;
+# dry-run continues and reports the would-be block.
+if [[ -f scripts/next-version.py ]]; then
+  VERSION_POLICY="$(python3 scripts/next-version.py --tag "$TAG" --json 2>/dev/null || true)"
+  if [[ -n "$VERSION_POLICY" ]] && jq -e '.violations | length > 0' <<<"$VERSION_POLICY" >/dev/null 2>&1; then
+    echo "release_version_policy_violation: $(jq -r '.violations | join("; ")' <<<"$VERSION_POLICY")" >&2
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "Dry run continuing: release version policy would block an actual release." >&2
+    elif [[ "$FORCE_RELEASE" -eq 1 ]]; then
+      echo "Release version policy override accepted: ${RELEASE_REASON}" >&2
+    else
+      echo "Blocked by release version policy; pass --force-release --release-reason \"<plain-language reason>\" to override." >&2
+      exit 1
+    fi
+  else
+    VERSION_POLICY_WARNINGS="$(jq -r '.warnings | join("; ")' <<<"$VERSION_POLICY" 2>/dev/null || true)"
+    [[ -z "$VERSION_POLICY_WARNINGS" ]] || echo "release_version_policy_warnings: ${VERSION_POLICY_WARNINGS}" >&2
+  fi
+fi
+
 if [[ "$FORCE_RELEASE" -eq 1 && -z "$RELEASE_REASON" ]]; then
   echo "Blocked: --force-release requires --release-reason with a plain-language reason." >&2
   exit 2
@@ -409,7 +437,7 @@ else
   scripts/validate-commit-messages.sh --range "HEAD^..HEAD"
 fi
 
-if ! python3 scripts/release-gate.py; then
+if ! FOCUSA_RELEASE_CHANNEL="$RELEASE_CHANNEL" python3 scripts/release-gate.py; then
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "Dry run continuing: ReleaseGate would block an actual release." >&2
   elif [[ "$FORCE_RELEASE" -eq 1 ]]; then
@@ -446,14 +474,17 @@ if [[ "$PUSH" -eq 1 && "$RELEASE_JOURNAL_MODE" != "off" ]]; then
   fi
 fi
 
+LEARNING_GUARDS_ARTIFACT="/tmp/focusa-$(id -u)-${VERSION}-learning-guards.json"
+export FOCUSA_LEARNING_GUARDS_ARTIFACT="$LEARNING_GUARDS_ARTIFACT"
+
 if [[ "$PUSH" -eq 1 ]]; then
-  if ! python3 scripts/run-release-learning-guards.py --tag "$TAG"; then
+  if ! python3 scripts/run-release-learning-guards.py --tag "$TAG" --output "$LEARNING_GUARDS_ARTIFACT"; then
     if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
       journal_client problem --tag "$TAG" --stage "learning-guards" \
         --diagnosis "one or more retrieved release recurrence guards blocked" \
         --impact "release stopped before version stamping or immutable tagging" \
         --recovery "resolve the blocking resource or regression and rerun the same planned release" \
-        --evidence-ref "artifact:/tmp/focusa-${VERSION}-learning-guards.json"
+        --evidence-ref "artifact:${LEARNING_GUARDS_ARTIFACT}"
     fi
     exit 1
   fi
@@ -461,7 +492,7 @@ if [[ "$PUSH" -eq 1 ]]; then
   if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
     journal_client progress --tag "$TAG" --stage "learning-guards" --status "completed" \
       --details "all retrieved recurrence guards passed before version stamping" \
-      --evidence-ref "artifact:/tmp/focusa-${VERSION}-learning-guards.json"
+      --evidence-ref "artifact:${LEARNING_GUARDS_ARTIFACT}"
   fi
 fi
 
@@ -470,16 +501,21 @@ if [[ -f docs/current/.release-version-stamp ]] && \
   echo "Release surfaces already stamped ${VERSION}; preserving exact retry SHA."
 else
   echo "Stamping release surfaces: ${VERSION}"
-  scripts/stamp-menubar-version.py "${TAG}"
   scripts/stamp-release-version "${VERSION}"
+  scripts/stamp-menubar-version.py "${TAG}"
 fi
 python3 scripts/verify-version-surfaces.py "${TAG}"
 scripts/verify-doc-version-consistency
-node scripts/validate-docs-runtime-parity.mjs
+node scripts/validate-docs-runtime-parity.mjs # distribution parity drift blocks this release
 
-if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
-  journal_client benchmark --tag "$TAG" --channel "$RELEASE_CHANNEL"
-  echo "Canonical pre-release benchmark accepted for ${TAG}."
+# DETERMINISTIC FINAL GATE — no agent discretion. If this fails, do not push.
+# This is the same gate as pre-push, but --strict adds gap + Spec Gates.
+if [[ "$PUSH" -eq 1 ]]; then
+  echo "=== deterministic final gate: local-release-preflight --strict ==="
+  bash scripts/local-release-preflight.sh --strict || {
+    echo "deterministic gate FAILED — fix, do not push tag" >&2
+    exit 1
+  }
 fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -487,6 +523,8 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   git checkout -- Cargo.toml Cargo.lock README.md \
     docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
     docs/contracts/spec141/generated-capability-v2/agent-card.json \
+    docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
+    scripts/install-focusa.sh \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
     apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
@@ -496,32 +534,79 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
+STAMPED_RELEASE_SURFACES=0
 if [[ -n "$(git status --porcelain)" ]]; then
   git add Cargo.toml Cargo.lock README.md \
     docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
     docs/contracts/spec141/generated-capability-v2/agent-card.json \
+    docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
+    scripts/install-focusa.sh \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
     apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
     apps/pi-extension/package.json apps/pi-extension/package-lock.json \
     apps/pi-extension/src/auto-compaction.ts
   git commit -m "chore: stamp release surfaces ${VERSION}"
+  STAMPED_RELEASE_SURFACES=1
+fi
+
+# Version stamping changes governed source surfaces (any channel). Re-seal the locked
+# candidate ancestry before source CI so proof never trails the stamped commit.
+if [[ "$PUSH" -eq 1 && "$STAMPED_RELEASE_SURFACES" -eq 1 && \
+      -f release-proof/audit/next-locked-release-candidate-ancestry.json ]]; then
+  STAMPED_SOURCE_SHA="$(git rev-parse HEAD)"
+  python3 scripts/generate-locked-release-candidate-ancestry.py \
+    --candidate-ref "$STAMPED_SOURCE_SHA" \
+    --audit-ref "$STAMPED_SOURCE_SHA"
+  python3 scripts/generate-locked-release-governance-receipt.py \
+    --generate-ephemeral \
+    --governance-source-commit "$STAMPED_SOURCE_SHA"
+  if [[ -n "$(git status --porcelain -- release-proof/audit/)" ]]; then
+    git add release-proof/audit/
+    git commit -m "chore(release): anchor stamped candidate proof"
+  fi
+fi
+
+# The benchmark includes final release-gap ancestry checks, so it must observe
+# the committed stamped source and its freshly sealed proof.
+if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+  if ! journal_client benchmark --tag "$TAG" --channel "$RELEASE_CHANNEL"; then
+    if [[ "$RELEASE_CHANNEL" == "preview" ]]; then
+      echo "Canonical pre-release benchmark advisory for dev ${TAG}: continuing (stable would block)" >&2
+    else
+      exit 1
+    fi
+  else
+    echo "Canonical pre-release benchmark accepted for ${TAG}."
+  fi
 fi
 
 if [[ "$PUSH" -eq 1 ]]; then
   push_candidate_main_with_auto_rebase
   HEAD_SHA=$(git rev-parse HEAD)
-  echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
-  wait_for_source_workflow "CI" "$HEAD_SHA"
+  # Lean canonical (F38): dev/preview advisory — tag push is cheap, CI is async.
+  # Stable waits for exact candidate CI; dev logs advisory and continues so
+  # releases remain unnoticeable. Release workflow re-checks candidate gate.
+  if [[ "${RELEASE_CHANNEL:-dev}" == "stable" ]]; then
+    echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
+    wait_for_source_workflow "CI" "$HEAD_SHA"
+  else
+    echo "Advisory: skipping blocking CI wait for dev channel (async CI will gate Release): ${HEAD_SHA}" >&2
+    echo "source_gate_advisory: tag push continues, Release Contract Check will re-check CI green for ${HEAD_SHA}" >&2
+  fi
   if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
     journal_client progress --tag "$TAG" --stage "candidate-ci" --status "completed" \
       --details "exact stamped candidate passed pre-tag CI" \
       --evidence-ref "github:commit:${HEAD_SHA}"
   fi
-  if git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD | grep -Eq \
-    '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
-    ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
-    wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
+  CANDIDATE_CHANGED_PATHS="$(git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD)"
+  if grep -Eq \
+    '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)' \
+    <<<"$CANDIDATE_CHANGED_PATHS"; then
+    # Spec 178 temporary route. GitHub-hosted Spec 132 cannot be dispatched
+    # while provider billing is locked. Exact candidate CI remains mandatory;
+    # AppVeyor/Codemagic receipts gate publication after the immutable tag.
+    echo "source_gate_substituted workflow=Spec-132 route=spec178 providers=ovh,appveyor,codemagic sha=${HEAD_SHA}"
   fi
 fi
 

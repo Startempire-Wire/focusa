@@ -1,6 +1,6 @@
 schema: focusa.cross_spec_tool_grounding_matrix.v1
 source_contract_ref: docs/current/focusa-tool-contracts.json
-source_tool_count: 135
+source_tool_count: 137
 governing_specs: &id001
 - '137'
 - 137a
@@ -1009,6 +1009,34 @@ tools:
   evidence_refs:
   - docs/evidence/release/S138-E2E-01-runtime.txt
   - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_daemon_routing_status
+  family: project_identity
+  applicability_decision: applicable
+  applicable_specs:
+  - spec135
+  - spec158
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/contracts/spec135/generated-contract-v1/operation-registry.json
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
 - tool_name: focusa_decide
   family: focus_state
   applicability_decision: applicable
@@ -1287,6 +1315,40 @@ tools:
   machine_readable_contract_refs:
   - docs/current/focusa-tool-contracts.json
   - docs/focusa-tools/tools/focusa_dxux_requirement.md
+  focus_stack_refs:
+  - apps/pi-extension/src/tool-contracts.ts
+  reducer_event_refs:
+  - crates/focusa-core/src/reducer.rs
+  projection_replay_refs:
+  - docs/contracts/spec141/generated-capability-v2/pi-tools.json
+  awareness_refs:
+  - apps/pi-extension/src/awareness.ts
+  runbook_refs:
+  - docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md
+  recovery_refs:
+  - docs/current/TROUBLESHOOTING_CURRENT.md
+  runtime_effect_refs:
+  - docs/current/focusa-tool-contracts.json
+  adversarial_test_refs:
+  - tests/spec141_agent_conformance_test.ts
+  evidence_refs:
+  - docs/evidence/release/S138-E2E-01-runtime.txt
+  - release-proof/audit/spec138-runtime-receipt.json
+- tool_name: focusa_epistemic_operation
+  family: metacognition
+  applicability_decision: applicable
+  applicable_specs:
+  - '137'
+  - 137a
+  - '138'
+  - 138a
+  - '144'
+  - '150'
+  status: verified_complete
+  machine_readable_contract_refs:
+  - docs/current/focusa-tool-contracts.json
+  - docs/focusa-tools/tools/focusa_epistemic_operation.md
+  - docs/contracts/spec138-generated-operation-contracts.v1.json
   focus_stack_refs:
   - apps/pi-extension/src/tool-contracts.ts
   reducer_event_refs:
@@ -3749,7 +3811,7 @@ internal_families:
   - docs/evidence/release/S138-E2E-01-runtime.txt
   - release-proof/audit/spec138-runtime-receipt.json
 - family: metacognition
-  tool_count: 14
+  tool_count: 15
   applicability_decision: applicable
   status: verified_complete
   focus_stack_refs:

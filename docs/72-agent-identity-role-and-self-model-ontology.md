@@ -264,8 +264,3 @@ Restore self-consistent state after interruption.
 # 4. Success Condition
 
 Agent Identity, Role, and Self-Model Ontology is successful when Focusa can model the agent as a coherent actor inside the system rather than a floating narrator outside it.
-
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-role-profiles -->
-## Spec 144 role-profile extension
-
-Spec 72 owns the identity semantics for Builder, Domain Verifier, deterministic validator controller, Verification Router, coverage challenger, Evidence auditor, arbiter, external authority reviewer, and operator reviewer. Role text never grants permission, capability, independence, or settlement authority. Each active role binds versioned capability, permission, responsibility, non-responsibility, handoff, and CognitiveExecutionIdentity references.

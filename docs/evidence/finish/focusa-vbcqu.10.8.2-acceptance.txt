@@ -1,0 +1,5 @@
+focusa-vbcqu.10.8.2 152.04.02 — REAL 2026-08-18
+Commit: bf19a47fc3bf11ac7129f57e02b08aa751203cfc
+python3 tests/spec152_entitlement_coverage_test.py PASS
+cargo fmt --all -- --check PASS
+cargo clippy PASS

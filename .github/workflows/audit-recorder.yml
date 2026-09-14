@@ -1,12 +1,8 @@
 name: Audit Recorder (self-heal trigger)
 
 on:
-  workflow_run:
-    workflows: ["CI", "Release", "Deploy Live Daemon", "Auto Heal Release Pipeline", "Release Pipeline Watchdog"]
-    types: [completed]
-  schedule:
-    # Daily drift check; proactive self-heal only acts on recurring class thresholds.
-    - cron: "17 0 * * *"
+  workflow_dispatch:
+  # DISABLED 2026-08-21 billing $623 burn - workflow_run + schedule removed, was workflow_run + cron 17 0 * * *
 
 permissions:
   contents: write
@@ -20,8 +16,8 @@ concurrency:
 jobs:
   record-and-heal:
     name: Record failure + self-heal
-    if: ${{ github.event_name == 'schedule' || github.event.workflow_run.conclusion == 'failure' }}
-    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}  # schedule disabled 2026-08-21
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
         with:

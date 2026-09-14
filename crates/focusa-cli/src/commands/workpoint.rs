@@ -107,6 +107,10 @@ pub enum WorkpointCmd {
         result: String,
         #[arg(long)]
         evidence_ref: Option<String>,
+        /// Key for licensed request accounting; reuse the same key when retrying this operation.
+        #[arg(long, default_value_t = uuid::Uuid::now_v7().to_string(), hide_default_value = true,
+            value_parser = clap::builder::NonEmptyStringValueParser::new())]
+        idempotency_key: String,
         #[arg(long, default_value = "focusa-cli")]
         writer_id: String,
     },
@@ -377,6 +381,7 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             target_ref,
             result,
             evidence_ref,
+            idempotency_key,
             writer_id,
         } => (
             "evidence-link",
@@ -387,6 +392,7 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
                     "target_ref": target_ref,
                     "result": result,
                     "evidence_ref": evidence_ref,
+                    "idempotency_key": idempotency_key,
                 }),
                 &[("x-focusa-writer-id", writer_id.as_str())],
             )

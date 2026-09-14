@@ -1,0 +1,342 @@
+{
+  "assets": [
+    {
+      "digest": "sha256:d4c71d7f5aa2a24546fd64c3fc7774f546618198d07c750c206875cd8abe408e",
+      "name": "Focusa-v0.9.143-aarch64-apple-darwin.app.zip",
+      "size": 4577929
+    },
+    {
+      "digest": "sha256:56d8db348098105ad37b226f967b74c42bd4fb60bde3528e41b78182069afa7b",
+      "name": "Focusa-v0.9.143-aarch64-apple-darwin.app.zip.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:4984e8b767e98778d66d31d1594f43ab435d57c15da1bce0e91ad36202aae65e",
+      "name": "Focusa-v0.9.143-x86_64-apple-darwin.app.zip",
+      "size": 4924407
+    },
+    {
+      "digest": "sha256:7ad2f8885e41fb87f964c8993d2c98d54b88cf246c2a3dd3b010c50cac624dad",
+      "name": "Focusa-v0.9.143-x86_64-apple-darwin.app.zip.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:15f5fee79dada9ef5567964f4164373622f4f94513763faa28bd30b3d809f296",
+      "name": "Focusa_0.9.143_aarch64-v0.9.143-aarch64-apple-darwin.dmg",
+      "size": 4585154
+    },
+    {
+      "digest": "sha256:3ea19fdef3b545440de33222646ce34154c541497b40289a6cec27563899f0d5",
+      "name": "Focusa_0.9.143_aarch64-v0.9.143-aarch64-apple-darwin.dmg.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:15f5fee79dada9ef5567964f4164373622f4f94513763faa28bd30b3d809f296",
+      "name": "Focusa_0.9.143_aarch64.dmg",
+      "size": 4585154
+    },
+    {
+      "digest": "sha256:3ea19fdef3b545440de33222646ce34154c541497b40289a6cec27563899f0d5",
+      "name": "Focusa_0.9.143_aarch64.dmg.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:0bd242cbf2b7608afc8f0f07cb3c9767e3b5bd6be33e89a65ff3e92bd7ed2df3",
+      "name": "Focusa_0.9.143_x64-v0.9.143-x86_64-apple-darwin.dmg",
+      "size": 4924484
+    },
+    {
+      "digest": "sha256:d715f9da238ce74b61a381145fad8e342c976ec9cdbcb1f2b16741c4aaaf8e3c",
+      "name": "Focusa_0.9.143_x64-v0.9.143-x86_64-apple-darwin.dmg.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:0bd242cbf2b7608afc8f0f07cb3c9767e3b5bd6be33e89a65ff3e92bd7ed2df3",
+      "name": "Focusa_0.9.143_x64.dmg",
+      "size": 4924484
+    },
+    {
+      "digest": "sha256:d715f9da238ce74b61a381145fad8e342c976ec9cdbcb1f2b16741c4aaaf8e3c",
+      "name": "Focusa_0.9.143_x64.dmg.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:29be50699b09bc280ea9dad59bfd7f066031fb5b6a668fcd71467094027417d9",
+      "name": "Focusa_aarch64.app.tar.gz",
+      "size": 4731617
+    },
+    {
+      "digest": "sha256:414db669a3a77fd8ab80ed6387fefca7152eca6802e481b701858cc71b2871cf",
+      "name": "Focusa_aarch64.app.tar.gz.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:6b6a66e293f5327c04c8568c98d432cd4cae5ba33dd91b9f5192362c04beb760",
+      "name": "Focusa_x64.app.tar.gz",
+      "size": 5025130
+    },
+    {
+      "digest": "sha256:dc13458510396445714dd9323f79ef65c94f80231b14b8897c68a28d6315023f",
+      "name": "Focusa_x64.app.tar.gz.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:b14f56794119b02f71eb7decc1f09667e39854754d9ade8f51771a3da3f201a6",
+      "name": "SHA256SUMS.txt",
+      "size": 2785
+    },
+    {
+      "digest": "sha256:2f345f9a226391c75923b2968299def86564e7296f245d02bd0467eb3be64669",
+      "name": "SHA256SUMS.txt.cosign.pem",
+      "size": 3384
+    },
+    {
+      "digest": "sha256:a6c95e67e4edcf186cd0e923cf49e5da35bcc8d5cdb29dc86069a7efc6e99141",
+      "name": "SHA256SUMS.txt.cosign.sig",
+      "size": 96
+    },
+    {
+      "digest": "sha256:1b5e81b1a26ab9a7ba9ec09f0b7f89bcebd39138f379c34f45641b706b2a74b9",
+      "name": "SHA256SUMS.txt.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:2adcdea7023e0daa40f9be29ac19b2faca01feb1231be087d96464f1922226b8",
+      "name": "deploy-success.json",
+      "size": 653
+    },
+    {
+      "digest": "sha256:6ecd6e29f6a587bf62508106899806839decf23b2a9ccd02d0e70031fb1a322c",
+      "name": "deploy-success.json.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:f4c8312c0a8e93e12be9ef21da73a07975c18f45fe48449bb2a47ff1c3f60918",
+      "name": "focusa-agent-context-v0.9.143.tar.gz",
+      "size": 18895
+    },
+    {
+      "digest": "sha256:46a90f449a947fce8d8b20c7454ff72f60ac66fa4e7847a06953f6dbfc359f89",
+      "name": "focusa-agent-context-v0.9.143.tar.gz.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:94e061caf8cb7b63dc775253467a6c474c31152c355ddd1a44f43f74602807ea",
+      "name": "focusa-daemon-v0.9.143-aarch64-apple-darwin",
+      "size": 38318000
+    },
+    {
+      "digest": "sha256:953185a7c62bf9aa08c342b6dceed6556f0142350266ef0c7967ff1ed1ebfd40",
+      "name": "focusa-daemon-v0.9.143-aarch64-apple-darwin.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:6f647f08de0f62867b5741b8c6fe274156bef4445fd32a08fd7929c1540d9d61",
+      "name": "focusa-daemon-v0.9.143-x86_64-apple-darwin",
+      "size": 43844668
+    },
+    {
+      "digest": "sha256:21d75d8cf88e2c21fdaa9eb8985559da5d9d6c69d0993c2397af1e633a18f3ed",
+      "name": "focusa-daemon-v0.9.143-x86_64-apple-darwin.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:e9fa67d16d6749fb7751f4bffef72e0af854289c99aa3f23543fda726f38d289",
+      "name": "focusa-daemon-v0.9.143-x86_64-unknown-linux-gnu",
+      "size": 48092408
+    },
+    {
+      "digest": "sha256:7d7aeab6602c0a0acfc5a05b4bb9dba8ace145ea4c2c4eab60fe116dfbabacb0",
+      "name": "focusa-daemon-v0.9.143-x86_64-unknown-linux-gnu.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:148c1faea54767363a2b5f8d76677dd79e18f4cdeeb54189df29aee69941d5d3",
+      "name": "focusa-daemon-v0.9.143-x86_64-unknown-linux-musl",
+      "size": 48189272
+    },
+    {
+      "digest": "sha256:340795b28e664e50074e25f9dbb46ba8f12fbb5a0498f80f901340d78004d2cf",
+      "name": "focusa-daemon-v0.9.143-x86_64-unknown-linux-musl.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:d3c7c8d9ef3ff606394799cccf8b7b5d6306f9883f71323e5a58f7ecfa4c12ea",
+      "name": "focusa-installer-v0.9.143.sh",
+      "size": 37175
+    },
+    {
+      "digest": "sha256:252c5b5eb1b868fbb6805bd16b3fde03f966b6e7677450da9d25b36de01fc6f1",
+      "name": "focusa-installer-v0.9.143.sh.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:405898d655f8a6a6bed503263f9b627da5949eea15defede0edd262c95b8db02",
+      "name": "focusa-pi-extension-v0.9.143.tar.gz",
+      "size": 436918
+    },
+    {
+      "digest": "sha256:5fdf28d39deee51f43801ca793a301e1a31233a65d88d9e8b735ca9de77017f1",
+      "name": "focusa-pi-extension-v0.9.143.tar.gz.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:763f34ce699bcdce3a5734bfeb33d15404c3cd52e93e7d9856538c27037f8787",
+      "name": "focusa-trusted-release-keys.json",
+      "size": 445
+    },
+    {
+      "digest": "sha256:16ae64d98deb86e5cb8e8a91eccdf9fe452786e7f946bfb285376b6cfdc031f0",
+      "name": "focusa-trusted-release-keys.json.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:edbe62b0b32ef01fc0631bc8a3d551fb3decc67c11c8ef5c387a04a8440fce41",
+      "name": "focusa-tui-v0.9.143-aarch64-apple-darwin",
+      "size": 3449600
+    },
+    {
+      "digest": "sha256:2301b9bd7d80cf5c457d2b8d303bab4e7d9a70ca25c3fe654b89c03079b8831e",
+      "name": "focusa-tui-v0.9.143-aarch64-apple-darwin.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:9f21a89131e3b37b54c13479dadce18d0d8cf5461c051e66b26707b673835bd8",
+      "name": "focusa-tui-v0.9.143-x86_64-apple-darwin",
+      "size": 3872652
+    },
+    {
+      "digest": "sha256:3dc02f020a16742479247ff932f31d9f4eb6342e927cd69d0aa91792f0777ab2",
+      "name": "focusa-tui-v0.9.143-x86_64-apple-darwin.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:e30fa4eb31b2ac65056e37e3674f29d59341d31b9c4b2ae33987ea747961db9e",
+      "name": "focusa-tui-v0.9.143-x86_64-unknown-linux-gnu",
+      "size": 4290664
+    },
+    {
+      "digest": "sha256:1f3106e4f41753e8e88222f8020bb71ec8f5a8a8f30c2d34c3fc1c3c7625e96e",
+      "name": "focusa-tui-v0.9.143-x86_64-unknown-linux-gnu.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:eab617374a22e19b09df2ae0c0ec09ba28e38b6f7ea2e5c3825c3bb9a6f5cd92",
+      "name": "focusa-tui-v0.9.143-x86_64-unknown-linux-musl",
+      "size": 4417608
+    },
+    {
+      "digest": "sha256:a0528468153e0a56c728beb6333f9ee79b484b15cffbd5e84442bbf94473f7ee",
+      "name": "focusa-tui-v0.9.143-x86_64-unknown-linux-musl.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:865f24ed25fe4c81073b69735827f26f46e623d3fdd85d23265c1935ac4f33ff",
+      "name": "focusa-v0.9.143-aarch64-apple-darwin",
+      "size": 14781120
+    },
+    {
+      "digest": "sha256:81c346a13ae32fdb0b1c1e23a06115f487ad96513d688a6ae333eae65f7f12d7",
+      "name": "focusa-v0.9.143-aarch64-apple-darwin.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:8c2ef788c96ced77559611c9dacc98d123afb67b4674d1e4548b3b5184a95135",
+      "name": "focusa-v0.9.143-x86_64-apple-darwin",
+      "size": 17742536
+    },
+    {
+      "digest": "sha256:dec3d20adadad4cea709ca6f509996d1adcb2ee3476e755286134c5878ab3019",
+      "name": "focusa-v0.9.143-x86_64-apple-darwin.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:596af408dc8f0258c053d65b40d5f0b71809c29f5f1fe2017aa8948470239863",
+      "name": "focusa-v0.9.143-x86_64-unknown-linux-gnu",
+      "size": 18986416
+    },
+    {
+      "digest": "sha256:b2c3c88bf1ac4dfecf7a861ad906240a304cecc93ba74e6cabbc63ab03037839",
+      "name": "focusa-v0.9.143-x86_64-unknown-linux-gnu.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:15349877a2d6e8fd9632e21ab6c644f3dae832eb953cd3fe030ff79e106016b6",
+      "name": "focusa-v0.9.143-x86_64-unknown-linux-musl",
+      "size": 19134312
+    },
+    {
+      "digest": "sha256:a0b0fd5a84ed59c86fa3e7a5624d7ee5e29b5880ba9d452d644fd359f2d76265",
+      "name": "focusa-v0.9.143-x86_64-unknown-linux-musl.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:7dc89119512813f96267fbd9af4f4efe2e4cbd1628f4c91c426531c5c349ca01",
+      "name": "install-focusa-menubar-beta.sh",
+      "size": 3969
+    },
+    {
+      "digest": "sha256:d328df13242b3c95e6300132dbf0fd68b5dceead5ee0b1fbb8e6411f65c0aa30",
+      "name": "install-focusa-menubar-beta.sh.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:fa3976b769acad1208058af2f260ab0e5c5ed6224005f1b911669dcf38817568",
+      "name": "latest.json",
+      "size": 2521
+    },
+    {
+      "digest": "sha256:73207eb74845ea0f52d3cb5a4247af55b143ec859072e1f07a6c7a014579e93a",
+      "name": "latest.json.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:185813bbba719d56e73362f0facc399f128c118a067d9f5e61719b15c1563e10",
+      "name": "release-intelligence.json",
+      "size": 14662
+    },
+    {
+      "digest": "sha256:82195f3102cab9f5ba27c62a386046edbfe9d31cd6a7bc7bae01a9c35c9428e5",
+      "name": "release-intelligence.json.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:8fe33deafa03dd8ea479b5db52f205c01cf631e5528694d7883d8ada790ffc0f",
+      "name": "release-intelligence.md",
+      "size": 7755
+    },
+    {
+      "digest": "sha256:2eee35fa5247c827d843ac5749b88e7ac0b3e69be85fa68d6469900792e85781",
+      "name": "release-intelligence.md.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:4b97cecf7930f86e4e7eacd54fd0d5cabfdd31f6dd4311efc01df52585645da4",
+      "name": "release-manifest.json",
+      "size": 19157
+    },
+    {
+      "digest": "sha256:112b74629ed7c03032684cb0820a784305ab86877e1975783e39e3208e22ce67",
+      "name": "release-manifest.json.sig",
+      "size": 64
+    },
+    {
+      "digest": "sha256:cdadccb0a9db6b729acea79129faac54f00c62e958ea886b61400be218833e22",
+      "name": "release-provenance.json",
+      "size": 5294
+    },
+    {
+      "digest": "sha256:08fdbf317dd4c92a1357d294e6b9d4be765f8325ff0bbcdd87fec7c40814deed",
+      "name": "release-provenance.json.sig",
+      "size": 64
+    }
+  ],
+  "draft": false,
+  "prerelease": false,
+  "published_at": "2026-08-02T01:52:18Z",
+  "repository": "Startempire-Wire/focusa",
+  "schema": "focusa.published_release_asset_snapshot.v1",
+  "tag_name": "v0.9.143",
+  "target_commitish": "main",
+  "url": "https://github.com/Startempire-Wire/focusa/releases/tag/v0.9.143"
+}

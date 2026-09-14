@@ -60,6 +60,12 @@ pub fn bounded_instruction_path(
     let root = project_root
         .canonicalize()
         .map_err(|_| "project_root_unreadable")?;
+    if candidate
+        .components()
+        .any(|part| part == Component::ParentDir)
+    {
+        return Err("parent_traversal_forbidden".into());
+    }
     let clean = if candidate.is_absolute() {
         candidate.to_path_buf()
     } else {

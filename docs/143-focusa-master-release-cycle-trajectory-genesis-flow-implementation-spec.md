@@ -478,7 +478,3 @@ No release pass if any Spec142 condition remains open, any Spec135 impact is unk
 
 `SHIPPED` requires all locked leaves closed, exact-SHA acceptance green, immutable candidate published, live deployment and smoke proof green, rollback/audit/self-heal/watchdog proven, intelligent release information published, and speed/friction/cost evidence attached.
 
-<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-postrelease-boundary -->
-## Spec 144 post-release activation boundary
-
-The locked Spec 143 release remains unchanged. Spec 144 implementation begins only after Spec 143 closure and explicit operator activation. Documentation closure, source coverage, and cross-spec amendments may be completed now, but they do not create runtime acceptance, expand the release, or authorize implementation before the activation gate.

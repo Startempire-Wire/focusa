@@ -1,0 +1,127 @@
+Spec 172 / Spec 152F overlay acceptance record
+Work item: focusa-vbcqu.20.15.27
+Title: 172.04.03 Project Spec 172 through menubar and TUI
+Implementation commit: `b3c2f093` (feat(spec172): project Spec 172 through
+menubar and TUI)
+
+Exact surfaces
+- apps/menubar/src/lib/spec172Posture.ts (NEW) — pure, dependency-free Spec 172
+  presenter projection: frozen canonical License Type codes/labels (Focusa
+  Operator Lifetime v1, UIAI Engine Operator Lifetime v1, Focusa + UIAI
+  Operator Lifetime Bundle), verified-no-license limited posture, Operator/
+  Bundle upgrade accuracy, frozen node semantics (Spec 172 §7.3), frozen
+  retained controls (Spec 172 §5.3/§6.2), and the locked-state accessibility
+  fixture. No module-level mutable state: a presenter can never cache local
+  commercial policy.
+- apps/menubar/src/lib/components/EntitlementPosture.svelte (Modified) —
+  renders the Spec 172 projection (License Type, upgrade, node semantics,
+  presenter-not-product) from the SAME `/v1/license/status` payload as the
+  Spec 152E/152F posture; display-only, no new controls, no new daemon calls.
+- docs/contracts/spec152f-menubar-action-map.v1.json (Modified) — new
+  top-level `spec172` section: action-map parity and accessible locked-state
+  fixtures (presenter_not_product, license_type_display, upgrade_display,
+  node_semantics, disable_policy, locked_state_fixtures). The 83 baseline
+  actions are untouched.
+- crates/focusa-tui/src/spec172_presenter.rs (NEW) — TUI mirror of the
+  menubar projection (Spec172Posture, project_spec172_posture,
+  status_line, locked_state_fixture, frozen fixtures + 5 unit tests),
+  wired through crates/focusa-tui/src/app.rs (spec172 field projected from
+  the same license-status payload) and rendered in
+  crates/focusa-tui/src/views/deck_home.rs (Spec 172 posture line and
+  locked-state fixture line; fails closed to "unavailable (no canonical
+  posture snapshot)").
+- tests/spec172_menubar_tui_presenter_test.mjs (NEW) — acceptance receipt:
+  80 positive checks, 0 negative.
+
+Bounded result
+- Menubar and TUI are presenters, not products (Spec 172 §15): both carry the
+  frozen presenter-not-product sentence; neither owns pricing, grants,
+  limits, or commercial policy; no local commercial table exists in either
+  presenter (pure functions, no module-level mutable state).
+- License Type display is canonical and fail-closed: the frozen
+  code->label fixture is byte-identical across the menubar module, the TUI
+  presenter, and the action map `spec172` section; an unknown or
+  caller-supplied License Type code never projects (a presenter never mints a
+  License Type); product grants are filtered to the exact canonical products
+  (`focusa`, `uiai_engine`) with duplicates dropped.
+- Operator/Bundle upgrade accuracy: an upgrade is displayed ONLY when the
+  daemon presenter vocabulary signals one (select_purchase /
+  open_checkout / activate_or_manage_entitlement); verified no-license
+  shows "Operator upgrade available"; an actively granted Operator/UIAI/
+  Bundle License Type shows "Manage entitlement" and is never re-sold as an
+  Operator upgrade (Spec 172 §10.3); offline-grace with a granted type is
+  managed, not re-sold.
+- Retained read/export/recovery controls and locked-state fixtures: the
+  frozen 9-entry always-reachable set (navigation, status, account, read,
+  export, recovery, repair, update, uninstall) is byte-identical across the
+  menubar module, the TUI presenter, and the action map; locked-state
+  fixtures name the canonical upgrade/recovery action
+  (activate_or_manage_entitlement) and never disable read, export, recovery,
+  repair, update, or uninstall (Spec 172 §5.3/§6.2).
+- Node semantics: one verified operator seat, up to three registered
+  operator nodes; CLI, TUI, Pi, menubar, Focusa Desktop, and Cockpit clients
+  on the same node do not consume separate nodes (Spec 172 §7.3); neither
+  presenter counts apps as nodes and no per-app node counter exists.
+- Fail-closed rules hold in every replayed posture: no caller-controlled
+  product, price, License Type, family, feature, limit, node, or commercial
+  right is accepted; no raw email, key, token, customer row, credential, or
+  card data exists in any fixture; no implicit legacy Download 453 mapping;
+  no data deletion or blocked basic export, repair, rollback, stable security
+  update, or uninstall.
+
+Exact verification (exit codes)
+1. `node tests/spec172_menubar_tui_presenter_test.mjs` — exit 0.
+   Receipt: schema focusa.spec172.menubar_tui_presenter_acceptance.v1,
+   result "passed", 80 positive checks, 0 negative.
+2. `node apps/menubar/tests/entitlement-posture.mjs` — exit 0.
+   "menubar entitlement posture semantic tests passed".
+
+Regression checks (exit codes)
+- `cargo test -p focusa-tui` — exit 0: 55 passed; 0 failed (includes the 5
+  new spec172_presenter unit tests and the pre-existing TUI suite).
+- `cargo check -p focusa-tui` — exit 0, finished cleanly (remote OVH build).
+- `node tests/spec152f_presenter_accessibility_test.mjs` — exit 0:
+  300 assertions PASS (menubar/TUI parity, always-reachable fixtures, no
+  disabled-control traps, no component-local policy).
+- `node tests/spec152f_menubar_action_map_test.mjs` — exit 0: 933 passed;
+  83/83 baseline menubar actions still mapped; buttons never mint or
+  reinterpret entitlement; protected denial remains actionable.
+- `python3 tests/spec152f_denial_ux_parity_test.py` — exit 0:
+  positive=3032 negative=10 PASS.
+- `python3 tests/spec152f_cross_presenter_parity_test.py` — exit 0:
+  positive=2634 negative=0 PASS (63 canonical cells through
+  CLI/menubar/TUI/Pi/lifecycle/facade).
+
+Tests added
+- apps/menubar/src/lib/spec172Posture.ts (projectSpec172Posture,
+  lockedStateFixture, frozen fixtures) — covered by
+  tests/spec172_menubar_tui_presenter_test.mjs.
+- crates/focusa-tui/src/spec172_presenter.rs unit tests (5):
+  verified_no_license_projects_limited_posture_with_operator_upgrade,
+  operator_and_bundle_active_grants_are_managed_not_resold,
+  unknown_and_caller_supplied_values_fail_closed,
+  denied_posture_keeps_recovery_upgrade_and_retained_controls,
+  frozen_fixtures_match_menubar_contract.
+- tests/spec172_menubar_tui_presenter_test.mjs (acceptance receipt, 80
+  positive checks across presenter-not-product, License Type display parity,
+  Operator/Bundle upgrade accuracy, retained/locked-state fixtures, node
+  semantics, no local commercial policy, and hygiene).
+
+Remaining blockers
+- None for this atom. Downstream atoms remain open as planned:
+  focusa-vbcqu.20.15.28 (bind Focusa Desktop to operation-level entitlement),
+  .20.15.33 (verified no-license reaches useful limited value), and
+  .20.15.38 (cross-presenter/dynamic-tool/offline/bypass adversarial matrix)
+  are dependents, not prerequisites.
+
+Rollback
+- Revert only the implementation commit and this evidence record if
+  required: the change is additive (new presenter projection modules and a
+  new action-map section) plus display-only wirings (Svelte component lines,
+  TUI app field, Deck Home render lines). No existing decision path,
+  baseline action, or contract row was modified. Preserve verified
+  identities, customers, orders, refunds, License Types, keys, nodes,
+  sequences, data, migration journals, evidence, and all accepted unrelated
+  work.
+
+No push, deploy, release, merge, or Beads mutation was performed.
