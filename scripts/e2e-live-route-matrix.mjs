@@ -135,9 +135,9 @@ check("direction operations (#291)", async () => {
   return r.json?.status === "recorded" && Array.isArray(list.json?.operations);
 });
 
-check("compaction epoch (#112)", async () => {
-  const r = await call("GET", "/compaction/controller-epoch");
-  return r.status < 500;
+check("compaction policy", async () => {
+  const r = await call("GET", "/compaction/policy");
+  return r.status < 500 && r.status !== 404 && r.status !== 405;
 });
 
 check("error envelope parity (#261)", async () => {

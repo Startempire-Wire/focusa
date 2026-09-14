@@ -3845,8 +3845,12 @@ export function adoptWorkpointScopeForFrameRecovery(
   const workpoint = packet.resume_packet?.workpoint || packet.workpoint || packet;
   const packetProjectRoot = normalizeProjectRoot(workpoint.project_root || packet.project_root);
   const packetContinuityId = String(workpoint.continuity_id || packet.continuity_id || "").trim();
+  const sessionIdentity = workpoint.session_identity || packet.session_identity;
   const packetPiSessionKey = String(
-    workpoint.pi_session_frame_key || packet.pi_session_frame_key || ""
+    workpoint.pi_session_frame_key ||
+      packet.pi_session_frame_key ||
+      sessionIdentity?.session_frame_key ||
+      ""
   ).trim();
   const packetSessionId = String(workpoint.session_id || packet.session_id || "").trim();
   const currentSessionKey = String(getAttachmentRuntime().sessionFrameKey || "").trim();

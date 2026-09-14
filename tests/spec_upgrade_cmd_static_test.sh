@@ -46,6 +46,11 @@ for needle in \
 done
 rg -n -F '#[command(name = "focusa-session-runner", version)]' "$RUNNER" >/dev/null || fail "session runner lacks Unix --version contract"
 rg -n -F 'focusa-session-runner {}' "$RUNNER" >/dev/null || fail "session runner lacks non-Unix --version contract"
+rg -n -F -- '--system-install is supported only for the Linux authoritative /usr/local/bin surface' "$INSTALL" >/dev/null \
+  || fail "explicit system-install bridge is not Linux fail-closed"
+rg -n -F '#[arg(long)]' "$INSTALL" >/dev/null || fail "system-install bridge is not CLI-addressable"
+rg -n -F '/usr/local/bin/{focusa,focusa-daemon,focusa-tui,focusa-session-runner} (transactional promotion; user links retained)' "$INSTALL" >/dev/null \
+  || fail "system-install dry-run plan does not disclose the authoritative promotion surface"
 pass "upgrade installs, verifies, reports, and promotes all four canonical binaries"
 
 [ -f "$DOC" ] || fail "UPGRADE_COMMAND.md missing"
@@ -58,6 +63,8 @@ for needle in \
   'license-preserved' \
   'recovery_hint' \
   'authoritative `/usr/local/bin` surface' \
+  'verified shell bootstrap' \
+  '`--system-install` flag' \
   'four canonical binaries' \
   'all four exact versions'; do
   rg -n -F "$needle" "$DOC" >/dev/null || fail "upgrade doc missing marker: $needle"

@@ -1804,23 +1804,18 @@ fn discover_identity(
     if let Some(raw_fingerprint) = remote_hint.persisted_project_fingerprint.as_ref() {
         if let Some(persisted_fingerprint) = clean(Some(raw_fingerprint.as_str())) {
             if persisted_fingerprint != fingerprint {
-                if remote_hint.is_present() && persisted_fingerprint == legacy_path_fingerprint {
-                    mismatches.push(json!({
-                        "source": "persisted_session_identity_fingerprint",
-                        "expected": fingerprint.clone(),
-                        "actual": persisted_fingerprint,
-                        "severity": "warning",
-                        "advisory": true,
-                        "migration": "legacy_path_fingerprint_to_remote_locator_v1"
-                    }));
-                } else {
-                    mismatches.push(json!({
-                        "source": "persisted_session_identity_fingerprint",
-                        "expected": fingerprint.clone(),
-                        "actual": persisted_fingerprint,
-                        "severity": "high",
-                    }));
-                }
+                mismatches.push(json!({
+                    "source": "persisted_session_identity_fingerprint",
+                    "expected": fingerprint.clone(),
+                    "actual": persisted_fingerprint,
+                    "severity": "warning",
+                    "advisory": true,
+                    "migration": if remote_hint.is_present() && persisted_fingerprint == legacy_path_fingerprint {
+                        "legacy_path_fingerprint_to_remote_locator_v1"
+                    } else {
+                        "refresh_persisted_fingerprint_from_verified_identity"
+                    }
+                }));
             }
         }
     }
@@ -3954,7 +3949,9 @@ async fn card(
         },
         "bridge_status": if runtime_ontology_objects > 0 { "runtime_ontology_plus_project_derivatives" } else { "project_derivatives_used_until_runtime_ontology_populates" }
     });
-    let reference_handles = focusa.reference_index.handles.len();
+    let reference_handles =
+        usize::try_from(focusa.reference_index.total_handle_count()).unwrap_or(usize::MAX);
+    let hot_reference_handles = focusa.reference_index.handles.len();
     let workpoint_verifications = focusa
         .workpoint
         .records
@@ -3969,6 +3966,9 @@ async fn card(
         .sum::<usize>();
     let evidence = json!({
         "reference_handles": reference_handles,
+        "hot_reference_handles": hot_reference_handles,
+        "cold_reference_handles": focusa.reference_index.cold_handle_count,
+        "cold_rehydrate_mode": "exact_handle_id",
         "workpoint_verifications": workpoint_verifications,
     });
     let recent_frames = focusa
@@ -5255,6 +5255,51 @@ mod tests {
     }
 
     #[test]
+    fn explicit_clean_git_clone_binds_origin_remote() {
+        let root = temp_project("clean-clone-origin");
+        fs::create_dir_all(&root).unwrap();
+        let env: Vec<(String, String)> = std::env::vars()
+            .filter(|(key, _)| key != "GIT_DIR" && key != "GIT_WORK_TREE")
+            .collect();
+        let run = |args: &[&str]| {
+            let output = std::process::Command::new("git")
+                .args(args)
+                .current_dir(&root)
+                .env_clear()
+                .envs(env.clone())
+                .output()
+                .expect("git must be available for the clone fixture");
+            assert!(
+                output.status.success(),
+                "git {:?} failed: {:?}",
+                args,
+                output.stderr
+            );
+            output
+        };
+        run(&["init", "-q", "."]);
+        run(&[
+            "remote",
+            "add",
+            "origin",
+            "https://github.com/Startempire-Wire/agent-driven-life-business-os.git",
+        ]);
+        let candidate = discover_identity(root.to_str(), None, None, RemoteProjectHint::default());
+        assert_eq!(
+            candidate.repo_remote.as_deref(),
+            Some("https://github.com/Startempire-Wire/agent-driven-life-business-os.git")
+        );
+        assert_ne!(candidate.status, "cwd_only");
+        assert!(
+            candidate
+                .signals
+                .iter()
+                .any(|signal| signal.source == "git_common_dir")
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn identity_name_match_accepts_safe_case_and_aliases() {
         let aliases = vec!["focusa-daemon".to_string(), "focusa-cli".to_string()];
         assert!(identity_name_matches(
@@ -5735,6 +5780,65 @@ mod tests {
                     .iter()
                     .any(|item| item.get("source").and_then(Value::as_str)
                         == Some("persisted_session_identity_fingerprint")))
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn stale_persisted_fingerprint_is_advisory_when_verified_identity_agrees() {
+        let root = temp_project("persisted-fingerprint-drift");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join(".git/config"), "").unwrap();
+        fs::create_dir_all(root.join(".beads")).unwrap();
+        fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
+        let baseline = project_identity_payload_for_scope_with_remote(
+            root.to_str(),
+            None,
+            None,
+            RemoteProjectHint::default(),
+            None,
+        );
+        let payload = project_identity_payload_for_scope_with_remote(
+            root.to_str(),
+            None,
+            None,
+            RemoteProjectHint {
+                persisted_project_root: Some(root.to_string_lossy().into_owned()),
+                persisted_project_fingerprint: Some("project-fnv1a64:deadbeefdeadbeef".to_string()),
+                ..RemoteProjectHint::default()
+            },
+            None,
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/status")
+                .and_then(Value::as_str),
+            baseline
+                .pointer("/project_identity/status")
+                .and_then(Value::as_str),
+            "fingerprint drift must not downgrade otherwise identical identity evidence"
+        );
+        assert_eq!(
+            payload.get("canonical").and_then(Value::as_bool),
+            baseline.get("canonical").and_then(Value::as_bool)
+        );
+        let mismatch = payload
+            .pointer("/project_identity/mismatches")
+            .and_then(Value::as_array)
+            .and_then(|items| {
+                items.iter().find(|item| {
+                    item.get("source").and_then(Value::as_str)
+                        == Some("persisted_session_identity_fingerprint")
+                })
+            })
+            .expect("advisory fingerprint refresh record");
+        assert_eq!(
+            mismatch.get("severity").and_then(Value::as_str),
+            Some("warning")
+        );
+        assert_eq!(
+            mismatch.get("advisory").and_then(Value::as_bool),
+            Some(true)
         );
         let _ = fs::remove_dir_all(root);
     }

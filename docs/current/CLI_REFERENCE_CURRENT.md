@@ -173,10 +173,26 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 - `metacognition recent-reflections` / `recent-adjustments` / `recent-evaluations` — read recent learning/evaluation packets.
 - `awareness card --continuity-id` — non-Pi utility card injection with trajectory orientation and logical-session scoping.
 
+### Project bootstrap lifecycle
+
+- `focusa project bootstrap preview --project-root <absolute-path>` — computes the local-only, idempotent bootstrap transaction without writing.
+- `focusa project bootstrap apply --project-root <absolute-path>` — applies only the previewed bounded transaction; it never creates or changes a remote implicitly.
+- `focusa project bootstrap status --project-root <absolute-path>` — reports marker, project identity, Genesis, Beads, and verification state without mutation.
+- `focusa project bootstrap repair --project-root <absolute-path>` — repairs only transaction-owned bootstrap artifacts while preserving operator choices and reporting rollback evidence.
+
+### Project Genesis lifecycle
+
+- `focusa project genesis start --project-root <absolute-path> --continuity-id <id> --idempotency-key <key>` — inventories authority and stages Genesis; missing High-Level Trajectory intent enters an explicit impasse instead of inventing one.
+- `focusa project genesis resume --project-root <absolute-path> --continuity-id <id> --idempotency-key <key>` — resumes the same bounded, idempotent Genesis transaction.
+- `focusa project genesis status --project-root <absolute-path>` — reads the durable Genesis packet without mutation.
+- `focusa project genesis commit --project-root <absolute-path> --continuity-id <id> --idempotency-key <key> --confirm` — atomically commits the confirmed Trajectory, first Workpoint, coordination state, and readiness receipt.
+
 ### Release-current lifecycle and autonomous execution
 
 - `focusa silent --help` exposes daemon-native Silent Session list/start/reopen/tail/send/interrupt/pause/resume/restart/kill/config/receipt/capabilities operations. Mutations use exact session/run/generation plus daemon-issued approval and idempotency fields; shell/tmux aliases are not authority.
-- `focusa update --help` exposes trusted OTA inventory, policy, guarded apply, activation status, and rollback surfaces across CLI/daemon/TUI/Pi/menubar/installer release artifacts.
+- `focusa update --help` exposes trusted OTA inventory, policy, guarded apply, activation status, and rollback surfaces across CLI/daemon/TUI/session-runner/Pi/agent-context/menubar/installer release artifacts.
+- `focusa update compatibility-bootstrap --latest-version <exact-candidate> --compatibility-canary-root <absolute-path> --yes --allow-apply --dry-run false` installs the exact historical baseline authorized by the current candidate signature into an empty isolated installation. It requires the signed full baseline digest map, delegates to the canonical Rust installer, and never runs the old CLI installer. The digest authority has no CLI/environment/deserialization input; rollback re-verifies the current candidate rather than trusting local journal claims.
+- `focusa update apply --latest-version <exact> --compatibility-canary-root <absolute-path> --yes --allow-apply --dry-run false` is a release-workflow-only preproduction mode. It accepts only a signed candidate-manifest canary authorization and a non-root isolated environment; it cannot run automatically, mutate services, target system paths, or substitute for production `deploy-success.json`.
 - `focusa uninstall --dry-run --keep-data` previews software removal with data preservation. The public bootstrapper preserves data by default; destructive removal requires explicit `--uninstall --purge-data`.
 - `focusa tui --headless-self-test` provides structured non-TTY Mission Deck diagnostics.
 - Mission Canvas, Work Rail, connectors, generated UI, and all Focusa Pi tools are discovered through the generated Agent Card/Spec141 registries rather than an invented parallel CLI hierarchy.

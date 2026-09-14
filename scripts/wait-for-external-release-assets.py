@@ -27,7 +27,7 @@ import time
 
 # macOS Rust binaries (Codemagic macos-rust-binaries workflow).
 MAC_TARGETS = ("aarch64-apple-darwin", "x86_64-apple-darwin")
-RUST_SURFACES = ("focusa", "focusa-daemon", "focusa-tui")
+RUST_SURFACES = ("focusa", "focusa-daemon", "focusa-tui", "focusa-session-runner")
 
 # Windows Rust binaries (AppVeyor full matrix).
 WIN_TARGETS = ("x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc")
@@ -58,7 +58,10 @@ def menubar_exact(tag: str) -> list[str]:
 def menubar_patterns() -> list[str]:
     return [
         "Focusa_*aarch64*.dmg",
+        "Focusa-*aarch64*.dmg",
         "Focusa_*x64*.dmg",
+        "Focusa-*x64*.dmg",
+        "Focusa_*x86_64*.dmg",
         "Focusa_*x64*setup.exe",
         "Focusa_*x64*setup.exe.sig",
         "Focusa_*arm64*setup.exe",

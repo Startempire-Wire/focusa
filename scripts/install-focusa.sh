@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Safe version surface: `--version` prints the installer version and exits 0.
 # Never derived from remote/admin state.
-FOCUSA_INSTALLER_VERSION="0.9.187"
+FOCUSA_INSTALLER_VERSION="0.9.194-dev"
 
 GITHUB_REPO="${FOCUSA_GITHUB_REPO:-Startempire-Wire/focusa}"
 RELEASE_BASE_URL="${FOCUSA_RELEASE_BASE_URL:-}"
@@ -20,6 +20,7 @@ ACCEPT_LICENSE=0
 INSTALL_DEPS=1
 ASSUME_YES=0
 NO_SERVICE=0
+SYSTEM_INSTALL=0
 UNINSTALL=0
 PURGE_DATA=0
 
@@ -42,6 +43,7 @@ Usage: install-focusa.sh [options]
   --no-install-dependencies
   --assume-yes             approve dependency installation
   --no-service             skip service registration
+  --system-install         atomically promote a verified Linux install to /usr/local/bin
   --uninstall              delegate preserve-by-default uninstall
   --purge-data             purge only with --uninstall and separate confirmation
   -h, --help               show this help
@@ -87,6 +89,7 @@ for arg in "$@"; do
     --no-install-dependencies) INSTALL_DEPS=0 ;;
     --assume-yes) ASSUME_YES=1 ;;
     --no-service) NO_SERVICE=1 ;;
+    --system-install) SYSTEM_INSTALL=1 ;;
     --uninstall) UNINSTALL=1 ;;
     --purge-data) PURGE_DATA=1 ;;
     --license-key=*|--email=*|--registry=*)
@@ -152,12 +155,16 @@ case "$TARGET_INPUT" in
   *) die "unsupported target: $TARGET_INPUT" ;;
 esac
 TARGET="$TRIPLE"
+if [ "$SYSTEM_INSTALL" = 1 ] && [ "$RUST_TARGET" != linux ]; then
+  die "--system-install is supported only for the Linux authoritative /usr/local/bin surface"
+fi
 
 if [ "$DRY_RUN" = 1 ]; then
   printf 'Focusa verified bootstrap plan\n'
   printf '  target: %s (%s)\n' "$RUST_TARGET" "$TARGET"
   printf '  channel: %s\n' "$CHANNEL"
   printf '  release: %s\n' "${RELEASE_TAG:-latest-complete}"
+  printf '  system install: %s\n' "$SYSTEM_INSTALL"
   printf '  entitlement: signed authority lease; device authorization if absent\n'
   if [ "$EVAL" = 1 ]; then
     printf '  evaluation: authority-issued only; --eval maps to verified-email limited activation (Spec 172)\n'
@@ -232,7 +239,10 @@ verify_cosign_manifest() {
   curl_resilient -fsSL "$(release_asset_url SHA256SUMS.txt.cosign.sig)" -o "$TMP/SHA256SUMS.txt.cosign.sig" || return 1
   curl_resilient -fsSL "$(release_asset_url SHA256SUMS.txt.cosign.pem)" -o "$TMP/SHA256SUMS.txt.cosign.pem" || return 1
   cosign verify-blob --certificate "$TMP/SHA256SUMS.txt.cosign.pem" \
-    --signature "$TMP/SHA256SUMS.txt.cosign.sig" "$CHECKSUM_MANIFEST" >/dev/null
+    --signature "$TMP/SHA256SUMS.txt.cosign.sig" \
+    --certificate-identity-regexp "^https://github\\.com/Startempire-Wire/focusa/\\.github/workflows/release\\.yml@refs/tags/" \
+    --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+    "$CHECKSUM_MANIFEST" >/dev/null
 }
 if verify_cosign_manifest; then
   log "cosign verification succeeded"
@@ -251,6 +261,7 @@ ARGS=(install --target="$RUST_TARGET" --channel="$CHANNEL" --github-repo="$GITHU
 [ "$INSTALL_DEPS" = 0 ] && ARGS+=(--no-install-dependencies) || ARGS+=(--install-dependencies)
 [ "$ASSUME_YES" = 0 ] || ARGS+=(--assume-yes)
 [ "$NO_SERVICE" = 0 ] || ARGS+=(--no-service)
+[ "$SYSTEM_INSTALL" = 0 ] || ARGS+=(--system-install)
 
 BOOTSTRAP_STASH="$TMP/bootstrap-stash"
 mkdir -p "$BOOTSTRAP_STASH"

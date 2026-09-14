@@ -606,6 +606,16 @@
       "acceptance_test": "context retrieval unit tests plus Spec104 singleton inventory gate"
     },
     {
+      "annex_id": "INF-18",
+      "path": "crates/focusa-core/src/runtime/backup.rs",
+      "symbol": "VERIFICATION_CACHE",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Bounded 64-entry metadata-keyed optimization for status reads; deep verification, restore authority, durable backups, manifests, and receipts never depend on cache retention",
+      "acceptance_test": "backup cryptographic verification tests plus Spec104 singleton inventory gate"
+    },
+    {
       "annex_id": "INF-01",
       "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
       "symbol": "SPEC141_CAPABILITY_REGISTRY",
@@ -746,7 +756,7 @@
       "authority_bearing": false
     },
     {
-      "path": "crates/focusa-core/src/license_developer_origin.rs",
+      "path": "crates/focusa-license/src/developer_origin.rs",
       "symbol": "CACHE",
       "classification": "infra_allowlist",
       "status": "infra_allowed",
@@ -756,7 +766,7 @@
       "authority_bearing": false
     },
     {
-      "path": "crates/focusa-core/src/license_developer_origin.rs",
+      "path": "crates/focusa-license/src/developer_origin.rs",
       "symbol": "TEST_MUTEX",
       "classification": "infra_allowlist",
       "status": "infra_allowed",
@@ -774,6 +784,26 @@
       "target": "test-only serialization lock for orchestrator tests, no authority-bearing state",
       "acceptance_test": "tests/spec104_singleton_inventory_gate.py",
       "authority_bearing": false
+    },
+    {
+      "annex_id": "INF-19",
+      "path": "crates/focusa-api/src/routes/screenshot_settings.rs",
+      "symbol": "WRITE_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Synchronization-only lock for atomic screenshot-evidence-share settings file I/O; typed ScopeKey records remain authoritative (Spec 185 settings authority lives in the daemon reducer, never in this route)",
+      "acceptance_test": "screenshot settings route tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-20",
+      "path": "crates/focusa-core/src/temporal_integrity.rs",
+      "symbol": "ENV_LOCK",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Test-only mutex serializing process env mutation in temporal keystore regression tests",
+      "acceptance_test": "cfg-test-only static classification"
     }
   ]
 }

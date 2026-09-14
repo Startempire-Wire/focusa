@@ -21,10 +21,11 @@ How to use this playbook:
    add it with a fix/guard/test triplet so the next agent can resolve it
    without re-debugging.
 
-3. Every `addition` event (new code in `scripts/install-daemon.sh`,
-   `scripts/safe-disk-cleanup.sh`, `scripts/install-self-hosted-runner.sh`,
-   `.github/workflows/deploy-live-daemon.yml`) is paired with the categories
-   its guards mitigate.
+3. Every `addition` event (new code in the Rust installer/system-service
+   transaction, `scripts/safe-disk-cleanup.sh`, runner provisioning, or the
+   deployment workflow) is paired with the categories its guards mitigate.
+   `scripts/install-daemon.sh` is a compatibility adapter and must not gain
+   lifecycle logic.
 
 ## Lessons (do-not-repeat)
 
@@ -37,20 +38,42 @@ How to use this playbook:
 - **GH-hosted transport risk**: do not rely on inbound SSH from GH-hosted
   runners; deploys must run on a self-hosted runner registered to the
   VPS with label `focusa-deploy`.
-- **Privileged scripts**: only the deploy/cleanup scripts get a NOPASSWD
-  sudoers rule; the runner user is otherwise unprivileged.
+- **Privileged scripts**: only the Rust-delegating deploy adapter, governed
+  cleanup, and exact public-file installation get NOPASSWD routes; direct
+  `kill`, `systemctl`, `sed`, `mv`, `rm`, and `ln` grants are forbidden.
 - **Disk pressure**: the deploy preflight runs the safe cleanup with a
   threshold; failure causes the deploy to abort instead of silently running
   the daemon on a starved root filesystem.
+
+## Restart loses recently acknowledged API state
+
+If `tests/restart_recovery_test.sh` sees a frame before SIGTERM but reports
+`frame_unavailable` after restart, inspect the final shutdown checkpoint before
+changing database compatibility or deleting state. A daemon-local snapshot can
+lag direct API writes. The shutdown checkpoint must hold the canonical write
+lock, adopt the external mutation epoch, and refuse persistence if adoption
+fails. Regression: `shutdown_checkpoint_preserves_external_frame_state`; consumer
+proof: the isolated restart test above. Source/unit success is not installed
+recovery acceptance.
+
+## CI dependency-info artifacts disappear
+
+When Cargo reports a missing dependency-info file during linting, preserve the
+exact run/job/SHA and error path before blaming source changes or deleting caches.
+Verify runner workspace separation and process ownership; later checkout cleanup
+is not evidence that files disappeared concurrently. Source CI uses unfiltered
+workspace tests followed by one workspace-wide **all-targets** Clippy pass; focused
+Pi/update cases are already in that suite. Keep warnings fatal and the process-health
+wrapper. An exact-head rerun must prove recovery; recurring failures require cache/
+artifact-layout investigation, never blind deletion of shared targets (issue #573).
 
 ## Self-healing hooks (live)
 
 All hooks below are wired into CI, Release, Deploy, and the audit recorder workflow. They run automatically; operators do not invoke them by hand.
 
-- `scripts/install-daemon.sh` `watchdog_check()` + `watchdog_loop` — wall clock + RSS budget; emits `deploy_oom_killed` audit row and `TERM`s the parent shell on breach.
-- `scripts/install-daemon.sh` `patch_service_unit_execstart()` — auto-rewrites stale `ExecStart` + `WorkingDirectory` in `/etc/systemd/system/<unit>` and `daemon-reload`s.
-- `scripts/install-daemon.sh` `binary_version()` — filename-first parser + `timeout 3 ... --version` fallback; never wedges on a glibc-broken binary.
-- `.github/workflows/auto-retry-deploy.yml` — re-dispatches `Deploy Live Daemon` once on `workflow_run` failure with the same release tag.
+- `crates/focusa-cli/src/commands/system_service.rs` — nonblocking deployment lock, operator-halt gate, exact systemd process ownership, atomic unit staging, bounded health/CallGraph acceptance, and binary+unit rollback.
+- `scripts/install-daemon.sh` — validates legacy arguments and delegates exactly once to the signed Rust full-release installer; it never patches units or signals processes.
+- `.github/workflows/auto-retry-deploy.yml` — quarantined; it records the safe recovery route but has no automatic redispatch authority.
 - `scripts/install-self-hosted-runner.sh` systemd drop-in — `MemoryMax=2G Restart=always RestartSec=15` so the runner self-recovers from kernel OOM kills.
 - `scripts/auto-heal-audit.py` (via `.github/workflows/audit-recorder.yml`) — synthesizes `self_heal` rows for every failure lacking one; idempotent; runs on `workflow_run` + hourly `schedule`.
 - `tests/release_deploy_automation_static_test.sh` — asserts every self-heal branch's literal is present in source; prevents regression.
@@ -71,3 +94,54 @@ Deprecated hook list (was planned, now superseded):
 
 > Every failure must produce one new audit row, one new category fix,
 > and one regression guard. No silent fixes.
+
+## Release controller test missing its imported helper
+
+If the controller-staged OTA contract check raises
+`ModuleNotFoundError: install_target_contract`, stage the canonical helper beside
+the test from the same `CONTROLLER_SHA`. Do not use the candidate checkout's
+helper or duplicate its implementation: controller and candidate revisions can
+differ. `tests/spec143_ota_installability_release_gate_test.py` guards the staging
+contract. Verify execution from a temporary directory with `FOCUSA_SPEC143_ROOT`
+and `FOCUSA_RELEASE_WORKFLOW_PATH` bound explicitly.
+
+Observed in Release run 34055757279 for v0.9.188. The immutable candidate tag is
+not a published/installed release. Open release-gating issues and missing canary
+inputs remain separate acceptance requirements; this import repair waives neither.
+
+## Windows backup capacity probe must use the Windows API
+
+AppVeyor build 413 exposed an unconditional `libc::statvfs` call in
+`runtime/backup_io.rs`, which fails to compile on Windows. Keep the shared
+`filesystem_space` owner, with Unix `statvfs` and Windows
+`GetDiskFreeSpaceExW` implementations; OS errors must remain fatal, never
+become fabricated free capacity. The existing provider test matrix runs the
+Unicode-directory, missing-directory, and null-path regressions. Linux tests
+do not prove Windows compilation or execution. A corrected candidate requires
+a distinct release identity: never move the v0.9.188 tag or upload patched
+source under its identity. Tracked in issue #583.
+
+## Temporal signing-key persistence failures
+
+A failed OS-keyring write must not expose an ephemeral signing key. The fallback
+load/create result is authoritative: existing fallback keys are reused, and
+`KeyStoreUnavailable` / `KeyStoreCorrupt` errors propagate rather than reporting
+success. Preserve existing key files when diagnosing either error; deleting or
+regenerating a key can break signed-history continuity.
+
+Focused proof: `cargo test --locked -p focusa-core --lib temporal_integrity`.
+Native-keyring dependency placement is checked by
+`python3 tests/598_keyring_platform_manifest_test.py` and the Rust CI job.
+These tests do not establish cross-platform custody, secure file publication,
+or backend-recovery continuity; those require separate acceptance evidence.
+
+## Background-job list output and privacy-scanner failures
+
+`focusa bg list` (text or JSON) treats a closed output consumer such as `head`
+as clean termination. Other output I/O failures still return errors; this does
+not suppress API or job-reconciliation failures.
+
+The persisted-state privacy gate reports matching file paths, not key payloads.
+Only ripgrep exit 1 means no matches; tool errors fail the gate. The scanner
+owns the exact reviewed source/fixture exclusions: never broaden them to hide
+a failure. Regression proof: `python3 tests/434_privacy_scanner_regression_test.py`.

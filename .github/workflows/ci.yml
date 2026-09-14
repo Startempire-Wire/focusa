@@ -56,7 +56,7 @@ jobs:
       cancel-in-progress: true
     # TEMPORARY-OVH-LANE (until GitHub-hosted minutes restore ~2026-09-01):
     # heavy cargo build/test runs on the OVH builder runner.
-    runs-on: [self-hosted, Linux, X64, ovh-build]
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
@@ -64,19 +64,20 @@ jobs:
           toolchain: nightly-2026-08-28
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Native keyring platform dependency regression
+        run: python3 tests/598_keyring_platform_manifest_test.py
       - name: Process-health check + unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"
-        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace -- --test-threads=1"
-      - name: Process-health check + Clippy
-        run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
-      - name: Focused Pi package transaction + update gates
-        env:
-          FOCUSA_TEST_MODE: "1"
-        run: |
-          cargo test -p focusa-cli pi_package
-          cargo test -p focusa-cli update
-          cargo clippy -p focusa-cli --all-targets -- -D warnings
+          # Protected production authority root (public material only) so the
+          # compile-time-embedded-root acceptance test compiles with real trust.
+          FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
+        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build --locked -p focusa-api --bin focusa-daemon && python3 scripts/test-route-health.py && cargo test --locked --workspace -- --test-threads=1"
+      # Workspace tests above already include the Pi transaction and update
+      # regressions. Keep one lint pass, with stronger all-target coverage,
+      # rather than alternating test/lint modes again against the same artifacts.
+      - name: Process-health check + all-target workspace Clippy
+        run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --locked --workspace --all-targets -- -D warnings"
 
   # TEMPORARY: GitHub hosted macOS is billing-locked. This job remains the
   # restoration target; Codemagic supplies the required macOS proof meanwhile.
@@ -84,7 +85,9 @@ jobs:
   menubar:
     name: Menubar
     # Spec 178: visible restoration target, but non-authoritative while GitHub
-    # hosted macOS is billing-locked. Codemagic release receipts fail closed.
+    # hosted macOS is billing-locked. Keep it skipped until the operator sets
+    # FOCUSA_GITHUB_MACOS_RESTORED=true; Codemagic release receipts fail closed.
+    if: vars.FOCUSA_GITHUB_MACOS_RESTORED == 'true'
     continue-on-error: true
     runs-on: macos-latest
     steps:
@@ -122,21 +125,16 @@ jobs:
 
   release-automation-static:
     name: Release Automation (static)
-    runs-on: self-hosted
+    # Includes a functional TUI compile; keep it off the production/deploy host.
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
-      - name: Install ripgrep
-        timeout-minutes: 10
+      - name: Verify preinstalled ripgrep
+        run: command -v rg && rg --version
+      - name: Persisted-state privacy scanner regression
         run: |
-          if command -v rg >/dev/null 2>&1; then echo "ripgrep already present"; exit 0; fi
-          # Fix azure mirror hangs by clearing mirrorlist and using archive directly
-          sudo rm -f /etc/apt/apt-mirrors.txt 2>/dev/null || true
-          sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g; s|https://azure.archive.ubuntu.com|https://archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
-          # Try apt with timeout, fallback to binary download to avoid mirror outage
-          (timeout 45 sudo apt-get update -o Acquire::Retries=3 && sudo apt-get install -y ripgrep) || true
-          if command -v rg >/dev/null 2>&1; then echo "ripgrep installed via apt"; exit 0; fi
-          echo "apt failed, installing ripgrep via static binary"
-          curl -fsSL https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep-14.1.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/rg.tar.gz && tar -xzf /tmp/rg.tar.gz -C /tmp && sudo mv /tmp/ripgrep-14.1.0-x86_64-unknown-linux-musl/rg /usr/local/bin/rg && rg --version
+          python3 tests/434_privacy_scanner_regression_test.py
+          bash tests/security_persisted_state_privacy_static_test.sh
       - name: Auto-heal audit trail
         run: python3 scripts/auto-heal-audit.py
 
@@ -145,13 +143,17 @@ jobs:
           chmod +x tests/release_deploy_automation_static_test.sh
           ./tests/release_deploy_automation_static_test.sh
 
+      - name: Cross-build exact-identity cancellation ownership (#543, blocking)
+        run: python3 tests/cross_cancellation_cleanup_test.py
+
       - name: Installer/update policy + Pi discovery static gate
         run: bash tests/installer_update_policy_static_test.sh
 
-      - name: Distribution parity report (#260, informational)
+      - name: Distribution manifest source contract (#260, blocking)
         run: |
-          node scripts/audit-distribution-parity.mjs --json > /tmp/distribution-manifest.json || true
-          python3 -c "import json; d=json.load(open('/tmp/distribution-manifest.json')); print('parity_ok=%s drift=%d' % (d['parity_ok'], len(d['drift']))); [print('  drift', r['surface'], r['source_value'], '->', r['observed_value']) for r in d['drift']]"
+          python3 tests/distribution_manifest_contract_test.py
+          node scripts/audit-distribution-parity.mjs --json > /tmp/distribution-manifest-audit.json || true
+          python3 -c "import json; d=json.load(open('/tmp/distribution-manifest-audit.json')); print('installed_parity_ok=%s drift=%d' % (d['parity_ok'], len(d['drift']))); [print('  drift', r['surface'], r['source_value'], '->', r['observed_value']) for r in d['drift']]"
 
       - name: Release readiness evaluation (#265, informational)
         run: node scripts/release-readiness-evaluation.mjs || true
@@ -164,7 +166,7 @@ jobs:
       cancel-in-progress: true
     # TEMPORARY-OVH-LANE (until GitHub-hosted minutes restore ~2026-09-01):
     # release daemon build/probe runs on the OVH builder runner.
-    runs-on: [self-hosted, Linux, X64, ovh-build]
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     env:
       CARGO_TARGET_DIR: /tmp/focusa-ci-${{ github.run_id }}-${{ github.run_attempt }}
       FOCUSA_CARGO_TARGET_DIR: /tmp/focusa-ci-${{ github.run_id }}-${{ github.run_attempt }}

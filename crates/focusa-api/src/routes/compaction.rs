@@ -108,6 +108,24 @@ fn bounded_text(value: Option<&str>, max: usize) -> Option<String> {
     Some(value.chars().take(max).collect())
 }
 
+fn normalized_scope_root(value: &str) -> &str {
+    value.trim().trim_end_matches(['/', '\\'])
+}
+
+fn exact_scope_match(
+    record_project_root: Option<&str>,
+    record_continuity_id: Option<&str>,
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+) -> bool {
+    matches!(
+        (record_project_root, record_continuity_id, project_root, continuity_id),
+        (Some(record_root), Some(record_continuity), Some(requested_root), Some(requested_continuity))
+            if normalized_scope_root(record_root) == normalized_scope_root(requested_root)
+                && record_continuity.trim() == requested_continuity.trim()
+    )
+}
+
 fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Value {
     let packet_id = Uuid::now_v7().to_string();
     let project_root = bounded_text(req.project_root.as_deref(), 4096);
@@ -128,7 +146,24 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
                 .iter()
                 .find(|record| &record.trajectory_id == id)
         })
-        .or_else(|| state.trajectory.records.last());
+        .filter(|record| {
+            exact_scope_match(
+                record.project_root.as_deref(),
+                record.continuity_id.as_deref(),
+                project_root.as_deref(),
+                continuity_id.as_deref(),
+            )
+        })
+        .or_else(|| {
+            state.trajectory.records.iter().rev().find(|record| {
+                exact_scope_match(
+                    record.project_root.as_deref(),
+                    record.continuity_id.as_deref(),
+                    project_root.as_deref(),
+                    continuity_id.as_deref(),
+                )
+            })
+        });
     let workpoint = state
         .workpoint
         .active_workpoint_id
@@ -140,14 +175,43 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
                 .iter()
                 .find(|record| &record.workpoint_id == id)
         })
-        .or_else(|| state.workpoint.records.last());
-    let frame = state.focus_stack.active_id.as_ref().and_then(|id| {
-        state
-            .focus_stack
-            .frames
-            .iter()
-            .find(|frame| &frame.id == id)
-    });
+        .filter(|record| {
+            exact_scope_match(
+                record.project_root.as_deref(),
+                record.continuity_id.as_deref(),
+                project_root.as_deref(),
+                continuity_id.as_deref(),
+            )
+        })
+        .or_else(|| {
+            state.workpoint.records.iter().rev().find(|record| {
+                exact_scope_match(
+                    record.project_root.as_deref(),
+                    record.continuity_id.as_deref(),
+                    project_root.as_deref(),
+                    continuity_id.as_deref(),
+                )
+            })
+        });
+    let frame = state
+        .focus_stack
+        .active_id
+        .as_ref()
+        .and_then(|id| {
+            state
+                .focus_stack
+                .frames
+                .iter()
+                .find(|frame| &frame.id == id)
+        })
+        .filter(|frame| {
+            exact_scope_match(
+                frame.project_root.as_deref(),
+                frame.continuity_id.as_deref(),
+                project_root.as_deref(),
+                continuity_id.as_deref(),
+            )
+        });
 
     let hlt_status = trajectory
         .map(|record| record.hlt_status)
@@ -159,16 +223,10 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
     let workpoint_ready = workpoint
         .map(|record| record.canonical && record.status == WorkpointStatus::Active)
         .unwrap_or(false);
-    let scope_status = if project_root.is_none() {
+    let scope_status = if project_root.is_none() || continuity_id.is_none() {
         "missing"
     } else if !scope_safe {
         "unsafe"
-    } else if trajectory
-        .and_then(|record| record.project_root.as_deref())
-        .zip(project_root.as_deref())
-        .is_some_and(|(saved, requested)| saved != requested)
-    {
-        "mismatch"
     } else {
         "verified"
     };
@@ -277,6 +335,8 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
         },
         "trajectory": {
             "packet_ref": trajectory.map(|record| format!("trajectory_resume_packet_v3:{}", record.trajectory_id)),
+            "project_root": trajectory.and_then(|record| record.project_root.clone()),
+            "continuity_id": trajectory.and_then(|record| record.continuity_id.clone()),
             "hlt": trajectory.map(|record| record.long_term_goal.clone()),
             "hlt_status": hlt_status,
             "hlt_required": true,
@@ -293,12 +353,16 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
         "workpoint": {
             "packet_ref": workpoint.map(|record| format!("workpoint_resume_packet_v2:{}", record.workpoint_id)),
             "workpoint_id": workpoint.map(|record| record.workpoint_id.to_string()),
+            "project_root": workpoint.and_then(|record| record.project_root.clone()),
+            "continuity_id": workpoint.and_then(|record| record.continuity_id.clone()),
             "mission": workpoint.and_then(|record| record.mission.clone()),
             "next_slice": workpoint.and_then(|record| record.next_slice.clone()),
             "action_authority": workpoint_ready,
             "status": if workpoint_ready { "ready" } else if workpoint.is_some() { "stale" } else { "missing" }
         },
         "focus_state": {
+            "project_root": frame.and_then(|frame| frame.project_root.clone()),
+            "continuity_id": frame.and_then(|frame| frame.continuity_id.clone()),
             "intent": frame.map(|frame| frame.focus_state.intent.clone()),
             "current_focus": frame.map(|frame| frame.focus_state.current_state.clone()),
             "decisions": frame.map(|frame| frame.focus_state.decisions.iter().rev().take(8).cloned().collect::<Vec<_>>()).unwrap_or_default(),
@@ -911,6 +975,8 @@ mod tests {
         let mut state = FocusaState::new();
         state.trajectory.records.push(TrajectoryProjectionRecord {
             trajectory_id: "generic".into(),
+            project_root: Some("/tmp/safe-project".into()),
+            continuity_id: Some("generic-test".into()),
             long_term_goal: "Maintain project".into(),
             desired_end_state: "Done".into(),
             hlt_status: HltStatus::GenericDegraded,
@@ -922,7 +988,7 @@ mod tests {
             &BuildCompactionPacketRequest {
                 resume_source: None,
                 project_root: Some("/tmp/safe-project".into()),
-                continuity_id: None,
+                continuity_id: Some("generic-test".into()),
                 session_id: None,
                 current_ask: None,
                 ask_kind: None,
@@ -1040,6 +1106,61 @@ mod tests {
         assert!(RESUME_SOURCES.contains(&"before_compaction"));
         assert!(RESUME_SOURCES.contains(&"provider_overflow"));
         assert!(!RESUME_SOURCES.contains(&"transcript_guess"));
+    }
+
+    #[test]
+    fn packet_never_projects_foreign_scope_trajectory_or_workpoint() {
+        let mut state = FocusaState::new();
+        let mut trajectory = TrajectoryProjectionRecord {
+            trajectory_id: "project-a".into(),
+            project_root: Some("/tmp/project-a".into()),
+            continuity_id: Some("continuity-a".into()),
+            long_term_goal: "FOREIGN TRAJECTORY SECRET".into(),
+            desired_end_state: "FOREIGN DESIRED STATE".into(),
+            hlt_status: HltStatus::CanonicalExplicit,
+            canonical: true,
+            ..TrajectoryProjectionRecord::default()
+        };
+        trajectory.gap_summary = Some("FOREIGN GAP".into());
+        state.trajectory.active_trajectory_id = Some(trajectory.trajectory_id.clone());
+        state.trajectory.records.push(trajectory);
+
+        let workpoint = focusa_core::types::WorkpointRecord {
+            project_root: Some("/tmp/project-a".into()),
+            continuity_id: Some("continuity-a".into()),
+            canonical: true,
+            status: WorkpointStatus::Active,
+            mission: Some("FOREIGN WORKPOINT MISSION".into()),
+            next_slice: Some("FOREIGN NEXT SLICE".into()),
+            ..Default::default()
+        };
+        state.workpoint.active_workpoint_id = Some(workpoint.workpoint_id);
+        state.workpoint.records.push(workpoint);
+
+        let packet = build_packet(
+            &state,
+            &BuildCompactionPacketRequest {
+                resume_source: Some("after_compaction".into()),
+                project_root: Some("/tmp/project-b".into()),
+                continuity_id: Some("continuity-b".into()),
+                session_id: Some("session-b".into()),
+                current_ask: None,
+                ask_kind: None,
+                source_turn_id: None,
+                omitted_sections: vec![],
+                omitted_bytes: 0,
+                omitted_tokens: 0,
+                rehydrate_refs: vec![],
+            },
+        );
+
+        assert_eq!(packet["status"], "degraded");
+        assert!(packet["trajectory"]["hlt"].is_null());
+        assert!(packet["trajectory"]["gap_summary"].is_null());
+        assert!(packet["workpoint"]["mission"].is_null());
+        assert!(packet["workpoint"]["next_slice"].is_null());
+        assert_eq!(packet["workpoint"]["status"], "missing");
+        assert!(!packet.to_string().contains("FOREIGN"));
     }
 
     #[test]

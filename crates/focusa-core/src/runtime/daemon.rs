@@ -28,6 +28,78 @@ const ACTIVE_TURN_TTL_SECS: i64 = 1800;
 // `bd ready` is a subprocess-backed graph query; keep selection bounded while
 // allowing normal loaded-host latency instead of false-degrading at 750 ms.
 const WORK_ITEM_PROVIDER_SELECTION_TIMEOUT_MS: u64 = 3_000;
+const LARGE_STATE_STACK_BYTES: usize = 32 * 1024 * 1024;
+
+fn run_on_large_state_stack<T, F>(label: &str, operation: F) -> anyhow::Result<T>
+where
+    T: Send,
+    F: FnOnce() -> T + Send,
+{
+    std::thread::scope(|scope| {
+        std::thread::Builder::new()
+            .name(format!("focusa-state-{label}"))
+            .stack_size(LARGE_STATE_STACK_BYTES)
+            .spawn_scoped(scope, operation)
+            .map_err(|error| anyhow::anyhow!("start {label} state worker: {error}"))?
+            .join()
+            .map_err(|_| anyhow::anyhow!("{label} state worker panicked"))
+    })
+}
+
+fn clone_state_on_large_stack(state: &FocusaState) -> anyhow::Result<FocusaState> {
+    run_on_large_state_stack("clone", || state.clone())
+}
+
+fn intuition_signal_event(signal: Signal) -> FocusaEvent {
+    FocusaEvent::IntuitionSignalObserved {
+        signal_id: signal.id,
+        signal_type: signal.kind,
+        severity: "info".into(),
+        summary: signal.summary,
+        related_frame_id: signal.frame_context,
+    }
+}
+
+fn replay_durable_tail(
+    persistence: &Persistence,
+    machine_id: &str,
+    mut state: FocusaState,
+    mut event_sequence: u64,
+) -> anyhow::Result<(FocusaState, u64, usize)> {
+    let mut replayed = 0usize;
+    loop {
+        let records = persistence.durable_events_after(event_sequence, 1_000)?;
+        if records.is_empty() {
+            break;
+        }
+        for record in records {
+            if record.sequence != event_sequence + 1 {
+                anyhow::bail!(
+                    "durable replay gap: expected sequence {}, found {}",
+                    event_sequence + 1,
+                    record.sequence
+                );
+            }
+            let entry: EventLogEntry = serde_json::from_value(record.payload)
+                .context("decode durable event during checkpoint replay")?;
+            let historical_machine = entry.machine_id.as_deref().or(Some(machine_id));
+            let reduction = run_on_large_state_stack("replay", || {
+                reducer::reduce_with_meta(
+                    state.clone(),
+                    entry.event,
+                    historical_machine,
+                    entry.thread_id,
+                    entry.is_observation,
+                )
+            })?
+            .context("reduce durable event during checkpoint replay")?;
+            state = reduction.new_state;
+            event_sequence = record.sequence;
+            replayed += 1;
+        }
+    }
+    Ok((state, event_sequence, replayed))
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum SecondaryClosureAuditVerdict {
@@ -203,8 +275,23 @@ impl Daemon {
         let ecs_root = persistence.data_dir.join("ecs");
         let ecs = ReferenceStore::new(ecs_root)?;
 
-        // Load existing state or create fresh.
-        let state = persistence.load_state()?.unwrap_or_default();
+        // Load the latest bounded checkpoint, then deterministically replay the
+        // append-only durable tail. Existing databases receive a migration
+        // baseline at their current ledger tail, so no pre-upgrade event is
+        // applied twice.
+        let machine_id = persistence.machine_id()?;
+        let (state, event_sequence) = match persistence.load_state_with_event_sequence()? {
+            Some(loaded) => loaded,
+            None => (
+                FocusaState::default(),
+                persistence.latest_durable_event_sequence()?,
+            ),
+        };
+        let (state, _, replayed) =
+            replay_durable_tail(&persistence, &machine_id, state, event_sequence)?;
+        if replayed > 0 {
+            tracing::info!(replayed, "replayed durable events after state checkpoint");
+        }
 
         // Sync loaded state immediately so the API sees it before run() is called.
         {
@@ -222,9 +309,6 @@ impl Daemon {
 
         let (command_tx, command_rx) = mpsc::channel(256);
         let (worker_tx, worker_rx) = priority_queue::priority_channel(config.worker_queue_size);
-
-        // Get this daemon's machine ID for ownership enforcement.
-        let machine_id = persistence.machine_id()?;
 
         Ok(Self {
             config,
@@ -276,21 +360,20 @@ impl Daemon {
         entries: Vec<EventLogEntry>,
         checkpoint: bool,
     ) -> anyhow::Result<()> {
+        let state = clone_state_on_large_stack(&self.state)?;
         if let Some(actor) = &self.persistence_actor {
-            if checkpoint {
-                actor.persist_checkpoint(entries, self.state.clone()).await
+            // A state-only mutation has no event tail to replay and therefore
+            // is always a durable checkpoint even on the ordinary path.
+            if checkpoint || entries.is_empty() {
+                actor.persist_checkpoint(entries, state).await
             } else {
-                actor.persist_ordinary(entries, self.state.clone()).await
+                actor.persist_ordinary(entries, state).await
             }
         } else {
             // Test/embedded fallback preserves ordering while staying off Tokio workers.
             let persistence = self.persistence.clone();
-            let state = self.state.clone();
             tokio::task::spawn_blocking(move || {
-                for entry in &entries {
-                    persistence.append_event(entry)?;
-                }
-                persistence.save_state(&state)
+                persistence.persist_event_batch_and_state(&entries, &state)
             })
             .await
             .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
@@ -459,7 +542,7 @@ impl Daemon {
                                 tracing::error!("Action processing failed: {}", e);
                             }
                             self.drain_intuition_signals().await;
-                            self.run_gate_pipeline();
+                            self.run_gate_pipeline().await;
                         }
                         None => break, // Channel closed.
                     }
@@ -470,7 +553,7 @@ impl Daemon {
                             tracing::error!("Worker job failed: {}", e);
                         }
                         self.drain_intuition_signals().await;
-                        self.run_gate_pipeline();
+                        self.run_gate_pipeline().await;
                     }
                 }
                 _ = decay_interval.tick() => {
@@ -486,7 +569,7 @@ impl Daemon {
                     self.emit_temporal_signals().await;
 
                     // Run gate pipeline after decay to re-check surfacing thresholds.
-                    self.run_gate_pipeline();
+                    self.run_gate_pipeline().await;
                 }
                 _ = guardian_interval.tick() => {
                     // Guardian health check — emit signals for degraded services (§9.11 JARVIS Domain 5).
@@ -501,9 +584,23 @@ impl Daemon {
 
         // Channel closed — flush final state.
         tracing::info!("Focusa daemon shutting down");
-        self.persist_reducer_batch(Vec::new(), true).await?;
+        self.persist_shutdown_checkpoint().await?;
         tracing::info!("Focusa daemon shutdown persistence flush complete");
         Ok(())
+    }
+
+    /// Final persistence uses the same serialization boundary as API writes.
+    /// Otherwise a stale daemon snapshot can overwrite acknowledged API state.
+    async fn persist_shutdown_checkpoint(&mut self) -> anyhow::Result<()> {
+        let write_serial_lock = Arc::clone(&self.write_serial_lock);
+        let _write_guard = write_serial_lock.lock().await;
+        self.reconcile_external_state().await;
+        anyhow::ensure!(
+            self.observed_external_mutation_epoch
+                == self.external_mutation_epoch.load(Ordering::Acquire),
+            "shutdown checkpoint could not adopt external state; refusing stale persistence"
+        );
+        self.persist_reducer_batch(Vec::new(), true).await
     }
 
     /// Translate an Action to event(s), reduce, persist, observe.
@@ -517,7 +614,13 @@ impl Daemon {
         // Translation can perform bounded provider/tool I/O. Never hold the
         // canonical write lock across that I/O: direct API writers such as
         // Workpoint checkpoint and Work Loop context must remain responsive.
-        let events = self.translate_action(action.clone()).await?;
+        // Intuition/Guardian signals are the daemon's hottest periodic path.
+        // Translate them directly so a small signal does not instantiate the
+        // very large general Action translator future on Tokio's core stack.
+        let events = match &action {
+            Action::IngestSignal { signal } => vec![intuition_signal_event(signal.clone())],
+            _ => self.translate_action(action.clone()).await?,
+        };
 
         let _write_guard = write_serial_lock.lock().await;
         // Direct API writes may have landed while translation was in flight.
@@ -544,18 +647,22 @@ impl Daemon {
         );
 
         for event in events {
+            let is_intuition_signal = matches!(&event, FocusaEvent::IntuitionSignalObserved { .. });
             // Determine thread_id for ownership enforcement.
             // current_thread_id is set during ThreadAttach actions.
             let thread_id = self.current_thread_id;
 
             // Use reduce_with_meta for ownership enforcement (Policy #5).
-            match reducer::reduce_with_meta(
-                self.state.clone(),
-                event.clone(),
-                Some(&self.machine_id),
-                thread_id,
-                false, // Daemon events are never observations
-            ) {
+            let reduction = run_on_large_state_stack("reduce", || {
+                reducer::reduce_with_meta(
+                    self.state.clone(),
+                    event.clone(),
+                    Some(&self.machine_id),
+                    thread_id,
+                    false, // Daemon events are never observations
+                )
+            })?;
+            match reduction {
                 Ok(result) => {
                     self.state = result.new_state;
 
@@ -1243,25 +1350,37 @@ Return ONLY valid JSON:
                                 session.and_then(|s| s.project_root.clone()),
                                 session.and_then(|s| s.continuity_id.clone()),
                             ) {
-                                Ok(handle) => {
-                                    tracing::info!(
-                                        turn_id = %turn_id,
-                                        bytes,
-                                        handle_id = %handle.id,
-                                        "Auto-externalized large turn output to ECS"
-                                    );
-                                    // Register handle in state via reducer.
-                                    let reg_event = FocusaEvent::ArtifactRegistered {
-                                        handle: handle.clone(),
-                                        storage_uri: format!("ecs://{}", handle.sha256),
-                                    };
-                                    if let Ok(result) =
-                                        reducer::reduce(self.state.clone(), reg_event.clone())
-                                    {
-                                        self.state = result.new_state;
-                                        let entry =
-                                            create_entry(reg_event, SignalOrigin::Daemon, None);
-                                        persistence_entries.push(entry);
+                                Ok(mut handle) => {
+                                    handle.trajectory =
+                                        self.state.trajectory_ladder_context_for_scope(
+                                            handle.project_root.as_deref(),
+                                            handle.continuity_id.as_deref(),
+                                        );
+                                    if let Err(error) = self.ecs.persist_metadata(&handle) {
+                                        tracing::warn!(
+                                            handle_id = %handle.id,
+                                            "ECS trajectory metadata binding failed: {error}"
+                                        );
+                                    } else {
+                                        tracing::info!(
+                                            turn_id = %turn_id,
+                                            bytes,
+                                            handle_id = %handle.id,
+                                            "Auto-externalized large turn output to ECS"
+                                        );
+                                        // Register handle in state via reducer.
+                                        let reg_event = FocusaEvent::ArtifactRegistered {
+                                            handle: handle.clone(),
+                                            storage_uri: format!("ecs://{}", handle.sha256),
+                                        };
+                                        if let Ok(result) =
+                                            reducer::reduce(self.state.clone(), reg_event.clone())
+                                        {
+                                            self.state = result.new_state;
+                                            let entry =
+                                                create_entry(reg_event, SignalOrigin::Daemon, None);
+                                            persistence_entries.push(entry);
+                                        }
                                     }
                                 }
                                 Err(e) => {
@@ -1470,6 +1589,20 @@ Return ONLY valid JSON:
                     // Telemetry: record each event.
                     self.state.telemetry.total_events += 1;
 
+                    // Commit the derived Focus Gate projection as a second event in
+                    // this same persistence request. Replay receives signal then
+                    // projection in exact order without a second whole-state write.
+                    let newly_surfaced = if is_intuition_signal {
+                        let (gate_after, newly_surfaced, changed) =
+                            self.pending_focus_gate_projection();
+                        if changed {
+                            persistence_entries.push(self.commit_focus_gate_projection(gate_after));
+                        }
+                        newly_surfaced
+                    } else {
+                        0
+                    };
+
                     // Save after all mutations so CLT + telemetry are captured.
                     // SQLite serialization/write runs only in the bounded persistence actor.
                     if let Err(error) = self
@@ -1486,6 +1619,14 @@ Return ONLY valid JSON:
                                 bus.publish(json);
                             }
                         }
+                    }
+
+                    if newly_surfaced > 0 {
+                        tracing::info!(
+                            newly_surfaced,
+                            total_candidates = self.state.focus_gate.candidates.len(),
+                            "Focus Gate: candidates surfaced"
+                        );
                     }
 
                     // Sync to shared handle so the API sees all updates.
@@ -1530,7 +1671,7 @@ Return ONLY valid JSON:
             ) {
                 Ok(result) => {
                     self.state = result.new_state;
-                    let entries = result
+                    let mut entries = result
                         .emitted_events
                         .iter()
                         .map(|emitted| {
@@ -1543,9 +1684,16 @@ Return ONLY valid JSON:
                         })
                         .collect::<Vec<_>>();
 
-                    // Same post-reduction bookkeeping as process_action.
+                    // Same post-reduction bookkeeping as process_action. Persist the
+                    // signal and its derived projection together; the projection remains
+                    // an explicit event rather than snapshot-only inferred state.
                     self.track_clt_event(&event);
                     self.state.telemetry.total_events += 1;
+                    let (gate_after, newly_surfaced, changed) =
+                        self.pending_focus_gate_projection();
+                    if changed {
+                        entries.push(self.commit_focus_gate_projection(gate_after));
+                    }
 
                     if let Err(error) = self.persist_reducer_batch(entries.clone(), false).await {
                         tracing::error!(%error, "persistence actor rejected intuition signal");
@@ -1556,6 +1704,13 @@ Return ONLY valid JSON:
                             }
                         }
                     }
+                    if newly_surfaced > 0 {
+                        tracing::info!(
+                            newly_surfaced,
+                            total_candidates = self.state.focus_gate.candidates.len(),
+                            "Focus Gate: candidates surfaced"
+                        );
+                    }
                     self.sync_shared_state().await;
                 }
                 Err(e) => {
@@ -1565,23 +1720,74 @@ Return ONLY valid JSON:
         }
     }
 
+    fn pending_focus_gate_projection(&self) -> (FocusGateState, usize, bool) {
+        let gate_before = &self.state.focus_gate;
+        let mut gate_after = gate_before.clone();
+        let newly_surfaced = crate::gate::focus_gate::run_gate_pipeline(
+            &mut gate_after,
+            self.state.focus_stack.active_id,
+            &self.state.focus_stack.stack_path_cache,
+            self.config.gate_surface_threshold,
+        );
+        let changed = gate_before.signals.len() != gate_after.signals.len()
+            || gate_before.candidates.len() != gate_after.candidates.len()
+            || gate_before.processed_signal_ids != gate_after.processed_signal_ids
+            || gate_before.inactivity_signal_frames != gate_after.inactivity_signal_frames
+            || gate_before.inactivity_signal_without_frame
+                != gate_after.inactivity_signal_without_frame
+            || gate_before.long_running_signal_frames != gate_after.long_running_signal_frames
+            || newly_surfaced > 0;
+        (gate_after, newly_surfaced, changed)
+    }
+
+    fn commit_focus_gate_projection(&mut self, focus_gate: FocusGateState) -> EventLogEntry {
+        let event = FocusaEvent::FocusGatePipelineCommitted {
+            focus_gate: focus_gate.clone(),
+        };
+        let mut entry = create_entry(event, SignalOrigin::Daemon, None);
+        entry.instance_id = self.current_instance_id;
+        entry.thread_id = self.current_thread_id;
+        entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
+        self.state.focus_gate = focus_gate;
+        self.state.version += 1;
+        self.state.telemetry.total_events += 1;
+        entry
+    }
+
     /// Run the Focus Gate 5-step pipeline (G1-detail-06).
     ///
     /// Aggregates signals into candidates, applies pressure modifiers,
     /// surfaces candidates above threshold. Called after signal ingestion
     /// and on periodic decay tick.
-    fn run_gate_pipeline(&mut self) {
-        let active_id = self.state.focus_stack.active_id;
-        let stack_path = self.state.focus_stack.stack_path_cache.clone();
-        let threshold = self.config.gate_surface_threshold;
+    async fn run_gate_pipeline(&mut self) {
+        let write_serial_lock = Arc::clone(&self.write_serial_lock);
+        let _write_guard = write_serial_lock.lock().await;
+        self.reconcile_external_state().await;
 
-        let newly_surfaced = crate::gate::focus_gate::run_gate_pipeline(
-            &mut self.state.focus_gate,
-            active_id,
-            &stack_path,
-            threshold,
-        );
-
+        let gate_before = self.state.focus_gate.clone();
+        let version_before = self.state.version;
+        let telemetry_events_before = self.state.telemetry.total_events;
+        let (gate_after, newly_surfaced, changed) = self.pending_focus_gate_projection();
+        if !changed {
+            return;
+        }
+        let entry = self.commit_focus_gate_projection(gate_after);
+        if let Err(error) = self.persist_reducer_batch(vec![entry.clone()], false).await {
+            // Keep the durable cursor authoritative. Reverting makes the next
+            // pipeline call retry instead of silently treating an unpersisted
+            // signal as consumed.
+            self.state.focus_gate = gate_before;
+            self.state.version = version_before;
+            self.state.telemetry.total_events = telemetry_events_before;
+            tracing::error!(%error, "persistence actor rejected Focus Gate projection event");
+            return;
+        }
+        if let Some(bus) = &self.event_bus
+            && let Ok(json) = serde_json::to_string(&entry)
+        {
+            bus.publish(json);
+        }
+        self.sync_shared_state().await;
         if newly_surfaced > 0 {
             tracing::info!(
                 newly_surfaced,
@@ -1670,72 +1876,85 @@ Return ONLY valid JSON:
     /// These signals accumulate slowly and can surface candidates for
     /// frame review or session management.
     async fn emit_temporal_signals(&mut self) {
+        const MAX_TEMPORAL_SIGNALS_PER_TICK: usize = 1;
+
         let now = Utc::now();
         let inactivity_threshold =
             chrono::Duration::seconds(self.config.inactivity_threshold_secs.unwrap_or(300));
         let long_running_threshold =
             chrono::Duration::seconds(self.config.long_running_frame_secs.unwrap_or(1800));
         let active_id = self.state.focus_stack.active_id;
+        let mut emitted = 0usize;
 
-        // Check for inactivity (no turn completed recently).
+        // Emit once for a stuck active-turn episode. TurnStarted clears this
+        // frame marker; the reducer records it atomically with the signal event.
         if let Some(ref turn) = self.state.active_turn {
             let inactive_for = now - turn.started_at;
-            if inactive_for > inactivity_threshold {
-                let _ = self
+            let already_emitted = match active_id {
+                Some(frame_id) => self
+                    .state
+                    .focus_gate
+                    .inactivity_signal_frames
+                    .contains(&frame_id),
+                None => self.state.focus_gate.inactivity_signal_without_frame,
+            };
+            if inactive_for > inactivity_threshold && !already_emitted {
+                match self
                     .process_action(Action::EmitEvent {
                         event: FocusaEvent::IntuitionSignalObserved {
                             signal_id: Uuid::now_v7(),
                             signal_type: SignalKind::InactivityTick,
                             severity: "0.3".to_string(),
-                            // Stable summary: fingerprint-based candidate matching
-                            // dedupes on the normalized summary. Embedding the
-                            // ever-growing duration here made every decay tick
-                            // spawn a NEW candidate (label churn) and re-surface
-                            // it forever — a 148% CPU hot loop in production.
-                            // Keep the label stable; duration is a property, not
-                            // identity.
                             summary: "Frame inactive".to_string(),
                             related_frame_id: active_id,
                         },
                     })
-                    .await;
+                    .await
+                {
+                    Ok(()) => emitted += 1,
+                    Err(error) => tracing::warn!(%error, "inactivity signal emission failed"),
+                }
             }
         }
 
-        // Collect long-running frame info first (to avoid borrow issues).
-        let long_running: Vec<(FrameId, String, i64)> = self
+        // A frame emits LongRunningFrame once in its lifetime. Bound the first
+        // migration tick so a legacy stack cannot trigger hundreds of writes.
+        let mut long_running: Vec<(FrameId, String, chrono::DateTime<Utc>)> = self
             .state
             .focus_stack
             .frames
             .iter()
-            .filter(|f| f.status == FrameStatus::Active)
-            .filter_map(|f| {
-                let running_for = now - f.created_at;
-                if running_for > long_running_threshold {
-                    Some((f.id, f.title.clone(), running_for.num_minutes()))
-                } else {
-                    None
-                }
+            .filter(|frame| frame.status == FrameStatus::Active)
+            .filter(|frame| now - frame.created_at > long_running_threshold)
+            .filter(|frame| {
+                !self
+                    .state
+                    .focus_gate
+                    .long_running_signal_frames
+                    .contains(&frame.id)
             })
+            .map(|frame| (frame.id, frame.title.clone(), frame.created_at))
             .collect();
+        long_running.sort_by_key(|(_, _, created_at)| *created_at);
 
-        // Emit signals for long-running frames.
-        for (frame_id, title, _minutes) in long_running {
-            let _ = self
+        for (frame_id, title, _) in long_running
+            .into_iter()
+            .take(MAX_TEMPORAL_SIGNALS_PER_TICK.saturating_sub(emitted))
+        {
+            if let Err(error) = self
                 .process_action(Action::EmitEvent {
                     event: FocusaEvent::IntuitionSignalObserved {
                         signal_id: Uuid::now_v7(),
                         signal_type: SignalKind::LongRunningFrame,
                         severity: "0.4".to_string(),
-                        // Stable summary (see InactivityTick fix above): drop the
-                        // growing minute count from the matchable label so the
-                        // same frame dedupes into one candidate instead of a
-                        // fresh surfaced candidate every decay tick.
                         summary: format!("Frame '{}' long-running", title),
                         related_frame_id: Some(frame_id),
                     },
                 })
-                .await;
+                .await
+            {
+                tracing::warn!(%error, %frame_id, "long-running signal emission failed");
+            }
         }
     }
 
@@ -4883,13 +5102,7 @@ Return:
             }
 
             // ─── Gate ────────────────────────────────────────────────────
-            Action::IngestSignal { signal } => Ok(vec![FocusaEvent::IntuitionSignalObserved {
-                signal_id: signal.id,
-                signal_type: signal.kind,
-                severity: "info".into(),
-                summary: signal.summary,
-                related_frame_id: signal.frame_context,
-            }]),
+            Action::IngestSignal { signal } => Ok(vec![intuition_signal_event(signal)]),
 
             Action::SurfaceCandidate {
                 candidate_id,
@@ -4965,6 +5178,7 @@ Return:
                     handle.project_root.as_deref(),
                     handle.continuity_id.as_deref(),
                 );
+                self.ecs.persist_metadata(&handle)?;
                 Ok(vec![FocusaEvent::ArtifactRegistered {
                     handle: handle.clone(),
                     storage_uri: format!("ecs://{}", handle.sha256),
@@ -5031,8 +5245,8 @@ Return:
                     &mut self.state.focus_gate,
                     self.config.gate_decay_factor,
                 );
-                self.persist_reducer_batch(Vec::new(), false).await?;
-                self.sync_shared_state().await;
+                // process_action persists this mutation together with decay_event;
+                // writing here as well serialized the full snapshot twice per tick.
                 self.expire_stale_turn().await;
                 Ok(vec![decay_event])
             }
@@ -5200,7 +5414,13 @@ Return:
 
         let shared_state = {
             let shared = self.shared_state.read().await;
-            shared.clone()
+            match clone_state_on_large_stack(&shared) {
+                Ok(state) => state,
+                Err(error) => {
+                    tracing::error!(error = %error, "failed to clone external Focusa state");
+                    return;
+                }
+            }
         };
 
         tracing::trace!(
@@ -5216,8 +5436,15 @@ Return:
 
     /// Sync internal state to the shared handle for API readers.
     async fn sync_shared_state(&self) {
+        let replacement = match clone_state_on_large_stack(&self.state) {
+            Ok(state) => state,
+            Err(error) => {
+                tracing::error!(error = %error, "failed to clone canonical Focusa state");
+                return;
+            }
+        };
         let mut shared = self.shared_state.write().await;
-        *shared = self.state.clone();
+        *shared = replacement;
     }
 
     async fn persist_observability_event(&self, event: FocusaEvent) -> anyhow::Result<()> {
@@ -5753,6 +5980,56 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn durable_tail_replays_once_after_checkpoint_and_cursor_advances() {
+        let mut config = FocusaConfig::default();
+        let data_dir =
+            std::env::temp_dir().join(format!("focusa-replay-tail-test-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&data_dir).expect("create replay data dir");
+        config.data_dir = data_dir.to_string_lossy().into_owned();
+        let persistence = Persistence::new(&config).expect("create persistence");
+        let initial = FocusaState::default();
+        persistence.save_state(&initial).expect("save baseline");
+        let event = FocusaEvent::IntuitionSignalObserved {
+            signal_id: Uuid::now_v7(),
+            signal_type: SignalKind::Warning,
+            severity: "info".into(),
+            summary: "restart replay proof".into(),
+            related_frame_id: None,
+        };
+        persistence
+            .append_event(&EventLogEntry::captured(event, SignalOrigin::Daemon, None))
+            .expect("append tail event");
+
+        let (checkpoint, cursor) = persistence
+            .load_state_with_event_sequence()
+            .expect("load checkpoint")
+            .expect("checkpoint exists");
+        assert_eq!(cursor, 0);
+        let machine_id = persistence.machine_id().expect("machine id");
+        let (replayed_state, replayed_cursor, replayed) =
+            replay_durable_tail(&persistence, &machine_id, checkpoint, cursor)
+                .expect("replay tail");
+        assert_eq!(replayed, 1);
+        assert_eq!(replayed_cursor, 1);
+        assert_eq!(replayed_state.version, 1);
+        assert_eq!(replayed_state.focus_gate.signals.len(), 1);
+
+        persistence
+            .save_state(&replayed_state)
+            .expect("checkpoint replayed state");
+        let (checkpoint, cursor) = persistence
+            .load_state_with_event_sequence()
+            .expect("reload checkpoint")
+            .expect("checkpoint exists");
+        let (_, cursor, replayed) =
+            replay_durable_tail(&persistence, &machine_id, checkpoint, cursor)
+                .expect("replay settled tail");
+        assert_eq!(cursor, 1);
+        assert_eq!(replayed, 0);
+        let _ = std::fs::remove_dir_all(data_dir);
+    }
+
     fn sample_spec_task() -> SpecLinkedTaskPacket {
         SpecLinkedTaskPacket {
             work_item_id: "focusa-verify-1".to_string(),
@@ -5791,6 +6068,147 @@ mod tests {
             external_mutation_epoch,
         )
         .expect("init daemon")
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn temporal_signal_migration_converges_with_one_persistence_request_per_tick() {
+        const FRAME_COUNT: usize = 115;
+        const TICK_COUNT: usize = 125;
+
+        let mut daemon = test_daemon();
+        let actor = PersistenceActor::start(daemon.persistence.clone());
+        daemon.attach_persistence_actor(actor.clone());
+        let old = Utc::now() - chrono::Duration::hours(1);
+        for index in 0..FRAME_COUNT {
+            let frame_id = Uuid::now_v7();
+            let mut frame = sample_frame_with_consults(frame_id);
+            let continuity_id = format!("legacy-continuity-{index}");
+            frame.title = format!("legacy-active-frame-{index}");
+            frame.continuity_id = Some(continuity_id.clone());
+            frame.tags = vec![format!("continuity_id:{continuity_id}")];
+            frame.created_at = old;
+            frame.updated_at = old;
+            if index == 0 {
+                daemon.state.focus_stack.active_id = Some(frame_id);
+                daemon.state.focus_stack.stack_path_cache = vec![frame_id];
+            }
+            daemon.state.focus_stack.frames.push(frame);
+        }
+
+        let requests_before = {
+            let metrics = actor.metrics();
+            metrics.batches_total + metrics.requests_coalesced_total
+        };
+        for _ in 0..TICK_COUNT {
+            daemon.emit_temporal_signals().await;
+            daemon.run_gate_pipeline().await;
+        }
+        daemon
+            .persist_reducer_batch(Vec::new(), true)
+            .await
+            .expect("flush converged temporal state");
+
+        let metrics = actor.metrics();
+        let persistence_requests =
+            metrics.batches_total + metrics.requests_coalesced_total - requests_before;
+        assert_eq!(
+            persistence_requests,
+            FRAME_COUNT as u64 + 1,
+            "each signal-producing tick must persist the signal and gate cursor atomically; the final request is the explicit test flush"
+        );
+        assert_eq!(daemon.state.focus_gate.signals.len(), FRAME_COUNT);
+        assert_eq!(
+            daemon.state.focus_gate.processed_signal_ids.len(),
+            FRAME_COUNT
+        );
+        assert_eq!(
+            daemon.state.focus_gate.long_running_signal_frames.len(),
+            FRAME_COUNT
+        );
+        assert_eq!(daemon.state.focus_gate.candidates.len(), FRAME_COUNT);
+
+        let stable_gate = serde_json::to_vec(&daemon.state.focus_gate).expect("serialize gate");
+        for _ in 0..10 {
+            daemon.emit_temporal_signals().await;
+            daemon.run_gate_pipeline().await;
+        }
+        assert_eq!(
+            serde_json::to_vec(&daemon.state.focus_gate).expect("serialize converged gate"),
+            stable_gate,
+            "ticks after migration convergence must not mutate Focus Gate state"
+        );
+
+        let restored = daemon
+            .persistence
+            .load_state()
+            .expect("load persisted state")
+            .expect("persisted state exists");
+        assert_eq!(
+            restored.focus_gate.processed_signal_ids,
+            daemon.state.focus_gate.processed_signal_ids
+        );
+        assert_eq!(
+            restored.focus_gate.long_running_signal_frames,
+            daemon.state.focus_gate.long_running_signal_frames
+        );
+    }
+
+    #[tokio::test]
+    async fn shutdown_checkpoint_preserves_external_frame_state() {
+        let data_dir =
+            std::env::temp_dir().join(format!("focusa-shutdown-test-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&data_dir).expect("isolated persistence directory");
+        let config = FocusaConfig {
+            data_dir: data_dir.to_string_lossy().into_owned(),
+            ..FocusaConfig::default()
+        };
+        let shared_state = Arc::new(RwLock::new(FocusaState::default()));
+        let write_serial_lock = Arc::new(Mutex::new(()));
+        let epoch = Arc::new(AtomicU64::new(0));
+        let mut daemon = Daemon::new(
+            config,
+            Arc::clone(&shared_state),
+            Arc::clone(&write_serial_lock),
+            Arc::clone(&epoch),
+        )
+        .expect("initialize daemon");
+        daemon.attach_persistence_actor(PersistenceActor::start(daemon.persistence()));
+        let frame_id = Uuid::now_v7();
+        let mut frame = sample_frame_with_consults(frame_id);
+        frame
+            .focus_state
+            .decisions
+            .push("preserve API decision".to_string());
+        {
+            let _write_guard = write_serial_lock.lock().await;
+            let mut shared = shared_state.write().await;
+            shared.focus_stack.frames.push(frame);
+            shared.focus_stack.active_id = Some(frame_id);
+            epoch.fetch_add(1, Ordering::AcqRel);
+        }
+        assert!(daemon.state.focus_stack.frames.is_empty());
+        daemon
+            .persist_shutdown_checkpoint()
+            .await
+            .expect("shutdown checkpoint");
+        let restored = daemon
+            .persistence
+            .load_state()
+            .expect("read durable state")
+            .expect("checkpoint exists");
+        assert_eq!(restored.focus_stack.active_id, Some(frame_id));
+        let frame = restored
+            .focus_stack
+            .frames
+            .iter()
+            .find(|frame| frame.id == frame_id)
+            .expect("external frame survived shutdown");
+        assert!(
+            frame
+                .focus_state
+                .decisions
+                .contains(&"preserve API decision".to_string())
+        );
     }
 
     #[tokio::test]

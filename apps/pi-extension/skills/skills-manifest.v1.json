@@ -1,0 +1,180 @@
+{
+  "schema": "focusa.skills_manifest.v1",
+  "skills": [
+    {
+      "skill": "focusa",
+      "skill_md": ".pi/skills/focusa/SKILL.md",
+      "runbook": ".pi/skills/focusa/references/01-focusa-core-agent-runbook.md",
+      "owner_ref": "docs/152-mandatory-authority-licensing-evaluation-entitlements-and-unified-onboarding-spec.md",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-agent-bootstrap",
+      "skill_md": ".pi/skills/focusa-agent-bootstrap/SKILL.md",
+      "runbook": ".pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md",
+      "owner_ref": "focusa agent-card bootstrap program (#260)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-browser-uiai",
+      "skill_md": ".pi/skills/focusa-browser-uiai/SKILL.md",
+      "runbook": ".pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md",
+      "owner_ref": "docs/155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md + #281",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-cli-api",
+      "skill_md": ".pi/skills/focusa-cli-api/SKILL.md",
+      "runbook": ".pi/skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md",
+      "owner_ref": "crates/focusa-cli + focusa-api",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-docs-maintenance",
+      "skill_md": ".pi/skills/focusa-docs-maintenance/SKILL.md",
+      "runbook": ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md",
+      "owner_ref": "docs maintenance program (#260)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-evidence-outcomes",
+      "skill_md": ".pi/skills/focusa-evidence-outcomes/SKILL.md",
+      "runbook": ".pi/skills/focusa-evidence-outcomes/references/01-focusa-evidence-outcomes-runbook.md",
+      "owner_ref": "#277/#278 completion authority program",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-install-lifecycle",
+      "skill_md": ".pi/skills/focusa-install-lifecycle/SKILL.md",
+      "runbook": ".pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md",
+      "owner_ref": "docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-metacognition",
+      "skill_md": ".pi/skills/focusa-metacognition/SKILL.md",
+      "runbook": ".pi/skills/focusa-metacognition/references/01-focusa-metacognition-runbook.md",
+      "owner_ref": "metacognition routes (crates/focusa-api/src/routes/metacognition.rs)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-mission-canvas",
+      "skill_md": ".pi/skills/focusa-mission-canvas/SKILL.md",
+      "runbook": ".pi/skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md",
+      "owner_ref": "Mission Canvas program (docs/155 \u00a720)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-project-scope",
+      "skill_md": ".pi/skills/focusa-project-scope/SKILL.md",
+      "runbook": ".pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md",
+      "owner_ref": "project_marker.rs + docs/164",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-release-proof",
+      "skill_md": ".pi/skills/focusa-release-proof/SKILL.md",
+      "runbook": ".pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md",
+      "owner_ref": "release-proof program (scripts/release-readiness-evaluation.mjs)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-resource-performance",
+      "skill_md": ".pi/skills/focusa-resource-performance/SKILL.md",
+      "runbook": ".pi/skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md",
+      "owner_ref": "bloatgaurd + compaction program (#112)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-security-auth-licensing",
+      "skill_md": ".pi/skills/focusa-security-auth-licensing/SKILL.md",
+      "runbook": ".pi/skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md",
+      "owner_ref": "docs/156-focusa-project-scoped-credential-authority-*-spec.md + #119",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-session-recovery",
+      "skill_md": ".pi/skills/focusa-session-recovery/SKILL.md",
+      "runbook": ".pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md",
+      "owner_ref": "compaction/rollover program (#112, #262)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-silent-sessions",
+      "skill_md": ".pi/skills/focusa-silent-sessions/SKILL.md",
+      "runbook": ".pi/skills/focusa-silent-sessions/references/01-focusa-silent-sessions-runbook.md",
+      "owner_ref": "silent sessions program (#195, #311)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-spec-implementation",
+      "skill_md": ".pi/skills/focusa-spec-implementation/SKILL.md",
+      "runbook": ".pi/skills/focusa-spec-implementation/references/01-focusa-spec-implementation-runbook.md",
+      "owner_ref": "spec-implementation workflow (focusa trajectory)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-temporal-authority",
+      "skill_md": ".pi/skills/focusa-temporal-authority/SKILL.md",
+      "runbook": ".pi/skills/focusa-temporal-authority/references/01-focusa-temporal-authority-runbook.md",
+      "owner_ref": "temporal authority routes",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-tool-discovery",
+      "skill_md": ".pi/skills/focusa-tool-discovery/SKILL.md",
+      "runbook": ".pi/skills/focusa-tool-discovery/references/01-focusa-tool-discovery-runbook.md",
+      "owner_ref": "tool discovery program (#258)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-troubleshooting",
+      "skill_md": ".pi/skills/focusa-troubleshooting/SKILL.md",
+      "runbook": ".pi/skills/focusa-troubleshooting/references/01-focusa-troubleshooting-runbook.md",
+      "owner_ref": "doctor/diagnostics routes",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-work-loop",
+      "skill_md": ".pi/skills/focusa-work-loop/SKILL.md",
+      "runbook": ".pi/skills/focusa-work-loop/references/01-focusa-work-loop-runbook.md",
+      "owner_ref": "work_loop routes (#254)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-workpoint",
+      "skill_md": ".pi/skills/focusa-workpoint/SKILL.md",
+      "runbook": ".pi/skills/focusa-workpoint/references/01-focusa-workpoint-runbook.md",
+      "owner_ref": "workpoint routes + docs/164",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "predictive-power",
+      "skill_md": ".pi/skills/predictive-power/SKILL.md",
+      "runbook": ".pi/skills/predictive-power/references/01-focusa-predictive-power-runbook.md",
+      "owner_ref": "predictive power routes (predict.rs)",
+      "packaging": "repo .pi/skills (cross-harness projection through focusa docs-maintenance)"
+    },
+    {
+      "skill": "focusa-bg-primitive",
+      "skill_md": "docs/focusa-tools/bg.md",
+      "runbook": null,
+      "owner_ref": "docs/165-background-execution-and-completion-notification.md",
+      "packaging": "repo docs + Pi extension tools (focusa_bg_run / focusa_bg_run_many / focusa_bg_status)"
+    },
+    {
+      "skill": "focusa-fast-forward",
+      "skill_md": "docs/169-fast-forward-session-multiplier-design.md",
+      "runbook": null,
+      "owner_ref": "#312 (operator-conceived 2026-08-16)",
+      "packaging": "repo docs + POST /v1/silent-sessions/fanout + future focusa_fast_forward tool"
+    },
+    {
+      "skill": "focusa-deslop",
+      "skill_md": ".pi/skills/focusa-deslop/SKILL.md",
+      "runbook": ".pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md",
+      "owner_ref": "deslop research synthesis (2026-08-16) \u2014 operator-directed",
+      "packaging": "repo .pi/skills + .deslop.toml + CI deslop gate"
+    }
+  ]
+}

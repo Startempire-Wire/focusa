@@ -71,6 +71,7 @@ function safeErrorText(value: unknown): string {
 }
 import { registerAgentRuntimeTools } from "./agent-runtime-tools.js";
 import { registerSmsTools } from "./sms-tools.js";
+import { silentPreflightResult } from "./silent-preflight.js";
 import {
   SPEC138_OPERATIONS,
   bindSpec138OperationPath,
@@ -219,6 +220,13 @@ function truncateForSummary(s: string, max: number): string {
   return s.slice(0, max - 1) + "…";
 }
 
+function focusaApiV1Base(): string {
+  const configured = String(
+    getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1",
+  ).replace(/\/+$/, "");
+  return configured.endsWith("/v1") ? configured : `${configured}/v1`;
+}
+
 // FOCUSA_FIX-vuop: register a model_select listener that invalidates the
 // session frame on model switch so subsequent Focusa daemon requests use
 // the correct Pi session identity.
@@ -287,85 +295,17 @@ function mirrorFailedFocusWrite(
   return scratch;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Validation helpers — per §AsccSections and G1-07 Delta Summarization Rule
-// The agent IS the summarizer (LLM-assisted path). Validation enforces quality.
-// ─────────────────────────────────────────────────────────────────────────────
+// Validation helpers live in decision-validation.ts (#600): keep one
+// implementation so decision quality rules stay testable without loading
+// the full tool graph.
+import {
+  SELF_REF_PATTERNS,
+  validateConstraint,
+  validateDecision,
+} from "./decision-validation.js";
+export { validateConstraint, validateDecision };
 
-const TASK_PATTERNS =
-  /\b(Fix all|Implement|Add|Create|Update|Remove|Check|Verify|Test|Build|Deploy|NEXT:|Signal:)\b/i;
-const DEBUG_PATTERNS =
-  /(\bDEBUG\b|\bTODO\b|\bstack trace\b|\berror\b|\bfailed\b|\bcrash\b|\bbroken\b|\bbug\b|\bat line\b|\bTraceback\b)/i;
-const SELF_REF_PATTERNS =
-  /\b(I think|I tried|I'm working|I'm doing|working on|trying to|in this session|while I was|I was just)\b/i;
-const MULTI_SENTENCE = /\.\s+\w/;
 
-function validateDecision(decision: string): { valid: boolean; reason?: string } {
-  // §AsccSections: decisions = crystallized choices that guide future action.
-  // Keep the public validator aligned with pushDelta's canonical Focus State limit.
-  if (decision.length > 160) {
-    return {
-      valid: false,
-      reason:
-        "Too verbose — distill to ONE crystallized sentence (max 160 chars). Use scratchpad for elaboration.",
-    };
-  }
-  if (TASK_PATTERNS.test(decision)) {
-    return {
-      valid: false,
-      reason:
-        "Sounds like a task list — decisions capture ARCHITECTURAL CHOICES, not implementation plans. Write task in scratchpad. Distill the decision.",
-    };
-  }
-  if (DEBUG_PATTERNS.test(decision)) {
-    return {
-      valid: false,
-      reason:
-        "Sounds like debugging metadata — decisions are stable choices, not investigation notes. Move to scratchpad.",
-    };
-  }
-  if (SELF_REF_PATTERNS.test(decision)) {
-    return {
-      valid: false,
-      reason:
-        "Sounds like stream-of-consciousness — decisions should be objective architectural statements. Distill from scratchpad notes.",
-    };
-  }
-  if (MULTI_SENTENCE.test(decision)) {
-    return {
-      valid: false,
-      reason:
-        "Multiple sentences — decisions should be ONE crystallized sentence. Per §AsccSections (<=160 chars).",
-    };
-  }
-  return { valid: true };
-}
-
-function validateConstraint(constraint: string, source?: string): { valid: boolean; reason?: string } {
-  // §AsccSections: constraints = DISCOVERED REQUIREMENTS (not self-imposed tasks)
-  // Constraint is a hard boundary from environment/architecture, not "I should do X".
-  // Operator directives are discovered requirements even when phrased with "must/must not".
-  const operatorDirective =
-    /operator directive/i.test(source || "") || /^operator directive\b/i.test(constraint);
-  if (constraint.length > 200) {
-    return { valid: false, reason: "Too verbose — distill to one sentence (max 200 chars)." };
-  }
-  if (!operatorDirective && TASK_PATTERNS.test(constraint)) {
-    return {
-      valid: false,
-      reason:
-        "Sounds like a self-imposed task — constraints are DISCOVERED REQUIREMENTS from environment/architecture. Not 'I will do X'.",
-    };
-  }
-  if (!operatorDirective && /\b(will|should|must|need to|going to)\b/i.test(constraint)) {
-    return {
-      valid: false,
-      reason:
-        "Sounds like self-imposed obligation — constraints are discovered requirements from environment, not agent commitments. Use scratchpad.",
-    };
-  }
-  return { valid: true };
-}
 
 function validateFailure(failure: string): { valid: boolean; reason?: string } {
   // §AsccSections: failures = what failed and why
@@ -3232,9 +3172,9 @@ pi.registerTool({
   }
 
   function scopedResponseHuman(body: any, fallback: string): string {
-    return String(
+    return safeErrorText(
       body?.human_readable || body?.human?.summary || body?.summary || body?.reason || body?.error || fallback
-    );
+    ).slice(0, 500);
   }
 
   function typedTrajectoryScopeMatches(value: any, projectRoot: string, continuityId: string): boolean {
@@ -3265,6 +3205,8 @@ pi.registerTool({
     path: string,
     opts: RequestInit = {}
   ): Promise<{ ok: boolean; status: number; body: any | null }> {
+    // Generated operations carry /v1; legacy callers pass API-relative paths.
+    path = path.replace(/^\/v1(?=\/|\?|$)/, "");
     const method = String(opts.method || "GET").toUpperCase();
     const timeout = timeoutBudgetForRoute(path, method);
     const bindingDecision = currentProjectBindingDecision();
@@ -3314,7 +3256,7 @@ pi.registerTool({
         },
       };
     }
-    const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const base = focusaApiV1Base();
     const token = getAttachmentRuntime().cfg?.focusaToken || "";
     const currentKey = currentAttachmentKey();
     if (!currentKey) throw new Error("attachment_runtime_key_required");
@@ -3456,6 +3398,24 @@ pi.registerTool({
     return parts.length > 0 ? parts.join(",") : "empty";
   }
 
+  function formatWorkLoopScope(value: any): string {
+    if (!value || typeof value !== "object") return String(value || "unknown");
+    const root = value.root_scope?.root_path || value.project_root;
+    const continuity = value.continuity_id;
+    const subpath = value.working_subpath_id;
+    const fields = [
+      root ? `project_root=${String(root)}` : "",
+      continuity ? `continuity_id=${String(continuity)}` : "",
+      subpath ? `working_subpath_id=${String(subpath)}` : "",
+    ].filter(Boolean);
+    if (fields.length > 0) return fields.join(",");
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "unknown";
+    }
+  }
+
   function explainWorkLoopResult(
     result: { ok: boolean; status: number; body: any | null },
     fallback: string
@@ -3481,17 +3441,24 @@ pi.registerTool({
       result.body?.status === "rejected_scope_mismatch" ||
       result.status === 409
     ) {
-      const field = String(result.body?.field || "scope");
-      const expected = String(
-        result.body?.expected_project_root || result.body?.expected_continuity_id || "unknown"
+      const field = String(result.body?.field || "workstream_scope");
+      const active = formatWorkLoopScope(
+        result.body?.active_execution_scope ||
+          result.body?.expected_scope ||
+          result.body?.expected_project_root ||
+          result.body?.expected_continuity_id
       );
-      const actual = String(
-        result.body?.packet_project_root || result.body?.packet_continuity_id || "unknown"
+      const requested = formatWorkLoopScope(
+        result.body?.requested_scope ||
+          result.body?.packet_scope ||
+          result.body?.packet_project_root ||
+          result.body?.packet_continuity_id
       );
       const hint = String(
-        result.body?.next_step_hint || "resume/checkpoint the Workpoint in the same scope before retrying"
+        result.body?.next_step_hint ||
+          "inspect writer ownership, then explicitly stop or rebind the active Work Loop before retrying mutations"
       );
-      return `blocked: scope mismatch on ${field} expected=${expected} packet=${actual}; ${hint}`;
+      return `blocked: scope mismatch on ${field} active={${active}} requested={${requested}}; ${hint}`;
     }
     if (result.status === 0) return "blocked: daemon unavailable";
     // #266: daemon envelopes may carry error as an object {code, message};
@@ -4604,8 +4571,10 @@ pi.registerTool({
       } else if (action === "preflight") {
         result = await focusaFetchDetailed("/silent-sessions/preflight", {
           method: "POST",
-          body: JSON.stringify(p.config || {}),
+          headers: p.idempotency_key ? { "Idempotency-Key": p.idempotency_key } : {},
+          body: JSON.stringify({ config: p.config || {} }),
         });
+        return silentPreflightResult(result, p.config);
       } else if (["reopen", "health"].includes(action)) {
         result = await focusaFetchDetailed(`/silent-sessions/${requireSession()}`, { method: "GET" });
       } else if (["tail", "watch"].includes(action)) {
@@ -4682,8 +4651,8 @@ pi.registerTool({
     workset_id: Type.String({ description: "Workset id." }),
   }),
   async execute(_id: any, params: any) {
-    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
-    const res = await fetch(`${base}/v1/worksets/${encodeURIComponent(params.workset_id)}/projection`);
+    const base = focusaApiV1Base();
+    const res = await fetch(`${base}/worksets/${encodeURIComponent(params.workset_id)}/projection`);
     const body = await res.json();
     return toolResult(
       res.ok,
@@ -4707,7 +4676,7 @@ pi.registerTool({
   }),
   async execute(_id: any, params: any) {
     const runtime = getAttachmentRuntime();
-    const base = String(runtime?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1").replace(/\/+$/, "");
+    const base = focusaApiV1Base();
     const token = runtime?.cfg?.focusaToken || "";
     const controller = new AbortController();
     const timeout = setTimeout(
@@ -4780,10 +4749,10 @@ pi.registerTool({
     run_id: Type.String({ description: "CallGraph run id." }),
   }),
   async execute(_id: any, params: any) {
-    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const base = focusaApiV1Base();
     const [runRes, pathsRes] = await Promise.all([
-      fetch(`${base}/v1/callgraph-runs/${encodeURIComponent(params.run_id)}`),
-      fetch(`${base}/v1/callgraph-runs/${encodeURIComponent(params.run_id)}/paths`),
+      fetch(`${base}/callgraph-runs/${encodeURIComponent(params.run_id)}`),
+      fetch(`${base}/callgraph-runs/${encodeURIComponent(params.run_id)}/paths`),
     ]);
     const run = await runRes.json();
     const paths = await pathsRes.json();
@@ -4800,17 +4769,25 @@ pi.registerTool({
   name: "focusa_credentials_verify",
   label: "Focusa Credentials Verify",
   description:
-    "Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam.",
-  promptSnippet: "Grant verdicts only — no secrets in or out.",
+    "Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred.",
+  promptSnippet: "Advisory model verdict only; never authorization to use credentials.",
   parameters: Type.Object({
     requirement: Type.Object({
       schema: Type.String(),
+      requirement_id: Type.String(),
+      project_scope_ref: Type.String(),
+      workstream_ref: Type.String(),
+      callgraph_frame_ref: Type.String(),
+      attempt_generation: Type.Integer({ minimum: 0, maximum: 4294967295 }),
       credential_role_ref: Type.String(),
-      required_operation: Type.String(),
+      required_operation: Type.Union(["use", "reveal", "manage", "rotate", "revoke"].map((value) => Type.Literal(value))),
       required_exposure_mode: Type.String(),
       exact_consumer_ref: Type.String(),
       exact_target_refs: Type.Array(Type.String()),
-      use_count_required: Type.Number(),
+      required_auth_challenge_support: Type.Optional(Type.Array(Type.String())),
+      precondition_refs: Type.Optional(Type.Array(Type.String())),
+      validity_minimum_seconds: Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+      use_count_required: Type.Integer({ minimum: 0, maximum: 4294967295 }),
       evidence_requirement_refs: Type.Array(Type.String()),
     }),
     grants: Type.Array(Type.Unknown()),
@@ -4828,7 +4805,7 @@ pi.registerTool({
     return toolResult(
       body.satisfied,
       body.satisfied ? "satisfied" : "denied",
-      body.satisfied ? "Requirement satisfied by the provided grants." : `Not satisfied: ${(body.reasons || []).join("; ")}`,
+      body.satisfied ? "Advisory model requirement satisfied; credential-use authorization is not established." : `Advisory model not satisfied: ${(body.reasons || []).join("; ")}`,
       body
     );
   },
@@ -4838,7 +4815,7 @@ pi.registerTool({
   name: "focusa_cockpit_projection",
   label: "Focusa Cockpit Projection",
   description:
-    "Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view.",
+    "Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation.",
   promptSnippet: "One read = worksets + callgraph frontier + steers + bg board.",
   parameters: Type.Object({
     project_root: Type.Optional(Type.String({ description: "Project root scope (defaults to the session cwd)." })),
@@ -4847,19 +4824,27 @@ pi.registerTool({
     const runtime = getAttachmentRuntime();
     const projectRoot = params.project_root || runtime?.sessionCwd || process.cwd();
     const res = await focusaFetchDetailed("/cockpit/projection");
-    if (!res.ok) {
+    const data = res.body;
+    if (!res.ok || data?.status !== "ok") {
+      const diagnostic = scopedResponseHuman(data, `HTTP ${res.status}`);
       return toolResult(
         false,
-        res.body?.status || "blocked",
-        `Cockpit projection failed: ${res.body?.summary || res.status}`,
-        res.body
+        "blocked",
+        `Cockpit projection failed (HTTP ${res.status}): ${diagnostic}${res.status === 404 ? "; installed route unavailable—verify installed revision and supported capabilities before retrying" : ""}`,
+        { response: data, http_status: res.status, failure_class: scopedResponseFailureClass(res, data) }
       );
     }
-    const data = res.body || {};
-    const worksets = data.worksets || [];
-    const runs = data.callgraph || [];
-    const steers = data.steers || [];
-    const bg = data.background || {};
+    if (!Array.isArray(data.worksets) || !Array.isArray(data.callgraph) ||
+        !Array.isArray(data.steers) || !Array.isArray(data.background?.jobs) ||
+        !Number.isInteger(data.background?.active) || data.background.active < 0) {
+      return toolResult(false, "blocked", "Cockpit projection incomplete: required board data is missing or invalid; no empty or settled state inferred.", {
+        http_status: res.status, failure_class: "invalid_projection_response",
+      });
+    }
+    const worksets = data.worksets;
+    const runs = data.callgraph;
+    const steers = data.steers;
+    const bg = data.background;
     return toolResult(
       true,
       "ok",
@@ -4917,7 +4902,7 @@ pi.registerTool({
     policy_max_turns_per_session: Type.Optional(Type.Number({ description: "Per-lane turn cap (default 12)." })),
   }),
   async execute(_id: any, params: any) {
-    const base = getAttachmentRuntime()?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+    const base = focusaApiV1Base();
     const body: any = {
       multiplier: Number(params.multiplier),
       work_items: params.work_items || [],
@@ -4925,7 +4910,7 @@ pi.registerTool({
     if (params.policy_max_turns_per_session != null) {
       body.policy_max_turns_per_session = Number(params.policy_max_turns_per_session);
     }
-    const res = await fetch(`${base}/v1/silent-sessions/fanout`, {
+    const res = await fetch(`${base}/silent-sessions/fanout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -5036,7 +5021,7 @@ pi.registerTool({
 
     label: "Focusa Tool Doctor",
     description:
-      "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
+      "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
     promptSnippet: "Use first when Focusa tools seem blocked, degraded, stale, or confusing.",
     parameters: Type.Object({
       scope: Type.Optional(
@@ -5066,7 +5051,6 @@ pi.registerTool({
       const loop = await focusaFetchDetailed("/work-loop/status?summary_only=true", { method: "GET" });
       const liveContracts = await focusaFetchDetailed("/ontology/tool-contracts", { method: "GET" });
       const uiaiBrowser = await uiaiBrowserHealthCard();
-      const ready = health.ok && workpoint.ok;
       const contractSummary = focusaToolContractSummary();
       const scopedContracts =
         String(p.scope || "all") === "all"
@@ -5100,10 +5084,6 @@ pi.registerTool({
           return live && stableJson(live) !== stableJson(contract);
         })
         .map((contract) => contract.name);
-      const repairProjectRoot =
-        getLastProjectRootResolution()?.projectRoot || resolvePiProjectRoot(getSessionCwd() || process.cwd());
-      const portableDaemonRestart =
-        "if command -v focusa-daemon >/dev/null 2>&1; then nohup focusa-daemon >/tmp/focusa-daemon.log 2>&1 & elif command -v systemctl >/dev/null 2>&1; then systemctl restart focusa-daemon; else echo 'start focusa-daemon manually from this checkout' >&2; fi";
       const contractDrift = {
         live_ok: liveContracts.ok,
         static_count: FOCUSA_TOOL_CONTRACTS.length,
@@ -5118,11 +5098,8 @@ pi.registerTool({
           extra_live.length > 0 ||
           stale_live_contracts.length > 0,
         repair_commands: [
-          `cd ${repairProjectRoot}`,
-          "cargo build --release --bins",
-          portableDaemonRestart,
-          "curl -sS --max-time 5 http://127.0.0.1:8787/v1/ontology/tool-contracts | jq '.version, (.contracts|length)'",
-          "node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures",
+          "focusa status --agent --json",
+          "focusa doctor --scope host --json",
         ],
       };
       const hookCounts = getAttachmentRuntime().spec92HookTelemetry.reduce(
@@ -5154,7 +5131,13 @@ pi.registerTool({
       const sessionScopeSafe = isProjectRootAuthoritySafe(sessionRoot);
       const projectRootNeedsConfirmation = sessionResolution?.requiresOperatorConfirmation === true;
       const workpointStatus = String(workpoint.body?.status || (workpoint.ok ? "ok" : "blocked"));
-      const workpointCanonical = workpoint.body?.canonical === true || workpointStatus === "active";
+      const workpointCanonical =
+        workpoint.body?.canonical !== false &&
+        (workpoint.body?.canonical === true || workpointStatus === "active");
+      // Diagnostic dependencies are not evidence that individual operations execute.
+      const ready = health.ok && workpoint.ok && workpointCanonical &&
+        sessionScopeSafe && !projectRootNeedsConfirmation && loop.ok &&
+        !contractDrift.drift_detected;
       const recommendations: string[] = [];
       if (!health.ok)
         recommendations.push(
@@ -5216,7 +5199,7 @@ pi.registerTool({
         );
       if (contractDrift.drift_detected)
         recommendations.push(
-          "Tool contract drift detected between Pi static registry and live daemon; rebuild/restart focusa-daemon, then run live contract proof."
+          "Tool contract drift detected: inspect installed and harness revisions with focusa_agent_runtime_doctor; use an authorized canonical release/install or native reload path only after verifying the cause. Drift grants no runtime mutation authority."
         );
       const nextTools = Array.from(
         new Set([
@@ -5230,7 +5213,7 @@ pi.registerTool({
           ...(!workpoint.ok || !workpointCanonical
             ? ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_workpoint_resume"]
             : []),
-          ...(contractDrift.drift_detected ? ["focusa_tool_doctor"] : []),
+          ...(contractDrift.drift_detected ? ["focusa_agent_runtime_doctor"] : []),
         ])
       );
       const nextActions =
@@ -5265,21 +5248,23 @@ pi.registerTool({
           }
         : { drift_detected: false };
       const evidenceResult = contractDrift.drift_detected
-        ? `readiness=${ready ? "ready" : "degraded"} drift=yes causes=${JSON.stringify(driftCauseCounts)} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`
-        : `readiness=${ready ? "ready" : "degraded"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`;
+        ? `diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified drift=yes causes=${JSON.stringify(driftCauseCounts)} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`
+        : `diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`;
       const scopeStatus = !sessionScopeSafe
         ? "blocked_unsafe_launcher_cwd"
         : projectRootNeedsConfirmation
           ? "operator_confirmation_required"
           : "verified";
-      const text = `tool doctor → readiness=${ready ? "ready" : "degraded"} scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"}${driftSummary} scoped=${scopedContracts.length} hooks=${getAttachmentRuntime().spec92HookTelemetry.length} token_budget=${tokenBudgetStatus} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
+      const text = `tool doctor → diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"}${driftSummary} scoped=${scopedContracts.length} hooks=${getAttachmentRuntime().spec92HookTelemetry.length} token_budget=${tokenBudgetStatus} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
       return {
         content: [{ type: "text", text }],
         details: {
-          ok: ready && !contractDrift.drift_detected,
-          status: ready && !contractDrift.drift_detected ? "completed" : "degraded",
+          ok: ready,
+          status: ready ? "completed" : "degraded",
           tool_readiness: {
             status: contractDrift.drift_detected ? "degraded" : "ready",
+            basis: "contract_registry_parity_only",
+            proves_operation_execution: false,
             contracts_total: contractSummary.total,
             live_contracts: contractDrift.live_ok ? contractDrift.live_count : null,
           },
@@ -15193,7 +15178,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     name: "focusa_epistemic_operation",
     label: "Epistemic Operation",
     description:
-      "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally.",
+      "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally.",
     parameters: Type.Object({
       operation_id: Type.Union(SPEC138_OPERATIONS.map((row) => Type.Literal(row.operation_id)) as any),
       id: Type.Optional(Type.String({ description: "Value for canonical {id} path segments." })),
@@ -15239,10 +15224,20 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         method: "POST",
         body: JSON.stringify({ operation_id: descriptor.operation_id, scope, event: p.event }),
       } : undefined);
+      const status = res.body?.status || (res.ok ? "completed" : "blocked");
+      const failed = !res.ok || ["blocked", "denied", "error", "failed"].includes(status);
+      const failureClass = failed ? scopedResponseFailureClass(res, res.body) : undefined;
+      const diagnostic = failed ? scopedResponseHuman(res.body, `HTTP ${res.status}`) : "";
       return {
-        content: [{ type: "text", text: `${descriptor.label} → ${res.body?.status || (res.ok ? "completed" : "blocked")}` }],
+        content: [{ type: "text", text: `${descriptor.label} → ${status}${failed ? ` (HTTP ${res.status}): ${diagnostic}` : ""}` }],
         details: {
-          ok: res.ok, status: res.body?.status, operation: descriptor,
+          ok: !failed, status, operation: descriptor,
+          http_status: res.status, failure_class: failureClass,
+          next_tools: failed
+            ? failureClass === "scope_mismatch"
+              ? ["focusa_project_identity", "focusa_workpoint_resume"]
+              : ["focusa_agent_runtime_doctor"]
+            : [],
           authority: res.body?.authority, response: res.body,
           project_root: projectRoot, continuity_id: continuityId,
         },

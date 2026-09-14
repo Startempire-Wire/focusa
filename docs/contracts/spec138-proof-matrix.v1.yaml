@@ -26,7 +26,7 @@
     "client_parity"
   ],
   "exact_sha_integrated_proof_required": true,
-  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
   "proof_results": [
     {
       "family": "positive",

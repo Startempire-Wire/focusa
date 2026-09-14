@@ -15349,8 +15349,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa CallGraph Observe",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation.",
+      "description": "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "callgraph",
       "namespace": "focusa.callgraph",
       "operation_policy": {
@@ -15740,7 +15740,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation.",
           "arguments": {
             "run_id": "example"
           },
@@ -15818,7 +15818,7 @@
         "snippet": "Use to inspect run progress and settlement state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:532febcbb0a88c75d7fe4b831066fea5f04809840310b905c94a0df9a3807d31"
+      "descriptor_digest": "sha256:0b0a50d4611a71be0d1e4f562581ecc75d0d93b43e3205244233e14f35f3afa8"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17406,8 +17406,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa Cockpit Projection",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Read the whole flywheel in one bounded payload: workset summaries, open CallGraph run frontiers, direction steers, and the background-job board with ETAs. Read-only, ledger-backed; the hand-in-glove operator view. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work.",
+      "description": "Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation. Use it when Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "cockpit",
       "namespace": "focusa.cockpit",
       "operation_policy": {
@@ -17794,7 +17794,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work.",
           "arguments": {},
           "human_invocation": "focusa_cockpit_projection { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_cockpit_projection.md"
@@ -17870,7 +17870,7 @@
         "snippet": "One read = worksets + callgraph frontier + steers + bg board.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4e37245b027360e92c155738f725a535d8159c86c62bd732902d1f835081554c"
+      "descriptor_digest": "sha256:663ce5df7ad8df63cf382078f0100f463ae62876a589222b0df019e578b280cd"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22250,8 +22250,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa Credentials Verify",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Ask the Credential Authority whether a requirement is satisfied by the given grants — secret-free: the verdict and reasons only, never secret values. Use before touching any provider seam. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization.",
+      "description": "Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "credential",
       "namespace": "focusa.credential",
       "operation_policy": {
@@ -22317,11 +22317,17 @@
             "type": "object",
             "required": [
               "schema",
+              "requirement_id",
+              "project_scope_ref",
+              "workstream_ref",
+              "callgraph_frame_ref",
+              "attempt_generation",
               "credential_role_ref",
               "required_operation",
               "required_exposure_mode",
               "exact_consumer_ref",
               "exact_target_refs",
+              "validity_minimum_seconds",
               "use_count_required",
               "evidence_requirement_refs"
             ],
@@ -22329,11 +22335,49 @@
               "schema": {
                 "type": "string"
               },
+              "requirement_id": {
+                "type": "string"
+              },
+              "project_scope_ref": {
+                "type": "string"
+              },
+              "workstream_ref": {
+                "type": "string"
+              },
+              "callgraph_frame_ref": {
+                "type": "string"
+              },
+              "attempt_generation": {
+                "minimum": 0,
+                "maximum": 4294967295,
+                "type": "integer"
+              },
               "credential_role_ref": {
                 "type": "string"
               },
               "required_operation": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "const": "use",
+                    "type": "string"
+                  },
+                  {
+                    "const": "reveal",
+                    "type": "string"
+                  },
+                  {
+                    "const": "manage",
+                    "type": "string"
+                  },
+                  {
+                    "const": "rotate",
+                    "type": "string"
+                  },
+                  {
+                    "const": "revoke",
+                    "type": "string"
+                  }
+                ]
               },
               "required_exposure_mode": {
                 "type": "string"
@@ -22347,8 +22391,27 @@
                   "type": "string"
                 }
               },
+              "required_auth_challenge_support": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "precondition_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "validity_minimum_seconds": {
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "type": "integer"
+              },
               "use_count_required": {
-                "type": "number"
+                "minimum": 0,
+                "maximum": 4294967295,
+                "type": "integer"
               },
               "evidence_requirement_refs": {
                 "type": "array",
@@ -22688,15 +22751,21 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization.",
           "arguments": {
             "requirement": {
               "schema": "example",
+              "requirement_id": "example",
+              "project_scope_ref": "example",
+              "workstream_ref": "example",
+              "callgraph_frame_ref": "example",
+              "attempt_generation": 0,
               "credential_role_ref": "example",
-              "required_operation": "example",
+              "required_operation": "use",
               "required_exposure_mode": "example",
               "exact_consumer_ref": "example",
               "exact_target_refs": [],
+              "validity_minimum_seconds": 0,
               "use_count_required": 0,
               "evidence_requirement_refs": []
             },
@@ -22773,10 +22842,10 @@
         "spec141:focusa_credentials_verify"
       ],
       "prompt": {
-        "snippet": "Grant verdicts only — no secrets in or out.",
+        "snippet": "Advisory model verdict only; never authorization to use credentials.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:34d363b87644a57983a035075cf6d6aaa76f47cb9895c238fa64870e4c888e48"
+      "descriptor_digest": "sha256:ed58030e45a67954d3d9d5357927c25246120647b453a941877fd5b7d0c9a5e7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29654,8 +29723,8 @@
       },
       "version": "2.0.0",
       "title": "Epistemic Operation",
-      "summary": "Invoke one exact generated Spec 138/138A operation through durable typed API authority.",
-      "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
+      "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "metacognition",
       "namespace": "focusa.metacognition",
       "operation_policy": {
@@ -30713,7 +30782,7 @@
       },
       "examples": [
         {
-          "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority.",
+          "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons.",
           "arguments": {
             "operation_id": "prediction.question.create"
           },
@@ -30796,10 +30865,10 @@
         "spec141:focusa_epistemic_operation"
       ],
       "prompt": {
-        "snippet": "Invoke one exact generated Spec 138/138A operation through durable typed API authority; the client never settles authority locally.",
+        "snippet": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9c437df8999f4fe3b515a0fc9b60a9c9de2af66c23dc893ec1a3bf0a0ad4ddb4"
+      "descriptor_digest": "sha256:f71ac153c87380821e3d5709db8b213b56c00dd0232a5738a4639ad23ccd5ea2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31911,8 +31980,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa Fast Forward",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes.",
+      "description": "Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "session_fanout",
       "namespace": "focusa.session_fanout",
       "operation_policy": {
@@ -32314,7 +32383,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes.",
           "arguments": {
             "multiplier": 0,
             "work_items": []
@@ -32395,7 +32464,7 @@
         "snippet": "Use to parallelize a set of work items across session lanes.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:183f47716986075680888bcb95f0906c5548fe30e3cbecbd6d1853142912d83c"
+      "descriptor_digest": "sha256:3c17fd2d18ce4a8779a92934d150c810df1768695d5fffd51c271ef75b222265"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -71335,8 +71404,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa Tool Doctor",
-      "summary": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
-      "description": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
+      "description": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "diagnostics_hygiene",
       "namespace": "focusa.diagnostics_hygiene",
       "operation_policy": {
@@ -71765,7 +71834,7 @@
       },
       "examples": [
         {
-          "description": "Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.",
+          "description": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.",
           "arguments": {},
           "human_invocation": "focusa_tool_doctor { ... }",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_doctor.md"
@@ -71848,7 +71917,7 @@
         "snippet": "Use first when Focusa tools seem blocked, degraded, stale, or confusing.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c98099e6d891580b9d5d4c7e1edb496522738bd9d9f5c3e5199a3cfa737f4790"
+      "descriptor_digest": "sha256:ec85797901ca2009ee484b1991ad3d2eb813ba89714caa1c49fd4b93de743246"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86024,20 +86093,20 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/worksets",
+            "method": "/v1/worksets/{workset_id}/projection",
             "path": ""
           }
         ]
       },
       "version": "2.0.0",
       "title": "Focusa Workset Projection",
-      "summary": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
-      "description": "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger.",
+      "description": "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "workset",
       "namespace": "focusa.workset",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/worksets",
+        "method": "/v1/worksets/{workset_id}/projection",
         "path": "",
         "operation_class": "read",
         "capability_family": "read_projection",
@@ -86052,7 +86121,7 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/worksets",
+          "method": "/v1/worksets/{workset_id}/projection",
           "path": "",
           "operation_class": "read",
           "capability_family": "read_projection",
@@ -86381,7 +86450,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/worksets",
+          "route": "/v1/worksets/{workset_id}/projection",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -86422,7 +86491,7 @@
       },
       "examples": [
         {
-          "description": "Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.",
+          "description": "Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger.",
           "arguments": {
             "workset_id": "example"
           },
@@ -86500,8 +86569,8 @@
         "snippet": "Use to inspect workset membership + completion contract state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d5350211c874cf4ebd08b6b589633dbe53e70b29b5bab857db7aec93e996aa4c"
+      "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:78e4a214223840b95637a62e869e73fd8d99115cfaba007145d5035cc924878b"
+  "registry_digest": "sha256:ec9775458f22ba12fee89dbc180ded2497e9e7fa5ca2ebf6c2c545e8352c8d5a"
 }

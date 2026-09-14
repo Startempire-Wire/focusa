@@ -1,6 +1,19 @@
 #!/usr/bin/env node
 // Full tool-health sweep: probe every route the agent card advertises.
-// Reports status + classification; exit 1 on any 5xx or 404.
+// Proves response contracts, not capability admission; unexpected failures fail CI.
+import { pathToFileURL } from "node:url";
+
+export function classifyRouteResponse({ method, path, status, json }) {
+  // #526/#609: prove the exact unimplemented boundary, never grant availability
+  // from an expected failure or exempt another server error.
+  if (method === "GET" && path === "/credentials/providers") {
+    return status === 501 && json?.status === "unsupported" &&
+      json?.code === "credential_provider_registry_not_implemented" &&
+      Array.isArray(json.providers) && json.providers.length === 0
+      ? "unavailable" : "broken";
+  }
+  return status >= 500 || status === 404 || status === 405 ? "broken" : "responsive";
+}
 const BASE = process.env.FOCUSA_API_BASE || "http://127.0.0.1:8787/v1";
 const ROOT_BASE = BASE.replace(/\/v1\/?$/, "");
 const SCOPED = {
@@ -34,12 +47,28 @@ const main = async () => {
     "/runtime-constitution", "/background-jobs", "/adapters",
     "/worksets", "/direction/operations", "/work-items/providers",
     "/silent-sessions", "/silent-sessions/capabilities",
+    "/silent-sessions/completions?since_seq=0&limit=1",
+    "/silent-sessions/wait?session_id=route-health-probe&since_seq=0&timeout_ms=100",
     "/metacognition/status", "/work-loop/status?summary_only=true",
     "/workpoint/current", "/trajectory/view", "/project/list",
-    "/compaction/controller-epoch", // POST-only; probe below, "/v1/events/stream",
   ];
   for (const path of gets) await probe("GET", path);
-  // POSTs with minimal valid payloads
+  const contractProbe = await probe("GET", "/ontology/tool-contracts");
+  const contracts = contractProbe.json?.contracts || [];
+  const expectedPurposes = {
+    focusa_workset_projection: /deterministic membership, requirement-disposition, and settlement projection/,
+    focusa_callgraph_observe: /CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier/,
+    focusa_credentials_verify: /Credential Authority.*without exposing secret values/,
+    focusa_cockpit_projection: /Worksets, CallGraph frontiers, direction steers, and background jobs/,
+    focusa_fast_forward: /deterministic fanout plan.*silent-session lanes/,
+  };
+  for (const [name, expected] of Object.entries(expectedPurposes)) {
+    const contract = contracts.find((item) => item.name === name);
+    if (!contract || !expected.test(String(contract.purpose || ""))) {
+      results.push({ method: "ASSERT", path: `/ontology/tool-contracts#${name}`, status: 500 });
+    }
+  }
+  // POSTs with minimal payloads; validation errors prove route registration.
   await probe("POST", "/completion-claims/evaluate", {
     schema: "focusa.completion_claim.v1", work_item_id: "probe",
     acceptance_atoms: ["a"], evidence_refs: [], receipts: [], claim_text: "x",
@@ -48,6 +77,7 @@ const main = async () => {
   await probe("POST", "/silent-sessions/fanout", {
     work_items: ["a", "b"], multiplier: 2,
   });
+  await probe("POST", "/silent-sessions/sweep-completions", {});
   await probe("POST", "/predictions", {
     scope: {
       root_scope: { scope_kind: "project", scope_id: "focusa", root_path: "/srv/focusa", canonical_name: "focusa", fingerprint: "probe" },
@@ -60,11 +90,13 @@ const main = async () => {
   await probe("POST", "/metacognition/capture", {
     kind: "reflection", content: "probe", rationale: "probe", confidence: 0.5, strategy_class: "probe",
   });
-  const bad = results.filter((r) => r.status >= 500 || r.status === 404 || r.status === 405);
-  for (const r of results) {
-    console.log(`${r.status}  ${r.method.padEnd(4)} ${r.path}`);
+  const classified = results.map((r) => ({ ...r, classification: classifyRouteResponse(r) }));
+  const bad = classified.filter((r) => r.classification === "broken");
+  const unavailable = classified.filter((r) => r.classification === "unavailable");
+  for (const r of classified) {
+    console.log(`${r.status}  ${r.method.padEnd(4)} ${r.path} [${r.classification}]`);
   }
-  console.log(`\n${results.length - bad.length}/${results.length} healthy; ${bad.length} broken`);
+  console.log(`\n${results.length - bad.length - unavailable.length}/${results.length} responsive; ${unavailable.length} unavailable; ${bad.length} broken (response contracts only, not execution readiness)`);
   process.exit(bad.length ? 1 : 0);
 };
-main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

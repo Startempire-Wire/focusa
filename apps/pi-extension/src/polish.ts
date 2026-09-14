@@ -563,7 +563,8 @@ export function registerPolishHooks(pi: ExtensionAPI) {
       shellClassification.classification === "actual_focusa_bypass" &&
       shellClassification.confidence === "high" &&
       shellClassification.equivalent_tool &&
-      getFocusaAvailable()
+      getFocusaAvailable() &&
+      ctx?.hasUI
     ) {
       const now = Date.now();
       const lastReminder = getAttachmentRuntime().lastShellReminderAt || 0;

@@ -39,7 +39,7 @@ It MUST be safe to run continuously.
 - `metrics: MetricsState` (counters, last activity timestamps)
 
 ### Persistence Rules
-Persist these on mutation (debounced/batched):
+Append every mutation event durably. Persist whole-state checkpoints only at explicit recovery boundaries or after a bounded batch of 32 ordinary events:
 - focus_stack
 - ascc checkpoints
 - ecs index (artifact metadata)
@@ -51,7 +51,7 @@ Persist mechanism:
 - local directory (default: `~/.focusa/`)
 - SQLite (canonical) for:
   - append-only events
-  - versioned snapshots
+  - bounded versioned snapshots with an atomic durable-event cursor
   - telemetry/UXP/UFI indices
 - JSON/JSONL supported for export/import and debugging, not canonical persistence
 - ECS artifacts stored as files under `~/.focusa/ecs/`
@@ -129,11 +129,14 @@ On start:
 6) start worker scheduler
 
 On crash/restart:
-- state reloaded from snapshots
-- event log is for inspection, not required replay in MVP
+- state is reloaded from the latest bounded snapshot
+- durable events strictly after the snapshot cursor are replayed once in ledger order
+- existing databases establish their first additive cursor at the pre-upgrade ledger tail, preventing duplicate historical replay
+- a missing sequence or unreducible tail event fails startup closed instead of silently losing or duplicating state
 
 ## Shutdown
-- flush persistence
+- SIGTERM (systemd) and Ctrl-C enter the same governed shutdown path
+- flush the bounded state checkpoint and atomic durable-event cursor
 - stop API
 - close event log cleanly
 

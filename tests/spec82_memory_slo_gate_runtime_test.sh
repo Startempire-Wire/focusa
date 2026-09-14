@@ -40,7 +40,7 @@ done
 
 status_json=$(curl -sS "$BASE/status")
 
-jq -e '.runtime_memory.degraded == false and .runtime_memory.rss_kb != null and .runtime_memory.memory_budget_mb == 4096' <<<"$status_json" >/dev/null || {
+jq -e '.runtime_memory.degraded == false and .runtime_memory.rss_kb != null and .runtime_memory.memory_budget_mb == 4096 and .runtime_memory.rss_soft_mb == 700 and .runtime_memory.rss_hard_mb == 4096 and .runtime_memory.budget_authority == "resource_mode" and .resource_mode.budget.rss_hard_mb == .runtime_memory.rss_hard_mb' <<<"$status_json" >/dev/null || {
   echo "✗ FAIL: expected non-degraded status under 4GB budget"
   echo "$status_json"
   exit 1

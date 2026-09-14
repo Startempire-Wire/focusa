@@ -1,10 +1,10 @@
 # `focusa_fast_forward`
 
-Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Transfer crystallized decision to focusa_decide when done.
+- Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes.
 - Capability family: `session_fanout`; namespace: `focusa.session_fanout`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -77,4 +77,4 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - CLI: none.
 - REST: `/v1/silent-sessions/fanout `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:183f47716986075680888bcb95f0906c5548fe30e3cbecbd6d1853142912d83c`.
+- Descriptor digest: `sha256:3c17fd2d18ce4a8779a92934d150c810df1768695d5fffd51c271ef75b222265`.

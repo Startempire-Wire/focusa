@@ -1,10 +1,10 @@
 # `focusa_tool_doctor`
 
-Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. Use it when Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Diagnose Focusa tool-suite readiness, active Workpoint continuity, daemon health, and likely next repair action.
+- Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority.
 - Capability family: `diagnostics_hygiene`; namespace: `focusa.diagnostics_hygiene`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -74,4 +74,4 @@ Likely next: `focusa_resource_mode`, `focusa_project_identity`, `focusa_workpoin
 - CLI: none.
 - REST: `GET /v1/health`, `GET /v1/workpoint/current`, `GET /v1/work-loop/status?summary_only=true`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c98099e6d891580b9d5d4c7e1edb496522738bd9d9f5c3e5199a3cfa737f4790`.
+- Descriptor digest: `sha256:ec85797901ca2009ee484b1991ad3d2eb813ba89714caa1c49fd4b93de743246`.
