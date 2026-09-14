@@ -9,6 +9,7 @@ DAEMON_BIN="${DAEMON_BIN:-${REPO_ROOT}/target/release/focusa-daemon}"
 BASE_URL="${FOCUSA_RECOVERY_BASE_URL:-http://127.0.0.1:18796}"
 BIND_ADDR="${FOCUSA_RECOVERY_BIND:-127.0.0.1:18796}"
 DATA_DIR="${FOCUSA_RECOVERY_DATA_DIR:-$(mktemp -d /tmp/focusa-recovery.XXXXXX)}"
+RECOVERY_BEADS_ISSUE_ID="${FOCUSA_RECOVERY_BEADS_ISSUE_ID:-}"
 FAILED=0
 PASSED=0
 
@@ -68,6 +69,9 @@ else
 fi
 
 log_info "Seed session + frame + checkpoint data"
+if [ -z "$RECOVERY_BEADS_ISSUE_ID" ]; then
+  RECOVERY_BEADS_ISSUE_ID=$(cd "$REPO_ROOT" && bd create --silent --type task "restart-recovery-fixture")
+fi
 start_resp=$(curl -sS -X POST "${BASE_URL}/v1/session/start" \
   -H "Content-Type: application/json" \
   -d "{\"workspace_id\":\"${REPO_ROOT}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"recovery-test\"}")
@@ -91,7 +95,7 @@ else
 fi
 push_resp=$(curl -sS -X POST "${BASE_URL}/v1/focus/push" \
   -H "Content-Type: application/json" \
-  -d "{\"title\":\"restart-recovery\",\"goal\":\"verify restart continuity\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"recovery-test\"}")
+  -d "{\"title\":\"restart-recovery\",\"goal\":\"verify restart continuity\",\"beads_issue_id\":\"${RECOVERY_BEADS_ISSUE_ID}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"recovery-test\"}")
 frame_id=""
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   frame_id=$(curl -sS "${BASE_URL}/v1/focus/stack" | jq -r '.active_frame_id // empty')
