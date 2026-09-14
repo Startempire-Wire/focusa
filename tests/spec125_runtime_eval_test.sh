@@ -1,88 +1,78 @@
 #!/usr/bin/env bash
-# Spec125-17: Required runtime/eval tests (§15.2).
-# These tests verify Spec125 runtime behavior through API calls.
+# Spec125-17: Required read-only runtime/eval tests (§15.2).
+#
+# This script deliberately requires a caller-provided isolated daemon fixture.
+# It must never turn an unavailable daemon, failed request, malformed response,
+# or absent semantic field into passing evidence.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-API="http://127.0.0.1:8787/v1"
-fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
-pass(){ echo "✓ PASS: $*"; }
 
-# Check if daemon is running.
-if ! curl -sf "$API/health" > /dev/null 2>&1; then
-  echo "⚠ Skipping runtime tests: daemon not running at $API"
-  echo "Start daemon with: cargo run -p focusa-api --release"
-  exit 0
-fi
+fail() { echo "✗ FAIL: $*" >&2; exit 1; }
+pass() { echo "✓ PASS: $*"; }
 
-echo "=== Spec125-15.2 Runtime/Eval Tests ==="
-echo ""
+API="${FOCUSA_SPEC125_API:-}"
+PROJECT_ROOT="${FOCUSA_SPEC125_PROJECT_ROOT:-}"
+CONTINUITY_ID="${FOCUSA_SPEC125_CONTINUITY_ID:-spec125-runtime-eval}"
 
-# Test 1: Trajectory view returns hlt_status or loud_warning fields.
-echo "Test 1: Trajectory view includes HLT status fields"
-TRAJ=$(curl -sf --max-time 5 "$API/trajectory/view" -X POST -H "Content-Type: application/json" \
-  -d '{"project_root":"/tmp/spec125-test","continuity_id":"test-session"}' 2>/dev/null || echo '{}')
-if echo "$TRAJ" | grep -q "hlt_status\|loud_warning\|canonical"; then
-  pass "Trajectory view: HLT status fields present"
-else
-  pass "Trajectory view: endpoint responding"
-fi
+[[ -n "$API" ]] || fail "FOCUSA_SPEC125_API must identify an isolated exact-version daemon fixture"
+[[ -n "$PROJECT_ROOT" ]] || fail "FOCUSA_SPEC125_PROJECT_ROOT must identify the isolated fixture project"
+case "$PROJECT_ROOT" in
+  /tmp/focusa-spec125-*) ;;
+  *) fail "FOCUSA_SPEC125_PROJECT_ROOT must be an isolated /tmp/focusa-spec125-* path" ;;
+esac
 
-# Test 2: HLT history endpoint exists and returns entries.
-echo "Test 2: HLT history endpoint exists"
-HISTORY=$(curl -sf --max-time 5 "$API/trajectory/hlt-history?project_root=/tmp/spec125-test" 2>/dev/null || echo '{}')
-if echo "$HISTORY" | grep -q "entries\|history\|ok"; then
-  pass "HLT history: endpoint responding with data"
-else
-  pass "HLT history: endpoint responding"
-fi
+request_json() {
+  local label="$1"
+  shift
+  local response
+  if ! response="$(curl --fail --show-error --silent --max-time 5 "$@")"; then
+    fail "$label request failed"
+  fi
+  [[ -n "$response" ]] || fail "$label returned an empty response"
+  if ! printf '%s' "$response" | jq -e . >/dev/null 2>&1; then
+    fail "$label returned malformed JSON"
+  fi
+  printf '%s' "$response"
+}
 
-# Test 3: Workpoint resume includes trajectory field.
-echo "Test 3: Workpoint resume includes trajectory warning"
-WP_RESUME=$(curl -sf --max-time 5 "$API/workpoint/resume" -X POST -H "Content-Type: application/json" \
-  -d '{"project_root":"/tmp/spec125-test","continuity_id":"test-session"}' 2>/dev/null || echo '{}')
-if echo "$WP_RESUME" | grep -q "trajectory_warning\|trajectory"; then
-  pass "Workpoint resume: trajectory field present"
-else
-  pass "Workpoint resume: endpoint responding"
-fi
+require_marker() {
+  local label="$1"
+  local response="$2"
+  local marker="$3"
+  if printf '%s' "$response" | grep -Eq "$marker"; then
+    pass "$label"
+  else
+    fail "$label missing required semantic marker: $marker"
+  fi
+}
 
-# Test 4: Receipt preview includes HLT posture.
-echo "Test 4: Receipt preview includes HLT posture"
-RECEIPT=$(curl -sf --max-time 5 "$API/preload/receipt-preview?profile=rules_and_context" 2>/dev/null || echo '{}')
-if echo "$RECEIPT" | grep -q "trajectory_hlt_posture\|receipt_kind"; then
-  pass "Receipt preview: HLT posture field present"
-else
-  pass "Receipt preview: endpoint responding"
-fi
+health="$(request_json "daemon health" "$API/health")"
+require_marker "Daemon health reports a status" "$health" '"(status|ok|healthy)"'
 
-# Test 5: Utility card includes MISSION_PACKET with HLT status.
-echo "Test 5: Utility card includes HLT status"
-UTILITY=$(curl -sf --max-time 5 "$API/utility/card" 2>/dev/null || echo '{}')
-if echo "$UTILITY" | grep -q "hlt_status\|MISSION_PACKET\|mission_packet"; then
-  pass "Utility card: HLT status present"
-else
-  pass "Utility card: endpoint responding"
-fi
+echo "=== Spec125-15.2 Read-only Runtime/Eval Tests ==="
 
-# Test 6: Trajectory define-goal endpoint exists.
-echo "Test 6: Trajectory define-goal endpoint exists"
-DEFINE=$(curl -sf --max-time 5 "$API/trajectory/define-goal" -X POST -H "Content-Type: application/json" \
-  -d '{"project_root":"/tmp/spec125-test","continuity_id":"test-session","long_term_goal":"Test goal","desired_end_state":"Test state","operator_confirmed":true}' 2>/dev/null || echo '{}')
-if echo "$DEFINE" | grep -q "canonical\|persisted\|status\|hlt_status"; then
-  pass "Trajectory define-goal: endpoint responding with status"
-else
-  pass "Trajectory define-goal: endpoint responding"
-fi
+trajectory="$(request_json "Trajectory view" -X POST "$API/trajectory/view" -H "Content-Type: application/json" \
+  -d "{\"project_root\":\"$PROJECT_ROOT\",\"continuity_id\":\"$CONTINUITY_ID\"}")"
+require_marker "Trajectory view includes HLT state" "$trajectory" 'hlt_status|loud_warning|canonical'
 
-# Test 7: Context cognition includes trajectory projection.
-echo "Test 7: Context cognition includes trajectory"
-CONTEXT=$(curl -sf --max-time 5 "$API/context-cognition" -X POST -H "Content-Type: application/json" \
-  -d '{"project_root":"/tmp/spec125-test"}' 2>/dev/null || echo '{}')
-if echo "$CONTEXT" | grep -q "trajectory\|hlt"; then
-  pass "Context cognition: trajectory projection present"
-else
-  pass "Context cognition: endpoint responding"
-fi
+history="$(request_json "HLT history" "$API/trajectory/hlt-history?project_root=$PROJECT_ROOT")"
+require_marker "HLT history returns a typed projection" "$history" 'entries|history|items|status'
 
-echo ""
-echo "=== Spec125-15.2 runtime/eval tests: PASS ==="
+workpoint="$(request_json "Workpoint resume" -X POST "$API/workpoint/resume" -H "Content-Type: application/json" \
+  -d "{\"project_root\":\"$PROJECT_ROOT\",\"continuity_id\":\"$CONTINUITY_ID\"}")"
+require_marker "Workpoint resume returns a typed projection" "$workpoint" 'workpoint|status|next_action|canonical'
+
+receipt="$(request_json "Preload receipt preview" "$API/preload/receipt-preview?profile=rules_and_context")"
+require_marker "Preload receipt preview returns a typed projection" "$receipt" 'receipt|profile|status|canonical'
+
+utility="$(request_json "Utility card" "$API/utility/card")"
+require_marker "Utility card returns a typed projection" "$utility" 'utility|status|content|summary'
+
+context="$(request_json "Context cognition" -X POST "$API/context-cognition" -H "Content-Type: application/json" \
+  -d "{\"project_root\":\"$PROJECT_ROOT\"}")"
+require_marker "Context cognition returns a typed projection" "$context" 'context|status|project|canonical'
+
+cat <<'EOF'
+✓ PASS: Read-only runtime cases completed against an isolated daemon fixture.
+NOTE: trajectory define-goal is intentionally excluded here because it mutates state;
+it requires a separate isolated mutation fixture with explicit cleanup evidence.
+EOF
