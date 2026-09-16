@@ -427,6 +427,28 @@ async fn daemon_main() -> anyhow::Result<()> {
         expired = license_guard.is_expired(),
         "focusa-daemon license plane ready (focusa-license crate)"
     );
+    // #307: surface the trusted-development-origin decision at startup. Without
+    // this line the signed-authority `tier` above reads as `unactivated` on a
+    // trusted development machine and misleads operators and agents into
+    // thinking the machine is blocked. Source and match status only — never
+    // host, tailnet, account, or IP identity.
+    {
+        let origin = focusa_license::developer_origin::developer_origin_report();
+        if origin.active {
+            tracing::info!(
+                developer_profile = "developer_full",
+                authority_source = origin.source.unwrap_or("cached_trusted_origin"),
+                all_focusa_features = true,
+                "focusa-daemon trusted development origin active"
+            );
+        } else {
+            tracing::debug!(
+                agent_kb_discovery_available = origin.agent_kb_discovery_available,
+                tailnet_member = origin.tailnet_member,
+                "focusa-daemon trusted development origin inactive"
+            );
+        }
+    }
     // Soft-warn when commercial use is requested but license is eval.
     if let Some(warn) = license_guard
         .require(focusa_license::Capability::CommercialUse)
