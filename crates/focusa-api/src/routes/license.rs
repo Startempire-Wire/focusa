@@ -26,6 +26,20 @@ struct CapabilityPosture {
 async fn license_status(
     State(state): State<Arc<crate::server::AppState>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    // #307: a verified trusted development origin resolves `developer_full`
+    // without a signed authority lease, so this surface must not fail closed
+    // with ENTITLEMENT_SNAPSHOT_MISSING. Every surface renders the same
+    // canonical projection so the daemon REST status, CLI, and Pi agree.
+    if let Some(developer) = focusa_license::developer_full_projection() {
+        return Ok(Json(serde_json::json!({
+            "status": "active",
+            "tier": "developer_full",
+            "developer_full": developer,
+            "expired": false,
+            "summary": "developer_full (trusted development origin)",
+            "next_action": "authority entitlement ready",
+        })));
+    }
     let g = state.license_guard.clone();
     let authority =
         focusa_license::entitlement_projection(g.entitlement.as_ref()).map_err(|error| {

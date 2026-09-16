@@ -267,6 +267,29 @@ fn license_status_from_guard(
     guard: &focusa_license::LicenseGuard,
 ) -> anyhow::Result<LicenseStatus> {
     let entitlement = guard.entitlement.as_ref();
+    let developer_full = guard.verified_developer_origin();
+    // #307: a verified trusted development origin receives `developer_full`
+    // with no signed lease required. This branch is only reachable when the
+    // guard was built by the runtime resolver (`runtime_origin_context`), so a
+    // serialized or supplied snapshot can never assert it.
+    if developer_full {
+        return Ok(LicenseStatus {
+            authority: None,
+            developer_origin_eligible: true,
+            mode: LicenseMode::Developer,
+            product: "focusa".to_string(),
+            tier: "developer_full".to_string(),
+            status: "active_paid".to_string(),
+            commercial_use: true,
+            customer_email: String::new(),
+            features: focusa_license::registered_software_feature_ids()
+                .map(str::to_string)
+                .collect(),
+            expires_at: None,
+            offline_valid_until: None,
+            key_prefix: String::new(),
+        });
+    }
     let authority = focusa_license::entitlement_projection(entitlement)
         .map_err(|error| anyhow::anyhow!(error.to_string()))?;
     let developer = entitlement.is_some_and(|snapshot| {
@@ -299,7 +322,7 @@ fn license_status_from_guard(
         .unwrap_or_default();
     Ok(LicenseStatus {
         authority: Some(authority),
-        developer_origin_eligible: guard.verified_developer_origin(),
+        developer_origin_eligible: false,
         mode,
         product: entitlement
             .map(|snapshot| snapshot.product.clone())

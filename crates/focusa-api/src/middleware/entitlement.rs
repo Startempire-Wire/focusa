@@ -232,6 +232,17 @@ fn recovery_guidance_is_contract_bound() {
     );
 }
 
+/// #307: trusted-development-origin gate. The decision is live verified
+/// runtime identity (Tailscale tailnet membership via the shared resolver),
+/// never an environment variable, hostname, or caller-supplied header, so it
+/// is safe to honor in shipped release binaries — unlike `is_home_dev_bypass`,
+/// which stays compile-time-gated for tests. A positive result returns before
+/// route denial and limit reservation, so a trusted development machine is
+/// never blocked by commercial/feature gates.
+fn is_trusted_development_origin() -> bool {
+    focusa_license::developer_origin::developer_origin_active()
+}
+
 fn is_home_dev_bypass() -> bool {
     // #343: compile-time-only bypass. Release/production daemons never honor
     // these env vars or hostname heuristics, so an operator or attacker cannot
@@ -292,7 +303,10 @@ pub async fn entitlement_gate_layer(
         path,
         state_has_canonical_workpoint(&state).await,
     );
-    if is_home_dev_bypass() || is_pure_read_validation_exempt(&method, path) {
+    if is_home_dev_bypass()
+        || is_trusted_development_origin()
+        || is_pure_read_validation_exempt(&method, path)
+    {
         return next.run(request).await;
     }
     let requires_entitlement = route_requires_entitlement(&method, path) && !bootstrap_exempt;
