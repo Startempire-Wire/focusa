@@ -1,4 +1,4 @@
-# Spec 120A — Architecture-to-Execution Workbench and Full Trajectory Handoff
+# Spec 120A — Cross-Vertical Architecture-to-Execution Workbench and Full Trajectory Handoff
 
 **Status:** draft companion amendment / operator-reviewable  
 **Owner:** Focusa / Verious Smith  
@@ -10,147 +10,145 @@
 
 ## 0. One-line definition
 
-Spec 120A turns Spec 120 from a strong spec-authoring workflow into a complete **architecture-to-execution workflow**: recover reality, reconcile the surrounding system, resolve the product through Strategy/Scope/Structure/Skeleton/Surface, derive one Full Trajectory, reduce the package with Algorithm², and hand a build agent enough product certainty to execute autonomously without burdening it with architecture ceremony.
+Spec 120A turns Spec 120 into a reusable **cross-vertical architecture-to-execution workflow**: recover real operating context, reconcile surrounding systems and authority, resolve the experience and outcome deeply enough to prevent downstream invention, derive one Full Trajectory, reduce the package with Algorithm², and hand an execution agent enough certainty to advance autonomously without turning architecture into a second workload.
 
 Canonical target:
 
 ```text
-Maximum product clarity.
+Maximum outcome clarity.
 Minimum execution ceremony.
 ```
+
+Spec 120A is intentionally domain-neutral. Software engineering, legal/compliance, operations, research, sales, physical-world systems and other verticals add domain-specific profiles rather than changing the core lifecycle.
 
 ---
 
 ## 1. Why this amendment exists
 
-Spec 120 already correctly owns:
+Spec 120 already owns:
 
 ```text
-rough operator idea
-→ current docs/code reality
+rough operator intent
+→ current reality grounding
 → research
 → proposer
 → challenger
 → reference audit
 → operator approval
 → whole-spec reconciliation
-→ task decomposition
-→ implementation-start authorization
+→ decomposition
+→ execution-start authorization
 ```
 
-That is necessary but not always sufficient for a large product feature.
+That is necessary but not always sufficient for complex work.
 
-A spec can be internally coherent while still leaving a build agent to invent:
+A specification can be coherent while still leaving an execution agent to invent:
 
-- product boundaries across adjacent systems;
+- boundaries between adjacent systems, organizations or domains;
 - canonical ownership and authority seams;
-- information architecture;
-- interaction/state behavior;
-- screen/component anatomy;
-- visual language;
+- actors, responsibilities and decision rights;
+- information/interaction structure where people use a surface or workflow;
+- failure, recovery and handoff behavior;
 - complete accepted-outcome coverage;
-- implementation sequencing and dependencies;
-- how much freedom the build agent has below product-level decisions.
+- dependencies and executable frontier;
+- how much discretion the execution agent has below operator-level decisions.
 
-Spec 120A fills that gap without creating another canonical work authority, planning database, approval system, Evidence system or execution runtime.
-
----
-
-## 2. Relationship to Spec 120
-
-Spec 120A is an **architecting mode and amendment to the existing Spec 120 workflow**.
-
-It does not replace:
-
-```text
-Reality Scanner
-UIAI research
-Spec Proposer
-Adversarial Challenger
-Reference Auditor
-Synthesis Arbiter
-operator authority
-whole-spec reconciliation
-provider-neutral decomposition
-Workpoint / CallGraph / Evidence / Receipt ownership
-```
-
-It changes what “implementation ready” means for features whose product/UX/system architecture must be resolved before construction.
-
-For those features:
-
-```text
-final prose spec approved
-```
-
-is not by itself the implementation-start condition.
-
-The architecting work must also reach the Architecture-to-Execution exit condition in this amendment.
+Spec 120A fills that gap without creating another canonical work authority, planner, approval system, Evidence system or execution runtime.
 
 ---
 
-## 3. Core invariant
+## 2. Core versus vertical profile
 
-The architecting agent owns **product decision resolution**.
+Spec 120A owns only cross-vertical architecture-to-execution doctrine.
 
-The build agent owns **ordinary engineering execution**.
+A **vertical profile** specializes the doctrine for one domain.
 
-The architecting agent must remove foundational ambiguity without prescribing every reversible implementation detail.
-
-The target boundary is:
+Examples:
 
 ```text
-RESOLVED BEFORE HANDOFF
+Spec 120A-SWE   software engineering
+future profile  business operations
+future profile  legal/compliance
+future profile  scientific/research
+future profile  sales/marketing
+future profile  physical-world / field operations
+```
 
-product purpose
+A vertical profile may define:
+
+```text
+domain-specific reality sources
+domain terminology
+specialized actors/roles
+specialized design/sufficiency lenses
+specialized execution artifacts
+specialized risk/authority boundaries
+specialized verification methods
+specialized delivery/activation semantics
+```
+
+A profile MUST NOT create a second Workpoint, Trajectory, Evidence, authority, approval or execution system.
+
+The core rule is:
+
+> **Keep the universal reasoning/execution loop in Focusa core; keep domain mechanics in the selected vertical profile.**
+
+---
+
+## 3. Architecting versus execution responsibility
+
+The architecting process owns **outcome and system decision resolution**.
+
+The execution agent owns **ordinary reversible execution choices** inside those rails.
+
+Resolve before handoff:
+
+```text
+desired outcome
 accepted scope
-canonical owner / authority boundaries
-system/product boundaries
-user classes and critical needs
-information architecture
-interaction/state semantics
-screen/component hierarchy where user-facing
-visual language where user-facing
-accepted outcome and completion meaning
-major dependencies / upstream seams
+canonical ownership / authority
+system and organizational boundaries
+primary actors and critical needs
+important workflow / information structure
+important state and handoff semantics
+accepted completion meaning
+major dependencies
 Full Trajectory coverage
-
-DELEGATED TO BUILD AGENT
-
-internal function names
-ordinary component/file boundaries
-store organization
-adapter internals
-small refactors
-CSS/layout mechanics within visual intent
-focused test structure
-implementation order among ready independent nodes
-batching adjacent Workpoints
-performance fixes
-ordinary bug fixes
-other reversible engineering choices
+vertical-specific decisions required by the active profile
 ```
 
-If the build agent still has to decide what product to build, architecting is incomplete.
+Delegate after handoff:
 
-If the build agent must service the architecture process more than build the product, architecting is overbuilt.
+```text
+ordinary reversible implementation/execution choices
+local sequencing among independent ready work
+internal organization of the work
+small refactors/corrections
+focused verification method
+performance/efficiency improvements
+routine recovery from local tool/path failures
+```
+
+If the execution agent still has to decide what outcome or system to create, architecting is incomplete.
+
+If the execution agent must spend material time servicing the architecture process, architecting is overbuilt.
 
 ---
 
-## 4. The interwoven Spec 120A workflow
+## 4. Interwoven Spec 120A workflow
 
-Spec 120A does not run after Spec 120. The following concerns are woven through the Workbench from the beginning.
+Spec 120A is woven into Spec 120 from the start:
 
 ```text
 OPERATOR INTENT
   ↓
 REALITY RECOVERY
   ↓
-ECOSYSTEM / ARCHITECTURE RECONCILIATION
+SYSTEM / AUTHORITY RECONCILIATION
   ↓
-ADVERSARIAL PRODUCT REASONING
+ADVERSARIAL DOMAIN REASONING
   ↓
-FIVE-PLANE UX / PRODUCT RESOLUTION
+EXPERIENCE / WORKFLOW / OUTCOME RESOLUTION
   ↓
 WHOLE-ARCHITECTURE RECONCILIATION
   ↓
@@ -158,47 +156,47 @@ FULL TRAJECTORY DERIVATION
   ↓
 ALGORITHM² REDUCTION
   ↓
-BUILD-AGENT READINESS TEST
+EXECUTION-READINESS TEST
   ↓
-IMPLEMENTATION-START HANDOFF
+LEAN HANDOFF
   ↓
-BUILD AGENT RUNS THE TRAJECTORY
+EXECUTION AGENT RUNS THE TRAJECTORY
 ```
 
-These are responsibilities and sufficiency checks, not a requirement to create a new document for every arrow.
+These are responsibilities and sufficiency checks, not mandatory new documents.
 
 Existing valid artifacts may satisfy multiple stages.
 
 ---
 
-# Part I — Architecture recovery and reconciliation
+# Part I — Reality and architecture reconciliation
 
 ## 5. Intent recovery
 
-Before drafting architecture, recover the actual product intent rather than interpreting the latest prompt in isolation.
+Recover the actual operator intent rather than interpreting the latest prompt in isolation.
 
 Use, where relevant:
 
 ```text
 operator direction
-current product docs
-current source
-current runtime behavior
+current domain records/documents
+current systems and actual behavior
 recent accepted decisions
-existing specs
-current issues / Trajectory
-actual customer/deployment experience
+existing specs/policies
+current Trajectory/work state
+customer/stakeholder experience
 connected ecosystem contracts
+observed real-world outcomes
 ```
 
 Separate:
 
 ```text
 accepted intent
-current implementation truth
-older design intent
+current observed truth
+older design/policy intent
 superseded assumptions
-unresolved questions
+unresolved operator decisions
 ```
 
 Do not ask the operator for discoverable facts.
@@ -211,342 +209,301 @@ Ask only where operator judgment, preference, tradeoff, scope or authority is ge
 
 The Spec 120 Reality Scanner is extended for architecture work.
 
-A sufficient architecture reality pack identifies only what materially affects the feature:
+A sufficient reality pack identifies only what materially affects the outcome:
 
 ```yaml
 architecture_reality:
-  target_product:
-  current_source_state:
-  current_user_surfaces: []
+  target_domain:
+  target_system_or_outcome:
+  current_observed_state:
+  current_user_or_operator_surfaces: []
   canonical_owner_map: []
-  adjacent_products_and_contracts: []
-  relevant_specs: []
-  current_runtime_operations: []
+  adjacent_systems_and_contracts: []
+  relevant_specs_policies_records: []
+  current_operations_capabilities: []
   preserved_primitives: []
-  known_stale_doctrine: []
+  stale_or_conflicting_doctrine: []
   duplicated_or_overloaded_concepts: []
-  unresolved_cross_product_seams: []
-  implementation_constraints: []
+  unresolved_cross-system_seams: []
+  domain_constraints: []
 ```
 
-This is a working synthesis, not a requirement for a standalone artifact if the same truth already exists elsewhere.
+This is a working synthesis, not a required standalone artifact when equivalent truth already exists.
 
 ---
 
 ## 7. Reconcile before extending
 
-Do not stack a new architecture on top of contradictory current doctrine.
+Do not stack a new design on top of contradictory authority or stale doctrine.
 
-Before inventing new primitives, compare the proposed feature against all material current owners.
-
-For each concern, answer:
+For each material concern ask:
 
 ```text
 Who owns this truth today?
-Does that owner still match current product direction?
-Would this feature duplicate it?
-Is there a stale document that would misdirect implementation?
-Is the apparent gap a missing contract or only a missing projection?
+Is that still the intended owner?
+Would the proposed work duplicate or bypass it?
+Is a stale document/policy/process likely to misdirect execution?
+Is the apparent gap a missing capability, missing projection, or merely missing coordination?
 ```
 
-Typical concerns:
+Typical cross-vertical concerns:
 
 ```text
 identity
 owner/operator authority
-work/task authority
+roles and delegation
+work authority
 memory/context
-entitlement
-credentials
+entitlement/access
+credentials/secrets
 approvals/attention
 Evidence / receipts / settlement
 execution control
-runtime/body placement
-federation/networking
-outcome/reputation
-surface handoff
+resource/body/runtime placement
+network/federation boundaries
+outcome/standing/reputation
+handoffs between systems or people
 ```
 
-Update the owning architecture when necessary. Do not create a downstream workaround merely to avoid reconciling the source of truth.
+Correct the owning architecture when necessary. Do not create downstream workarounds to avoid fixing the source of truth.
 
 ---
 
-## 8. Architecture distinction table
+## 8. Distinction table
 
-Where concepts are easy to collapse, the architecting agent must explicitly separate them before implementation.
+Where concepts are easy to collapse, explicitly separate them before execution.
 
 Examples:
 
 ```text
-product identity        != runtime identity
-Operating Partner       != Foreman
-Operating Partner       != architecture authority
-entitlement             != authorization
-authorization           != consent for this effect
-fleet                    != sovereign federation
-Evidence                 != accepted outcome
-presenter acknowledgement != source resolution
-trajectory coverage      != presentation detail
-work lifecycle           != autonomy level
+person/organization identity != runtime/session identity
+operating partner           != domain supervisor
+operating role              != architecture authority
+entitlement                 != authorization
+authorization               != consent for this effect
+resource fleet              != cross-owner federation
+Evidence                     != accepted outcome
+presentation acknowledgement != source resolution
+trajectory coverage         != presentation detail
+work lifecycle              != autonomy level
 ```
 
 Only add distinctions that prevent a real ambiguity or wrong effect.
 
 ---
 
-# Part II — Adversarial architecting inside Spec 120
+# Part II — Adversarial architecting
 
-## 9. Challenger duties expand beyond prose quality
+## 9. Challenger duties
 
-For architecture-mode sections, the Spec 120 Challenger also attacks:
+Under architecture mode, the Spec 120 Challenger attacks more than prose quality:
 
 ```text
 wrong canonical owner
-hidden duplicate state
-product-boundary collision
+hidden duplicate state or process
+system-boundary collision
 stale assumptions
-missing cross-product handoff
-identity collapse
-authority/entitlement collapse
+missing handoff or return path
+identity/authority collapse
 unresolved failure/recovery path
-UX ambiguity that would force build-time invention
+experience/workflow ambiguity that forces downstream invention
 scope hidden behind “future” wording
-unnecessary abstraction or process
+unnecessary abstraction, approval or process
 ```
 
-The Challenger should not reward complexity.
+A valid objection must identify a concrete consequence, contradiction, missing accepted outcome or material execution ambiguity.
 
-A valid objection must identify a concrete consequence, contradiction, missing accepted outcome or material implementation ambiguity.
+Complexity by itself is not quality.
 
 ---
 
-## 10. Multi-pass reconciliation
+## 10. Two reconciliation passes
 
-Large features should receive at least two materially different reconciliation passes before architecture freeze:
+Large or cross-system work receives two materially different passes before architecture freeze.
 
-### Pass A — cross-system consistency
-
-Look outward:
+### Pass A — outward consistency
 
 ```text
-Does this fit current ecosystem/product ownership?
-Does it conflict with adjacent products/specs?
-Are names/identities/authority models overloaded?
-Are public/product promises consistent with runtime truth?
+Does this fit the surrounding ecosystem/domain?
+Does it conflict with adjacent systems/specs/policies?
+Are names/roles/authority overloaded?
+Are external promises consistent with operational truth?
 ```
 
-### Pass B — internal semantic integrity
-
-Look inward:
+### Pass B — inward semantic integrity
 
 ```text
-Could two objects claim the same authority?
-Could stale state look current?
-Could a handoff transfer more authority than intended?
-Could failure/replay duplicate effects?
-Could a downstream agent interpret the same term differently?
-Could completion be claimed before accepted scope is settled?
+Could two objects/processes claim the same authority?
+Could stale information look current?
+Could a handoff carry unintended authority?
+Could retry/replay duplicate a consequential effect?
+Could different agents interpret the same term differently?
+Could completion be claimed while accepted scope remains unsettled?
 ```
 
-More passes are justified only when they find material new contradictions or the architecture materially changes.
-
-Do not perform repeated review passes as ritual.
+More passes are justified only when material new contradictions appear or the architecture materially changes.
 
 ---
 
-# Part III — Five-plane product/UX closure
+# Part III — Experience and workflow sufficiency
 
-## 11. Garrett five-plane sufficiency model
+## 11. Universal sufficiency questions
 
-For user-facing features, Spec 120A uses Jesse James Garrett’s five planes as a sufficiency check.
+Every vertical resolves these questions where applicable:
 
-They are not five mandatory documents.
-
-### Strategy
-
-Resolve:
+### Intent / Strategy
 
 ```text
-user/operator needs
-product/business objective
-primary actors
-success condition
-non-goals
+Who needs this?
+What outcome matters?
+What business/mission objective does it serve?
+What is explicitly not the goal?
+How is success recognized?
 ```
-
-Exit question:
-
-> Do we know why this product exists, for whom, and what successful use means?
 
 ### Scope
 
-Resolve:
-
 ```text
-accepted functionality
-content/information requirements
-important states
-permissions/boundaries
-nonfunctional requirements
-explicit exclusions
+What capability/work is accepted?
+What information/artifacts are required?
+What states/permissions/boundaries matter?
+What nonfunctional/domain constraints apply?
+What is explicitly excluded?
 ```
-
-Exit question:
-
-> Could implementation silently omit a required capability because scope remains implicit?
 
 ### Structure
 
-Resolve:
-
 ```text
-information architecture
-navigation
-interaction flows
-scope/context behavior
-state transitions
-cross-surface handoffs
-recovery/degraded behavior
+How does work/information flow?
+What are the decision and interaction paths?
+How is context/scope selected or inherited?
+How do state transitions and handoffs work?
+How does degraded/recovery behavior work?
 ```
 
-Exit question:
+### Concrete operating form
 
-> Could two competent builders produce materially different product behavior from the same spec?
+Resolve enough concrete anatomy that the execution agent does not invent the operating model.
 
-### Skeleton
-
-Resolve:
+Depending on domain this may mean:
 
 ```text
-screen hierarchy
-primary information
-primary and secondary actions
-component anatomy
-loading/empty/stale/error behavior
-responsive interaction
+screens/components
+forms/reports
+queues/checklists
+work cells
+approval packets
+field procedures
+research protocols
+service workflows
+physical stations/devices
+other domain artifacts
 ```
 
-Exit question:
+### Presentation / sensory form
 
-> Would the builder need to invent major screen anatomy or action hierarchy?
-
-### Surface
-
-Resolve, where the feature has visual UI:
-
-```text
-visual character
-typography
-spacing
-semantic colors
-component treatment
-motion
-responsive visual behavior
-reference surfaces where useful
-```
-
-Exit question:
-
-> Would the builder need to choose a materially different visual language or interaction emphasis?
-
-For non-visual/backend features, explicitly mark Skeleton/Surface as not applicable rather than manufacturing UI artifacts.
+Only where materially relevant, resolve the visual/physical/presentation language enough to prevent a materially different experience from being invented downstream.
 
 ---
 
-## 12. Five-plane closure law
+## 12. Garrett five planes are a UI/product vertical lens, not universal core law
 
-A plane is resolved when the build agent can execute it without making a foundational product/design decision.
+For interactive digital product work, a vertical profile may use Jesse James Garrett's:
 
-A plane is not resolved merely because prose exists.
+```text
+Strategy
+Scope
+Structure
+Skeleton
+Surface
+```
 
-Do not over-specify reversible implementation mechanics in order to claim a plane is complete.
+as the concrete sufficiency model.
+
+The core runtime MUST NOT require every vertical to manufacture screen hierarchy, typography or visual-system artifacts.
+
+For non-UI work, the active vertical profile supplies the equivalent domain lenses.
 
 ---
 
-# Part IV — Full Trajectory derivation
+# Part IV — Full Trajectory
 
-## 13. Full Trajectory is the implementation coverage model
+## 13. Full Trajectory is the cross-vertical coverage model
 
-Once accepted product architecture is sufficiently resolved, derive one issue-#618-aligned Full Trajectory.
+Once the outcome architecture is sufficiently resolved, derive one issue-#618-aligned Full Trajectory:
 
 ```text
-HLT
+HLT / accepted outcome
 → required MLG branches
 → STGs
-→ Waypoints / Worksets / CallGraphs as owned by Focusa
+→ Waypoints / Worksets / CallGraphs where applicable
 → nearest executable Workpoints
-→ accepted outcome
+→ accepted outcome settlement
 ```
 
 Full / Medium / Short are projections of the same truth.
 
-They are not separate plans and not synonyms for HLT/MLG/STG.
-
-The trajectory must expose:
+The trajectory exposes:
 
 ```text
 accepted scope
 active scope
 ready scope
 blocked scope
-unresolved upstream dependencies
+unresolved dependencies
 explicitly removed scope
 current executable frontier
 ultimate accepted outcome
 ```
 
-Unknown distant implementation details are not fabricated.
-
-An unknown that blocks progress gets an owned bounded resolution step.
+Unknown distant details are not fabricated. A blocking unknown gets an owned bounded resolution step.
 
 ---
 
-## 14. Requirements connect upward and downward without bureaucracy
+## 14. Coverage without bureaucracy
 
-Coverage invariant:
+Invariant:
 
 ```text
-accepted requirement
-→ implementation/disposition path or explicit unresolved dependency
+accepted requirement/outcome
+→ execution/disposition path or explicit unresolved dependency
 
-implementation node
+execution node
 → justified accepted outcome/requirement
 ```
 
-Stable IDs are useful for coverage and debugging, not mandatory ticket ceremony.
+Stable IDs may aid coverage and debugging. They are not ticket bureaucracy.
 
-Do not require every commit, edit, test or report to carry requirement IDs.
+Do not require every action, artifact or report to carry IDs.
 
-Do not create a separate proof packet per Workpoint.
+Do not create one proof packet per Workpoint.
 
 ---
 
-## 15. Cross-functional thin path
+## 15. Thin connected outcome path
 
-Before broad horizontal build-out, identify the earliest production-shaped connected path that proves the architecture.
+Before broad horizontal expansion, identify the earliest real connected path that exercises the essential owners and produces a meaningful domain outcome.
 
-A good first path crosses the real owners necessary to establish the product center.
-
-It should not be:
+It must not substitute:
 
 ```text
-mock-only
-static UI
+mock-only state
 placeholder success
-new local authority substituting for missing upstream truth
+pure presentation
+local duplicate authority
 ```
 
-After the shared contracts are proven, open independent expansion lanes aggressively.
+for the real outcome.
 
-This reuses the Cross-Functional Alpha principle from the Spec 135 series without making Spec 120A dependent on that product family.
+Once the shared path works, expand independent lanes aggressively.
 
 ---
 
-# Part V — Algorithm² applied to architecting
+# Part V — Algorithm² and Leverage²
 
 ## 16. Apply Algorithm² twice
 
-Before implementation handoff, apply:
+Apply:
 
 ```text
 Question
@@ -556,172 +513,163 @@ Question
 → Automate last
 ```
 
-First to the **feature/product architecture**.
-
-Then apply it again to the **architecture/build machinery itself**.
+first to the **solution/outcome architecture**, then to the **machinery used to design and execute it**.
 
 ### Question
+For every retained requirement, artifact, abstraction, gate and verification obligation:
 
-For every retained major requirement, artifact, abstraction, gate and proof obligation:
-
-> What wrong product, wrong effect, lost requirement or material failure does this prevent?
+> What wrong outcome, wrong effect, lost requirement or material failure does this prevent?
 
 ### Delete
-
 Remove:
 
 ```text
-duplicate docs
+duplicate documents/processes
 synonymous requirements
-parallel stores/authorities
-unnecessary approval layers
+parallel authorities/stores
+unnecessary approvals
 per-node status ceremony
 proof artifacts that prove nothing new
-repeated whole-system planning when dependencies did not change
+repeated full replanning when dependencies did not change
 speculative abstractions
-serial sequencing that has no real dependency
+serial sequencing without real dependency
 ```
 
 ### Simplify
-
 Prefer:
 
 ```text
 one owner per concern
-one accepted scope register
+one accepted scope
 one Full Trajectory
-one build handoff
+one handoff
 existing primitives
-thin adapters
-connected vertical behavior
+thin adapters/projections
+connected end-to-end behavior
 ```
 
 ### Accelerate
-
 Enable:
 
 ```text
 parallel independent work
 batching adjacent Workpoints
-implementation while context is hot
-reuse of valid evidence
+execution while context is hot
+reuse of valid Evidence
 reconciliation only where reality changed
 continuation around local blockers
 ```
 
 ### Automate last
+Automate only repetition that survived the first four steps and proved useful.
 
-Automate only repetition that survived the first four steps and has proven value.
-
-Do not institutionalize ceremony by automating it.
+Do not automate ceremony into permanence.
 
 ---
 
 ## 17. Leverage²
 
-When an implementation or architectural improvement is proven reusable:
+When an improvement proves reusable:
 
 ```text
 prove locally
-→ identify the lowest correct shared owner
-→ move/generalize only the reusable primitive
+→ identify lowest correct shared owner
+→ generalize only the reusable primitive
 → let later work inherit it
 → remove duplicated local workaround
 ```
 
-Do not generalize speculative improvements merely because they sound reusable.
+Do not generalize speculation.
 
 ---
 
-# Part VI — Build-agent autonomy contract
+# Part VI — Execution-agent autonomy
 
-## 18. Architecting-agent exit test
+## 18. Architecting exit test
 
-Before implementation-start authorization, ask:
+Before execution-start authorization ask:
 
-> Could a strong build agent take this package, make ordinary engineering decisions autonomously, and drive to the accepted outcome without redesigning the product?
+> Could a strong execution agent take this package, make ordinary domain-execution decisions autonomously, and drive to the accepted outcome without redesigning the outcome/system?
 
-If **no**, architecting is incomplete.
+If no, architecting is incomplete.
 
 Then ask:
 
-> Would the build agent spend material time servicing the architecture process instead of building?
+> Would the execution agent spend material time servicing the architecture process instead of producing the outcome?
 
-If **yes**, the package is overbuilt and must be reduced.
-
-The correct exit lies between those failures.
+If yes, the package is overbuilt and must be reduced.
 
 ---
 
-## 19. Build handoff minimum
+## 19. Lean handoff
 
-The handoff should usually contain only:
+The handoff normally contains only:
 
 ```text
-accepted product outcome
-current architectural/product boundaries
+accepted outcome
+current architecture / authority boundaries
 current Full Trajectory / Short frontier
-where to find deeper plane-specific detail
-current source/runtime truth
-known genuine upstream blockers
-implementation autonomy boundary
-promotion/deployment boundary
+where deeper vertical-specific detail lives
+current operating truth
+known genuine blockers
+autonomy boundary
+activation/delivery boundary
 ```
 
-Do not force the build agent to preload every supporting architecture document.
+Do not preload every supporting document.
 
 Load detail on demand from the active frontier.
 
 ---
 
-## 20. Build-agent autonomy law
+## 20. Execution autonomy law
 
 After architecting closes:
 
 ```text
-PRODUCT DECISIONS
-resolved by architecting/operator process
+OUTCOME / SYSTEM DECISIONS
+resolved through architecting/operator process
 
-ENGINEERING DECISIONS
-freely delegated to build agent inside those rails
+ORDINARY EXECUTION DECISIONS
+freely delegated inside those rails
 ```
 
-The build agent may, without operator permission:
+The execution agent may without operator permission:
 
 ```text
-choose reversible internal implementation details
+choose reversible local execution details
 batch adjacent Workpoints
 reorder independent ready work
-refactor opportunistically
-fix discovered implementation defects
+refactor/reorganize local implementation/process
+fix discovered defects
 choose focused verification
 continue around local blockers
 ```
 
-Owner/operator input is required only when the unresolved decision materially changes:
+Operator input is required only when the unresolved decision materially changes:
 
 ```text
-accepted scope / product behavior
+accepted scope/outcome
 owner authority
-privacy/security boundary
-meaningful spend
-irreversible or high-consequence external effect
-major ecosystem/product boundary
+privacy/security/legal boundary
+meaningful spend/resource commitment
+irreversible/high-consequence external effect
+major ecosystem/system boundary
 ```
 
 Minor ambiguity is not a blocker.
 
 ---
 
-## 21. Outcomes-over-process build law
+## 21. Outcomes-over-process execution law
 
-The default build loop is:
+Default loop:
 
 ```text
 current frontier
-→ inspect real source
-→ implement the largest safe useful increment
-→ verify material behavior/risk
+→ inspect current reality
+→ execute largest safe useful increment
+→ verify material outcome/risk
 → fix/reconcile what changed
 → continue
 ```
@@ -731,14 +679,14 @@ Do not stop because:
 ```text
 a Workpoint ended
 an STG/MLG ended
-a commit landed
-a test passed
-a preferred tool failed
+an artifact was produced
+a check passed
+a preferred tool/path failed
 a report could be written
 documentation could be polished
 ```
 
-Stop only at accepted completion, an actual affected dependency/authority boundary, or a genuine owner decision.
+Stop only at accepted completion, an actual affected dependency/authority boundary, or a genuine operator decision.
 
 ---
 
@@ -746,65 +694,57 @@ Stop only at accepted completion, an actual affected dependency/authority bounda
 
 Keep a verification step only when removing it would leave an applicable acceptance condition or concrete material failure risk unverified.
 
-Prefer proof naturally produced by doing the work:
+Prefer Evidence naturally produced by doing the work:
 
 ```text
-source revision/diff
-focused test
-build/manifest result
-real browser/consumer behavior
-owning-system state/receipt
+observed source/state change
+focused test/check
+consumer/user-visible behavior
+owning-system record/receipt
+measured real-world result
 ```
 
-One check may satisfy several accepted requirements when it genuinely establishes them.
+One check may satisfy several obligations when it genuinely establishes them.
 
-Do not create proof-management work around valid proof.
-
-Run broad integration/regression at meaningful integration/release boundaries, not reflexively after each small change.
+Do not build a proof-management workload around valid Evidence.
 
 ---
 
 # Part VII — Spec 120 gate amendments
 
-## 23. Section approval under architecture mode
+## 23. Operator attention under architecture mode
 
-Spec 120 section approval remains operator-controlled, but the architecting workflow should group routine detail around actual product decisions.
-
-Operator attention should concentrate on:
+Operator attention should concentrate on genuine operator decisions:
 
 ```text
 scope
 tradeoffs
-product behavior
-architecture boundaries
-important UX decisions
-risk/authority/privacy decisions
+outcome behavior
+architecture/system boundaries
+important experience/workflow decisions
+risk/authority/privacy/legal decisions
 meaningful exclusions
 final architecture acceptance
 ```
 
-Do not turn every derived implementation detail into a new operator gate.
-
-Where multiple sections merely express one already-resolved operator decision, they may be reviewed/approved together through one exact scoped gate if the underlying Spec 120 implementation supports grouped revisions.
-
-Until grouped gates exist, the Workbench may preserve section records while presenting them as one operator decision cluster.
+Do not turn derived execution detail into an operator gate.
 
 ---
 
-## 24. Whole-spec reconciliation is expanded
+## 24. Whole-spec reconciliation expands
 
-Spec 120 whole-spec reconciliation under architecture mode also checks:
+Under architecture mode, Spec 120 whole-spec reconciliation also checks:
 
 ```text
 canonical owner consistency
-product-boundary consistency
-five-plane consistency
-cross-surface behavior consistency
+system-boundary consistency
+active vertical-profile sufficiency
+cross-surface/workflow consistency
 identity/authority terminology
 accepted-scope coverage
 Full Trajectory completeness
-unresolved upstream dependencies
-build-agent ambiguity
+unresolved dependencies
+execution-agent ambiguity
 process/ceremony bloat
 ```
 
@@ -814,127 +754,98 @@ Reconciliation should propose deletion/simplification as readily as additions.
 
 ## 25. Decomposition amendment
 
-Provider-neutral task decomposition remains supported, but **Full Trajectory is the governing coverage/dependency model** for architecture-mode features.
+Provider/work-item decomposition remains supported, but **Full Trajectory is the governing coverage/dependency model**.
 
-Task-provider items are projections/adapters over admitted work. They are not a second project plan.
+Provider/task/work-order items are projections over admitted work, not a second project plan.
 
-Do not require one provider ticket per Workpoint.
-
-A provider item may cover several adjacent Workpoints when ownership, dependencies and acceptance remain clear.
+Do not require one provider item per Workpoint.
 
 ---
 
-## 26. Implementation-start gate amendment
+## 26. Execution-start gate
 
-For architecture-mode features, implementation start is authorized when:
+Architecture-mode execution may begin when:
 
 ```text
 operator intent and accepted scope are clear
 current reality and canonical ownership are reconciled
 material contradictions are resolved or explicitly bounded
-applicable Garrett planes are sufficiently resolved
+active vertical-profile sufficiency checks are resolved
 one Full Trajectory covers the accepted outcome
 current Short frontier is executable or has an owned resolution node
-Algorithm² has removed unnecessary architecture/process
-build-agent autonomy boundary is explicit
+Algorithm² removed unnecessary architecture/process
+execution-agent autonomy boundary is explicit
 required consequential operator decisions are closed
 ```
 
-The following are **not** required merely for ceremony:
+Not required merely for ceremony:
 
 ```text
 a unique document for every stage
-a ticket for every Workpoint
+a task/ticket for every Workpoint
 proof packets for every node
-repeated full review with no new material finding
-implementation-detail operator approval
-full-corpus preload by the build agent
+repeated full review with no new finding
+operator approval of ordinary execution details
+full-corpus preload by the execution agent
 ```
 
 ---
 
-## 27. Architecture-mode completion artifact
-
-The architecture package may be one document or several owner-specific artifacts.
-
-What matters is that the following truth exists and is discoverable:
-
-```text
-accepted scope
-canonical ownership and seams
-five-plane product/UX decisions where applicable
-Full Trajectory
-current frontier
-known blockers
-build-agent autonomy law
-minimum promotion boundary
-```
-
-Do not create another architecture database solely to package these references.
-
----
-
-## 28. Definition of architecting done
+## 27. Definition of architecting done
 
 Architecting is done when:
 
 ```text
-1. The current product/system reality has been inspected rather than assumed.
-2. Relevant existing specs/products have been reconciled and stale contradictions are not silently inherited.
-3. Canonical ownership and authority boundaries are unambiguous.
+1. Current domain/system reality was inspected rather than assumed.
+2. Relevant systems/specs/policies were reconciled; stale contradictions are not silently inherited.
+3. Canonical ownership and authority are unambiguous.
 4. Material adversarial objections are resolved, bounded or explicitly accepted.
-5. Applicable Strategy, Scope, Structure, Skeleton and Surface decisions are sufficiently resolved.
-6. Accepted scope is represented by one complete Full Trajectory with an exact current frontier.
+5. Active vertical-profile sufficiency checks are resolved.
+6. Accepted scope is represented by one complete Full Trajectory with exact current frontier.
 7. Unknowns are explicit and owned rather than fabricated.
-8. Algorithm² has removed unnecessary product and process complexity.
-9. The build agent has broad engineering discretion beneath the resolved product boundary.
-10. The build agent can begin immediately from real source truth without reopening foundational product design.
-11. The handoff does not impose proof/report/documentation ceremony unrelated to true completion.
-12. Operator involvement after handoff is limited to genuine owner-level decisions or newly discovered material scope/authority changes.
+8. Algorithm² removed unnecessary solution and process complexity.
+9. Execution agent has broad discretion beneath resolved outcome boundaries.
+10. Execution can begin from real current truth without reopening foundational decisions.
+11. Handoff imposes no proof/report/documentation ceremony unrelated to true completion.
+12. Operator involvement after handoff is limited to genuine operator-level decisions or newly discovered material changes.
 ```
 
 ---
 
-## 29. Reference workflow — the pattern proven by the Focusa Workforce redesign
+## 28. Reference pattern proven by the Focusa Workforce redesign
 
-The reusable pattern is:
+The reusable cross-vertical pattern is:
 
 ```text
-recover product intent
-→ inspect current implementation
+recover intent
+→ inspect current reality
 → inspect relevant upstream/current architecture
-→ reconcile boundaries and canonical owners
+→ reconcile boundaries and owners
 → find contradictions/stale doctrine/missing seams
 → update owning architecture before stacking more design
-→ run outward consistency pass
-→ run inward semantic-integrity pass
-→ resolve Strategy
-→ resolve Scope
-→ resolve Structure
-→ resolve Skeleton
-→ resolve Surface
+→ outward consistency pass
+→ inward semantic-integrity pass
+→ resolve active vertical-profile sufficiency lenses
 → derive one Full Trajectory
-→ test whether a build agent would still need to invent product decisions
-→ close remaining foundational ambiguity
-→ apply Algorithm² to the feature
-→ apply Algorithm² again to the architecture/build process
+→ test whether execution agent would still need to invent foundational decisions
+→ close remaining ambiguity
+→ Algorithm² on the solution
+→ Algorithm² again on the architecture/execution machinery
 → remove proof/process/documentation ceremony
-→ explicitly separate product decisions from engineering discretion
-→ apply Leverage² to proven reusable primitives
-→ produce one lean build-agent handoff
-→ implementation begins from the Short frontier
+→ separate operator/architecture decisions from execution discretion
+→ Leverage² proven reusable primitives
+→ produce one lean handoff
+→ execution begins from Short frontier
 ```
 
-This is a pattern, not a requirement to repeat the exact number of documents produced by that feature.
+The pattern does not require the same artifacts in every vertical.
 
 ---
 
-## 30. Final principle
+## 29. Final principle
 
-Spec 120 protects the transition from idea to grounded, adversarially tested, operator-approved specification.
+Spec 120 protects the transition from rough intent to grounded, adversarially tested, operator-approved specification.
 
-Spec 120A ensures that for architecture-heavy features the result is not merely a good document, but a **resolved product architecture that can be executed autonomously**.
+Spec 120A ensures that complex work leaves the Workbench as a **resolved outcome architecture that can be executed autonomously across verticals**.
 
-The governing standard is:
-
-> **Give the build agent enough rails that it cannot accidentally build the wrong product, and enough freedom that the rails do not become the work.**
+> **Give the execution agent enough rails that it cannot accidentally pursue the wrong outcome, and enough freedom that the rails do not become the work.**
