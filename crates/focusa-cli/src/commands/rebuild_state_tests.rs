@@ -79,6 +79,8 @@ fn rejected_event() -> EventLogEntry {
         machine_id: None,
         instance_id: None,
         session_id: None,
+        project_root: None,
+        continuity_id: None,
         thread_id: Some(uuid::Uuid::now_v7()),
         is_observation: false,
     }
