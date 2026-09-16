@@ -60,10 +60,14 @@ impl DeveloperOriginSource {
     }
 }
 
-static CACHE: OnceLock<Mutex<Option<(Instant, Option<DeveloperOriginSource>)>>> = OnceLock::new();
+static CACHE: OnceLock<OriginCache> = OnceLock::new();
 static IN_FLIGHT: AtomicBool = AtomicBool::new(false);
 
-fn cache() -> &'static Mutex<Option<(Instant, Option<DeveloperOriginSource>)>> {
+/// Short-TTL cache of the last verified origin decision. It holds the negative
+/// case too, so a non-member host does not re-probe on every request.
+type OriginCache = Mutex<Option<(Instant, Option<DeveloperOriginSource>)>>;
+
+fn cache() -> &'static OriginCache {
     CACHE.get_or_init(|| Mutex::new(None))
 }
 
@@ -304,13 +308,7 @@ pub fn developer_origin_source() -> Option<DeveloperOriginSource> {
     if probe_disabled() {
         return None;
     }
-    match developer_origin_decision_with(|| false, probe_tailnet_member) {
-        Some(DeveloperOriginSource::CachedTrustedOrigin) => {
-            Some(DeveloperOriginSource::CachedTrustedOrigin)
-        }
-        Some(fresh) => Some(fresh),
-        None => None,
-    }
+    developer_origin_decision_with(|| false, probe_tailnet_member)
 }
 
 fn developer_origin_active_with(
