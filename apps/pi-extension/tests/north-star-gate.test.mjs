@@ -86,7 +86,9 @@ test("Workpoint resume binds current ask and rejects stale action authority", ()
   assert.match(block, /action_authority_for_current_ask !== true/);
   assert.match(block, /matches_current_ask_scope === false/);
   assert.match(block, /workpoint_resume_rejected_stale_current_ask/);
-  assert.match(block, /candidate\.current_ask_binding = currentAsk/);
+  assert.match(block, /captureResumeRequest\(getAttachmentRuntime\(\), currentAsk\)/);
+  assert.match(block, /evaluateResumeRequest\(packet, requestBinding, getAttachmentRuntime\(\)\)/);
+  assert.match(block, /stampResumeRequest\(candidate, requestBinding\)/);
 });
 
 test("Pi session id remains temporal metadata outside Workpoint identity", () => {

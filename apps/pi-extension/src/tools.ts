@@ -143,6 +143,7 @@ import {
   type WorkstreamKey,
 } from "./scoped-state.js";
 import { buildNorthStarSnapshot, renderNorthStarCard } from "./north-star.js";
+import { captureResumeRequest, evaluateResumeRequest, stampResumeRequest } from "./workpoint-request-binding.js";
 import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } from "./project-binding.js";
 import { resolveCanonicalMarkerProjectRoot } from "./project-identity-working-context.js";
 import { publishScopedStateChange } from "./scoped-surface-refresh.js";
@@ -9229,13 +9230,16 @@ pi.registerTool({
           },
         };
       }
+      const requestContinuityId = p.continuity_id || ensureContinuityId(projectRoot);
+      const evaluatedAsk = p.current_ask || getAttachmentRuntime().currentAsk?.text || "";
+      const requestBinding = captureResumeRequest(getAttachmentRuntime(), evaluatedAsk);
       const payload = {
         workpoint_id: p.workpoint_id,
         mode: p.mode || "compact_prompt",
-        continuity_id: p.continuity_id || ensureContinuityId(projectRoot),
+        continuity_id: requestContinuityId,
         session_id: p.session_id || getAttachmentRuntime().sessionFrameKey,
         project_root: projectRoot,
-        current_ask: p.current_ask || getAttachmentRuntime().currentAsk?.text || "",
+        current_ask: evaluatedAsk,
         session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", {
           continuityId: p.continuity_id,
           sessionId: p.session_id,
@@ -9245,6 +9249,19 @@ pi.registerTool({
         method: "POST",
         body: JSON.stringify(payload),
       });
+      const requestVerdict = evaluateResumeRequest(res.body, requestBinding, getAttachmentRuntime());
+      if (requestVerdict.reason === "resume_request_changed" ||
+          requestVerdict.reason === "resume_evaluated_different_ask") {
+        return {
+          content: [{ type: "text", text: `Resume reply is advisory: ${requestVerdict.reason}; current saved work was not changed.` }],
+          details: {
+            ok: false, status: "stale", canonical: false, advisory: true, degraded: true,
+            failure_class: "scope_mismatch", scope_conflict_reason: requestVerdict.reason,
+            action_authority_for_current_ask: false,
+            next_tools: ["focusa_workpoint_resume"],
+          },
+        };
+      }
       const rejected = res.body?.status === "rejected_scope_mismatch";
       const recovery = scopeRecoveryContext(
         res.body || {},
@@ -9331,16 +9348,14 @@ pi.registerTool({
                 .join("\n");
       const v2 = res.body?.resume_packet_v2 || null;
       const canonical = res.body?.canonical === true;
-      const actionAuthority =
-        res.body?.action_authority_for_current_ask !== false &&
-        v2?.action_authority_for_current_ask !== false;
-      const matchesCurrentAskScope =
-        res.body?.matches_current_ask_scope !== false && v2?.matches_current_ask_scope !== false;
-      const scopeConflictReason = String(
-        res.body?.scope_conflict_reason || v2?.scope_conflict_reason || "none"
-      );
+      const actionAuthority = requestVerdict.accepted;
+      const matchesCurrentAskScope = requestVerdict.accepted;
+      const scopeConflictReason = requestVerdict.accepted
+        ? "none"
+        : String(res.body?.scope_conflict_reason && res.body.scope_conflict_reason !== "none"
+            ? res.body.scope_conflict_reason : requestVerdict.reason);
       if (res.ok && canonical && actionAuthority && matchesCurrentAskScope) {
-        const candidate = normalizeWorkpointResumePacketEnvelope(res.body);
+        const candidate = stampResumeRequest(normalizeWorkpointResumePacketEnvelope(res.body), requestBinding);
         const adoptedRoot = adoptWorkpointScopeForFrameRecovery(candidate, "workpoint_resume_tool", {
           projectRoot: params.project_root || "",
           continuityId: params.continuity_id || "",

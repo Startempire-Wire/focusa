@@ -6,6 +6,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
+import { captureResumeRequest, evaluateResumeRequest, stampResumeRequest } from "./workpoint-request-binding.js";
 import { existsSync } from "fs";
 import { join } from "path";
 import { classifyPiSessionProject, persistedProjectRootFromState } from "./session-classification.js";
@@ -393,16 +394,28 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
   }
   try {
     const currentAsk = String(getAttachmentRuntime().currentAsk?.text || "").trim();
+    const continuityId = ensureContinuityId(getSessionCwd() || process.cwd());
+    const requestBinding = captureResumeRequest(getAttachmentRuntime(), currentAsk);
     const packet = await focusaFetch("/workpoint/resume", {
       method: "POST",
       body: JSON.stringify({
         mode: "compact_prompt",
-        continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
+        continuity_id: continuityId,
         session_id: getAttachmentRuntime().sessionFrameKey,
         project_root: getSessionCwd() || process.cwd(),
         current_ask: currentAsk || undefined,
       }),
     });
+    const requestVerdict = evaluateResumeRequest(packet, requestBinding, getAttachmentRuntime());
+    if (requestVerdict.reason === "resume_request_changed" ||
+        requestVerdict.reason === "resume_evaluated_different_ask") {
+      // A late response must not replace or clear a newer session's packet.
+      focusaPost("/telemetry/trace", {
+        event_type: "workpoint_resume_rejected_stale_current_ask",
+        payload: { reason: requestVerdict.reason, workpoint_id: packet?.workpoint_id },
+      });
+      return;
+    }
     if (packet?.status === "rejected_scope_mismatch") {
       setActiveWorkpointPacket(null);
       setActiveWorkpointSummary("");
@@ -411,6 +424,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
     if (packet?.status === "completed") {
       const candidate = normalizeWorkpointResumePacketEnvelope(packet);
       if (
+        !requestVerdict.accepted ||
         packet?.action_authority_for_current_ask !== true ||
         packet?.matches_current_ask_scope === false ||
         !isWorkpointPacketScopedToCurrentSession(candidate)
@@ -428,8 +442,9 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
         });
         return;
       }
-      candidate.current_ask_binding = currentAsk;
-      setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(candidate));
+      setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(
+        stampResumeRequest(candidate, requestBinding)
+      ));
       setActiveWorkpointSummary(
         packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || ""
       );

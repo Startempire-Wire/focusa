@@ -185,22 +185,38 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
     .map(([key]) => key);
 
   if (problems.length === 0) {
-    // status=stale with all surfaces present: gentle refresh nudge.
+    // A changed instruction is not evidence that the saved goal aged out.
+    const steered = snapshot.workpoint === "steered";
     return [
-      `🧭 NORTH STAR ${snapshot.status.toUpperCase()} · ${short(snapshot.project)} · needs a quick refresh`,
+      `🧭 NORTH STAR ${snapshot.status.toUpperCase()} · ${short(snapshot.project)} · ${steered ? "current instruction needs reconciliation" : "needs a quick refresh"}`,
       `WAYPOINT ${short(snapshot.waypoint)} → GAP ${short(snapshot.gap)}`,
-      `${staleNames.length ? `Some details (${staleNames.join(", ")}) aged out` : "Details aged out"} — say the word and I'll re-check before we continue.`,
+      steered
+        ? "Resume saved work and verify the current instruction before continuing."
+        : `${staleNames.length ? `Some details (${staleNames.join(", ")}) aged out` : "Details aged out"} — say the word and I'll re-check before we continue.`,
     ];
   }
 
-  const [_firstKey, firstState, firstWhat, firstAction] = problems[0];
+  // Presentation must lead with the cause of the status, not an informational
+  // missing gap/waypoint/frontier. This ranking does not change authority.
+  const primary = (snapshot.status === "stale"
+    ? surfaces.find(([_, state]) => ["stale", "mismatched", "steered"].includes(state))
+    : problems.find(([key, state]) => state === "blocked" ||
+        (state === "missing" && ["project", "hlt", "mlg", "stg", "workpoint"].includes(key)))) || problems[0];
+  const [firstKey, firstState, defaultWhat, defaultAction] = primary;
+  const requestMismatch = firstKey === "workpoint" &&
+    (firstState === "mismatched" || firstState === "steered");
+  const firstWhat = requestMismatch
+    ? "saved work needs reconciliation with the current instruction"
+    : defaultWhat;
+  const firstAction = requestMismatch ? "resume and verify the current action" : defaultAction;
+  const otherProblems = problems.filter(([key]) => key !== firstKey);
   const staleNote = firstState === "stale" ? " needs a refresh — " : firstState === "mismatched" ? " doesn't match what I'm seeing — " : " — ";
   const lines = [
     `🧭 NORTH STAR ${snapshot.status.toUpperCase()} · ${firstWhat}${staleNote}${firstAction}.`,
     `WAYPOINT ${short(snapshot.waypoint)} → GAP ${short(snapshot.gap)}`,
   ];
-  if (problems.length > 1) {
-    lines.push(`${problems.length - 1} more item${problems.length > 2 ? "s" : ""} will unfold as we go — ask for the full picture anytime.`);
+  if (otherProblems.length > 0) {
+    lines.push(`${otherProblems.length} more item${otherProblems.length > 1 ? "s" : ""} will unfold as we go — ask for the full picture anytime.`);
   }
   lines.push(ladder);
   return lines;

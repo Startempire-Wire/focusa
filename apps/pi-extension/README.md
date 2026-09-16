@@ -6,6 +6,22 @@ Focusa Pi Bridge is the Pi coding-agent extension that registers Focusa tools, l
 
 The extension exposes the 135-tool parity surface through typed project/workstream scope. Startup/reload now renders the Focusa Utility Card; recovery composes `focusa_tool_doctor`, project identity, Trajectory, Workpoint checkpoint/resume, evidence capture/linking, prediction evaluation, metacognition, and work-loop routes. Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, and Tool Discovery remain available through the same scope and operator-steering boundary.
 
+## North Star diagnostics
+
+A saved trajectory can remain current while the saved action needs reconciliation
+with a new instruction. The card leads with the condition causing its blocked or
+stale status; an informational missing gap must not hide a request mismatch or a
+missing Workpoint. Operator steering is not described as an expired goal or a
+missing saved checkpoint. This presentation does not change authority decisions;
+resuming and verifying the current action remains necessary when it is stale.
+
+Startup and explicit resume share request-binding checks. Only an affirmative,
+canonical reply for the unchanged ask, turn, session, project and continuity may
+be adopted. A late reply cannot replace newer saved work. An explicit alternate
+`current_ask` is advisory for the active session, and legacy replies lacking
+positive authority flags require supported reconciliation rather than assumed
+permission. Successful adoption binds the evaluated ask, not newer input.
+
 ## Loading model
 
 Pi has separate resource types:

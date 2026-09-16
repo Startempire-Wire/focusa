@@ -71,11 +71,37 @@ try {
     false
   );
   assert.doesNotMatch(renderedSteering.join("\n"), /NORTH STAR BLOCKED/);
+  assert.match(renderedSteering[0], /current instruction needs reconciliation/);
+  assert.doesNotMatch(renderedSteering.join("\n"), /aged out/);
 
   const backgroundMismatch = buildNorthStarSnapshot("background_refresh");
   assert.equal(backgroundMismatch.project, "current");
   assert.equal(backgroundMismatch.workpoint, "mismatched");
   assert.equal(backgroundMismatch.status, "stale");
+
+  // Informational missing gap must not hide the actual request mismatch.
+  globalThis.__focusaNorthStarTestState.trajectory = { ...trajectory, active_gap: null };
+  const missingGapMismatch = buildNorthStarSnapshot("background_refresh");
+  assert.equal(missingGapMismatch.hlt, "current");
+  assert.equal(missingGapMismatch.gap, "missing");
+  assert.equal(missingGapMismatch.workpoint, "mismatched");
+  assert.equal(missingGapMismatch.status, "stale");
+  const mismatchLines = renderNorthStarCard(missingGapMismatch);
+  assert.match(mismatchLines[0], /saved work needs reconciliation/);
+  assert.doesNotMatch(mismatchLines[0], /haven't checked|no saved checkpoint/);
+  assert.match(mismatchLines[1], /GAP missing/);
+  assert.match(mismatchLines.join("\n"), /1 more item/);
+
+  const missingGapSteering = buildNorthStarSnapshot("operator_input");
+  assert.equal(missingGapSteering.status, "stale");
+  assert.match(renderNorthStarCard(missingGapSteering)[0], /saved work needs reconciliation/);
+
+  globalThis.__focusaNorthStarTestState.scopedWorkpoint = null;
+  const actuallyMissingWorkpoint = buildNorthStarSnapshot("background_refresh");
+  assert.equal(actuallyMissingWorkpoint.status, "blocked");
+  assert.match(renderNorthStarCard(actuallyMissingWorkpoint)[0], /no saved checkpoint/);
+  globalThis.__focusaNorthStarTestState.scopedWorkpoint = steeredWorkpoint;
+  globalThis.__focusaNorthStarTestState.trajectory = trajectory;
 
   globalThis.__focusaNorthStarTestState.projectIdentity = null;
   globalThis.__focusaNorthStarTestState.binding = {
