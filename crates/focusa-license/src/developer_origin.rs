@@ -32,10 +32,38 @@ const READ_TIMEOUT: Duration = Duration::from_millis(1500);
 const TAILSCALE_PROBE_BUDGET: Duration = Duration::from_millis(2500);
 const CACHE_ENTRY_TTL_PADDING_MS: u64 = 250;
 
-static CACHE: OnceLock<Mutex<Option<(Instant, bool)>>> = OnceLock::new();
+/// Trusted source that proved this machine's development origin (#307).
+///
+/// `agent_kb` is reserved for the private agent-kb machine-identity contract;
+/// until that contract returns verified machine evidence it stays
+/// discovery-only (see `developer_origin_active`), so production decisions
+/// resolve through `tailnet` (Tailscale identity proof).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeveloperOriginSource {
+    /// Private agent-kb-api identified this machine (reserved).
+    AgentKb,
+    /// Tailscale proved membership in the operator tailnet.
+    Tailnet,
+    /// A previously verified positive decision served from the short-TTL cache.
+    CachedTrustedOrigin,
+}
+
+impl DeveloperOriginSource {
+    /// Frozen wire label used by the canonical projection (#307).
+    pub fn label(self) -> &'static str {
+        match self {
+            DeveloperOriginSource::AgentKb => "agent_kb",
+            DeveloperOriginSource::Tailnet => "tailnet",
+            DeveloperOriginSource::CachedTrustedOrigin => "cached_trusted_origin",
+        }
+    }
+}
+
+static CACHE: OnceLock<Mutex<Option<(Instant, Option<DeveloperOriginSource>)>>> = OnceLock::new();
 static IN_FLIGHT: AtomicBool = AtomicBool::new(false);
 
-fn cache() -> &'static Mutex<Option<(Instant, bool)>> {
+fn cache() -> &'static Mutex<Option<(Instant, Option<DeveloperOriginSource>)>> {
     CACHE.get_or_init(|| Mutex::new(None))
 }
 
@@ -45,6 +73,18 @@ fn ttl_ms() -> u64 {
         .and_then(|value| value.parse().ok())
         .unwrap_or(DEFAULT_TTL_MS)
         .min(DEFAULT_TTL_MS)
+}
+
+/// Disable-only escape hatch for deterministic builds on trusted hosts (CI
+/// agents, tailnet build servers, focused test suites). It can never grant
+/// development origin — only suppress the live-identity probe — so it is not a
+/// privilege-escalation vector. It is deliberately *not* consulted by the
+/// injected `developer_origin_decision_with` core, so unit tests stay
+/// deterministic regardless of environment.
+fn probe_disabled() -> bool {
+    std::env::var("FOCUSA_DEVELOPER_ORIGIN_DISABLE")
+        .map(|value| matches!(value.as_str(), "1" | "true" | "TRUE" | "yes" | "on"))
+        .unwrap_or(false)
 }
 
 fn kb_api_url() -> String {
@@ -243,21 +283,52 @@ fn tailnet_status_matches(parsed: &Value, expected: &str) -> bool {
     running && online && identified && member
 }
 
-/// Cached developer-origin check with short TTL. Testable via
+/// Cached developer-origin decision with short TTL. Testable via
 /// `developer_origin_active_with`.
+///
+/// Operator metadata is discovery, not machine identification. Until the KB
+/// provides verified machine evidence, use the existing tailnet identity proof.
 pub fn developer_origin_active() -> bool {
-    // Operator metadata is discovery, not machine identification. Until the KB
-    // provides verified machine evidence, use the existing tailnet identity proof.
-    developer_origin_active_with(|| false, probe_tailnet_member)
+    if probe_disabled() {
+        return false;
+    }
+    developer_origin_decision_with(|| false, probe_tailnet_member).is_some()
+}
+
+/// Canonical trusted-origin decision with its proving source (#307).
+///
+/// Returns `Some(Tailnet)` for a fresh tailnet proof,
+/// `Some(CachedTrustedOrigin)` while a verified positive result is cached, and
+/// `None` when the machine is not a trusted development origin.
+pub fn developer_origin_source() -> Option<DeveloperOriginSource> {
+    if probe_disabled() {
+        return None;
+    }
+    match developer_origin_decision_with(|| false, probe_tailnet_member) {
+        Some(DeveloperOriginSource::CachedTrustedOrigin) => {
+            Some(DeveloperOriginSource::CachedTrustedOrigin)
+        }
+        Some(fresh) => Some(fresh),
+        None => None,
+    }
 }
 
 fn developer_origin_active_with(
     kb_known: impl Fn() -> bool,
     tailnet_member: impl Fn() -> bool,
 ) -> bool {
+    developer_origin_decision_with(kb_known, tailnet_member).is_some()
+}
+
+/// Shared decision core. Probes are bounded; a positive or negative result is
+/// cached for the short TTL so an API/network blip cannot flap the decision.
+fn developer_origin_decision_with(
+    kb_known: impl Fn() -> bool,
+    tailnet_member: impl Fn() -> bool,
+) -> Option<DeveloperOriginSource> {
     // Re-entrancy guard: probes must never recurse into this resolver.
     if IN_FLIGHT.swap(true, Ordering::SeqCst) {
-        return false;
+        return None;
     }
     let result = (|| {
         let ttl = ttl_ms();
@@ -271,16 +342,25 @@ fn developer_origin_active_with(
                             ttl.saturating_sub(CACHE_ENTRY_TTL_PADDING_MS).max(1),
                         )
                     {
-                        return cached;
+                        // A cached positive keeps the machine in dev mode but
+                        // reports the cache as the proving source (downgrade
+                        // protection per the #307 rule).
+                        return cached.map(|_| DeveloperOriginSource::CachedTrustedOrigin);
                     }
                 }
             }
         }
-        let active = kb_known() || tailnet_member();
+        let fresh = if kb_known() {
+            Some(DeveloperOriginSource::AgentKb)
+        } else if tailnet_member() {
+            Some(DeveloperOriginSource::Tailnet)
+        } else {
+            None
+        };
         if let Ok(mut guard) = cache().lock() {
-            *guard = Some((Instant::now(), active));
+            *guard = Some((Instant::now(), fresh));
         }
-        active
+        fresh
     })();
     IN_FLIGHT.store(false, Ordering::SeqCst);
     result
@@ -298,6 +378,7 @@ pub fn invalidate_developer_origin_cache() {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DeveloperOriginReport {
     pub active: bool,
+    pub source: Option<&'static str>,
     pub agent_kb_known: bool,
     pub agent_kb_discovery_available: bool,
     pub tailnet_member: bool,
@@ -314,10 +395,27 @@ pub fn developer_origin_report() -> DeveloperOriginReport {
             .map(|guard| guard.is_some())
             .unwrap_or(false)
     };
+    if probe_disabled() {
+        return DeveloperOriginReport {
+            active: false,
+            source: None,
+            agent_kb_known: false,
+            agent_kb_discovery_available: false,
+            tailnet_member: false,
+            cached,
+            ttl_ms: ttl,
+        };
+    }
     let kb_known = probe_agent_kb_known();
     let tailnet = probe_tailnet_member();
+    let source = if tailnet {
+        Some(DeveloperOriginSource::Tailnet.label())
+    } else {
+        None
+    };
     DeveloperOriginReport {
         active: tailnet,
+        source,
         agent_kb_known: false,
         agent_kb_discovery_available: kb_known,
         tailnet_member: tailnet,
@@ -409,6 +507,29 @@ mod tests {
     }
 
     #[test]
+    fn decision_reports_proving_source_and_cache_protects_positive() {
+        let _guard = test_lock();
+        invalidate_developer_origin_cache();
+        assert_eq!(
+            developer_origin_decision_with(|| false, || true),
+            Some(DeveloperOriginSource::Tailnet)
+        );
+        // Within TTL the positive is served from cache (downgrade protection).
+        assert_eq!(
+            developer_origin_decision_with(|| false, || false),
+            Some(DeveloperOriginSource::CachedTrustedOrigin)
+        );
+        invalidate_developer_origin_cache();
+        assert_eq!(
+            developer_origin_decision_with(|| true, || false),
+            Some(DeveloperOriginSource::AgentKb)
+        );
+        invalidate_developer_origin_cache();
+        assert_eq!(developer_origin_decision_with(|| false, || false), None);
+        invalidate_developer_origin_cache();
+    }
+
+    #[test]
     fn cache_serves_within_ttl_and_expires() {
         let _guard = test_lock();
         invalidate_developer_origin_cache();
@@ -492,5 +613,33 @@ mod tests {
             None => unsafe { std::env::remove_var("FOCUSA_AGENT_KB_API_URL") },
         }
         invalidate_developer_origin_cache();
+    }
+
+    /// Live proof for #307 acceptance 1/2: on a real verified member of the
+    /// operator tailnet this resolver must return a positive decision. Ignored
+    /// by default because it depends on host identity, not test fixtures; run
+    /// explicitly on a trusted host:
+    /// `cargo test -p focusa-license -- --ignored live_tailnet_host`.
+    #[test]
+    #[ignore = "requires a verified operator-tailnet host; run explicitly"]
+    fn live_tailnet_host_resolves_developer_origin() {
+        invalidate_developer_origin_cache();
+        let report = developer_origin_report();
+        assert!(
+            report.tailnet_member,
+            "tailnet probe must match on a verified member (report={report:?})"
+        );
+        assert!(
+            report.active,
+            "a verified tailnet member must resolve developer origin (report={report:?})"
+        );
+        // A fresh decision reports the proving source; a second call within the
+        // TTL is served from cache as `cached_trusted_origin`.
+        invalidate_developer_origin_cache();
+        assert_eq!(
+            developer_origin_source(),
+            Some(DeveloperOriginSource::Tailnet)
+        );
+        assert_eq!(developer_origin_source(), Some(DeveloperOriginSource::CachedTrustedOrigin));
     }
 }

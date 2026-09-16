@@ -180,6 +180,59 @@ pub fn entitlement_projection(
     })
 }
 
+/// Canonical trusted-development-origin projection (#307).
+///
+/// A machine that proves development origin (Tailscale tailnet membership, or a
+/// future verified agent-kb machine identity) receives `developer_full`: every
+/// registered Focusa software feature is enabled and commercial/feature gates do
+/// not block development. The decision survives restarts, reboots, and upgrades
+/// because it is re-resolved from live identity on each short-TTL window rather
+/// than persisted, and a brief authority/network outage does not downgrade it
+/// while the positive result is cached.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeveloperFullProjection {
+    pub schema: String,
+    pub state: String,
+    pub license_class: String,
+    pub developer_profile: String,
+    pub authority_source: String,
+    pub all_focusa_features: bool,
+    pub recovery_reason: Option<String>,
+    /// Every registered Focusa software feature id (never a hand-written list).
+    pub features: Vec<String>,
+}
+
+pub const DEVELOPER_FULL_SCHEMA: &str = "focusa.developer_full_projection.v1";
+
+/// Resolve the trusted-development-origin projection for this process, or
+/// `None` when the machine is not a trusted development origin.
+///
+/// Only verified runtime identity is consulted — never environment variables,
+/// hostnames, or user-supplied headers — so `FOCUSA_DEV_MODE=1` on an unrelated
+/// machine and a spoofed tailnet-range IP both resolve to `None` (#307
+/// acceptance 5/6).
+pub fn developer_full_projection() -> Option<DeveloperFullProjection> {
+    developer_full_projection_from(developer_origin::developer_origin_source())
+}
+
+fn developer_full_projection_from(
+    source: Option<developer_origin::DeveloperOriginSource>,
+) -> Option<DeveloperFullProjection> {
+    let source = source?;
+    Some(DeveloperFullProjection {
+        schema: DEVELOPER_FULL_SCHEMA.to_string(),
+        state: "active_paid".to_string(),
+        license_class: "developer".to_string(),
+        developer_profile: "developer_full".to_string(),
+        authority_source: source.label().to_string(),
+        all_focusa_features: true,
+        recovery_reason: None,
+        features: entitlement_policy::registered_software_feature_ids()
+            .map(str::to_string)
+            .collect(),
+    })
+}
+
 /// Canonical, presenter-neutral entitlement decision projection for status-style
 /// presenters.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -445,8 +498,16 @@ impl LicenseGuard {
         }
     }
 
-    /// Check a capability only against the immutable signed entitlement snapshot.
+    /// Check a capability against the signed entitlement snapshot, after the
+    /// trusted-development-origin decision (#307).
     pub fn check(&self, capability: Capability) -> CapabilityCheck {
+        // #307: a verified trusted development origin holds `developer_full`, so
+        // every capability is permitted. The trust decision is live runtime
+        // identity (`runtime_origin_context`), never an environment variable or
+        // a serialized guard field, so supplied snapshots cannot assert it.
+        if self.verified_developer_origin() {
+            return CapabilityCheck::Permitted;
+        }
         let Some(entitlement) = &self.entitlement else {
             return CapabilityCheck::Denied {
                 reason: "signed authority entitlement required; legacy tier is migration-only"
@@ -775,6 +836,36 @@ mod tests {
         assert!(!guard.runtime_origin_context);
         assert!(!guard.verified_developer_origin());
         assert!(guard.check(Capability::CommercialUse).is_denied());
+    }
+
+    #[test]
+    fn developer_full_projection_is_canonical_and_absent_without_origin() {
+        assert!(developer_full_projection_from(None).is_none());
+        let projection =
+            developer_full_projection_from(Some(developer_origin::DeveloperOriginSource::Tailnet))
+                .expect("trusted origin yields developer_full");
+        assert_eq!(projection.schema, DEVELOPER_FULL_SCHEMA);
+        assert_eq!(projection.state, "active_paid");
+        assert_eq!(projection.license_class, "developer");
+        assert_eq!(projection.developer_profile, "developer_full");
+        assert_eq!(projection.authority_source, "tailnet");
+        assert!(projection.all_focusa_features);
+        assert!(projection.recovery_reason.is_none());
+        // `developer_full` is the registered feature registry, never a
+        // hand-written list (#307 implementation guidance).
+        let registered: Vec<String> = entitlement_policy::registered_software_feature_ids()
+            .map(str::to_string)
+            .collect();
+        assert_eq!(projection.features, registered);
+        assert!(!projection.features.is_empty());
+        assert_eq!(
+            developer_full_projection_from(Some(
+                developer_origin::DeveloperOriginSource::CachedTrustedOrigin
+            ))
+            .unwrap()
+            .authority_source,
+            "cached_trusted_origin"
+        );
     }
 
     #[test]

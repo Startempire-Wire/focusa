@@ -897,6 +897,51 @@ async fn run_activate(json_output: bool, args: ActivateArgs) -> anyhow::Result<(
     Ok(())
 }
 
+/// Canonical `developer_full` status rendering shared by the JSON and human
+/// forms. The projection is the same object the daemon REST surface emits
+/// (#307), so CLI/REST/Pi status agree by construction.
+fn print_developer_full_status(
+    json_output: bool,
+    developer: &focusa_license::DeveloperFullProjection,
+) -> anyhow::Result<()> {
+    let payload = json!({
+        "schema": "focusa.authority_license_status.v1",
+        "state": developer.state.clone(),
+        "authority": serde_json::Value::Null,
+        "developer_full": developer,
+        "spec172": {
+            "schema": SPEC172_PRESENTER_SCHEMA,
+            "posture": "developer_full",
+            "product": "focusa",
+            "license_type": "developer",
+            "family": "base_focusa",
+            "denial": serde_json::Value::Null,
+            "retained_access": SPEC172_RETAINED_ACCESS,
+            "upgrade_action": serde_json::Value::Null,
+            "recovery_action": SPEC172_RECOVERY_ACTION,
+            "grant_inferred_from_surface": false,
+        },
+        "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
+        "marketing_preference": "managed_separately",
+    });
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+    } else {
+        println!("Focusa Signed Authority Status\n");
+        println!("State:            {}", developer.state);
+        println!("Product:          focusa");
+        println!("Posture:          developer_full");
+        println!("License type:     developer");
+        println!("Authority source: {}", developer.authority_source);
+        println!(
+            "Features:         all registered ({} enabled)",
+            developer.features.len()
+        );
+        println!("Decision:         permitted (developer_full)");
+    }
+    Ok(())
+}
+
 /// Canonical decision presenter (Spec 152F §5/§6). These helpers render the
 /// authority snapshot's base/premium/recovery decisions through the same
 /// projections the core, REST, TUI, and Pi surfaces inherit; the CLI never
@@ -1447,6 +1492,12 @@ async fn run_preflight(json_output: bool, args: PreflightArgs) -> anyhow::Result
 }
 
 async fn run_status(json_output: bool) -> anyhow::Result<()> {
+    // #307: a verified trusted development origin holds `developer_full` and
+    // needs no signed authority lease. Every surface renders this same
+    // projection so CLI, daemon REST, Pi, and TUI agree.
+    if let Some(developer) = focusa_license::developer_full_projection() {
+        return print_developer_full_status(json_output, &developer);
+    }
     // #342 field evidence: a customer who completed activation manually on the
     // authority website must see licensed state here. Before projecting, give
     // any persisted registration one bounded chance to reconcile with the
