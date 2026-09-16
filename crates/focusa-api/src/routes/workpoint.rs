@@ -3825,16 +3825,18 @@ mod tests {
             canonical: true,
             ..WorkpointRecord::default()
         };
-        let mut current = focusa_core::types::FocusaState::default();
-        current.session = Some(focusa_core::types::SessionState {
-            session_id: foreign_session,
-            created_at: Utc::now(),
-            adapter_id: None,
-            workspace_id: Some("/repo/foreign".to_string()),
-            project_root: Some("/repo/foreign".to_string()),
-            continuity_id: Some("foreign-main".to_string()),
-            status: focusa_core::types::SessionStatus::Active,
-        });
+        let mut current = focusa_core::types::FocusaState {
+            session: Some(focusa_core::types::SessionState {
+                session_id: foreign_session,
+                created_at: Utc::now(),
+                adapter_id: None,
+                workspace_id: Some("/repo/foreign".to_string()),
+                project_root: Some("/repo/foreign".to_string()),
+                continuity_id: Some("foreign-main".to_string()),
+                status: focusa_core::types::SessionStatus::Active,
+            }),
+            ..Default::default()
+        };
         current.workpoint.records.push(record.clone());
         let scope = ScopeContext {
             project_root: record.project_root.clone(),
