@@ -156,21 +156,41 @@ def main() -> int:
     for skill in registry["skills"]:
         body = skill_body(skill)
         runbook = runbook_body(skill)
+        # `authored: true` marks a skill whose SKILL.md is intentionally
+        # hand-authored — e.g. a transition-aware core whose own `source_status`
+        # declares "packaged copy must remain byte-identical". Such a file is
+        # still root/packaged parity checked, and still contributes a generated
+        # runbook and an evidence stamp, but it is NOT regenerated from the
+        # registry template. Treating it as a generated file reported legitimate
+        # hand-authored guidance as "drift" and a naive regeneration would have
+        # deleted it.
+        authored = bool(skill.get("authored"))
         for base in (ROOT_SKILLS, PACKAGED_SKILLS):
             skill_path = base / skill["name"] / "SKILL.md"
             runbook_path = (
                 base / skill["name"] / "references" / f"01-{skill['name']}-runbook.md"
             )
-            if write_or_check(skill_path, body, args.check):
-                drift.append(str(skill_path.relative_to(ROOT)))
+            if not authored:
+                if write_or_check(skill_path, body, args.check):
+                    drift.append(str(skill_path.relative_to(ROOT)))
+            elif not skill_path.exists():
+                drift.append(
+                    f"{skill_path.relative_to(ROOT)} (authored SKILL.md missing)"
+                )
             if write_or_check(runbook_path, runbook, args.check):
                 drift.append(str(runbook_path.relative_to(ROOT)))
+        # The evidence stamp must describe the bytes that actually ship, which
+        # for an authored skill are the committed file's, not the template's.
+        shipped_path = ROOT_SKILLS / skill["name"] / "SKILL.md"
+        shipped_bytes = (
+            shipped_path.read_bytes() if shipped_path.exists() else body.encode()
+        )
         generated.append(
             {
                 "name": skill["name"],
                 "tools": skill["tools"],
                 "runbook": f".pi/skills/{skill['name']}/references/01-{skill['name']}-runbook.md",
-                "sha256": hashlib.sha256(body.encode()).hexdigest(),
+                "sha256": hashlib.sha256(shipped_bytes).hexdigest(),
             }
         )
 
