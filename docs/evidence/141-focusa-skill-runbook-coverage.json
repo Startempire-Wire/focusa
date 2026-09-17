@@ -115,7 +115,7 @@
         "focusa_active_object_resolve"
       ],
       "runbook": ".pi/skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md",
-      "sha256": "d96b94b7bdda6eebe04b0d292693b6a8831ddb1b7db3288e0db0c1c7c2337143"
+      "sha256": "d6cb49de6d5e66b54b15bda492c090fa559827fd2a8fcd8f57bde20631689d55"
     },
     {
       "name": "focusa-release-proof",

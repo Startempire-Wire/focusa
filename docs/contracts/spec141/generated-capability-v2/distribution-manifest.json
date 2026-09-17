@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.194-dev",
-  "source_commit": "3850a7f9",
-  "generated_at": "2026-09-14T02:26:56.601838Z",
+  "source_commit": "7a8534d",
+  "generated_at": "2026-09-17T08:34:21.481420Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:70e6386f275b488f2359fda068614fd2497bbf0e25d9a9bfbafea5b1f94c9f86",
@@ -16,7 +16,7 @@
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:1579974b429fbc371840cb50bb7427b0f9a4f317399c75701fbffee139c74597",
+      "sha256": "sha256:52ef7fd54b6cdbc208cf31070778e791eb4c0ba804f74b1351131accbddb2ff4",
       "file_count": 835,
       "source_paths": [
         "Cargo.toml",
@@ -26,15 +26,15 @@
     },
     "pi_extension": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:e6e983da2c27a38087d3f2345f7a098e4e836c1fe1f070c23e3e07be80f05ac8",
-      "file_count": 201,
+      "sha256": "sha256:232db4bfd93038eb3a229847547e2bec4109695012d039bda7fb23a1745ed630",
+      "file_count": 202,
       "source_paths": [
         "apps/pi-extension"
       ]
     },
     "agent_skills": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:964b163f8a0e4b663a6ac524c52f2be85c3367b8c6de214c37e923f8971c5bd9",
+      "sha256": "sha256:ccf0f74840e72e80b3f977458aebf2b77cfed86bea594246c6a5da10597bde21",
       "file_count": 66,
       "source_paths": [
         ".pi/skills",
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:f78952f56e64fe525db073a6c369c6d7441382d1a2f85e52cbc726ffad2bae3d",
+      "sha256": "sha256:911fe08a003cef9eef46e59f4cf430aa9fbb395bfbd8081d8cdcf60c835ed9da",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -67,7 +67,7 @@
     },
     "installers": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:1230b91a9f571ee181f835da689ec918d460a203e5e494c0c3e49099d8ea6b58",
+      "sha256": "sha256:04086879a7af363b1cd1f2dbd9bda8868a6a784cb92b79f680f8cb636c610dde",
       "file_count": 3,
       "source_paths": [
         "scripts/install-focusa.sh",

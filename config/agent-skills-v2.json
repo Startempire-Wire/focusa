@@ -250,6 +250,7 @@
     },
     {
       "name": "focusa-mission-canvas",
+      "authored": true,
       "description": "Use for Mission Canvas, Work Rail, CRIST interviews, generated UI, workspace artifacts, live refresh, and provider-neutral operation binding.",
       "triggers": [
         "mission canvas",
