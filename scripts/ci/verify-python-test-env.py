@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import sys
 from importlib.metadata import PackageNotFoundError, distribution
+from importlib.util import find_spec
 from pathlib import Path
 
 
@@ -25,6 +26,9 @@ def main() -> None:
             raise SystemExit(f"Dependency drift: {name} expected={expected} actual={installed.version}")
         if not Path(installed.locate_file("")).resolve().is_relative_to(prefix):
             raise SystemExit(f"Ambient dependency rejected: {name}")
+    schema_module = find_spec("jsonschema")
+    if not schema_module or not schema_module.origin or not Path(schema_module.origin).resolve().is_relative_to(prefix):
+        raise SystemExit("Ambient jsonschema module rejected")
     from jsonschema import Draft202012Validator
     Draft202012Validator.check_schema({"type": "object"})
     print(f"Verified {len(pins)} locked dependencies in an isolated environment")
