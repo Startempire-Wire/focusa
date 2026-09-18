@@ -173,9 +173,15 @@ try {
   const autoCompaction = await import(autoCompactionUrl);
   const registrationHandlers = () => {
     const handlers = new Map();
+    let stale = false;
     return {
       handlers,
+      markStale() { stale = true; },
       pi: {
+        getAllTools() {
+          if (stale) throw new Error("This extension ctx is stale after session replacement or reload.");
+          return [];
+        },
         on(name, handler) {
           handlers.set(name, handler);
         },
@@ -186,6 +192,7 @@ try {
   autoCompaction.resetCompactionLeaseForTest();
   const initialRegistration = registrationHandlers();
   assert.equal(autoCompaction.registerAutoCompaction(initialRegistration.pi), true);
+  initialRegistration.markStale();
   const replacementRegistration = registrationHandlers();
   assert.equal(
     autoCompaction.registerAutoCompaction(replacementRegistration.pi),
