@@ -10,6 +10,9 @@ use clap::{Parser, Subcommand, ValueEnum};
 mod api_client;
 mod commands;
 
+#[cfg(test)]
+mod trajectory_parse_tests;
+
 /// Pairing umbrella (focusa-ui0y v0.9.39-dev). Aggregates the pairing
 /// subcommands under a single `focusa pairing ...` namespace.
 #[derive(Subcommand, Debug)]

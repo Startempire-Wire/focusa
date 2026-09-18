@@ -420,6 +420,17 @@ fn record_has_verified_project_anchor(
     true
 }
 
+// The writer and active reader share the same eligibility contract.
+fn trajectory_record_matches_scope(
+    record: &TrajectoryProjectionRecord,
+    project_root: &str,
+    continuity_id: &str,
+) -> bool {
+    record_has_verified_project_anchor(record, project_root)
+        && record.continuity_id.as_deref() == Some(continuity_id)
+        && record.canonical
+}
+
 fn active_persisted_trajectory<'a>(
     state: &'a FocusaState,
     project_root: Option<&str>,
@@ -433,9 +444,7 @@ fn active_persisted_trajectory<'a>(
     let expected_continuity_id = clean(continuity_id)?;
 
     state.trajectory.records.iter().rev().find(|record| {
-        record_has_verified_project_anchor(record, &expected_project_root)
-            && record.continuity_id.as_deref() == Some(expected_continuity_id.as_str())
-            && record.canonical
+        trajectory_record_matches_scope(record, &expected_project_root, &expected_continuity_id)
     })
 }
 
@@ -2029,7 +2038,7 @@ fn define_goal_payload(state: &FocusaState, body: &TrajectoryDefineGoalRequest) 
         session_id.as_deref(),
         body.idempotency_key.as_deref().unwrap_or("defined-goal"),
     );
-    json!({
+    let mut payload = json!({
         "status": status_from_validation(valid),
         "canonical": valid,
         "degraded": !valid,
@@ -2062,7 +2071,31 @@ fn define_goal_payload(state: &FocusaState, body: &TrajectoryDefineGoalRequest) 
         "validation_errors": validation_errors,
         "next_step_hint": if valid { "use focusa_trajectory_assess, then propose a Workpoint candidate if the gap is actionable" } else { "provide missing goals or operator confirmation/durable supersession evidence" },
         "next_tools": ["focusa_trajectory_assess", "focusa_trajectory_propose_workpoint"],
-    })
+    });
+    if valid {
+        let selectable = clean(query.continuity_id.as_deref()).is_some_and(|continuity| {
+            trajectory_record_from_define_payload(&payload, body).is_some_and(|record| {
+                trajectory_record_matches_scope(&record, &project_root, &continuity)
+            })
+        });
+        if !selectable {
+            payload["status"] = json!(status_from_validation(false));
+            payload["canonical"] = json!(false);
+            payload["degraded"] = json!(true);
+            payload["mutates_canonical_state"] = json!(false);
+            payload["persisted"] = json!(false);
+            payload["failure_class"] = json!("trajectory_scope_unverified");
+            payload["validation_errors"].as_array_mut().unwrap().push(json!(
+                "verified project authority and exact nonempty continuity are required before goal persistence"
+            ));
+            payload["next_step_hint"] = json!(
+                "verify the project and matching session identity, provide exact continuity, then retry the goal definition"
+            );
+            payload["next_tools"] =
+                json!(["focusa_project_verify", "focusa_trajectory_define_goal"]);
+        }
+    }
+    payload
 }
 
 fn assess_payload(state: &FocusaState, body: &TrajectoryAssessRequest) -> Value {
@@ -2295,11 +2328,19 @@ fn checkpoint_payload(state: &FocusaState, body: &TrajectoryCheckpointRequest) -
     let view = trajectory_view_payload(state, &query);
     let project_root = view_project_root(&view);
     let session_id = view_continuity_id(&view).or_else(|| view_session_id(&view));
-    let trajectory_id = trajectory_id_for(
-        &project_root,
-        session_id.as_deref(),
-        body.idempotency_key.as_deref().unwrap_or("checkpoint"),
-    );
+    let trajectory_id = active_persisted_trajectory(
+        state,
+        Some(&project_root),
+        view_continuity_id(&view).as_deref(),
+    )
+    .map(|record| record.trajectory_id.clone())
+    .unwrap_or_else(|| {
+        trajectory_id_for(
+            &project_root,
+            session_id.as_deref(),
+            body.idempotency_key.as_deref().unwrap_or("checkpoint"),
+        )
+    });
     json!({
         "status": "completed",
         "canonical": true,
@@ -2431,13 +2472,19 @@ fn attach_trajectory_tool_result(
         .get("degraded")
         .and_then(Value::as_bool)
         .unwrap_or(!canonical);
-    let failure_class = if status == "validation_rejected" {
-        json!("validation_rejected")
-    } else if status == "degraded" || degraded {
-        json!("scope_mismatch")
-    } else {
-        Value::Null
-    };
+    let failure_class = payload
+        .get("failure_class")
+        .filter(|value| value.as_str().is_some_and(|class| !class.is_empty()))
+        .cloned()
+        .unwrap_or_else(|| {
+            if status == "validation_rejected" {
+                json!("validation_rejected")
+            } else if status == "degraded" || degraded {
+                json!("scope_mismatch")
+            } else {
+                Value::Null
+            }
+        });
     let ok = failure_class.is_null();
     let next_tools = payload
         .get("next_tools")
@@ -3358,6 +3405,217 @@ mod tests {
         );
     }
 
+    #[test]
+    fn issue621_unverified_goal_is_rejected_before_persistence() {
+        let directory = tempfile::tempdir().unwrap();
+        let body: TrajectoryDefineGoalRequest = serde_json::from_value(json!({
+            "project_root": directory.path().to_str().unwrap(),
+            "continuity_id": "issue621-unverified",
+            "long_term_goal": "Preserve scoped trajectory authority",
+            "desired_end_state": "Committed goals are readable in the same verified scope",
+            "current_state": "Scope verification is incomplete",
+            "operator_confirmed": true
+        }))
+        .unwrap();
+        let payload = define_goal_payload(&FocusaState::default(), &body);
+        assert_eq!(
+            payload["canonical"], false,
+            "unverified writer claim: {payload}"
+        );
+        assert_eq!(payload["persisted"], false);
+        assert!(trajectory_record_from_define_payload(&payload, &body).is_none());
+        let envelope = attach_trajectory_tool_result(payload, vec![], vec![]);
+        let result = &envelope["details"]["tool_result_v1"];
+        assert_eq!(result["ok"], false);
+        assert_eq!(result["canonical"], false);
+        assert_eq!(result["failure_class"], "trajectory_scope_unverified");
+    }
+
+    #[test]
+    fn issue621_verified_goal_is_immediately_selectable_in_exact_scope() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().to_str().unwrap();
+        setup_test_project_fixture(root);
+        let body: TrajectoryDefineGoalRequest = serde_json::from_value(json!({
+            "project_root": root,
+            "continuity_id": "issue621-verified",
+            "long_term_goal": "Preserve scoped trajectory authority",
+            "desired_end_state": "Committed goals are readable in the same verified scope",
+            "mid_level_goal": "Make saved goals visible",
+            "short_term_goal": "Verify same-scope readback",
+            "waypoints": ["Prove exact scope", "Prove unrelated scope stays isolated"],
+            "current_state": "The project has verified local identity",
+            "operator_confirmed": true
+        }))
+        .unwrap();
+        let mut state = FocusaState::default();
+        let payload = define_goal_payload(&state, &body);
+        assert_eq!(
+            payload["canonical"], true,
+            "verified writer rejected: {payload}"
+        );
+        let record = trajectory_record_from_define_payload(&payload, &body).unwrap();
+        state = focusa_core::reducer::reduce(
+            state,
+            FocusaEvent::TrajectoryGoalDefined { trajectory: record },
+        )
+        .unwrap()
+        .new_state;
+        let checkpoint_body: TrajectoryCheckpointRequest = serde_json::from_value(json!({
+            "project_root": root,
+            "continuity_id": "issue621-verified",
+            "summary": "Same-scope checkpoint proof"
+        }))
+        .unwrap();
+        let checkpoint = checkpoint_payload(&state, &checkpoint_body);
+        let trajectory_id = checkpoint["trajectory_checkpoint"]["trajectory_id"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        assert_eq!(
+            Some(&trajectory_id),
+            state.trajectory.active_trajectory_id.as_ref()
+        );
+        state = focusa_core::reducer::reduce(
+            state,
+            FocusaEvent::TrajectoryCheckpointPersisted {
+                trajectory_id,
+                checkpoint: checkpoint["trajectory_checkpoint"].clone(),
+                summary: checkpoint_body.summary.clone(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        // Exercise persisted-state serialization rather than only an in-memory insertion.
+        state = serde_json::from_value(serde_json::to_value(&state).unwrap()).unwrap();
+        let mut query = TrajectoryViewQuery {
+            project_root: Some(root.to_string()),
+            continuity_id: Some("issue621-verified".to_string()),
+            mode: None,
+            session_id: None,
+            allow_prior_project_trajectory: false,
+        };
+        let view = trajectory_view_payload(&state, &query);
+        assert_eq!(view["trajectory"]["long_term_goal"], body.long_term_goal);
+        assert_eq!(
+            view["trajectory"]["trajectory_ladder"]["mlg"],
+            "Make saved goals visible"
+        );
+        assert_eq!(
+            view["trajectory"]["trajectory_ladder"]["stg"],
+            "Verify same-scope readback"
+        );
+        assert_eq!(
+            view["trajectory"]["trajectory_ladder"]["waypoints"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(
+            view["trajectory"]["durable_lifecycle"]["checkpoint_count"],
+            1
+        );
+        query.continuity_id = Some("foreign-continuity".to_string());
+        let foreign = trajectory_view_payload(&state, &query);
+        assert!(foreign["trajectory"]["long_term_goal"].is_null());
+        assert_eq!(
+            foreign["trajectory"]["durable_lifecycle"]["canonical"],
+            false
+        );
+        let other_directory = tempfile::tempdir().unwrap();
+        let other_root = other_directory.path().to_str().unwrap();
+        setup_test_project_fixture(other_root);
+        query.project_root = Some(other_root.to_string());
+        query.continuity_id = Some("issue621-verified".to_string());
+        let other = trajectory_view_payload(&state, &query);
+        assert!(other["trajectory"]["long_term_goal"].is_null());
+        assert_eq!(other["trajectory"]["durable_lifecycle"]["canonical"], false);
+        assert!(
+            active_persisted_trajectory(&state, Some(root), Some("issue621-verified")).is_some()
+        );
+        assert!(
+            active_persisted_trajectory(&state, Some(root), Some("foreign-continuity")).is_none()
+        );
+        assert!(
+            active_persisted_trajectory(
+                &state,
+                Some("/foreign-project"),
+                Some("issue621-verified")
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn issue621_missing_or_noncanonical_continuity_is_rejected() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().to_str().unwrap();
+        setup_test_project_fixture(root);
+        for continuity in [None, Some(""), Some(" padded-continuity ")] {
+            let body: TrajectoryDefineGoalRequest = serde_json::from_value(json!({
+                "project_root": root,
+                "continuity_id": continuity,
+                "long_term_goal": "Preserve scoped trajectory authority",
+                "desired_end_state": "Committed goals remain selectable",
+                "operator_confirmed": true
+            }))
+            .unwrap();
+            let payload = define_goal_payload(&FocusaState::default(), &body);
+            assert_eq!(payload["canonical"], false, "continuity: {continuity:?}");
+            assert_eq!(payload["persisted"], false);
+            assert!(trajectory_record_from_define_payload(&payload, &body).is_none());
+        }
+    }
+
+    #[test]
+    fn issue621_session_provenance_must_corroborate_writer_scope() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().to_str().unwrap();
+        setup_test_project_fixture(root);
+        let mut body: TrajectoryDefineGoalRequest = serde_json::from_value(json!({
+            "project_root": root,
+            "continuity_id": "issue621-provenance",
+            "long_term_goal": "Preserve scoped trajectory authority",
+            "desired_end_state": "Committed goals remain selectable",
+            "operator_confirmed": true
+        }))
+        .unwrap();
+        let state = FocusaState::default();
+        let initial = define_goal_payload(&state, &body);
+        let anchor = scope_ref_from_project_identity_payload(&initial).unwrap();
+        for (status, provenance_root, fingerprint, accepted) in [
+            ("verified", root, anchor.fingerprint.as_str(), true),
+            ("unknown", root, anchor.fingerprint.as_str(), false),
+            (
+                "verified",
+                "/foreign-project",
+                anchor.fingerprint.as_str(),
+                false,
+            ),
+            ("verified", root, "foreign-fingerprint", false),
+        ] {
+            body.session_identity = Some(FocusaSessionIdentity {
+                project_identity: Some(focusa_core::types::ProjectIdentityRecord {
+                    status: Some(status.to_string()),
+                    project_root: provenance_root.to_string(),
+                    fingerprint: Some(fingerprint.to_string()),
+                    ..focusa_core::types::ProjectIdentityRecord::default()
+                }),
+                ..FocusaSessionIdentity::default()
+            });
+            let payload = define_goal_payload(&state, &body);
+            assert_eq!(
+                payload["canonical"], accepted,
+                "provenance: {status}/{provenance_root}/{fingerprint}"
+            );
+            assert_eq!(
+                trajectory_record_from_define_payload(&payload, &body).is_some(),
+                accepted
+            );
+        }
+    }
+
     fn setup_test_project_fixture(project_root: &str) {
         let _ = std::fs::create_dir_all(project_root);
         let git_dir = std::path::PathBuf::from(project_root).join(".git");
@@ -4053,7 +4311,7 @@ mod tests {
     }
 
     #[test]
-    fn define_goal_returns_advisory_candidate_without_canonical_mutation() {
+    fn define_goal_returns_persistable_candidate_for_verified_continuity() {
         let state = state_with_workpoint("/tmp/focusa-test");
         let payload = define_goal_payload(
             &state,
@@ -4061,6 +4319,7 @@ mod tests {
                 long_term_goal: "Ship per-project trajectory".to_string(),
                 desired_end_state: "All agents receive project trajectory".to_string(),
                 project_root: Some("/tmp/focusa-test".to_string()),
+                continuity_id: Some("cont-a".to_string()),
                 session_id: Some("session-a".to_string()),
                 ..TrajectoryDefineGoalRequest::default()
             },
