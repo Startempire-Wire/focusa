@@ -80,7 +80,7 @@ if [[ "$FOCUSA_TEST_MODE" == "1" && ! -s "$ROOT_DIR/.beads/issues.jsonl" ]]; the
   # only the synthetic issue required by command-write contract tests, and
   # remove it on every exit; never copy or mutate operator task history.
   mkdir -p "$ROOT_DIR/.beads"
-  printf '%s\n' '{"id":"focusa-032h","status":"open"}' > "$ROOT_DIR/.beads/issues.jsonl"
+  printf '%s\n' '{"id":"focusa-032h","title":"Isolated command-write fixture","status":"open","priority":1,"issue_type":"task","created_at":"2026-07-22T00:00:00Z","updated_at":"2026-07-22T00:00:00Z"}' > "$ROOT_DIR/.beads/issues.jsonl"
   TEST_BEADS_FIXTURE="$ROOT_DIR/.beads/issues.jsonl"
 fi
 
