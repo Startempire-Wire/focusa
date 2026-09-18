@@ -352,7 +352,9 @@ def publish(payload: dict[str, Any]) -> dict[str, Any]:
             "/v1/releases/journal?view=replication&event_id="
             + urllib.parse.quote(event_id, safe="")
         )
-        deadline = time.monotonic() + 45
+        # Replication can acknowledge a durably accepted event after 45s.
+        # Allow a bounded three-minute window without relaxing master proof.
+        deadline = time.monotonic() + 180
         while time.monotonic() < deadline:
             replication = api_request("GET", replication_path)
             if (

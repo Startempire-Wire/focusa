@@ -105,6 +105,7 @@ replication_reads = iter(
 )
 original_api_request = module.api_request
 original_sleep = module.time.sleep
+original_monotonic = module.time.monotonic
 original_ack_setting = module.os.environ.get("AGENT_KB_REQUIRE_MASTER_ACK")
 
 
@@ -118,11 +119,15 @@ def fake_api_request(method, path, body=None):
 try:
     module.api_request = fake_api_request
     module.time.sleep = lambda _seconds: None
+    # Delayed canonical acknowledgment must not cause a false failure at 45s.
+    clock = iter([0.0, 0.0, 90.0])
+    module.time.monotonic = lambda: next(clock)
     module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = "1"
     receipt = module.publish(payload)
 finally:
     module.api_request = original_api_request
     module.time.sleep = original_sleep
+    module.time.monotonic = original_monotonic
     if original_ack_setting is None:
         module.os.environ.pop("AGENT_KB_REQUIRE_MASTER_ACK", None)
     else:
