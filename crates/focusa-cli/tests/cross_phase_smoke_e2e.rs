@@ -423,10 +423,17 @@ fn running_monitor_loss_settles_durable_terminal_receipt() {
             .expect("dispatched job row")
     };
 
+    // Detached dispatch acknowledges the queued record before the monitor binds.
+    // Wait for that transition, but never accept a terminal or unknown state.
+    let startup_deadline = Instant::now() + Duration::from_secs(5);
     let mut job = status();
+    while job["status"] == "queued" && Instant::now() < startup_deadline {
+        thread::sleep(Duration::from_millis(50));
+        job = status();
+    }
     assert_eq!(
         job["status"], "running",
-        "long-running job must reach running"
+        "long-running job must reach running: {job}"
     );
     let monitor_pid = job["pid"].as_u64().expect("bound monitor pid");
     let killed = Command::new("kill")
