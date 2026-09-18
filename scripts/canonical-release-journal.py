@@ -93,7 +93,8 @@ class JournalApiError(RuntimeError):
     def __init__(self, status_code: int, detail: str):
         self.status_code = status_code
         try:
-            self.response = json.loads(detail)
+            response = json.loads(detail)
+            self.response = response if isinstance(response, dict) else {}
         except ValueError:
             self.response = {}
         super().__init__(f"agent-kb-api {status_code}: {detail}")
