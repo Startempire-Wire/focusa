@@ -217,6 +217,8 @@ Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, Op
 4. `focusa_tool_graph` — bounded dependency and likely-next edges.
 5. `focusa_tool_bundle` — one family, schemas deferred by default.
 
+Spec 100 curator surfaces are first-class tools: `focusa_context_cognition_curate` (token-budgeted context selection), `focusa_context_cognition_curate_eval` (ran a bounded eval case), `focusa_context_cognition_curate_optimize` (promote/rollback verdict), `focusa_context_cognition_optimizer_artifacts` (versioned artifact history), `focusa_context_cognition_render` (compact packet display), and `focusa_context_cognition_proof` (bounded proof commands).
+
 MCP exposes the generated callable catalog with pagination, `listChanged`, strict schemas, structured output, safety annotations, and scoped REST authority. UIAI/WebMCP capabilities are bound to one browser session and origin; page safety claims remain untrusted, mutations require governance, and results become evidence.
 
 Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/) · Every Pi tool: [`docs/focusa-tools/tools/`](docs/focusa-tools/tools/) · Skills/runbooks: [`.pi/skills/`](.pi/skills/) · Agent fast start: [`docs/agent/01-focusa-agent-docs-index.md`](docs/agent/01-focusa-agent-docs-index.md) · Release gate: [`docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`](docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md)

@@ -3311,17 +3311,17 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_context_cognition_render",
     "focusa_evidence_capture",
   ],
-  focusa_context_cognition_curate: [
+  "focusa_context_cognition_curate": [
     "focusa_context_cognition",
     "focusa_context_cognition_render",
     "focusa_evidence_capture",
   ],
-  focusa_context_cognition_curate_eval: [
+  "focusa_context_cognition_curate_eval": [
     "focusa_context_cognition_curate_optimize",
     "focusa_metacog_capture",
     "focusa_predict_record",
   ],
-  focusa_context_cognition_curate_optimize: [
+  "focusa_context_cognition_curate_optimize": [
     "focusa_context_cognition_optimizer_artifacts",
     "focusa_predict_record",
     "focusa_metacog_capture",
@@ -3332,7 +3332,7 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   focusa_device_pair_status: ["focusa_device_pair_list", "focusa_device_pair_revoke"],
   focusa_device_pair_list: ["focusa_device_pair_revoke", "focusa_session_transfer"],
   focusa_device_pair_revoke: ["focusa_device_pair_list"],
-  focusa_context_cognition_optimizer_artifacts: ["focusa_context_cognition_curate_optimize"],
+  "focusa_context_cognition_optimizer_artifacts": ["focusa_context_cognition_curate_optimize"],
   focusa_bloatgaurd_report: [
     "focusa_bloatgaurd_domain",
     "focusa_context_cognition_render",

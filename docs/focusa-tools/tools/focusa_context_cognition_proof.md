@@ -2,6 +2,10 @@
 
 Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits). Returns bounded command list. Read-only. Use it when Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits). It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
+## Purpose
+
+Map the Spec 100 ContextCognitionPacket surfaces to a bounded set of proof commands (curl + focusa + audits) so an operator can independently verify scope and authority. Read-only; it never exposes raw prediction or candidate content.
+
 ## When to use
 
 - Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits).
@@ -15,7 +19,7 @@ Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + 
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_context_cognition_proof`.
 
-## Output
+## Expected result
 
 Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
@@ -52,7 +56,9 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Failure and recovery
 
-Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+This read-only, deterministic evaluation route is a query-side (CQRS read) operation: it never mutates prediction or candidate state.
+
+Failure settles through the strict `failure_class` envelope. Declared `failure_class` values: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
 - scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
 - resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request

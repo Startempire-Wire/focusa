@@ -2,6 +2,10 @@
 
 Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state. Use it when Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
+## Purpose
+
+Return one bounded Spec 100 ContextCognitionPacket for the current project scope so an agent can make structured decisions under token budget, without exposing raw prediction or candidate content. Read-only and advisory.
+
 ## When to use
 
 - Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state.
@@ -17,7 +21,7 @@ Build the bounded, advisory Spec 100 ContextCognitionPacket for the current proj
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_context_cognition`.
 
-## Output
+## Expected result
 
 Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
@@ -54,7 +58,9 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Failure and recovery
 
-Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+This read-only, deterministic evaluation route is a query-side (CQRS read) operation: it never mutates prediction or candidate state.
+
+Failure settles through the strict `failure_class` envelope. Declared `failure_class` values include `scope_mismatch`, `project_root_missing`, `project_root_unverified`, `scope_conflict`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`. A missing or unverified project_root and a scope_mismatch both require re-verifying the exact project_root + continuity_id before any downstream action.
 
 - scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
 - resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
