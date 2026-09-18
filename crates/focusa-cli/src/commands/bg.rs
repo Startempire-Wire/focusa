@@ -4,6 +4,8 @@
 #[path = "bg_list_output.rs"]
 mod list_output;
 
+use std::time::Duration;
+
 use clap::{Args, Subcommand};
 use focusa_core::background_jobs::{BackgroundJobFailureClass, current_process_start_token};
 use serde_json::{Value, json};
@@ -77,6 +79,12 @@ pub struct WaitArgs {
     pub timeout_ms: u64,
 }
 
+const BG_WAIT_TRANSPORT_GRACE: Duration = Duration::from_secs(5);
+
+fn wait_transport_timeout(timeout_ms: u64) -> Duration {
+    Duration::from_millis(timeout_ms).saturating_add(BG_WAIT_TRANSPORT_GRACE)
+}
+
 fn internal_job_binding(args: &RunArgs) -> anyhow::Result<Option<(String, String)>> {
     if !args.internal_monitor {
         return Ok(None);
@@ -146,7 +154,13 @@ pub async fn run(cmd: BgCmd, json_mode: bool) -> anyhow::Result<()> {
                 "/v1/background-jobs/wait?job_id={}&timeout_ms={}",
                 args.job, args.timeout_ms
             );
-            let result: Value = api.get(&url).await?;
+            let result: Value = api
+                .get_with_headers_and_timeout(
+                    &url,
+                    &[],
+                    Some(wait_transport_timeout(args.timeout_ms)),
+                )
+                .await?;
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&result)?);
             } else {
@@ -488,5 +502,11 @@ mod tests {
             internal_job_binding(&run_args(false, None, None)).expect("ordinary run"),
             None
         );
+    }
+
+    #[test]
+    fn wait_transport_timeout_outlives_requested_long_poll() {
+        assert_eq!(wait_transport_timeout(20_000), Duration::from_secs(25));
+        assert_eq!(wait_transport_timeout(600_000), Duration::from_secs(605));
     }
 }

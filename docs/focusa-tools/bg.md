@@ -17,6 +17,10 @@ focusa bg list                  # recent jobs
 focusa bg wait --job <id> [--timeout-ms N]   # bounded blocking join
 ```
 
+The release candidate gives `bg wait` an HTTP transport timeout of the requested
+`--timeout-ms` plus five seconds. A normal elapsed wait returns `status=timeout`;
+a transport failure remains a distinct error and does not cancel the job.
+
 `focusa bg run` is the monitor: create row → spawn detached (pgid 0) →
 wait → durable completion record → SSE broadcast
 (`background_job_completion` with `output_tail`, bounded 4KB).

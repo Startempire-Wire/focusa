@@ -202,8 +202,22 @@ impl ApiClient {
         path: &str,
         headers: &[(&str, &str)],
     ) -> anyhow::Result<Value> {
+        self.get_with_headers_and_timeout(path, headers, None).await
+    }
+
+    /// Preserve shared headers and error handling while allowing long-poll requests
+    /// to outlive the short default transport timeout.
+    pub async fn get_with_headers_and_timeout(
+        &self,
+        path: &str,
+        headers: &[(&str, &str)],
+        timeout: Option<Duration>,
+    ) -> anyhow::Result<Value> {
         let url = format!("{}{}", self.base, path);
         let mut request = self.client.get(&url);
+        if let Some(timeout) = timeout {
+            request = request.timeout(timeout);
+        }
         for (name, value) in headers {
             request = request.header(*name, *value);
         }
@@ -312,6 +326,33 @@ mod tests {
     use super::*;
     use std::io::{Read, Write};
     use std::net::TcpListener;
+
+    #[tokio::test]
+    async fn wait_override_outlives_short_client_timeout() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0u8; 4096];
+            stream.read(&mut request).unwrap();
+            std::thread::sleep(Duration::from_millis(100));
+            stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}")
+                .unwrap();
+        });
+        let api = ApiClient {
+            client: ClientBuilder::new()
+                .timeout(Duration::from_millis(10))
+                .build()
+                .unwrap(),
+            base: format!("http://{address}"),
+        };
+        let response = api
+            .get_with_headers_and_timeout("/wait", &[], Some(Duration::from_secs(2)))
+            .await;
+        server.join().unwrap();
+        assert_eq!(response.unwrap(), serde_json::json!({}));
+    }
 
     #[tokio::test]
     async fn scoped_get_sends_project_and_continuity_headers() {
