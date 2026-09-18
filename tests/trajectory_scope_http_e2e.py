@@ -61,6 +61,15 @@ try:
     assert same['trajectory_ladder']['mlg'] == body['mid_level_goal'], same
     assert same['trajectory_ladder']['stg'] == body['short_term_goal'], same
     assert same['durable_lifecycle']['checkpoint_count'] >= 1, same
+    history_query = urllib.parse.urlencode(dict(project_root=str(project), continuity_id='issue621-http', trajectory_id=defined['trajectory_id']))
+    history = request('trajectory-history', '/v1/trajectory/history?' + history_query, project)
+    assert history['reconstruction']['hlt'] == same['long_term_goal'], history
+    assert history['reconstruction']['mlg'] == same['trajectory_ladder']['mlg'], history
+    assert history['reconstruction']['stg'] == same['trajectory_ladder']['stg'], history
+    versions = {event['hlt_version'] for event in history['events']}
+    assert len(versions) == 1, versions
+    version = versions.pop()
+    assert same.get('hlt_version') == version, {'view_hlt_version': same.get('hlt_version'), 'ledger_hlt_version': version}
     foreign = view('foreign-scope-view', projects[1])['trajectory']
     assert foreign.get('long_term_goal') is None, foreign
     assert foreign['durable_lifecycle']['canonical'] is False, foreign

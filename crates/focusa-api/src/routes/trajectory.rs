@@ -32,6 +32,9 @@ use std::time::Duration;
 use tracing::warn;
 use uuid::Uuid;
 
+#[path = "trajectory_revision.rs"]
+mod revision;
+
 #[derive(Debug, Deserialize, Default)]
 pub struct TrajectoryViewQuery {
     pub session_id: Option<String>,
@@ -2516,12 +2519,12 @@ async fn view(
     Query(query): Query<TrajectoryViewQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Json<Value> {
-    let focusa = state.focusa.read().await;
-    Json(attach_trajectory_tool_result(
-        trajectory_view_payload(&focusa, &query),
-        vec![],
-        vec![],
-    ))
+    let mut payload = {
+        let focusa = state.focusa.read().await;
+        trajectory_view_payload(&focusa, &query)
+    };
+    revision::enrich(&mut payload, &state).await;
+    Json(attach_trajectory_tool_result(payload, vec![], vec![]))
 }
 
 async fn define_goal(
