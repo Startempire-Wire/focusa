@@ -89,6 +89,16 @@ def token() -> str:
     raise RuntimeError("agent-kb release publisher token unavailable")
 
 
+class JournalApiError(RuntimeError):
+    def __init__(self, status_code: int, detail: str):
+        self.status_code = status_code
+        try:
+            self.response = json.loads(detail)
+        except ValueError:
+            self.response = {}
+        super().__init__(f"agent-kb-api {status_code}: {detail}")
+
+
 def api_request(method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
     base = os.environ.get("AGENT_KB_API_URL", DEFAULT_API).rstrip("/")
     body = None if payload is None else json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
@@ -103,7 +113,7 @@ def api_request(method: str, path: str, payload: dict[str, Any] | None = None) -
             return json.loads(response.read())
     except urllib.error.HTTPError as error:
         detail = error.read().decode(errors="replace")[:1000]
-        raise RuntimeError(f"agent-kb-api {error.code}: {detail}") from error
+        raise JournalApiError(error.code, detail) from error
 
 
 def focusa_headers() -> dict[str, str]:
@@ -356,7 +366,15 @@ def publish(payload: dict[str, Any]) -> dict[str, Any]:
         # Allow a bounded three-minute window without relaxing master proof.
         deadline = time.monotonic() + 180
         while time.monotonic() < deadline:
-            replication = api_request("GET", replication_path)
+            try:
+                replication = api_request("GET", replication_path)
+            except JournalApiError as error:
+                if error.status_code != 404 or error.response.get("summary") != "release journal replication state not found":
+                    raise
+                # The accepted event can precede its replication projection.
+                # Absence is pending, never acknowledgment or permission to publish.
+                time.sleep(1)
+                continue
             if (
                 replication.get("status") == "ok"
                 and replication.get("state") == "master_accepted"

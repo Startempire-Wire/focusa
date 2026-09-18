@@ -95,6 +95,7 @@ json.dumps(payload, sort_keys=True)
 api_calls = []
 replication_reads = iter(
     [
+        module.JournalApiError(404, '{"summary":"release journal replication state not found"}'),
         {"status": "pending", "state": "local_durable"},
         {
             "status": "ok",
@@ -113,14 +114,17 @@ def fake_api_request(method, path, body=None):
     api_calls.append((method, path, body))
     if method == "POST":
         return {"status": "appended", "event_hash": "local-hash"}
-    return next(replication_reads)
+    result = next(replication_reads)
+    if isinstance(result, Exception):
+        raise result
+    return result
 
 
 try:
     module.api_request = fake_api_request
     module.time.sleep = lambda _seconds: None
     # Delayed canonical acknowledgment must not cause a false failure at 45s.
-    clock = iter([0.0, 0.0, 90.0])
+    clock = iter([0.0, 0.0, 45.0, 90.0])
     module.time.monotonic = lambda: next(clock)
     module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = "1"
     receipt = module.publish(payload)
