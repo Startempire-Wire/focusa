@@ -48,6 +48,23 @@ try:
                 mid_level_goal='Verify saved goal visibility', short_term_goal='Prove HTTP readback',
                 current_state='Isolated fixture with verified local identity',
                 operator_confirmed=True, current_ask='Verify isolated trajectory roundtrip')
+    unknown = root / 'unverified-project'
+    unknown.mkdir()
+    rejected = request('unverified-definition', '/v1/trajectory/define-goal', unknown,
+                       dict(body, project_root=str(unknown)))
+    assert rejected.get('canonical') is False, rejected
+    assert rejected.get('persisted') is False, rejected
+    assert rejected.get('failure_class') == 'trajectory_scope_unverified', rejected
+    assert rejected['details']['tool_result_v1']['ok'] is False, rejected
+    # Establish fixture identity, then retry through the same public operation.
+    subprocess.run(['git', 'init', '--quiet', str(unknown)], check=True)
+    (unknown / '.focusa-project.json').write_text(json.dumps({
+        'schema': 'focusa.project_marker.v1', 'project_id': 'issue621-recovery',
+        'canonical_name': 'Issue621 recovery fixture', 'project_root': str(unknown)
+    }))
+    recovered = request('verified-retry', '/v1/trajectory/define-goal', unknown,
+                        dict(body, project_root=str(unknown)))
+    assert recovered.get('canonical') is True and recovered.get('persisted') is True, recovered
     defined = request('define', '/v1/trajectory/define-goal', project, body)
     assert defined.get('canonical') is True and defined.get('persisted') is True, defined
     checkpoint = request('checkpoint', '/v1/trajectory/checkpoint', project,
@@ -91,6 +108,8 @@ try:
             time.sleep(.1)
     replay = view('restarted-view', project)['trajectory']
     assert replay['long_term_goal'] == body['long_term_goal'], replay
+    assert replay['hlt_version'] == version, replay
+    assert replay['ledger_coherence']['status'] == 'matched', replay
     assert replay['durable_lifecycle']['checkpoint_count'] >= 2, replay
     print('PASS: HTTP define/checkpoint/view, foreign-project isolation and restart readback', flush=True)
 finally:
