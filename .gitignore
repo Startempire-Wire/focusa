@@ -71,3 +71,6 @@ apps/pi-extension/src/*.js.map
 
 # br doctor per-run artifacts
 .doctor/
+
+# Isolated, reproducible Python contract-test dependencies
+.focusa-python-test-venv/

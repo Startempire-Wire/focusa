@@ -15,3 +15,20 @@ security/critical fixes ride the patch lane (0.9.x), features and non-critical
 fixes batch into the minor lane (0.10.x), breaking changes require a planned
 major bump. Commits must remain Conventional Commit subjects so the version
 policy (`scripts/next-version.py`) can classify each change correctly.
+
+## Python contract tests
+
+On Linux/macOS, use Python 3.11 or newer and the committed hash-locked
+dependencies instead of ambient user or system packages:
+
+```bash
+bash scripts/ci/setup-python-test-env.sh
+source .focusa-python-test-venv/bin/activate
+python scripts/ci/verify-python-test-env.py
+```
+
+Run Python contract gates from that activated environment. Override
+`FOCUSA_PYTHON_TEST_VENV` only when an alternate isolated location is needed.
+CI uses the same setup helper and exports its interpreter for following steps.
+The default environment is ignored by Git; never commit it or remove package
+hash checks to make dependency installation pass.
