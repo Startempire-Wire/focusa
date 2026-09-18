@@ -14775,6 +14775,9 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       const record = body.data?.record || {};
       const prediction = record.prediction || {};
       const predictionId = String(record.record_id || "unknown");
+      const ageHours = record.updated_at
+        ? Math.max(0, (Date.now() - new Date(record.updated_at).getTime()) / 3_600_000)
+        : undefined;
       return {
         content: [{ type: "text", text: renderScopedResultHuman(body) }],
         details: {
@@ -14783,7 +14786,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           prediction_type: prediction.prediction_type,
           scope,
           evaluation_hint: `focusa_predict_evaluate prediction_id=${predictionId}`,
-          apiEvaluateHint: `evaluate_hint age=${body.age_hours ?? "unknown"}`,
+          apiEvaluateHint: `evaluate_hint age=${ageHours ?? "unknown"}`,
           next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"],
         },
       };
