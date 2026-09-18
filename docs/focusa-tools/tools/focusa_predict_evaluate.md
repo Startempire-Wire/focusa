@@ -59,6 +59,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Failure and recovery
 
+A missing prediction id is a typed `failure_class=not_found` outcome, not an ambiguous blocked result. Recover by checking the scoped recent predictions and recording a new prediction when the original is absent; a different project or workstream remains a scope mismatch.
+
 Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
 - scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context

@@ -14783,6 +14783,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           prediction_type: prediction.prediction_type,
           scope,
           evaluation_hint: `focusa_predict_evaluate prediction_id=${predictionId}`,
+          apiEvaluateHint: `evaluate_hint age=${body.age_hours ?? "unknown"}`,
           next_tools: ["focusa_predict_evaluate", "focusa_predict_recent"],
         },
       };
@@ -14909,16 +14910,19 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       });
       const body = (res.body || {}) as ScopedResultEnvelope<any>;
       if (!res.ok || body.authority?.status === "blocked") {
-        const failureClass = scopedResponseFailureClass(res, body);
+        const failureClass =
+          res.status === 404 ? "not_found" : scopedResponseFailureClass(res, body);
         return blockedToolResponse(
           "focusa_predict_evaluate",
           "prediction",
           `prediction evaluate blocked → ${scopedResponseHuman(body, "scoped evaluation unavailable")}`,
           failureClass,
           body,
-          failureClass === "scope_mismatch"
-            ? ["focusa_predict_recent", "focusa_workpoint_resume"]
-            : ["focusa_predict_recent", "focusa_tool_doctor"]
+          failureClass === "not_found"
+            ? ["focusa_predict_recent", "focusa_predict_record"]
+            : failureClass === "scope_mismatch"
+              ? ["focusa_predict_recent", "focusa_workpoint_resume"]
+              : ["focusa_predict_recent", "focusa_tool_doctor"]
         );
       }
       return {

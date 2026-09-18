@@ -227,7 +227,7 @@ fn contexts_match(record_refs: &[String], outcome_refs: &[String]) -> bool {
             .any(|needle| record_refs.iter().any(|candidate| candidate == needle))
 }
 
-fn evaluate_hint(records: &[ScopedCrdtRecord<PredictionValue>]) -> Value {
+fn prediction_evaluate_hint(records: &[ScopedCrdtRecord<PredictionValue>]) -> Value {
     let candidate = records
         .iter()
         .filter(|record| record.value.evaluated_at.is_none())
@@ -240,11 +240,24 @@ fn evaluate_hint(records: &[ScopedCrdtRecord<PredictionValue>]) -> Value {
     candidate.map_or_else(
         || json!({"action":"record_new_prediction","next_tool":"focusa_predict_record"}),
         |record| {
+            let age_hours = (chrono::Utc::now() - record.updated_at).num_minutes() as f64 / 60.0;
+            let old_enough = age_hours >= 24.0;
+            let high_confidence = record.value.confidence >= 0.8;
+            let action = if high_confidence && old_enough {
+                "high confidence unevaluated prediction should be checked"
+            } else if old_enough {
+                "prediction is old enough to evaluate"
+            } else {
+                "prediction is ready for evaluation"
+            };
             json!({
-                "action":"evaluate_prediction",
-                "prediction_id":record.record_id,
-                "confidence":record.value.confidence,
-                "next_tool":"focusa_predict_evaluate"
+                "action": "evaluate_prediction",
+                "evaluate_hint": action,
+                "prediction_id": record.record_id,
+                "next_prediction_id": record.record_id,
+                "confidence": record.value.confidence,
+                "age_hours": age_hours,
+                "next_tool": "focusa_predict_evaluate"
             })
         },
     )
@@ -580,7 +593,7 @@ async fn stats(
         ),
         "Record predictions at decision points and evaluate them after evidence arrives.",
         "Statistics include only the exact typed workstream; no global aggregate fallback was used.",
-        json!({"total":records.len(),"evaluated":evaluated,"accuracy":accuracy,"by_type":by_type}),
+        json!({"total":records.len(),"evaluated":evaluated,"accuracy":accuracy,"by_type":by_type,"evaluate_hint":prediction_evaluate_hint(&records)}),
         vec![],
     )
 }
@@ -683,7 +696,7 @@ mod tests {
             },
         )
         .unwrap();
-        let hint = evaluate_hint(&[record]);
+        let hint = prediction_evaluate_hint(&[record]);
         assert_eq!(hint["prediction_id"], "pred-a");
     }
 }

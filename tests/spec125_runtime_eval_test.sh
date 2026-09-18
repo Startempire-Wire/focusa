@@ -50,11 +50,10 @@ require_marker "Daemon health reports a status" "$health" '"(status|ok|healthy)"
 
 echo "=== Spec125-15.2 Read-only Runtime/Eval Tests ==="
 
-trajectory="$(request_json "Trajectory view" -X POST "$API/trajectory/view" -H "Content-Type: application/json" \
-  -d "{\"project_root\":\"$PROJECT_ROOT\",\"continuity_id\":\"$CONTINUITY_ID\"}")"
+trajectory="$(request_json "Trajectory view" "$API/trajectory/view?project_root=$PROJECT_ROOT&continuity_id=$CONTINUITY_ID")"
 require_marker "Trajectory view includes HLT state" "$trajectory" 'hlt_status|loud_warning|canonical'
 
-history="$(request_json "HLT history" "$API/trajectory/hlt-history?project_root=$PROJECT_ROOT")"
+history="$(request_json "HLT history" "$API/hlt/history?project_root=$PROJECT_ROOT&continuity_id=$CONTINUITY_ID")"
 require_marker "HLT history returns a typed projection" "$history" 'entries|history|items|status'
 
 workpoint="$(request_json "Workpoint resume" -X POST "$API/workpoint/resume" -H "Content-Type: application/json" \
@@ -67,8 +66,7 @@ require_marker "Preload receipt preview returns a typed projection" "$receipt" '
 utility="$(request_json "Utility card" "$API/utility/card")"
 require_marker "Utility card returns a typed projection" "$utility" 'utility|status|content|summary'
 
-context="$(request_json "Context cognition" -X POST "$API/context-cognition" -H "Content-Type: application/json" \
-  -d "{\"project_root\":\"$PROJECT_ROOT\"}")"
+context="$(request_json "Context cognition" "$API/context-cognition?project_root=$PROJECT_ROOT&continuity_id=$CONTINUITY_ID")"
 require_marker "Context cognition returns a typed projection" "$context" 'context|status|project|canonical'
 
 cat <<'EOF'
