@@ -638,6 +638,9 @@ mod tests {
             developer_origin_source(),
             Some(DeveloperOriginSource::Tailnet)
         );
-        assert_eq!(developer_origin_source(), Some(DeveloperOriginSource::CachedTrustedOrigin));
+        assert_eq!(
+            developer_origin_source(),
+            Some(DeveloperOriginSource::CachedTrustedOrigin)
+        );
     }
 }
