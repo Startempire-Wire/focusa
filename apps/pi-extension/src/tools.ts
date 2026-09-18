@@ -9348,12 +9348,14 @@ pi.registerTool({
                 .join("\n");
       const v2 = res.body?.resume_packet_v2 || null;
       const canonical = res.body?.canonical === true;
-      const actionAuthority = requestVerdict.accepted;
-      const matchesCurrentAskScope = requestVerdict.accepted;
-      const scopeConflictReason = requestVerdict.accepted
-        ? "none"
-        : String(res.body?.scope_conflict_reason && res.body.scope_conflict_reason !== "none"
-            ? res.body.scope_conflict_reason : requestVerdict.reason);
+      let actionAuthority = res.ok && requestVerdict.accepted;
+      let matchesCurrentAskScope = actionAuthority;
+      let scopeConflictReason = !res.ok
+        ? "resume_transport_failed"
+        : requestVerdict.accepted
+          ? "none"
+          : String(res.body?.scope_conflict_reason && res.body.scope_conflict_reason !== "none"
+              ? res.body.scope_conflict_reason : requestVerdict.reason);
       if (res.ok && canonical && actionAuthority && matchesCurrentAskScope) {
         const candidate = stampResumeRequest(normalizeWorkpointResumePacketEnvelope(res.body), requestBinding);
         const adoptedRoot = adoptWorkpointScopeForFrameRecovery(candidate, "workpoint_resume_tool", {
@@ -9365,6 +9367,10 @@ pi.registerTool({
           setActiveWorkpointSummary(String(res.body?.rendered_summary || v2?.rendered_summary || ""));
           getAttachmentRuntime().lastWorkpointUpdate = Date.now();
           persistState();
+        } else {
+          actionAuthority = false;
+          matchesCurrentAskScope = false;
+          scopeConflictReason = "resume_scope_adoption_rejected";
         }
       }
       // FOCUSA_FIX-r4n9: When authority is suppressed, recoveryPacket blocks execution

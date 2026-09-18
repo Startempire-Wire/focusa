@@ -66,7 +66,7 @@ test('an explicitly different ask is advisory, not current-request authority', (
   assert.doesNotMatch(JSON.stringify(result), /another task/);
 });
 
-function toolFixture(onFetch = () => {}, response = reply()) {
+function toolFixture(onFetch = () => {}, response = reply(), adoptionAllowed = true, transportOk = true) {
   const r = runtime();
   const adopted = [];
   let sent;
@@ -81,12 +81,17 @@ function toolFixture(onFetch = () => {}, response = reply()) {
     focusaFetchDetailed: async (_path, request) => {
       sent = JSON.parse(request.body);
       await onFetch(r);
-      return { ok: true, status: 200, body: response };
+      return { ok: transportOk, status: transportOk ? 200 : 500, body: response };
     },
     scopeRecoveryContext: () => null,
     summarizeWorkpointResponse: () => 'fixture response',
+    explainWorkLoopResult: () => 'fixture transport failure',
     normalizeWorkpointResumePacketEnvelope: p => ({ ...p.resume_packet }),
-    adoptWorkpointScopeForFrameRecovery: p => { adopted.push(p); return r.sessionCwd; },
+    adoptWorkpointScopeForFrameRecovery: p => {
+      if (!adoptionAllowed) return null;
+      adopted.push(p);
+      return r.sessionCwd;
+    },
     setActiveWorkpointSummary: () => {},
     persistState: () => {},
     compactApiEcho: value => value,
@@ -214,4 +219,22 @@ test('1000 captured transitions reject obsolete replies without changing state',
   }
   assert.equal(accepted, 1);
   assert.deepEqual(r, before);
+});
+
+test('local scope rejection overrides a positive response authority flag', async () => {
+  const f = toolFixture(() => {}, reply(), false);
+  const result = await f.tool.execute('fixture-call', {});
+  assert.equal(f.adopted.length, 0);
+  assert.equal(result.details.action_authority_for_current_ask, false);
+  assert.equal(result.details.matches_current_ask_scope, false);
+  assert.equal(result.details.scope_conflict_reason, 'resume_scope_adoption_rejected');
+});
+
+test('failed transport never grants authority from an optimistic response body', async () => {
+  const f = toolFixture(() => {}, reply(), true, false);
+  const result = await f.tool.execute('fixture-call', {});
+  assert.equal(f.adopted.length, 0);
+  assert.equal(result.details.action_authority_for_current_ask, false);
+  assert.equal(result.details.matches_current_ask_scope, false);
+  assert.equal(result.details.scope_conflict_reason, 'resume_transport_failed');
 });
