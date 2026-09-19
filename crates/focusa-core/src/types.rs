@@ -686,6 +686,14 @@ pub mod workpoint_caps {
     pub const DEGRADED_FALLBACKS: usize = 16;
 }
 
+pub mod focus_stack_caps {
+    /// Hot-snapshot bound for focus stack frames (#563). Durable frame
+    /// history remains in the event ledger; this caps only the serialized
+    /// hot projection. The active frame and its root-to-active path are
+    /// never evicted.
+    pub const FRAMES: usize = 256;
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkpointStatus {
