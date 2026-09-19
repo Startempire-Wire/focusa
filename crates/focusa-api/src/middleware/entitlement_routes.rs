@@ -574,6 +574,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/cockpit/projection",
+        feature: "focusa.core.workpoint",
+        limit_bucket: Some("workpoints"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/commands/log/{command_id}",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),
@@ -2962,6 +2967,7 @@ mod tests {
     #[test]
     fn exact_and_parameterized_routes_match_without_prefix_guessing() {
         assert!(requirement_for_path("/v1/workpoint/checkpoint").is_some());
+        assert!(requirement_for_path("/v1/cockpit/projection").is_some());
         assert!(requirement_for_path("/not/a/focusa/route").is_none());
         assert!(!template_matches("/v1/items/{id}", "/v1/items"));
         assert!(template_matches("/v1/items/{id}", "/v1/items/item-1"));
