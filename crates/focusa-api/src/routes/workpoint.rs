@@ -439,8 +439,16 @@ fn session_identity_requires_project_root_confirmation(
 /// Kept exact-match and conservative: a specific mission is never rejected here.
 fn is_generic_resume_mission(mission: Option<&str>) -> bool {
     const GENERIC: &[&str] = &[
-        "test", "testing", "untitled", "todo", "tbd", "mission", "workpoint",
-        "unknown", "unspecified mission", "unspecified target",
+        "test",
+        "testing",
+        "untitled",
+        "todo",
+        "tbd",
+        "mission",
+        "workpoint",
+        "unknown",
+        "unspecified mission",
+        "unspecified target",
     ];
     match mission.map(str::trim) {
         None | Some("") => true,
