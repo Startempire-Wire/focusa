@@ -1020,7 +1020,23 @@ fn line_declares_project_url(line: &str) -> bool {
     .any(|needle| lower.contains(needle))
 }
 
+fn url_is_known_reference(url: &str) -> bool {
+    // #484: documentation/reference hosts can never be a project's live
+    // URL, regardless of which file mentions them (stock wp-config.php
+    // comments, scripts, docs). Checked at the URL level so no source
+    // blanket-pass (e.g. wp-config) can admit them.
+    let lower = url.to_ascii_lowercase();
+    lower.contains("codex.wordpress.org")
+        || lower.contains("api.wordpress.org")
+        || lower.contains("openai")
+        || lower.contains("anthropic")
+        || lower.contains("example.com")
+}
+
 fn url_allowed_for_project_inference(source: &str, line: &str, url: &str) -> bool {
+    if url_is_known_reference(url) {
+        return false;
+    }
     if is_local_url(url) {
         return true;
     }
@@ -5633,6 +5649,36 @@ mod tests {
                 .is_some_and(|lines| lines.iter().any(|line| line
                     .as_str()
                     .is_some_and(|text| text.contains("urls=local_only:"))))
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn stock_wp_config_reference_comment_never_becomes_live_url() {
+        // #484: stock wp-config.php files carry a Codex reference link in a
+        // comment ABOVE the real defines. The reference must never win
+        // live/wp URL authority over the declared site URLs.
+        let root = temp_project("wpconfig-comment");
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join(".git/config"), "").unwrap();
+        fs::create_dir_all(root.join(".beads")).unwrap();
+        fs::write(
+            root.join("wp-config.php"),
+            "/**\n * For more information, see https://codex.wordpress.org/Editing_wp-config.php\n */\ndefine('WP_HOME', 'https://shop.example-client.com');\ndefine('WP_SITEURL', 'https://shop.example-client.com');\n",
+        )
+        .unwrap();
+        let payload = project_identity_payload_for_scope(root.to_str(), None, None);
+        assert_eq!(
+            payload
+                .pointer("/project_identity/project_urls/live_url")
+                .and_then(Value::as_str),
+            Some("https://shop.example-client.com")
+        );
+        assert_ne!(
+            payload
+                .pointer("/project_identity/project_urls/wp_url")
+                .and_then(Value::as_str),
+            Some("https://codex.wordpress.org/Editing_wp-config.php")
         );
         let _ = fs::remove_dir_all(root);
     }
