@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.195",
-  "source_commit": "4653774fa",
-  "generated_at": "2026-09-18T14:32:53.316521Z",
+  "source_commit": "ee4874092",
+  "generated_at": "2026-09-19T15:42:44.955260Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:51d81acb5ff27438f815507130c3b984669f884e26a8218f73a4a8003168cd1a",
@@ -16,7 +16,7 @@
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:07f45c9d7e8c5eb628ee45aad44fbe75c8d92b46e157f696aff0f508d81df4ce",
+      "sha256": "sha256:104f89386a8d6df7871f69d6f0e80b291b7888661e47ad34914331572c97675b",
       "file_count": 837,
       "source_paths": [
         "Cargo.toml",
@@ -26,8 +26,8 @@
     },
     "pi_extension": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:9e3c89185a546f5103d7716555753320b3f4bc786e42d8d35e33f405a29a54b6",
-      "file_count": 204,
+      "sha256": "sha256:b92205b2ca020be3ebd5306ce8df81df6bf4df30d02f2511e140c16433c450f6",
+      "file_count": 205,
       "source_paths": [
         "apps/pi-extension"
       ]
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:06628493ffd07178bf6365bcde8bc2f9576f033f233e5e3dd5df3c092082fd06",
+      "sha256": "sha256:67884f714ab50777208d3f5beb1ea6d80c1cec1c4c435b54d9b68d56072748e9",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -58,7 +58,7 @@
     },
     "generated_clients": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:4875bdfc81bdb6ced086449702ffeca8ebdbd17f2291f54f7746810d7550f73d",
+      "sha256": "sha256:ea28d8858df1763efea18218a20257002ebd67d3bd67b1a252ff2d935d54fea8",
       "file_count": 159,
       "source_paths": [
         "packages/generated/spec135",
@@ -77,7 +77,7 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:3484a91f93f63ade4b077d4cea9b76ffc6cdaefa2c294f098fd05f77b85eb59f",
+      "sha256": "sha256:c73f5332a8fe663a5fb71eb315cf206315af01b99f168de16b5985320e7a3d9a",
       "file_count": 35,
       "source_paths": [
         ".appveyor.yml",

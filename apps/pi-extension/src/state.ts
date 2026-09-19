@@ -29,6 +29,7 @@ import {
   stableSemanticValue,
   writeRecoverySidecar,
 } from "./persistence.js";
+import { isGenericWorkpointMission } from "./workpoint-request-binding.js";
 export {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -3662,6 +3663,10 @@ export function isWorkpointPacketScopedToCurrentSession(packet: any): boolean {
     packet.status === "rejected_scope_mismatch"
   )
     return false;
+  // A generic/unscoped mission carries no assignment boundary (#624): adopting
+  // it can inherit another assignment's mission text, frames, or next-actions.
+  // Fail closed so the operator re-anchors with a specific mission instead.
+  if (isGenericWorkpointMission(packet.mission)) return false;
   return true;
 }
 

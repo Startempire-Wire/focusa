@@ -49,6 +49,30 @@ export function evaluateResumeRequest(
   return { accepted: true, reason: "none" };
 }
 
+// Generic/unscoped missions carry no assignment boundary, so adopting them can
+// inherit another assignment's mission text, frames, or next-actions (#624).
+// Fail-closed stoplist covers empty/missing plus the daemon/extension fallback
+// strings and placeholder missions. Kept exact-match and conservative: a
+// specific mission, however short, is never rejected here.
+const GENERIC_WORKPOINT_MISSIONS = new Set([
+  "test",
+  "testing",
+  "untitled",
+  "todo",
+  "tbd",
+  "mission",
+  "workpoint",
+  "unknown",
+  "unspecified mission",
+  "unspecified target",
+]);
+
+export function isGenericWorkpointMission(mission: unknown): boolean {
+  const normalized = String(mission ?? "").trim().toLowerCase();
+  if (!normalized) return true;
+  return GENERIC_WORKPOINT_MISSIONS.has(normalized);
+}
+
 export function stampResumeRequest(candidate: any, captured: ResumeRequestBinding): any {
   return {
     ...candidate,
