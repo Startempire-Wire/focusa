@@ -434,6 +434,47 @@ fn session_identity_requires_project_root_confirmation(
     None
 }
 
+/// Generic/unscoped missions carry no assignment boundary, so adopting them can
+/// inherit another assignment's mission text, frames, or next-actions (#624).
+/// Kept exact-match and conservative: a specific mission is never rejected here.
+fn is_generic_resume_mission(mission: Option<&str>) -> bool {
+    const GENERIC: &[&str] = &[
+        "test",
+        "testing",
+        "untitled",
+        "todo",
+        "tbd",
+        "mission",
+        "workpoint",
+        "unknown",
+        "unspecified mission",
+        "unspecified target",
+    ];
+    match mission.map(str::trim) {
+        None | Some("") => true,
+        Some(text) => GENERIC.contains(&text.to_lowercase().as_str()),
+    }
+}
+
+fn generic_mission_rejection(record: &WorkpointRecord) -> Value {
+    json!({
+        "status": "rejected_generic_mission",
+        "canonical": false,
+        "failure_class": "scope_mismatch",
+        "workpoint_id": record.workpoint_id,
+        "warnings": ["workpoint mission is generic/unscoped and carries no assignment boundary — refusing to adopt"],
+        "packet_mission": record.mission,
+        "safe_recovery": "checkpoint the current mission/action explicitly before trusting resume; do not inherit mission text, frames, or next-actions from this packet",
+        "retry_posture": "do_not_retry_unchanged",
+        "requested_found": true,
+        "scope_found": false,
+        "fallback_used": false,
+        "canonical_for_requested_scope": false,
+        "canonical_for_fallback_scope": false,
+        "next_step_hint": "create a new Workpoint checkpoint with a specific mission before trusting resume"
+    })
+}
+
 fn evaluate_resume_scope(
     record: &WorkpointRecord,
     expected_project_root: Option<&str>,
@@ -565,6 +606,15 @@ fn evaluate_resume_scope(
             decision.packet_session_id = Some(actual.to_string());
             decision.warnings.push("workpoint session_id differs from current Pi session; project_root matched, preserving post-compaction continuity".to_string());
         }
+    }
+    // A generic/unscoped mission carries no assignment boundary (#624): adopting
+    // it can inherit another assignment's mission text, frames, or next-actions.
+    // Checked after scope matching so mismatched scopes keep their precise
+    // rejection; scope-matching generic packets fail closed here instead.
+    if is_generic_resume_mission(record.mission.as_deref()) {
+        decision.canonical_scope_ok = false;
+        decision.rejection = Some(generic_mission_rejection(record));
+        return decision;
     }
     decision
 }
@@ -4372,12 +4422,75 @@ mod tests {
     }
 
     #[test]
+    fn generic_mission_rejects_before_resume_injection() {
+        for mission in [
+            None,
+            Some("".to_string()),
+            Some("test".to_string()),
+            Some("  TEST  ".to_string()),
+            Some("untitled".to_string()),
+            Some("unknown".to_string()),
+            Some("unspecified mission".to_string()),
+        ] {
+            let record = WorkpointRecord {
+                workpoint_id: Uuid::now_v7(),
+                project_root: Some("/repo/focusa".to_string()),
+                continuity_id: Some("cont-a".to_string()),
+                mission,
+                canonical: true,
+                ..WorkpointRecord::default()
+            };
+            let decision = evaluate_resume_scope(
+                &record,
+                Some("/repo/focusa"),
+                Some("cont-a"),
+                Some("session-b"),
+                None,
+            );
+            assert!(!decision.canonical_scope_ok);
+            let rejection = decision.rejection.expect("generic mission rejects");
+            assert_eq!(
+                rejection.get("status").and_then(Value::as_str),
+                Some("rejected_generic_mission")
+            );
+        }
+    }
+
+    #[test]
+    fn specific_mission_passes_generic_mission_gate() {
+        for mission in [
+            "Give current tally of open issues vs closed",
+            "test the login flow",
+            "a",
+        ] {
+            let record = WorkpointRecord {
+                workpoint_id: Uuid::now_v7(),
+                project_root: Some("/repo/focusa".to_string()),
+                continuity_id: Some("cont-a".to_string()),
+                mission: Some(mission.to_string()),
+                canonical: true,
+                ..WorkpointRecord::default()
+            };
+            let decision = evaluate_resume_scope(
+                &record,
+                Some("/repo/focusa"),
+                Some("cont-a"),
+                Some("session-b"),
+                None,
+            );
+            assert!(decision.rejection.is_none());
+            assert!(decision.canonical_scope_ok);
+        }
+    }
+
+    #[test]
     fn session_id_change_preserves_canonical_when_project_root_matches() {
         let record = WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
             continuity_id: Some("cont-a".to_string()),
             session_id: Some("pi-before-compact".to_string()),
             project_root: Some("/repo/focusa".to_string()),
+            mission: Some("session continuity probe".to_string()),
             canonical: true,
             ..WorkpointRecord::default()
         };
