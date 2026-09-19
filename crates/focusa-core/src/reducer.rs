@@ -393,6 +393,31 @@ fn find_workpoint_mut(
         .ok_or_else(|| ReducerError::InvalidEvent(format!("Workpoint {} not found", workpoint_id)))
 }
 
+/// Bound the focus-stack hot projection (#563). Evicts oldest-first among
+/// frames outside the current root-to-active path. Pinned: the globally
+/// active frame and its path members (same-scope ancestors). Cross-scope
+/// frames are historical in the hot snapshot; durable history stays in the
+/// event ledger. If the path itself ever exceeds the cap (pathological
+/// same-scope chain), the active chain is left intact rather than broken.
+fn bound_focus_stack_frames(stack: &mut FocusStackState) {
+    if stack.frames.len() <= focus_stack_caps::FRAMES {
+        return;
+    }
+    let mut excess = stack.frames.len() - focus_stack_caps::FRAMES;
+    let mut index = 0;
+    while excess > 0 && index < stack.frames.len() {
+        let pinned = Some(stack.frames[index].id) == stack.active_id
+            || stack.stack_path_cache.contains(&stack.frames[index].id);
+        if pinned {
+            index += 1;
+        } else {
+            stack.frames.remove(index);
+            excess -= 1;
+        }
+    }
+    rebuild_stack_path(stack);
+}
+
 fn same_workpoint_scope(left: &WorkpointRecord, right: &WorkpointRecord) -> bool {
     left.project_root == right.project_root && left.continuity_id == right.continuity_id
 }
@@ -2485,6 +2510,7 @@ pub fn reduce_with_meta(
                 stack.root_id = Some(frame_id);
             }
             rebuild_stack_path(stack);
+            bound_focus_stack_frames(stack);
             stack.version += 1;
         }
 
@@ -5758,6 +5784,59 @@ mod tests {
         assert_eq!(state.focus_stack.frames.len(), 1);
         assert_eq!(state.focus_stack.frames[0].status, FrameStatus::Active);
         assert_eq!(state.focus_stack.root_id, Some(frame_id));
+    }
+
+    fn push_scoped_frame(state: FocusaState, title: &str, scope: &str) -> (FocusaState, FrameId) {
+        let frame_id = Uuid::now_v7();
+        let event = FocusaEvent::FocusFramePushed {
+            frame_id,
+            beads_issue_id: "BEAD-001".into(),
+            title: title.into(),
+            goal: format!("Goal for {}", title),
+            project_root: Some("/repo/test".to_string()),
+            continuity_id: Some(scope.to_string()),
+            constraints: vec![],
+            tags: vec![format!("continuity_id:{}", scope)],
+        };
+        let state = reduce(state, event).unwrap().new_state;
+        (state, frame_id)
+    }
+
+    #[test]
+    fn test_focus_stack_frames_capped_across_scopes() {
+        let mut state = fresh_state();
+        for i in 0..(focus_stack_caps::FRAMES + 10) {
+            let scope = format!("cont-{}", i);
+            let (next, _) = push_scoped_frame(state, &format!("Task {}", i), &scope);
+            state = next;
+        }
+        assert_eq!(state.focus_stack.frames.len(), focus_stack_caps::FRAMES);
+    }
+
+    #[test]
+    fn test_focus_stack_cap_pins_active_and_path() {
+        let state = fresh_state();
+        let (state, _) = push_scoped_frame(state, "Root", "cont-pinned");
+        let (state, _) = push_scoped_frame(state, "Mid", "cont-pinned");
+        let (state, leaf_id) = push_scoped_frame(state, "Leaf", "cont-pinned");
+        let mut state = state;
+        let mut other_ids = Vec::new();
+        for i in 0..(focus_stack_caps::FRAMES + 10) {
+            let scope = format!("cont-other-{}", i);
+            let (next, id) = push_scoped_frame(state, &format!("Other {}", i), &scope);
+            state = next;
+            other_ids.push(id);
+        }
+        assert_eq!(state.focus_stack.frames.len(), focus_stack_caps::FRAMES);
+        let ids: Vec<FrameId> = state.focus_stack.frames.iter().map(|f| f.id).collect();
+        // Newest frame is active and survives with its path.
+        let newest = *other_ids.last().unwrap();
+        assert_eq!(state.focus_stack.active_id, Some(newest));
+        assert!(ids.contains(&newest));
+        // Oldest non-path frames are evicted first: the early pinned-scope
+        // chain (not on the current path) and the earliest other frames.
+        assert!(!ids.contains(&leaf_id));
+        assert!(!ids.contains(&other_ids[0]));
     }
 
     #[test]
