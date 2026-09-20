@@ -2408,16 +2408,28 @@ async fn checkpoint(
         }
     }
     if req.promote.unwrap_or(true) && req.canonical.unwrap_or(true) {
-        let previous_action_intent = {
+        let (has_active_workpoint, previous_action_intent) = {
             let focusa = state.focusa.read().await;
-            active_workpoint_for_scope(
+            let previous = active_workpoint_for_scope(
                 &focusa,
                 req.project_root.as_deref(),
                 req.continuity_id.as_deref(),
+            );
+            (
+                previous.is_some(),
+                previous
+                    .and_then(|record| record.action_intent.as_ref())
+                    .cloned(),
             )
-            .and_then(|record| record.action_intent.as_ref())
-            .cloned()
         };
+        if has_active_workpoint {
+            require_scoped_north_star_mutation_admission(
+                &scope,
+                &state,
+                "workpoint_checkpoint_promote",
+            )
+            .await?;
+        }
         validate_lifecycle_transition_evidence(
             previous_action_intent.as_ref(),
             req.action_intent.as_ref(),
