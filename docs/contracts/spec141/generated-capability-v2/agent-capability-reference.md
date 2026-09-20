@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:e2a00a346a8725999649b2cc5cfb192236d7e1ecd2537b9d6cfffbf714773fb4`
+Registry digest: `sha256:b98d47f3b80d465469753d4093c43b0ef40683e4bef70b5ab5f018f4e48cbd06`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -1710,7 +1710,7 @@ Create a typed Focusa Workpoint checkpoint before compaction, resume, context ov
 
 ## focusa_workpoint_link_evidence
 
-Attach a stable evidence reference or verification result to the active canonical Workpoint. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Attach stable proof to the active canonical Workpoint; daemon mutation admission requires its exact Trajectory binding, lifecycle stage, active operation, and current frontier. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.workpoint.link.evidence`
 - Family: `workpoint`

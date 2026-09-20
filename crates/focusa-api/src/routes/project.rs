@@ -5250,7 +5250,7 @@ fn mark_north_star_daemon_authority(payload: &mut Value, trigger: &str) {
     }
 }
 
-fn north_star_workpoint_linkage(
+pub(crate) fn north_star_workpoint_linkage(
     focusa: &focusa_core::types::FocusaState,
     project_root: &str,
     continuity_id: Option<&str>,
@@ -5342,6 +5342,11 @@ fn north_star_workpoint_linkage(
     }
 }
 
+pub(crate) fn north_star_workpoint_admission_ready(linkage: &Value) -> bool {
+    linkage.get("status").and_then(Value::as_str) == Some("linked")
+        && linkage.get("frontier_status").and_then(Value::as_str) == Some("ready")
+}
+
 async fn north_star_gate(
     scope: ScopeContext,
     State(state): State<Arc<AppState>>,
@@ -5381,8 +5386,7 @@ async fn north_star_gate(
                 requested_continuity.as_deref(),
             )
         };
-        let linkage_ready = linkage.get("status").and_then(Value::as_str) == Some("linked")
-            && linkage.get("frontier_status").and_then(Value::as_str) == Some("ready");
+        let linkage_ready = north_star_workpoint_admission_ready(&linkage);
         if let Some(object) = payload.as_object_mut() {
             object.insert("workpoint_linkage".to_string(), linkage);
             if object.get("status").and_then(Value::as_str) == Some("completed") && !linkage_ready {

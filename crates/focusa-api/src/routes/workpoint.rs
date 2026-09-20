@@ -5,6 +5,7 @@ use crate::routes::bounded::{
     lowmem_caps_active, resource_mode_status,
 };
 use crate::routes::permissions::{forbid, permission_context};
+use crate::routes::project::{north_star_workpoint_admission_ready, north_star_workpoint_linkage};
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -3542,6 +3543,26 @@ async fn resolve_active_object(
     })))
 }
 
+fn require_north_star_workpoint_mutation_admission(
+    linkage: &Value,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    if north_star_workpoint_admission_ready(linkage) {
+        return Ok(());
+    }
+    Err((
+        StatusCode::CONFLICT,
+        Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "code": "NORTH_STAR_ADMISSION_BLOCKED",
+            "failure_class": "north_star_admission_blocked",
+            "workpoint_linkage": linkage,
+            "retry_posture": "retry_after_scope_repair",
+            "next_step_hint": "repair the exact Trajectory-to-Workpoint binding, lifecycle stage, active operation, and frontier before mutation"
+        })),
+    ))
+}
+
 async fn link_evidence(
     _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
@@ -3685,6 +3706,15 @@ async fn link_evidence(
             "next_step_hint": "preview only; repeat without preview/dry_run to link evidence"
         })));
     }
+    let admission = {
+        let focusa = state.focusa.read().await;
+        north_star_workpoint_linkage(
+            &focusa,
+            record.project_root.as_deref().unwrap_or_default(),
+            record.continuity_id.as_deref(),
+        )
+    };
+    require_north_star_workpoint_mutation_admission(&admission)?;
     let materialized_state = materialize_workpoint_events(
         _scope.clone(),
         &state,
@@ -3862,6 +3892,23 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn evidence_mutation_requires_ready_north_star_admission() {
+        let ready = json!({"status": "linked", "frontier_status": "ready"});
+        assert!(require_north_star_workpoint_mutation_admission(&ready).is_ok());
+
+        let blocked = json!({
+            "status": "linked",
+            "frontier_status": "missing",
+            "admission_gaps": ["lifecycle_stage_missing"]
+        });
+        let (status, Json(body)) =
+            require_north_star_workpoint_mutation_admission(&blocked).unwrap_err();
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body["code"], "NORTH_STAR_ADMISSION_BLOCKED");
+        assert_eq!(body["workpoint_linkage"], blocked);
+    }
 
     #[test]
     fn workpoint_event_envelope_uses_request_record_session_not_global_session() {

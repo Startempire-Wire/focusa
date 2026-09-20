@@ -85057,7 +85057,7 @@
       "version": "2.0.0",
       "title": "Workpoint Link Evidence",
       "summary": "Attach a stable evidence reference or verification result to the active canonical Workpoint.",
-      "description": "Attach a stable evidence reference or verification result to the active canonical Workpoint. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Attach stable proof to the active canonical Workpoint; daemon mutation admission requires its exact Trajectory binding, lifecycle stage, active operation, and current frontier. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "workpoint",
       "namespace": "focusa.workpoint",
       "operation_policy": {
@@ -85563,7 +85563,7 @@
         "snippet": "Link proof/evidence to active Workpoint instead of keeping it only in transcript.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:36fceda6a12cf1e550d4c698a660f1f5a9c66d0d51874b414e842dcb59acd542"
+      "descriptor_digest": "sha256:bb15d1a94fd339dedfe05880d77af5252e3319c4344f54a803891614dcb6c233"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86606,5 +86606,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:e2a00a346a8725999649b2cc5cfb192236d7e1ecd2537b9d6cfffbf714773fb4"
+  "registry_digest": "sha256:b98d47f3b80d465469753d4093c43b0ef40683e4bef70b5ab5f018f4e48cbd06"
 }
