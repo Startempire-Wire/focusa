@@ -20,6 +20,8 @@ use serde_json::{Value, json};
 
 use crate::{
     middleware::principal::{ApiRequestPrincipal, request_principal},
+    routes::project::require_scoped_north_star_mutation_admission,
+    scope::ScopeContext,
     server::AppState,
 };
 
@@ -646,6 +648,31 @@ pub(super) fn disclose_principal_side_effect(
         target_ref: Some(principal.principal.principal_id.clone()),
     });
     response
+}
+
+pub(super) async fn require_silent_session_north_star_admission(
+    state: &Arc<AppState>,
+    project_root: &str,
+    continuity_id: &str,
+    requested_mutation: &str,
+) -> Result<(), ApiResponse> {
+    let scope = ScopeContext {
+        project_root: Some(project_root.to_string()),
+        continuity_id: Some(continuity_id.to_string()),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, state, requested_mutation)
+        .await
+        .map_err(|(status, Json(payload))| {
+            failure(
+                status,
+                "NORTH_STAR_ADMISSION_BLOCKED",
+                payload["code"]
+                    .as_str()
+                    .unwrap_or("north_star_admission_blocked"),
+                "Restore the exact project, trajectory, Workpoint, and frontier chain, then retry with the same idempotency key.",
+            )
+        })
 }
 
 pub(super) fn persistence_failure(error: impl std::fmt::Display) -> ApiResponse {

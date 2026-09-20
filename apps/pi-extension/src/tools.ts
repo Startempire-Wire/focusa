@@ -4527,7 +4527,7 @@ pi.registerTool({
     name: "focusa_silent_sessions",
     label: "Focusa Silent Sessions (daemon facade)",
     description:
-      "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. New session creation requires resolved-config North Star admission; recovery controls remain available. Process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
+      "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Creation, start, and resume require exact daemon North Star admission; pause, interrupt, cancel, and observation remain available for recovery. Process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
     promptSnippet:
       "Use as a thin daemon API client. Supply exact session_id/run_id/generation and durable approval/idempotency fields for mutations; the daemon remains canonical authority.",
     parameters: Type.Object({
