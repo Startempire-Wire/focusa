@@ -3,7 +3,10 @@
 //! POST /v1/visual-workflow/evidence/store — persist a visual evidence artifact via reducer action channel
 //! GET  /v1/visual-workflow/evidence       — list visual evidence handles (optionally filtered)
 
-use crate::server::AppState;
+use crate::{
+    routes::project::require_scoped_north_star_mutation_admission, scope::ScopeContext,
+    server::AppState,
+};
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::{
@@ -138,6 +141,15 @@ async fn store_visual_evidence(
         .continuity_id
         .clone()
         .or_else(|| session.as_ref().and_then(|s| s.continuity_id.clone()));
+    if project_root.is_some() || continuity_id.is_some() {
+        let scope = ScopeContext {
+            project_root: project_root.clone(),
+            continuity_id: continuity_id.clone(),
+            ..ScopeContext::default()
+        };
+        require_scoped_north_star_mutation_admission(&scope, &state, "visual_evidence_store")
+            .await?;
+    }
     let store = ReferenceStore::new(visual_ecs_root(&state.config.data_dir)).map_err(|error| {
         visual_failure(
             StatusCode::INTERNAL_SERVER_ERROR,
