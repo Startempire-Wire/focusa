@@ -686,7 +686,12 @@ async fn link_evidence(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(run_id): axum::extract::Path<String>,
     Json(body): Json<serde_json::Value>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let Some(_run) =
+        require_callgraph_run_admission(&state, &run_id, "callgraph_evidence_link").await?
+    else {
+        return Ok(Json(json!({"status": "missing", "run_id": run_id})));
+    };
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
@@ -708,7 +713,7 @@ async fn link_evidence(
         Ok(json!({"status": "linked", "dispatch_id": dispatch_id, "evidence_refs": evidence}))
     })
     .await;
-    match result {
+    Ok(match result {
         Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
             "route",
@@ -718,7 +723,7 @@ async fn link_evidence(
             "join",
             &format!("{error}"),
         )),
-    }
+    })
 }
 
 /// Read run paths + frontier (Spec 155 §19.1).
