@@ -4146,6 +4146,19 @@ async fn set_pause_flags(
         return Err(forbid("work-loop:write"));
     }
 
+    let current_flags = state.focusa.read().await.work_loop.pause_flags.clone();
+    let releases_pause = (current_flags.destructive_confirmation_required
+        && !payload.destructive_confirmation_required)
+        || (current_flags.governance_decision_pending && !payload.governance_decision_pending)
+        || (current_flags.operator_override_active && !payload.operator_override_active);
+    if releases_pause {
+        require_scoped_north_star_mutation_admission(
+            &work_loop_scope_context(&scope),
+            &state,
+            "work_loop_pause_release",
+        )
+        .await?;
+    }
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let event = FocusaEvent::ContinuousPauseFlagsUpdated {
         destructive_confirmation_required: payload.destructive_confirmation_required,
