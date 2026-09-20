@@ -3961,6 +3961,12 @@ async fn attach_session(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
+    require_scoped_north_star_mutation_admission(
+        &work_loop_scope_context(&scope),
+        &state,
+        "work_loop_attach_session",
+    )
+    .await?;
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let (work_item_id, workpoint_id) = {
