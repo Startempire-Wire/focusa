@@ -12,7 +12,10 @@ EXPECTED = {
         "NORTH_STAR_ADMISSION_BLOCKED",
     ],
     "crates/focusa-api/src/routes/background_jobs.rs": ["background_job_create"],
-    "crates/focusa-api/src/routes/workpoint.rs": ["workpoint_evidence_link"],
+    "crates/focusa-api/src/routes/workpoint.rs": [
+        "workpoint_evidence_link",
+        "workpoint_rollover_target_materialize",
+    ],
     "crates/focusa-api/src/routes/work_loop.rs": [
         "work_loop_enable",
         "work_loop_resume",

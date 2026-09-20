@@ -5,7 +5,10 @@ use crate::routes::bounded::{
     lowmem_caps_active, resource_mode_status,
 };
 use crate::routes::permissions::{forbid, permission_context};
-use crate::routes::project::{north_star_workpoint_linkage, require_north_star_mutation_admission};
+use crate::routes::project::{
+    north_star_workpoint_linkage, require_north_star_mutation_admission,
+    require_scoped_north_star_mutation_admission,
+};
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -2059,6 +2062,18 @@ async fn rollover_target_materialize(
         ));
     }
     drop(focusa);
+
+    let source_scope = ScopeContext {
+        project_root: source_record.project_root.clone(),
+        continuity_id: source_record.continuity_id.clone(),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(
+        &source_scope,
+        &state,
+        "workpoint_rollover_target_materialize",
+    )
+    .await?;
 
     let mut target_session_identity = source_record.session_identity.clone();
     if let Some(identity) = target_session_identity.as_mut() {
