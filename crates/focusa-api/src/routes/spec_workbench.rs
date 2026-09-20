@@ -1,4 +1,7 @@
-use crate::server::AppState;
+use crate::{
+    routes::project::require_scoped_north_star_mutation_admission, scope::ScopeContext,
+    server::AppState,
+};
 use axum::{
     Json, Router,
     extract::{Query, State},
@@ -274,6 +277,38 @@ async fn mutate(
     }) {
         return Ok(Json(response(x.clone(), snap.version, true)));
     }
+    let snap = if matches!(&req.action, MutationAction::FinalApprove) {
+        drop(snap);
+        let scope = ScopeContext {
+            project_root: Some(req.project_root.clone()),
+            continuity_id: Some(req.continuity_id.clone()),
+            ..ScopeContext::default()
+        };
+        require_scoped_north_star_mutation_admission(
+            &scope,
+            &state,
+            "spec_workbench_final_approve",
+        )
+        .await
+        .map_err(|(status, Json(body))| {
+            let summary = body
+                .get("message")
+                .or_else(|| body.get("error"))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("North Star admission blocked final specification approval")
+                .to_string();
+            let mut result =
+                ToolResultV1::failure(ToolStatus::Blocked, FailureClass::ScopeMismatch, summary);
+            result.tool = Some(TOOL.into());
+            result.family = Some("spec_workbench".into());
+            result.endpoint = Some(ENDPOINT.into());
+            result.raw = Some(body);
+            (status, Json(Box::new(result)))
+        })?;
+        state.focusa.read().await
+    } else {
+        snap
+    };
     if snap.version != req.expected_state_version {
         return Err(fail(
             StatusCode::CONFLICT,
