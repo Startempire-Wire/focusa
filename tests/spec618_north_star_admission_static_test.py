@@ -12,6 +12,7 @@ EXPECTED = {
         "NORTH_STAR_ADMISSION_BLOCKED",
     ],
     "crates/focusa-api/src/routes/background_jobs.rs": ["background_job_create"],
+    "crates/focusa-api/src/routes/ecs.rs": ["ecs_artifact_store"],
     "crates/focusa-api/src/routes/commands.rs": [
         "command_session_start",
         "command_visual_evidence_store",
