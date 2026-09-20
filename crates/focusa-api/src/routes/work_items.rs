@@ -10,6 +10,8 @@
 //! These delegate to the core lifecycle rather than the CLI, so
 //! agents and headless clients can drive closure without `bd`.
 
+use crate::routes::project::require_scoped_north_star_mutation_admission;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -127,7 +129,10 @@ async fn closure_validate(
     })))
 }
 
-async fn closure_submit(Json(body): Json<Value>) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+async fn closure_submit(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let claim_id = body
         .get("claim_id")
         .and_then(Value::as_str)
@@ -143,6 +148,19 @@ async fn closure_submit(Json(body): Json<Value>) -> Result<Json<Value>, (StatusC
                 })),
             )
         })?;
+    let scope = ScopeContext {
+        project_root: body
+            .get("project_root")
+            .and_then(Value::as_str)
+            .map(String::from),
+        continuity_id: body
+            .get("continuity_id")
+            .and_then(Value::as_str)
+            .map(String::from),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, &state, "work_item_closure_submit")
+        .await?;
     Ok(Json(json!({
         "schema": "focusa.closure.submit.v1",
         "status": "completed",

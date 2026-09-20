@@ -54,6 +54,7 @@ EXPECTED = {
         "workset_definition_upsert",
         "workset_append_event",
     ],
+    "crates/focusa-api/src/routes/work_items.rs": ["work_item_closure_submit"],
     "crates/focusa-api/src/routes/callgraph.rs": [
         "callgraph_definition_upsert",
         "callgraph_run_create",

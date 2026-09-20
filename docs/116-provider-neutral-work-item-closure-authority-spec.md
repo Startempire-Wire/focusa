@@ -451,7 +451,7 @@ POST /v1/work-items/provider-guard/evaluate
 GET  /v1/doctor/closure
 ```
 
-All blocked/failure responses use `focusa.closure_block.v1`.
+All blocked/failure responses use `focusa.closure_block.v1`. The mutating `submit` request also requires exact `project_root` and `continuity_id` fields and canonical North Star admission; `prepare` and `validate` remain side-effect-free recovery/inspection surfaces.
 
 ## 12. CLI surface
 
