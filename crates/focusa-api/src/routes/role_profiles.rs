@@ -1,4 +1,7 @@
-use crate::server::AppState;
+use crate::{
+    routes::project::require_scoped_north_star_mutation_admission, scope::ScopeContext,
+    server::AppState,
+};
 use axum::{
     Json, Router,
     extract::{Query, State},
@@ -846,6 +849,46 @@ async fn review(
             ));
         }
     };
+    if matches!(&status, RoleProfileStatus::Approved) {
+        let snapshot = state.focusa.read().await.clone();
+        if let Some(existing) = snapshot.project_role_profiles.iter().find(|existing| {
+            scoped(existing, &scope) && existing.idempotency_key == idempotency_key
+        }) {
+            return Ok(Json(mutation_response(
+                existing.clone(),
+                snapshot.version,
+                true,
+                TOOL,
+                ENDPOINT,
+            )));
+        }
+        let north_star_scope = ScopeContext {
+            project_root: Some(scope.project_root.clone()),
+            continuity_id: Some(scope.continuity_id.clone()),
+            ..ScopeContext::default()
+        };
+        require_scoped_north_star_mutation_admission(
+            &north_star_scope,
+            &state,
+            "role_profile_approve",
+        )
+        .await
+        .map_err(|(status, Json(body))| {
+            let summary = body
+                .get("message")
+                .or_else(|| body.get("error"))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("North Star admission blocked role profile approval")
+                .to_string();
+            let mut result =
+                ToolResultV1::failure(ToolStatus::Blocked, FailureClass::ScopeMismatch, summary);
+            result.tool = Some(TOOL.into());
+            result.family = Some("role_profiles".into());
+            result.endpoint = Some(ENDPOINT.into());
+            result.raw = Some(body);
+            (status, Json(Box::new(result)))
+        })?;
+    }
     let writer = state.write_serial_lock.lock().await;
     let snapshot = state.focusa.read().await.clone();
     if let Some(existing) = snapshot
