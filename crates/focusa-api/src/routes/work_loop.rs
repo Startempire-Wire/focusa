@@ -1443,7 +1443,7 @@ async fn maybe_auto_advance_from_blocked(
     state: &Arc<AppState>,
     reason: &str,
 ) -> Result<bool, (StatusCode, Json<Value>)> {
-    let (enabled, status, current_task, boundary_reason, scope_root) = {
+    let (enabled, status, current_task, boundary_reason, scope_root, execution_scope) = {
         let focusa = state.focusa.read().await;
         (
             focusa.work_loop.enabled,
@@ -1451,6 +1451,7 @@ async fn maybe_auto_advance_from_blocked(
             focusa.work_loop.current_task.clone(),
             continuation_boundary_reason(&focusa.work_loop),
             work_loop_scope_root(&focusa),
+            focusa.work_loop.execution_scope.clone(),
         )
     };
 
@@ -1461,6 +1462,15 @@ async fn maybe_auto_advance_from_blocked(
     let Some(scope_root) = scope_root else {
         return Ok(false);
     };
+    let Some(execution_scope) = execution_scope else {
+        return Ok(false);
+    };
+    require_scoped_north_star_mutation_admission(
+        &work_loop_scope_context(&WorkLoopScope(execution_scope)),
+        state,
+        "work_loop_blocked_auto_advance",
+    )
+    .await?;
 
     let Some(task) = current_task else {
         if maybe_select_rooted_ready_work_item(state, &scope_root).await? {
