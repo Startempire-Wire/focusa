@@ -170,6 +170,13 @@ pub struct ProjectSettingsQuery {
 }
 
 #[derive(Debug, Deserialize, Default)]
+struct NorthStarGateQuery {
+    project_root: Option<String>,
+    continuity_id: Option<String>,
+    trigger: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
 pub struct TrajectoryGuardRequest {
     pub action: Option<String>,
     pub project_root: Option<String>,
@@ -5232,10 +5239,112 @@ async fn trajectory_guard(
     )
 }
 
+fn mark_north_star_daemon_authority(payload: &mut Value, trigger: &str) {
+    if let Some(object) = payload.as_object_mut() {
+        object.insert("trigger".to_string(), Value::String(trigger.to_string()));
+        object.insert(
+            "authority".to_string(),
+            Value::String("daemon_owned".to_string()),
+        );
+        object.insert("advisory".to_string(), Value::Bool(false));
+    }
+}
+
+fn north_star_workpoint_linkage(
+    focusa: &focusa_core::types::FocusaState,
+    project_root: &str,
+    continuity_id: Option<&str>,
+) -> Value {
+    let active = focusa.workpoint.records.iter().rev().find(|record| {
+        record.canonical
+            && record.status == focusa_core::types::WorkpointStatus::Active
+            && record.project_root.as_deref() == Some(project_root)
+            && continuity_id
+                .is_none_or(|continuity| record.continuity_id.as_deref() == Some(continuity))
+    });
+    match active {
+        Some(record) => json!({
+            "status": "linked",
+            "link_basis": "exact_project_continuity_scope",
+            "workpoint_id": record.workpoint_id,
+            "work_item_id": record.work_item_id,
+            "project_root": record.project_root,
+            "continuity_id": record.continuity_id,
+            "action_intent": record.action_intent,
+            "next_slice": record.next_slice,
+            "frontier_status": if record.action_intent.is_some() || record.next_slice.is_some() { "ready" } else { "missing" },
+        }),
+        None => json!({
+            "status": "missing",
+            "link_basis": "exact_project_continuity_scope",
+            "project_root": project_root,
+            "continuity_id": continuity_id,
+            "frontier_status": "missing",
+        }),
+    }
+}
+
+async fn north_star_gate(
+    scope: ScopeContext,
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<NorthStarGateQuery>,
+) -> (axum::http::StatusCode, Json<Value>) {
+    let trigger = query
+        .trigger
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("manual_gate")
+        .to_string();
+    let requested_root = query.project_root.clone();
+    let requested_continuity = query.continuity_id.clone();
+    let (status_code, Json(mut payload)) = trajectory_guard(
+        scope,
+        State(state.clone()),
+        Json(TrajectoryGuardRequest {
+            action: Some("verify".to_string()),
+            project_root: query.project_root,
+            continuity_id: query.continuity_id,
+            expected_trajectory_id: None,
+            expected_hlt_version: None,
+            confirm: None,
+            idempotency_key: None,
+        }),
+    )
+    .await;
+    if status_code.is_success()
+        && let Some(project_root) = requested_root.as_deref()
+    {
+        let linkage = {
+            let focusa = state.focusa.read().await;
+            north_star_workpoint_linkage(
+                &focusa,
+                &normalize_path(Path::new(project_root)),
+                requested_continuity.as_deref(),
+            )
+        };
+        let linkage_ready = linkage.get("status").and_then(Value::as_str) == Some("linked")
+            && linkage.get("frontier_status").and_then(Value::as_str) == Some("ready");
+        if let Some(object) = payload.as_object_mut() {
+            object.insert("workpoint_linkage".to_string(), linkage);
+            if object.get("status").and_then(Value::as_str) == Some("completed") && !linkage_ready {
+                object.insert("status".to_string(), Value::String("blocked".to_string()));
+                object.insert(
+                    "code".to_string(),
+                    Value::String("WORKPOINT_FRONTIER_MISSING".to_string()),
+                );
+            }
+        }
+    }
+    mark_north_star_daemon_authority(&mut payload, &trigger);
+    (status_code, Json(payload))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/project/identity", get(identity))
         .route("/v1/project/verify", post(verify))
+        .route("/v1/project/north-star-gate", get(north_star_gate))
         .route("/v1/project/trajectory-guard", post(trajectory_guard))
         .route("/v1/project/card", get(card))
         .route("/v1/project/card/outcome", post(card_outcome))
@@ -5260,6 +5369,41 @@ pub fn router() -> Router<Arc<AppState>> {
 #[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn north_star_gate_marks_daemon_authority_without_advisory_fallback() {
+        let mut payload = json!({"status":"completed","canonical":true});
+        mark_north_star_daemon_authority(&mut payload, "model_switch");
+        assert_eq!(payload["authority"], "daemon_owned");
+        assert_eq!(payload["advisory"], false);
+        assert_eq!(payload["trigger"], "model_switch");
+        assert_eq!(payload["canonical"], true);
+    }
+
+    #[test]
+    fn north_star_gate_requires_exact_scope_workpoint_frontier() {
+        let mut state = focusa_core::types::FocusaState::default();
+        let workpoint_id = Uuid::now_v7();
+        state
+            .workpoint
+            .records
+            .push(focusa_core::types::WorkpointRecord {
+                workpoint_id,
+                project_root: Some("/repo/focusa".to_string()),
+                continuity_id: Some("cont-focusa".to_string()),
+                canonical: true,
+                status: focusa_core::types::WorkpointStatus::Active,
+                next_slice: Some("verify the frontier".to_string()),
+                ..focusa_core::types::WorkpointRecord::default()
+            });
+        let linked = north_star_workpoint_linkage(&state, "/repo/focusa", Some("cont-focusa"));
+        assert_eq!(linked["status"], "linked");
+        assert_eq!(linked["frontier_status"], "ready");
+        assert_eq!(linked["workpoint_id"], workpoint_id.to_string());
+        let wrong_scope = north_star_workpoint_linkage(&state, "/repo/other", Some("cont-focusa"));
+        assert_eq!(wrong_scope["status"], "missing");
+        assert_eq!(wrong_scope["frontier_status"], "missing");
+    }
 
     fn temp_project(name: &str) -> PathBuf {
         let root = std::env::temp_dir().join(format!(

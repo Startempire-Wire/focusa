@@ -1829,6 +1829,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/project/north-star-gate",
+        feature: "focusa.core.mission",
+        limit_bucket: None,
+    },
+    RouteEntitlementRequirement {
         template: "/v1/project/trajectory-guard",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
@@ -2009,6 +2014,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/shutdown",
+        feature: "focusa.core.mission",
+        limit_bucket: None,
+    },
+    RouteEntitlementRequirement {
         template: "/v1/silent-sessions",
         feature: "focusa.agent.silent_sessions",
         limit_bucket: Some("silent_session_runs"),
@@ -2065,6 +2075,16 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
     },
     RouteEntitlementRequirement {
         template: "/v1/silent-sessions/{session_id}/adopt",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/approvals",
+        feature: "focusa.agent.silent_sessions",
+        limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/silent-sessions/{session_id}/approvals/preview",
         feature: "focusa.agent.silent_sessions",
         limit_bucket: Some("silent_session_runs"),
     },
@@ -2182,6 +2202,31 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         template: "/v1/silent-sessions/{session_id}/usage",
         feature: "focusa.agent.silent_sessions",
         limit_bucket: Some("silent_session_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sms/checkpoint",
+        feature: "focusa.core.mission",
+        limit_bucket: None,
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sms/otp/challenges",
+        feature: "focusa.core.mission",
+        limit_bucket: None,
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sms/otp/inject",
+        feature: "focusa.core.mission",
+        limit_bucket: None,
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sms/revoke",
+        feature: "focusa.core.mission",
+        limit_bucket: None,
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/sms/send",
+        feature: "focusa.core.mission",
+        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/spec-workbench/session/mutate",

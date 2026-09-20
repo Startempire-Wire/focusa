@@ -43,8 +43,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Authority, permissions, and side effects
 
-- Scope: `{"kind":"read","route_family":"trajectory"}`
-- Authority: `{"kind":"advisory_only"}`
+- Scope: `{"kind":"read","route_family":"project"}`
+- Authority: `{"kind":"canonical","path":"/v1/project/north-star-gate"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
 - Confirmation required: `false`; preview supported: `false`.
@@ -72,6 +72,6 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - Runbooks: `runbook:trajectory`
 - Pi: `focusa_north_star_gate`; MCP: `focusa.north.star.gate`; OpenAI: `focusa_north_star_gate`.
 - CLI: none.
-- REST: Pi-local only.
+- REST: `GET /v1/project/north-star-gate`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:6c238e6fff84ac5b3d09764db31083bbdd014ea0aeace4b372c88bfa43d82843`.
+- Descriptor digest: `sha256:4034e5462a223fe22110fa72c62bcb3037dd00f6dffb896af2eb5d414e34a953`.
