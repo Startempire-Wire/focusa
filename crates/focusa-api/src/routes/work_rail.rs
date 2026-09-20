@@ -1,4 +1,7 @@
-use crate::server::AppState;
+use crate::{
+    routes::project::require_scoped_north_star_mutation_admission, scope::ScopeContext,
+    server::AppState,
+};
 use axum::{
     Json, Router,
     extract::{Query, State},
@@ -239,18 +242,49 @@ pub async fn mutate(
             "exact authority scope, Bead, and idempotency required",
         ));
     }
-    let s = state.focusa.read().await;
-    if let Some(existing) = s.work_rail_records.iter().find(|x| {
-        scoped(
-            x,
-            &r.project_root,
-            &r.working_subpath_id,
-            &r.continuity_id,
-            &r.attachment_id,
-        ) && x.idempotency_key == r.idempotency_key
-    }) {
-        return Ok(Json(response(existing.clone(), s.version, true)));
+    {
+        let s = state.focusa.read().await;
+        if let Some(existing) = s.work_rail_records.iter().find(|x| {
+            scoped(
+                x,
+                &r.project_root,
+                &r.working_subpath_id,
+                &r.continuity_id,
+                &r.attachment_id,
+            ) && x.idempotency_key == r.idempotency_key
+        }) {
+            return Ok(Json(response(existing.clone(), s.version, true)));
+        }
     }
+    if !matches!(&r.action, RailAction::Cancel) {
+        let scope = ScopeContext {
+            project_root: Some(r.project_root.clone()),
+            continuity_id: Some(r.continuity_id.clone()),
+            working_subpath_id: Some(r.working_subpath_id.clone()),
+            ..ScopeContext::default()
+        };
+        require_scoped_north_star_mutation_admission(&scope, &state, "work_rail_mutation")
+            .await
+            .map_err(|(status, Json(body))| {
+                let summary = body
+                    .get("message")
+                    .or_else(|| body.get("error"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("North Star admission blocked Work Rail mutation")
+                    .to_string();
+                let mut result = ToolResultV1::failure(
+                    ToolStatus::Blocked,
+                    FailureClass::ScopeMismatch,
+                    summary,
+                );
+                result.tool = Some("focusa_work_rail_mutate".into());
+                result.family = Some("work_rail".into());
+                result.endpoint = Some(ENDPOINT.into());
+                result.raw = Some(body);
+                (status, Json(Box::new(result)))
+            })?;
+    }
+    let s = state.focusa.read().await;
     if s.version != r.expected_state_version {
         return Err(fail(
             StatusCode::CONFLICT,
