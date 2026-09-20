@@ -40,6 +40,7 @@ EXPECTED = {
         "task_plan_materialize_beads",
     ],
     "crates/focusa-api/src/routes/session.rs": ["session_start", "session_resume"],
+    "crates/focusa-api/src/routes/work_rail.rs": ["work_rail_mutation"],
     "crates/focusa-api/src/routes/worksets.rs": [
         "workset_definition_upsert",
         "workset_append_event",
