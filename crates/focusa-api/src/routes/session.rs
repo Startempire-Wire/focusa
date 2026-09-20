@@ -9,6 +9,8 @@
 //! POST /v1/session/bind — bind daemon trajectory to discovered session
 
 use crate::routes::bounded::resource_mode_status;
+use crate::routes::project::require_scoped_north_star_mutation_admission;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -391,7 +393,7 @@ fn active_session_compatible_with_request(
 async fn start_session(
     State(state): State<Arc<AppState>>,
     Json(body): Json<StartSessionBody>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> SessionResult {
     let adapter_id = body.adapter_id.clone();
     let workspace_id = body.workspace_id.clone();
     let project_root = body.project_root.clone();
@@ -444,6 +446,13 @@ async fn start_session(
             "materialized_by": "existing_active_session",
         })));
     }
+
+    let admission_scope = ScopeContext {
+        project_root: project_root.clone(),
+        continuity_id: continuity_id.clone(),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&admission_scope, &state, "session_start").await?;
 
     let event = FocusaEvent::SessionStarted {
         session_id: Uuid::now_v7(),
@@ -532,6 +541,32 @@ async fn resume_session(
 ) -> SessionResult {
     let session_id = uuid::Uuid::parse_str(&body.session_id)
         .map_err(|_| session_invalid_uuid(&body.session_id))?;
+    let stored_session = {
+        let focusa = state.focusa.read().await;
+        focusa
+            .session
+            .as_ref()
+            .filter(|session| session.session_id == session_id)
+            .cloned()
+    }
+    .ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "status": "not_found",
+                "failure_class": "session_not_found",
+                "session_id": body.session_id,
+                "recovery_hint": "Discover or start the exact project session before resuming it.",
+            })),
+        )
+    })?;
+    let admission_scope = ScopeContext {
+        project_root: stored_session.project_root.clone(),
+        continuity_id: stored_session.continuity_id.clone(),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&admission_scope, &state, "session_resume")
+        .await?;
 
     state
         .command_tx
