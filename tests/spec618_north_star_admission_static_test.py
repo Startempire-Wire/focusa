@@ -15,6 +15,7 @@ EXPECTED = {
     "crates/focusa-api/src/routes/commands.rs": [
         "command_session_start",
         "command_visual_evidence_store",
+        "command_instance_connect",
     ],
     "crates/focusa-api/src/routes/visual_workflow.rs": ["visual_evidence_store"],
     "crates/focusa-api/src/routes/workpoint.rs": [
