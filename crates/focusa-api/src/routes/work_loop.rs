@@ -1611,6 +1611,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
         transport_partition_matches,
         boundary_reason,
         scope_root,
+        execution_scope,
     ) = {
         let focusa = state.focusa.read().await;
         let active_frame = focusa
@@ -1640,6 +1641,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
                 && focusa.work_loop.transport_session_id.is_some(),
             continuation_boundary_reason(&focusa.work_loop),
             work_loop_scope_root(&focusa),
+            focusa.work_loop.execution_scope.clone(),
         )
     };
 
@@ -1662,6 +1664,15 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
     let Some(scope_root) = scope_root else {
         return Ok(false);
     };
+    let Some(execution_scope) = execution_scope else {
+        return Ok(false);
+    };
+    require_scoped_north_star_mutation_admission(
+        &work_loop_scope_context(&WorkLoopScope(execution_scope)),
+        state,
+        "work_loop_cycle_dispatch",
+    )
+    .await?;
 
     if current_task.is_none() {
         if maybe_select_rooted_ready_work_item(state, &scope_root).await? {
