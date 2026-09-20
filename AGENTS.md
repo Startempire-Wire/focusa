@@ -4,6 +4,13 @@
 
 For KH/OVH/operator policy, inherit `/root/AGENTS.md`: query `agent-kb-api` first, verify freshness, use exact document lookup after empty searches, and treat local Agent KB files as read-only fallback.
 
+## Binding KH/OVH execution placement
+
+- KH is production/control-plane only: interactive Pi, the authoritative loopback Focusa daemon, and live Focusa tool/API calls are the bounded exceptions.
+- Builds, tests, UIAI/browser workers, rendering, scans, inference, background payloads, and resource-spiking tools execute on OVH.
+- Preserve OpenClaw/Wirebot loopback contracts through supervised KH relays; unavailable OVH routing fails closed rather than falling back locally.
+- Focusa runtime authority remains KH-only; OVH is execution capacity, not a second authoritative daemon.
+
 ## Agent communications + GitHub 2FA (mandatory, cross-platform)
 
 - The immediate communications use case is authorized completion of an active `github.com` login with a renewable SMS OTP so build/release work can proceed. It does not grant ambient inbox, thread, notification, or phone access.

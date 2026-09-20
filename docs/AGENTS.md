@@ -3,6 +3,12 @@
 > This file governs agent behavior within the Focusa workspace.
 > All agents MUST comply.
 
+## Binding execution-host boundary
+
+- KH hosts the interactive control plane, authoritative Focusa daemon, and live Focusa calls; heavy execution belongs on OVH.
+- Builds, tests, UIAI/browser workers, rendering, scans, inference, and background payloads fail closed if their OVH route is unavailable.
+- Existing OpenClaw/Wirebot consumer endpoints remain stable through supervised KH relays with verified rollback.
+
 ---
 
 ## Architecture authority hard stop
