@@ -4,7 +4,10 @@
 //! POST /v1/instances/disconnect
 //! GET  /v1/instances/list
 
-use crate::server::AppState;
+use crate::{
+    routes::project::require_scoped_north_star_mutation_admission, scope::ScopeContext,
+    server::AppState,
+};
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{
@@ -88,6 +91,17 @@ async fn connect(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ConnectBody>,
 ) -> InstanceResult {
+    let session = state.focusa.read().await.session.clone();
+    let scope = ScopeContext {
+        project_root: session
+            .as_ref()
+            .and_then(|value| value.project_root.clone()),
+        continuity_id: session
+            .as_ref()
+            .and_then(|value| value.continuity_id.clone()),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, &state, "instance_connect").await?;
     state
         .command_tx
         .send(Action::InstanceConnect {
