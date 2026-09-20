@@ -108,16 +108,19 @@ async fn eligibility(
 
 /// Persist a validated definition (Spec 155 §19.1 POST /v1/callgraphs).
 async fn create_definition(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(graph): Json<FocusaCallGraphDefinition>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let report = validate_graph(&graph);
     if !report.valid {
-        return Json(json!({
+        return Ok(Json(json!({
             "status": "rejected_invalid",
             "issues": report.issues,
-        }));
+        })));
     }
+    require_scoped_north_star_mutation_admission(&scope, &state, "callgraph_definition_upsert")
+        .await?;
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let graph_id = graph.graph_id.clone();
     let revision = graph.revision;
@@ -128,7 +131,7 @@ async fn create_definition(
         Ok(())
     })
     .await;
-    match result {
+    Ok(match result {
         Ok(Ok(())) => Json(json!({
             "status": "stored",
             "graph_id": graph_id,
@@ -142,7 +145,7 @@ async fn create_definition(
             "join",
             &format!("join error: {error}"),
         )),
-    }
+    })
 }
 
 /// List stored definition revisions (Spec 155 §19.1 GET /v1/callgraphs).
