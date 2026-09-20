@@ -55,6 +55,12 @@ EXPECTED = {
         "workset_append_event",
     ],
     "crates/focusa-api/src/routes/work_items.rs": ["work_item_closure_submit"],
+    "crates/focusa-api/src/routes/work_item_temporal.rs": [
+        "temporal_work_item_create",
+        "temporal_work_item_start",
+        "temporal_work_item_resume",
+        "temporal_work_item_complete",
+    ],
     "crates/focusa-api/src/routes/callgraph.rs": [
         "callgraph_definition_upsert",
         "callgraph_run_create",
@@ -95,6 +101,15 @@ for relative, tokens in EXPECTED.items():
     for token in tokens:
         if token not in text:
             missing.append(f"{relative}: {token}")
+
+temporal_path = "crates/focusa-api/src/routes/work_item_temporal.rs"
+temporal_text = (ROOT / temporal_path).read_text(encoding="utf-8")
+transition = temporal_text.split("async fn transition(", 1)[1].split("async fn start(", 1)[0]
+replay = transition.find("return Ok(completed(schema")
+admission = transition.find("if let Some(action) = admission_action")
+mutation = transition.find("let now = Utc::now()")
+if min(replay, admission, mutation) < 0 or not replay < admission < mutation:
+    missing.append(f"{temporal_path}: idempotent replay must precede admission and mutation")
 
 if missing:
     raise SystemExit("North Star admission regression:\n" + "\n".join(missing))

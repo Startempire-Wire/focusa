@@ -1,5 +1,7 @@
 //! Canonical Spec 131 work-item lifecycle routes required by Spec 137.
 
+use crate::routes::project::require_scoped_north_star_mutation_admission;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::{
     Json, Router,
@@ -224,6 +226,13 @@ async fn create(State(state): State<Arc<AppState>>, Json(request): Json<Mutation
     {
         return Ok(completed("focusa.workpoint_item_create.v1", item));
     }
+    let scope = ScopeContext {
+        project_root: Some(request.project_root.clone()),
+        continuity_id: Some(request.continuity_id.clone()),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, &state, "temporal_work_item_create")
+        .await?;
     let item = WorkItem {
         item_id: request
             .item_id
@@ -260,12 +269,13 @@ async fn list(State(state): State<Arc<AppState>>, Query(scope): Query<ScopeQuery
 }
 
 async fn transition(
-    state: &AppState,
+    state: &Arc<AppState>,
     request: Mutation,
     from: &[&str],
     to: &str,
     schema: &str,
     evidence_required: bool,
+    admission_action: Option<&str>,
 ) -> ApiResult {
     let key = require_mutation(&request)?.to_string();
     let mut items = read_items(state, &request.project_root, &request.continuity_id)?;
@@ -298,6 +308,14 @@ async fn transition(
             "completion requires evidence_refs",
         ));
     }
+    if let Some(action) = admission_action {
+        let scope = ScopeContext {
+            project_root: Some(request.project_root.clone()),
+            continuity_id: Some(request.continuity_id.clone()),
+            ..ScopeContext::default()
+        };
+        require_scoped_north_star_mutation_admission(&scope, state, action).await?;
+    }
     let now = Utc::now();
     items[index].status = to.into();
     items[index].revision += 1;
@@ -323,6 +341,7 @@ async fn start(State(state): State<Arc<AppState>>, Json(request): Json<Mutation>
         "in_progress",
         "focusa.workpoint_item_start.v1",
         false,
+        Some("temporal_work_item_start"),
     )
     .await
 }
@@ -334,6 +353,7 @@ async fn pause(State(state): State<Arc<AppState>>, Json(request): Json<Mutation>
         "paused",
         "focusa.workpoint_item_pause.v1",
         false,
+        None,
     )
     .await
 }
@@ -345,6 +365,7 @@ async fn resume(State(state): State<Arc<AppState>>, Json(request): Json<Mutation
         "in_progress",
         "focusa.workpoint_item_resume.v1",
         false,
+        Some("temporal_work_item_resume"),
     )
     .await
 }
@@ -356,6 +377,7 @@ async fn complete(State(state): State<Arc<AppState>>, Json(request): Json<Mutati
         "completed",
         "focusa.workpoint_item_complete.v1",
         true,
+        Some("temporal_work_item_complete"),
     )
     .await
 }

@@ -2221,7 +2221,7 @@ Canonical routes:
 - `GET /v1/work/velocity`
 - `POST /v1/task/closure/check`
 
-All routes use generated shared schemas and a common result envelope. Time, deadline, estimate, progress, and incident events are exposed through the native durable event stream. API routes do not create a second scheduler, estimator, clock, or policy engine.
+All routes use generated shared schemas and a common result envelope. Time, deadline, estimate, progress, and incident events are exposed through the native durable event stream. API routes do not create a second scheduler, estimator, clock, or policy engine. Workpoint item create, start, resume, and complete mutations require canonical North Star admission after exact idempotent replay and request validation; pause and inspection remain available for recovery.
 
 ## Pi and agent surface
 
