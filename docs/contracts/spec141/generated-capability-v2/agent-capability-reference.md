@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:b98d47f3b80d465469753d4093c43b0ef40683e4bef70b5ab5f018f4e48cbd06`
+Registry digest: `sha256:5aea56898e7dfb76d9a108f5968ccf29b116a8f46cb588f26aaed2f28e64a547`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -1655,7 +1655,7 @@ Update continuation decision context (current ask/scope/steering). Use it when U
 
 ## focusa_work_loop_control
 
-Control continuous work loop: on, pause, resume, stop. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Control continuous work loop. Daemon North Star admission applies to on/resume progression; pause/stop recovery controls remain available. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.work.loop.control`
 - Family: `work_loop`
@@ -1666,7 +1666,7 @@ Control continuous work loop: on, pause, resume, stop. Use it when Control conti
 
 ## focusa_work_loop_select_next
 
-Ask daemon to defer blocked work and select next ready work item. Use it when Ask daemon to defer blocked work and select next ready work item. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Ask daemon to defer blocked work and select the next ready item after North Star progression admission passes. Use it when Ask daemon to defer blocked work and select next ready work item. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.work.loop.select.next`
 - Family: `work_loop`

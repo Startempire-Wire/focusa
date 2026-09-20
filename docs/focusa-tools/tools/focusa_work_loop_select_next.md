@@ -1,6 +1,6 @@
 # `focusa_work_loop_select_next`
 
-Ask daemon to defer blocked work and select next ready work item. Use it when Ask daemon to defer blocked work and select next ready work item. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Ask daemon to defer blocked work and select the next ready item after North Star progression admission passes. Use it when Ask daemon to defer blocked work and select next ready work item. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
@@ -74,4 +74,4 @@ Likely next: `focusa_workpoint_checkpoint`, `focusa_work_loop_context`, `focusa_
 - CLI: none.
 - REST: `POST /v1/work-loop/select-next`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:069679c8ce62c061570615167060cba520faa7490ee07d25bad93b0365a8e9c9`.
+- Descriptor digest: `sha256:75ab8e20627521155294b7d2c7d7017bf036f5340328e83ae0357f44ae712980`.

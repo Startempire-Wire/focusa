@@ -3924,7 +3924,8 @@ pi.registerTool({
   pi.registerTool({
     name: "focusa_work_loop_control",
     label: "Work Loop Control",
-    description: "Control continuous work loop: on, pause, resume, stop.",
+    description:
+      "Control continuous work loop. Daemon North Star admission applies to on/resume progression; pause/stop recovery controls remain available.",
     parameters: Type.Object({
       action: Type.Union([
         Type.Literal("on"),
@@ -4223,7 +4224,8 @@ pi.registerTool({
   pi.registerTool({
     name: "focusa_work_loop_select_next",
     label: "Work Loop Select Next",
-    description: "Ask daemon to defer blocked work and select next ready work item.",
+    description:
+      "Ask daemon to defer blocked work and select the next ready item after North Star progression admission passes.",
     parameters: Type.Object({
       parent_work_item_id: Type.Optional(
         Type.String({ description: "Parent work item id. If omitted, use active current_task work_item_id." })

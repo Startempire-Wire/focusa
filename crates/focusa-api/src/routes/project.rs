@@ -5347,6 +5347,28 @@ pub(crate) fn north_star_workpoint_admission_ready(linkage: &Value) -> bool {
         && linkage.get("frontier_status").and_then(Value::as_str) == Some("ready")
 }
 
+pub(crate) fn require_north_star_mutation_admission(
+    linkage: &Value,
+    requested_mutation: &str,
+) -> Result<(), (axum::http::StatusCode, Json<Value>)> {
+    if north_star_workpoint_admission_ready(linkage) {
+        return Ok(());
+    }
+    Err((
+        axum::http::StatusCode::CONFLICT,
+        Json(json!({
+            "status": "blocked",
+            "canonical": false,
+            "code": "NORTH_STAR_ADMISSION_BLOCKED",
+            "failure_class": "north_star_admission_blocked",
+            "requested_mutation": requested_mutation,
+            "workpoint_linkage": linkage,
+            "retry_posture": "retry_after_scope_repair",
+            "next_step_hint": "repair the exact Trajectory-to-Workpoint binding, lifecycle stage, active operation, and frontier before mutation"
+        })),
+    ))
+}
+
 async fn north_star_gate(
     scope: ScopeContext,
     State(state): State<Arc<AppState>>,
