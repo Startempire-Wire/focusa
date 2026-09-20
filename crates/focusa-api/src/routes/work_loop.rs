@@ -3430,6 +3430,12 @@ async fn start_pi_driver(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
+    require_scoped_north_star_mutation_admission(
+        &work_loop_scope_context(&scope),
+        &state,
+        "work_loop_driver_start",
+    )
+    .await?;
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let (transport_work_item_id, transport_workpoint_id) = {
         let focusa = state.focusa.read().await;
