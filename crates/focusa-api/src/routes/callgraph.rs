@@ -260,6 +260,18 @@ async fn create_run(
     Json(body): Json<PreflightBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scoped_north_star_mutation_admission(&scope, &state, "callgraph_run_create").await?;
+    let project_root = scope
+        .project_root
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    let continuity_id = scope
+        .continuity_id
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .to_string();
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let revision = body.revision;
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
@@ -287,6 +299,8 @@ async fn create_run(
                 run_id: run_id.clone(),
                 graph_id: graph_id.clone(),
                 revision,
+                project_root,
+                continuity_id,
                 state: focusa_core::callgraph_store::RunState::Created,
                 created_at: now.clone(),
                 updated_at: now,
@@ -363,8 +377,44 @@ async fn settle_frame(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(run_id): axum::extract::Path<String>,
     Json(body): Json<SettleBody>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let lookup_path = path.clone();
+    let lookup_run_id = run_id.clone();
+    let run = tokio::task::spawn_blocking(move || -> anyhow::Result<_> {
+        let conn = rusqlite::Connection::open(lookup_path)?;
+        focusa_core::callgraph_store::ensure_schema(&conn)?;
+        focusa_core::callgraph_store::load_run(&conn, &lookup_run_id)
+    })
+    .await
+    .map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(focusa_core::error_envelope::internal_error(
+                "join",
+                &format!("{error}"),
+            )),
+        )
+    })?
+    .map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(focusa_core::error_envelope::internal_error(
+                "route",
+                &error.to_string(),
+            )),
+        )
+    })?;
+    let Some(run) = run else {
+        return Ok(Json(json!({"status": "missing", "run_id": run_id})));
+    };
+    let scope = ScopeContext {
+        project_root: Some(run.project_root),
+        continuity_id: Some(run.continuity_id),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, &state, "callgraph_frame_settle").await?;
+
     let events_tx = state.events_tx.clone();
     let invocation_id = body.invocation_id.clone();
     let receipt_ref = body.receipt_ref.clone();
@@ -451,7 +501,7 @@ async fn settle_frame(
         }))
     })
     .await;
-    match result {
+    Ok(match result {
         Ok(Ok(payload)) => {
             if let Ok(serialized) =
                 serde_json::to_string(&focusa_core::types::FocusaEvent::CallGraphFrameSettled {
@@ -473,7 +523,7 @@ async fn settle_frame(
             "join",
             &format!("{error}"),
         )),
-    }
+    })
 }
 
 /// Flow Mesh binding preflight (§13.2): validate the binding against the

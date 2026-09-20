@@ -40,6 +40,8 @@ pub struct CallGraphRun {
     pub run_id: String,
     pub graph_id: String,
     pub revision: u64,
+    pub project_root: String,
+    pub continuity_id: String,
     pub state: RunState,
     pub created_at: String,
     pub updated_at: String,
@@ -86,6 +88,8 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
             run_id TEXT PRIMARY KEY,
             graph_id TEXT NOT NULL,
             revision INTEGER NOT NULL,
+            project_root TEXT NOT NULL DEFAULT '',
+            continuity_id TEXT NOT NULL DEFAULT '',
             state TEXT NOT NULL,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
@@ -116,6 +120,25 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
         );
         "#,
     )?;
+    for (column, ddl) in [
+        (
+            "project_root",
+            "ALTER TABLE callgraph_runs ADD COLUMN project_root TEXT NOT NULL DEFAULT ''",
+        ),
+        (
+            "continuity_id",
+            "ALTER TABLE callgraph_runs ADD COLUMN continuity_id TEXT NOT NULL DEFAULT ''",
+        ),
+    ] {
+        let present: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('callgraph_runs') WHERE name=?1",
+            params![column],
+            |row| row.get(0),
+        )?;
+        if present == 0 {
+            conn.execute_batch(ddl)?;
+        }
+    }
     Ok(())
 }
 
@@ -160,12 +183,14 @@ pub fn load_definition(
 pub fn create_run(conn: &Connection, run: &CallGraphRun) -> Result<()> {
     conn.execute(
         "INSERT OR IGNORE INTO callgraph_runs
-         (run_id, graph_id, revision, state, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+         (run_id, graph_id, revision, project_root, continuity_id, state, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             run.run_id,
             run.graph_id,
             run.revision as i64,
+            run.project_root,
+            run.continuity_id,
             run_state_str(run.state),
             run.created_at,
             run.updated_at
@@ -189,7 +214,7 @@ pub fn transition_run(
 
 pub fn load_run(conn: &Connection, run_id: &str) -> Result<Option<CallGraphRun>> {
     conn.query_row(
-        "SELECT run_id, graph_id, revision, state, created_at, updated_at
+        "SELECT run_id, graph_id, revision, project_root, continuity_id, state, created_at, updated_at
          FROM callgraph_runs WHERE run_id = ?1",
         params![run_id],
         |row| {
@@ -197,9 +222,11 @@ pub fn load_run(conn: &Connection, run_id: &str) -> Result<Option<CallGraphRun>>
                 run_id: row.get(0)?,
                 graph_id: row.get(1)?,
                 revision: row.get::<_, i64>(2)? as u64,
-                state: run_state_from(row.get::<_, String>(3)?),
-                created_at: row.get(4)?,
-                updated_at: row.get(5)?,
+                project_root: row.get(3)?,
+                continuity_id: row.get(4)?,
+                state: run_state_from(row.get::<_, String>(5)?),
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
             })
         },
     )
@@ -523,6 +550,35 @@ mod tests {
     }
 
     #[test]
+    fn ensure_schema_migrates_callgraph_run_scope_columns() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE callgraph_runs (
+                run_id TEXT PRIMARY KEY,
+                graph_id TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                state TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );",
+        )
+        .unwrap();
+
+        ensure_schema(&conn).unwrap();
+
+        for column in ["project_root", "continuity_id"] {
+            let present: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('callgraph_runs') WHERE name=?1",
+                    params![column],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(present, 1, "missing migrated column {column}");
+        }
+    }
+
+    #[test]
     fn run_lifecycle_and_dispatch_commit() {
         let conn = Connection::open_in_memory().unwrap();
         ensure_schema(&conn).unwrap();
@@ -532,6 +588,8 @@ mod tests {
                 run_id: "r1".to_string(),
                 graph_id: "g1".to_string(),
                 revision: 1,
+                project_root: "/workspace/focusa".to_string(),
+                continuity_id: "focusa-cont-test".to_string(),
                 state: RunState::Created,
                 created_at: "2026-08-16T00:00:00Z".to_string(),
                 updated_at: "2026-08-16T00:00:00Z".to_string(),
@@ -555,6 +613,8 @@ mod tests {
         .unwrap();
         transition_run(&conn, "r1", RunState::Running, "2026-08-16T00:00:01Z").unwrap();
         let run = load_run(&conn, "r1").unwrap().expect("exists");
+        assert_eq!(run.project_root, "/workspace/focusa");
+        assert_eq!(run.continuity_id, "focusa-cont-test");
         assert_eq!(run.state, RunState::Running);
         let dispatches = list_dispatches(&conn, "r1").unwrap();
         assert_eq!(dispatches.len(), 1);
@@ -598,6 +658,8 @@ mod tests {
                 run_id: "r1".to_string(),
                 graph_id: "g1".to_string(),
                 revision: 1,
+                project_root: "/workspace/focusa".to_string(),
+                continuity_id: "focusa-cont-test".to_string(),
                 state: RunState::Created,
                 created_at: "t".to_string(),
                 updated_at: "t".to_string(),
