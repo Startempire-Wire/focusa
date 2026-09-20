@@ -56,6 +56,21 @@ pub fn load_definition(
         .transpose()
 }
 
+pub fn load_latest_definition(
+    conn: &Connection,
+    workset_id: &str,
+) -> Result<Option<WorksetDefinition>> {
+    let raw: Option<String> = conn
+        .query_row(
+            "SELECT definition_json FROM worksets WHERE workset_id = ?1 ORDER BY revision DESC LIMIT 1",
+            params![workset_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    raw.map(|text| serde_json::from_str(&text).context("invalid stored Workset definition"))
+        .transpose()
+}
+
 pub fn append_event(conn: &Connection, workset_id: &str, event: &WorksetEvent) -> Result<i64> {
     conn.execute(
         "INSERT INTO workset_events (workset_id, event_json, recorded_at)
