@@ -1,6 +1,6 @@
 # `focusa_workpoint_link_evidence`
 
-Attach a stable evidence reference or verification result to the active canonical Workpoint. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Attach stable proof to the active canonical Workpoint; daemon mutation admission requires its exact Trajectory binding, lifecycle stage, active operation, and current frontier. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
@@ -84,4 +84,4 @@ Likely next: `focusa_trajectory_assess`, `focusa_workpoint_resume`, `focusa_evid
 - CLI: `focusa workpoint evidence-link`.
 - REST: `POST /v1/workpoint/evidence/link`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:36fceda6a12cf1e550d4c698a660f1f5a9c66d0d51874b414e842dcb59acd542`.
+- Descriptor digest: `sha256:bb15d1a94fd339dedfe05880d77af5252e3319c4344f54a803891614dcb6c233`.

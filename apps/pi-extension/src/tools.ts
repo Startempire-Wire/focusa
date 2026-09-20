@@ -9092,7 +9092,7 @@ pi.registerTool({
     name: "focusa_workpoint_link_evidence",
     label: "Workpoint Link Evidence",
     description:
-      "Attach a stable evidence reference or verification result to the active canonical Workpoint.",
+      "Attach stable proof to the active canonical Workpoint; daemon mutation admission requires its exact Trajectory binding, lifecycle stage, active operation, and current frontier.",
     promptSnippet: "Link proof/evidence to active Workpoint instead of keeping it only in transcript.",
     parameters: Type.Object({
       workpoint_id: Type.Optional(
