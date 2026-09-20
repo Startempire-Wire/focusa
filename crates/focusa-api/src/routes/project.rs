@@ -5369,6 +5369,22 @@ pub(crate) fn require_north_star_mutation_admission(
     ))
 }
 
+pub(crate) async fn require_scoped_north_star_mutation_admission(
+    scope: &ScopeContext,
+    state: &Arc<AppState>,
+    requested_mutation: &str,
+) -> Result<(), (axum::http::StatusCode, Json<Value>)> {
+    let linkage = {
+        let focusa = state.focusa.read().await;
+        north_star_workpoint_linkage(
+            &focusa,
+            scope.project_root.as_deref().unwrap_or_default(),
+            scope.continuity_id.as_deref(),
+        )
+    };
+    require_north_star_mutation_admission(&linkage, requested_mutation)
+}
+
 async fn north_star_gate(
     scope: ScopeContext,
     State(state): State<Arc<AppState>>,

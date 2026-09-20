@@ -4887,7 +4887,7 @@ pi.registerTool({
   name: "focusa_bg_run",
   label: "Focusa BG Run",
   description:
-    "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up.",
+    "Run a terminal-blocking command in the background as a first-class Focusa job. Daemon creation requires exact attachment-backed North Star admission; completion receipts remain writable for already-admitted jobs. The front terminal receives completion with bounded output tail (no polling). Use instead of raw setsid/nohup shells whenever Focusa is up.",
   promptSnippet: "The canonical non-blocking dispatch for builds/tests/long scans.",
   parameters: Type.Object({
     name: Type.String({ minLength: 1, description: "Human job name (appears in the completion notification)." }),
@@ -4960,7 +4960,7 @@ pi.registerTool({
   name: "focusa_bg_run_many",
   label: "Focusa BG Run Many (parallel orchestration)",
   description:
-    "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks.",
+    "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each creation requires exact attachment-backed North Star admission; admitted jobs complete independently and deliver bounded output through SSE. Returns the job ledger immediately; never blocks.",
   promptSnippet: "Use to parallelize independent long-running commands.",
   parameters: Type.Object({
     jobs: Type.Array(
