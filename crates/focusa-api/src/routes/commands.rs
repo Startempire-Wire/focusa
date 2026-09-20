@@ -725,19 +725,38 @@ async fn submit_command(
             return Err(command_action_rejected(resp));
         }
     }
-    if let Action::StartSession {
-        project_root,
-        continuity_id,
-        ..
-    } = &action
-    {
-        let scope = ScopeContext {
-            project_root: project_root.clone(),
-            continuity_id: continuity_id.clone(),
-            ..ScopeContext::default()
-        };
-        require_scoped_north_star_mutation_admission(&scope, &state, "command_session_start")
+    match &action {
+        Action::StartSession {
+            project_root,
+            continuity_id,
+            ..
+        } => {
+            let scope = ScopeContext {
+                project_root: project_root.clone(),
+                continuity_id: continuity_id.clone(),
+                ..ScopeContext::default()
+            };
+            require_scoped_north_star_mutation_admission(&scope, &state, "command_session_start")
+                .await?;
+        }
+        Action::StoreArtifact {
+            project_root,
+            continuity_id,
+            ..
+        } if project_root.is_some() || continuity_id.is_some() => {
+            let scope = ScopeContext {
+                project_root: project_root.clone(),
+                continuity_id: continuity_id.clone(),
+                ..ScopeContext::default()
+            };
+            require_scoped_north_star_mutation_admission(
+                &scope,
+                &state,
+                "command_visual_evidence_store",
+            )
             .await?;
+        }
+        _ => {}
     }
 
     let mut record = CommandRecord {
