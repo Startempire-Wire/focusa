@@ -52,6 +52,12 @@ EXPECTED = {
     "crates/focusa-api/src/routes/silent_sessions_approvals.rs": [
         "silent_session_approval_create"
     ],
+    "crates/focusa-api/src/routes/silent_sessions_input.rs": [
+        "silent_session_input",
+        "silent_session_steer",
+        "silent_session_follow_up",
+        "silent_session_keys",
+    ],
     "crates/focusa-core/src/callgraph_store.rs": [
         "pub project_root: String",
         "pub continuity_id: String",

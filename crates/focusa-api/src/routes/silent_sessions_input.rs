@@ -18,7 +18,7 @@ use super::{
     silent_sessions::{
         ApiResponse, disclose_principal_side_effect, durable_request_principal,
         ensure_silent_session_temporal_guard, failure, persistence_failure,
-        silent_session_temporal_context,
+        require_silent_session_north_star_admission, silent_session_temporal_context,
     },
     silent_sessions_authorize::authorize_mutation,
     silent_sessions_contract::{
@@ -111,6 +111,15 @@ impl DeliveryKind {
             Self::Steer => "steer",
             Self::FollowUp => "follow_up",
             Self::Keys => "keys",
+        }
+    }
+
+    fn admission_operation(self) -> &'static str {
+        match self {
+            Self::Input => "silent_session_input",
+            Self::Steer => "silent_session_steer",
+            Self::FollowUp => "silent_session_follow_up",
+            Self::Keys => "silent_session_keys",
         }
     }
 
@@ -290,6 +299,16 @@ async fn deliver(
             silent_session_temporal_context(&session, Some(&run), None, Some(events.len())),
             None,
         );
+    }
+    if let Err(response) = require_silent_session_north_star_admission(
+        &state,
+        &session.authority.project_root,
+        &session.authority.continuity_id,
+        kind.admission_operation(),
+    )
+    .await
+    {
+        return after(response, &principal);
     }
     let config = match load_config_revision(&state.persistence, run.config_revision_id) {
         Ok(Some(config)) => config,
