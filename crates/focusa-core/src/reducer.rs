@@ -5345,6 +5345,7 @@ mod tests {
                     "cargo test -p focusa-core reducer::tests::test_workpoint".to_string(),
                 ],
                 status: Some("ready".to_string()),
+                lifecycle_stage: WorkpointLifecycleStage::Implement,
             }),
             ..WorkpointRecord::default()
         }

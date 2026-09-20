@@ -742,6 +742,25 @@ pub enum WorkpointDriftSeverity {
     Critical,
 }
 
+pub const WORKPOINT_LIFECYCLE_STAGE_SCHEMA_VERSION: &str = "focusa.workpoint_lifecycle_stage.v1";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkpointLifecycleStage {
+    Prepare,
+    Plan,
+    Decompose,
+    VerifyAgainstSpecs,
+    Refine,
+    Implement,
+    Autonomy,
+    Deploy,
+    VerifyOutcome,
+    AcceptAndLearn,
+    #[default]
+    Unknown,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorkpointActionIntentRecord {
     pub action_type: String,
@@ -749,6 +768,8 @@ pub struct WorkpointActionIntentRecord {
     #[serde(default)]
     pub verification_hooks: Vec<String>,
     pub status: Option<String>,
+    #[serde(default)]
+    pub lifecycle_stage: WorkpointLifecycleStage,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -3337,6 +3358,45 @@ impl Default for FocusaState {
 #[cfg(test)]
 mod focusa_state_tests {
     use super::*;
+
+    #[test]
+    fn workpoint_lifecycle_stage_contract_serializes_canonical_labels() {
+        let stages = [
+            WorkpointLifecycleStage::Prepare,
+            WorkpointLifecycleStage::Plan,
+            WorkpointLifecycleStage::Decompose,
+            WorkpointLifecycleStage::VerifyAgainstSpecs,
+            WorkpointLifecycleStage::Refine,
+            WorkpointLifecycleStage::Implement,
+            WorkpointLifecycleStage::Autonomy,
+            WorkpointLifecycleStage::Deploy,
+            WorkpointLifecycleStage::VerifyOutcome,
+            WorkpointLifecycleStage::AcceptAndLearn,
+        ];
+        let labels = stages
+            .into_iter()
+            .map(|stage| serde_json::to_value(stage).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            serde_json::Value::Array(labels),
+            serde_json::json!([
+                "prepare",
+                "plan",
+                "decompose",
+                "verify_against_specs",
+                "refine",
+                "implement",
+                "autonomy",
+                "deploy",
+                "verify_outcome",
+                "accept_and_learn"
+            ])
+        );
+        assert_eq!(
+            WORKPOINT_LIFECYCLE_STAGE_SCHEMA_VERSION,
+            "focusa.workpoint_lifecycle_stage.v1"
+        );
+    }
 
     #[test]
     fn trajectory_ladder_context_prefers_active_record() {

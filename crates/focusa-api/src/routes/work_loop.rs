@@ -5255,6 +5255,7 @@ mod tests {
                     target_ref: Some("focusa-a2w2.3".to_string()),
                     verification_hooks: vec!["status includes active_workpoint".to_string()],
                     status: Some("ready".to_string()),
+                    lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
                 }),
                 ..focusa_core::types::WorkpointRecord::default()
             });

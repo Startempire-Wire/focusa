@@ -110,6 +110,12 @@ test("first Workpoint checkpoint omits fake writer identity when no lease exists
   const end = tools.indexOf('name: "focusa_workpoint_link_evidence"', start);
   const block = tools.slice(start, end);
   assert.match(block, /const checkpointLease = await currentWorkLoopLease\(\)/);
+  assert.match(block, /lifecycle_stage: Type\.Optional/);
+  assert.match(
+    block,
+    /prepare\|plan\|decompose\|verify_against_specs\|refine\|implement\|autonomy\|deploy\|verify_outcome\|accept_and_learn/
+  );
+  assert.match(block, /lifecycle_stage: p\.lifecycle_stage/);
   assert.match(
     block,
     /headers: checkpointLease \? writerLeaseHeaders\(localWriterId, checkpointLease\) : \{\}/

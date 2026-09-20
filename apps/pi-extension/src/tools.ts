@@ -8882,6 +8882,12 @@ pi.registerTool({
       current_action: Type.Optional(
         Type.String({ description: "Typed action, e.g. patch_component_binding or resume_workpoint." })
       ),
+      lifecycle_stage: Type.Optional(
+        Type.String({
+          description:
+            "Daemon-owned canonical lifecycle stage. North Star admission blocks unknown/omitted values: prepare|plan|decompose|verify_against_specs|refine|implement|autonomy|deploy|verify_outcome|accept_and_learn.",
+        })
+      ),
       verified_evidence: Type.Optional(
         Type.Array(Type.String(), {
           description: "Short evidence refs/results already verified; use handles, not raw logs.",
@@ -8979,6 +8985,7 @@ pi.registerTool({
           target_ref: p.work_item_id || (Array.isArray(p.target_objects) ? p.target_objects[0] : undefined),
           verification_hooks: evidence,
           status: "ready",
+          lifecycle_stage: p.lifecycle_stage,
         },
         verification_records: evidence.map((e: string) => ({
           target_ref: p.work_item_id || "workpoint",
