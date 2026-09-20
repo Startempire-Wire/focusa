@@ -35,6 +35,7 @@ EXPECTED = {
         "work_loop_delegate_authorship",
         "work_loop_attach_session",
         "work_loop_transport_ingest",
+        "work_loop_pause_release",
     ],
     "crates/focusa-api/src/routes/task_plans.rs": [
         "task_plan_approve",
