@@ -5,6 +5,8 @@
 //! GET  /v1/commands/log/{command_id}
 
 use crate::routes::permissions::{forbid, permission_context};
+use crate::routes::project::require_scoped_north_star_mutation_admission;
+use crate::scope::ScopeContext;
 use crate::server::{AppState, CommandExecutionStatus, CommandLogEntry, CommandRecord};
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -722,6 +724,20 @@ async fn submit_command(
         if let Err(resp) = validate_action(&action, focusa.session.as_ref(), &focusa.focus_stack) {
             return Err(command_action_rejected(resp));
         }
+    }
+    if let Action::StartSession {
+        project_root,
+        continuity_id,
+        ..
+    } = &action
+    {
+        let scope = ScopeContext {
+            project_root: project_root.clone(),
+            continuity_id: continuity_id.clone(),
+            ..ScopeContext::default()
+        };
+        require_scoped_north_star_mutation_admission(&scope, &state, "command_session_start")
+            .await?;
     }
 
     let mut record = CommandRecord {
