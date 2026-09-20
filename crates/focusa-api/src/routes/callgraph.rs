@@ -7,6 +7,7 @@
 use axum::Json;
 use axum::Router;
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::routing::{get, post};
 use focusa_core::callgraph::{
     Disposition, FocusaCallGraphDefinition, eligibility_for_frame, validate_graph,
@@ -16,6 +17,8 @@ use serde_json::{Value, json};
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use crate::routes::project::{north_star_workpoint_linkage, require_north_star_mutation_admission};
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -249,12 +252,30 @@ pub struct PreflightBody {
     pub revision: u64,
 }
 
+async fn require_callgraph_north_star_admission(
+    scope: &ScopeContext,
+    state: &Arc<AppState>,
+    requested_mutation: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    let linkage = {
+        let focusa = state.focusa.read().await;
+        north_star_workpoint_linkage(
+            &focusa,
+            scope.project_root.as_deref().unwrap_or_default(),
+            scope.continuity_id.as_deref(),
+        )
+    };
+    require_north_star_mutation_admission(&linkage, requested_mutation)
+}
+
 /// Create a run for a stored, preflightable graph revision (Spec 155 §19.1).
 async fn create_run(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     axum::extract::Path(graph_id): axum::extract::Path<String>,
     Json(body): Json<PreflightBody>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    require_callgraph_north_star_admission(&scope, &state, "callgraph_run_create").await?;
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let revision = body.revision;
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
@@ -296,7 +317,7 @@ async fn create_run(
         }))
     })
     .await;
-    match result {
+    Ok(match result {
         Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
             "route",
@@ -306,7 +327,7 @@ async fn create_run(
             "join",
             &format!("join error: {error}"),
         )),
-    }
+    })
 }
 
 /// Read a run's ledger row (Spec 155 §19.1 GET /v1/callgraph-runs/{run_id}).
@@ -725,10 +746,15 @@ pub struct ControlBody {
 }
 
 async fn control_run(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     axum::extract::Path(run_id): axum::extract::Path<String>,
     Json(body): Json<ControlBody>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if body.action == "dispatch_entry_frontier" {
+        require_callgraph_north_star_admission(&scope, &state, "callgraph_dispatch_entry_frontier")
+            .await?;
+    }
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let events_tx = state.events_tx.clone();
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
@@ -866,7 +892,7 @@ async fn control_run(
         }
     })
     .await;
-    match result {
+    Ok(match result {
         Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
             "route",
@@ -876,7 +902,7 @@ async fn control_run(
             "join",
             &format!("join error: {error}"),
         )),
-    }
+    })
 }
 
 /// Export a stored definition through one typed projection (#287).
