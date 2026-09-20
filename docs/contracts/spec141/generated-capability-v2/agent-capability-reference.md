@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:7c1ced348e29e4083bad084d55754412c87cbda79f61e5c3a16e93a41f3c4ba9`
+Registry digest: `sha256:f89cf4db13d540b4ee4be3ca420efd4f97f4e75f9bde37341a32a3aad90cdd57`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -1237,7 +1237,7 @@ Typed save/continue/rollover wrapper for moving long work between Pi sessions wi
 
 ## focusa_silent_sessions
 
-Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. New session creation requires resolved-config North Star admission; recovery controls remain available. Process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.silent.sessions`
 - Family: `work_loop`

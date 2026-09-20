@@ -60391,7 +60391,7 @@
       "version": "2.0.0",
       "title": "Focusa Silent Sessions (daemon facade)",
       "summary": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
-      "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. New session creation requires resolved-config North Star admission; recovery controls remain available. Process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "work_loop",
       "namespace": "focusa.work_loop",
       "operation_policy": {
@@ -61253,7 +61253,7 @@
         "snippet": "Use as a thin daemon API client. Supply exact session_id/run_id/generation and durable approval/idempotency fields for mutations; the daemon remains canonical authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:dfebb97ecd003d3b389ecc60f3adb4f26c7ceb7d8c707b5bfe6c0232435b4485"
+      "descriptor_digest": "sha256:5f585db082339e0f7ae20357dc9159d61e3f37936d960ddd174f4c3a98efb374"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86606,5 +86606,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:7c1ced348e29e4083bad084d55754412c87cbda79f61e5c3a16e93a41f3c4ba9"
+  "registry_digest": "sha256:f89cf4db13d540b4ee4be3ca420efd4f97f4e75f9bde37341a32a3aad90cdd57"
 }
