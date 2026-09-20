@@ -30,7 +30,14 @@ pub fn router() -> Router<Arc<AppState>> {
 async fn create_definition(
     State(state): State<Arc<AppState>>,
     Json(definition): Json<WorksetDefinition>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let scope = ScopeContext {
+        project_root: Some(definition.scope.project_root.clone()),
+        continuity_id: Some(definition.scope.continuity_id.clone()),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, &state, "workset_definition_upsert")
+        .await?;
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
@@ -44,7 +51,7 @@ async fn create_definition(
         }))
     })
     .await;
-    match result {
+    Ok(match result {
         Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
             "route",
@@ -54,7 +61,7 @@ async fn create_definition(
             "join",
             &format!("{error}"),
         )),
-    }
+    })
 }
 
 async fn list(State(state): State<Arc<AppState>>) -> Json<Value> {
