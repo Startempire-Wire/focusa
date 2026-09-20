@@ -84554,6 +84554,10 @@
             "description": "Typed action, e.g. patch_component_binding or resume_workpoint.",
             "type": "string"
           },
+          "lifecycle_stage": {
+            "description": "Daemon-owned canonical lifecycle stage. North Star admission blocks unknown/omitted values: prepare|plan|decompose|verify_against_specs|refine|implement|autonomy|deploy|verify_outcome|accept_and_learn.",
+            "type": "string"
+          },
           "verified_evidence": {
             "description": "Short evidence refs/results already verified; use handles, not raw logs.",
             "type": "array",
@@ -85012,7 +85016,7 @@
           "If canonical=false, treat as degraded fallback and reconcile when Focusa is healthy."
         ]
       },
-      "descriptor_digest": "sha256:4b8c050444f1e1655e59d4b0170c54eeec3ddece5dab8879586013d66e0f0c02"
+      "descriptor_digest": "sha256:07f19d7dbefef93c9c8415f1e03ed89aeed6bf039e82d8851ac53d543aab124d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86602,5 +86606,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:61d9911448bc59ede7bc1a3c8af3a2d1de0002fb8036f8ffe526351b28f9c766"
+  "registry_digest": "sha256:e2a00a346a8725999649b2cc5cfb192236d7e1ecd2537b9d6cfffbf714773fb4"
 }

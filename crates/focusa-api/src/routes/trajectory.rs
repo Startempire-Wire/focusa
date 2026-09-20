@@ -3671,6 +3671,7 @@ mod tests {
                 target_ref: Some("crates/focusa-api/src/routes/trajectory.rs".to_string()),
                 verification_hooks: vec!["cargo test".to_string()],
                 status: Some("ready".to_string()),
+                lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
             }),
             next_slice: Some("Implement hot-path trajectory view".to_string()),
             ..WorkpointRecord::default()

@@ -5291,18 +5291,44 @@ fn north_star_workpoint_linkage(
                 .is_none_or(|continuity| record.continuity_id.as_deref() == Some(continuity))
     });
     match active {
-        Some(record) => json!({
-            "status": "linked",
-            "link_basis": "trajectory_active_workpoint_id",
-            "trajectory_id": trajectory.trajectory_id,
-            "workpoint_id": record.workpoint_id,
-            "work_item_id": record.work_item_id,
-            "project_root": record.project_root,
-            "continuity_id": record.continuity_id,
-            "action_intent": record.action_intent,
-            "next_slice": record.next_slice,
-            "frontier_status": if record.action_intent.is_some() || record.next_slice.is_some() { "ready" } else { "missing" },
-        }),
+        Some(record) => {
+            let action_intent = record.action_intent.as_ref();
+            let active_operation_present =
+                action_intent.is_some_and(|intent| !intent.action_type.trim().is_empty());
+            let lifecycle_stage = action_intent.map(|intent| intent.lifecycle_stage);
+            let lifecycle_stage_present = lifecycle_stage
+                .is_some_and(|stage| stage != focusa_core::types::WorkpointLifecycleStage::Unknown);
+            let current_frontier_present = record
+                .next_slice
+                .as_deref()
+                .is_some_and(|frontier| !frontier.trim().is_empty());
+            let mut admission_gaps = Vec::new();
+            if !active_operation_present {
+                admission_gaps.push("active_operation_missing");
+            }
+            if !lifecycle_stage_present {
+                admission_gaps.push("lifecycle_stage_missing");
+            }
+            if !current_frontier_present {
+                admission_gaps.push("current_frontier_missing");
+            }
+            json!({
+                "status": "linked",
+                "link_basis": "trajectory_active_workpoint_id",
+                "trajectory_id": trajectory.trajectory_id,
+                "workpoint_id": record.workpoint_id,
+                "work_item_id": record.work_item_id,
+                "project_root": record.project_root,
+                "continuity_id": record.continuity_id,
+                "action_intent": record.action_intent,
+                "lifecycle_stage_schema":
+                    focusa_core::types::WORKPOINT_LIFECYCLE_STAGE_SCHEMA_VERSION,
+                "lifecycle_stage": lifecycle_stage,
+                "next_slice": record.next_slice,
+                "frontier_status": if admission_gaps.is_empty() { "ready" } else { "missing" },
+                "admission_gaps": admission_gaps,
+            })
+        }
         None => json!({
             "status": "mismatch",
             "reason": "bound_workpoint_not_active_in_exact_scope",
@@ -5425,6 +5451,11 @@ mod tests {
                 continuity_id: Some("cont-focusa".to_string()),
                 canonical: true,
                 status: focusa_core::types::WorkpointStatus::Active,
+                action_intent: Some(focusa_core::types::WorkpointActionIntentRecord {
+                    action_type: "verify_frontier".to_string(),
+                    lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
+                    ..focusa_core::types::WorkpointActionIntentRecord::default()
+                }),
                 next_slice: Some("verify the frontier".to_string()),
                 ..focusa_core::types::WorkpointRecord::default()
             });
@@ -5444,7 +5475,24 @@ mod tests {
         assert_eq!(linked["link_basis"], "trajectory_active_workpoint_id");
         assert_eq!(linked["trajectory_id"], "trajectory:focusa");
         assert_eq!(linked["frontier_status"], "ready");
+        assert_eq!(
+            linked["lifecycle_stage_schema"],
+            focusa_core::types::WORKPOINT_LIFECYCLE_STAGE_SCHEMA_VERSION
+        );
+        assert_eq!(linked["lifecycle_stage"], "implement");
         assert_eq!(linked["workpoint_id"], workpoint_id.to_string());
+        state.workpoint.records[0]
+            .action_intent
+            .as_mut()
+            .unwrap()
+            .lifecycle_stage = focusa_core::types::WorkpointLifecycleStage::Unknown;
+        let missing_stage =
+            north_star_workpoint_linkage(&state, "/repo/focusa", Some("cont-focusa"));
+        assert_eq!(missing_stage["frontier_status"], "missing");
+        assert_eq!(
+            missing_stage["admission_gaps"],
+            json!(["lifecycle_stage_missing"])
+        );
         let wrong_scope = north_star_workpoint_linkage(&state, "/repo/other", Some("cont-focusa"));
         assert_eq!(wrong_scope["status"], "missing");
         assert_eq!(wrong_scope["reason"], "trajectory_scope_missing");

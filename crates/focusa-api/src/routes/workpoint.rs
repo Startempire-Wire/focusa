@@ -4323,6 +4323,7 @@ mod tests {
                 target_ref: Some("apps/pi-extension/src/compaction.ts".to_string()),
                 verification_hooks: vec![],
                 status: Some("ready".to_string()),
+                lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
             }),
             ..WorkpointRecord::default()
         };
@@ -4671,6 +4672,7 @@ mod tests {
                 target_ref: Some("Component:homepage.audio_widget".to_string()),
                 verification_hooks: vec!["verify UI play state".to_string()],
                 status: Some("ready".to_string()),
+                lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
             }),
             next_slice: Some(
                 "Patch the widget binding\nDO_NOT_DRIFT: notes-only/generic validation".to_string(),
@@ -4708,6 +4710,7 @@ mod tests {
                 target_ref: Some("Component:homepage.audio_widget".to_string()),
                 verification_hooks: vec![],
                 status: Some("ready".to_string()),
+                lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
             }),
             ..WorkpointRecord::default()
         };
@@ -4750,6 +4753,7 @@ mod tests {
                 target_ref: Some("FocusaToolSuite".to_string()),
                 verification_hooks: vec!["api".to_string(), "cli".to_string(), "pi".to_string()],
                 status: Some("ready".to_string()),
+                lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::VerifyOutcome,
             }),
             next_slice: Some(
                 "Complete stress suite\nDO_NOT_DRIFT: Do not demote existing tools.".to_string(),
