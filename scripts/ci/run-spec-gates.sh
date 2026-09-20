@@ -151,6 +151,7 @@ run_gate python3 ./tests/spec135_m1_workspace_shell_test.py
 run_gate python3 ./tests/spec135_m2_pi_work_rail_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_mission_canvas_surfaces_e2e_test.py
 run_gate python3 ./tests/spec135_m4_surface_bindings_static_test.py
+run_gate python3 ./tests/spec618_north_star_admission_static_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m4_surface_bindings_e2e_test.py
 run_gate python3 ./tests/spec135_m5_browser_context_isolation_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m5_browser_context_isolation_e2e_test.py
