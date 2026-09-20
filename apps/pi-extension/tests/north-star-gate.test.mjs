@@ -20,17 +20,21 @@ function sessionStartBlock() {
   return session.slice(start, end);
 }
 
-test("north-star gate refreshes exact-scope trajectory before rendering", () => {
+test("north-star gate delegates exact-scope enforcement to daemon authority", () => {
   const start = tools.indexOf('name: "focusa_north_star_gate"');
   const end = tools.indexOf('name: "focusa_scratch"', start);
   assert.ok(start >= 0 && end > start);
   const block = tools.slice(start, end);
-  const refresh = block.indexOf("refreshTrajectoryClarityLifecycle");
-  const snapshot = block.indexOf("buildNorthStarSnapshot");
-  assert.ok(refresh >= 0 && snapshot > refresh);
   assert.match(block, /resolveFocusaToolProjectRoot/);
-  assert.match(block, /canonical: false/);
-  assert.match(block, /advisory: true/);
+  assert.match(block, /getContinuityId\(\) \|\| ensureContinuityId/);
+  assert.match(block, /\/project\/north-star-gate\?/);
+  assert.match(block, /body\.canonical === true/);
+  assert.match(block, /body\.status === "completed"/);
+  assert.match(block, /guard\.status === "ready"/);
+  assert.match(block, /advisory: false/);
+  assert.match(block, /authority: body\.authority \|\| "daemon_owned"/);
+  assert.doesNotMatch(block, /buildNorthStarSnapshot/);
+  assert.doesNotMatch(block, /canonical: false,[\s\S]*advisory: true/);
 });
 
 test("session startup fails closed before durable project initialization", () => {

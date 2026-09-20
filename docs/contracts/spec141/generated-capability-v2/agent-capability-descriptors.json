@@ -43161,7 +43161,12 @@
         "mcp": "focusa.north.star.gate",
         "openai": "focusa_north_star_gate",
         "cli": [],
-        "rest": []
+        "rest": [
+          {
+            "method": "GET",
+            "path": "/v1/project/north-star-gate"
+          }
+        ]
       },
       "version": "2.0.0",
       "title": "North Star Gate",
@@ -43171,8 +43176,8 @@
       "namespace": "focusa.trajectory",
       "operation_policy": {
         "operation_id": null,
-        "method": null,
-        "path": null,
+        "method": "GET",
+        "path": "/v1/project/north-star-gate",
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -43183,7 +43188,22 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [],
+      "operation_policies": [
+        {
+          "operation_id": null,
+          "method": "GET",
+          "path": "/v1/project/north-star-gate",
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "agent_capability_contracts",
+          "policy_owner": "entitlement_policy_resolver"
+        }
+      ],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -43196,12 +43216,13 @@
       "availability": {
         "requires_daemon": true,
         "supported_harnesses": [
-          "pi"
+          "pi",
+          "mcp",
+          "openai",
+          "rest"
         ],
-        "parity_status": "pi_only",
-        "exemptions": [
-          "pi_only"
-        ]
+        "parity_status": "api_pi",
+        "exemptions": []
       },
       "input_schema": {
         "type": "object",
@@ -43487,12 +43508,21 @@
       "result_envelope": "focusa.tool_result.v1",
       "scope": {
         "kind": "read",
-        "route_family": "trajectory"
+        "route_family": "project"
       },
       "authority": {
-        "kind": "advisory_only"
+        "kind": "canonical",
+        "path": "/v1/project/north-star-gate"
       },
-      "permissions": [],
+      "permissions": [
+        {
+          "route": "GET /v1/project/north-star-gate",
+          "scope": {
+            "kind": "read",
+            "route_family": "project"
+          }
+        }
+      ],
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -43596,7 +43626,7 @@
           "Trajectory",
           "Workpoint"
         ],
-        "core_surface": "Continuous north-star authority gate"
+        "core_surface": "Daemon-owned continuous north-star authority gate"
       },
       "evidence_requirements": [],
       "deprecation": null,
@@ -43612,7 +43642,7 @@
         "snippet": "Use before meaningful work and after session/compaction/model/project/provider/writer transitions; stale authority remains advisory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6c238e6fff84ac5b3d09764db31083bbdd014ea0aeace4b372c88bfa43d82843"
+      "descriptor_digest": "sha256:4034e5462a223fe22110fa72c62bcb3037dd00f6dffb896af2eb5d414e34a953"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86572,5 +86602,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:ec9775458f22ba12fee89dbc180ded2497e9e7fa5ca2ebf6c2c545e8352c8d5a"
+  "registry_digest": "sha256:61d9911448bc59ede7bc1a3c8af3a2d1de0002fb8036f8ffe526351b28f9c766"
 }

@@ -2,10 +2,6 @@
 
 Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). Returns bounded lines + the packet's workpoint_id, trajectory_id, and rehydrate_id. Advisory only. Use it when Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
-## Purpose
-
-Render the Spec 100 ContextCognitionPacket as compact, bounded lines (with workpoint_id, trajectory_id, and rehydrate_id) for prompt, CLI, or menubar display. Read-only and advisory; it never exposes raw prediction or candidate content.
-
 ## When to use
 
 - Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar).
@@ -19,7 +15,7 @@ Render the Spec 100 ContextCognitionPacket as compact, bounded lines (with workp
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_context_cognition_render`.
 
-## Expected result
+## Output
 
 Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
@@ -56,9 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Failure and recovery
 
-This read-only, deterministic evaluation route is a query-side (CQRS read) operation: it never mutates prediction or candidate state.
-
-Failure settles through the strict `failure_class` envelope. Declared `failure_class` values: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
 - scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
 - resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request

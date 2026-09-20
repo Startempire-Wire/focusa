@@ -2,10 +2,6 @@
 
 Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module. Returns the recent artifact list and the latest promoted artifact (if any). Use it when Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
-## Purpose
-
-Return the bounded, versioned Cognition Optimizer artifact history and the currently promoted artifact for one scoped project+module without exposing raw prediction or candidate content.
-
 ## When to use
 
 - Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module.
@@ -20,7 +16,7 @@ Return the bounded, versioned Cognition Optimizer artifact history and the curre
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_context_cognition_optimizer_artifacts`.
 
-## Expected result
+## Output
 
 Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
@@ -57,9 +53,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Failure and recovery
 
-This read-only, deterministic evaluation route is a query-side (CQRS read) operation: it never mutates prediction or candidate state.
-
-Failure settles through the strict `failure_class` envelope. Declared `failure_class` values: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
 - scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
 - resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request

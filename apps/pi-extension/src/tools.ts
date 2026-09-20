@@ -142,7 +142,6 @@ import {
   type ScopedResultEnvelope,
   type WorkstreamKey,
 } from "./scoped-state.js";
-import { buildNorthStarSnapshot, renderNorthStarCard } from "./north-star.js";
 import { captureResumeRequest, evaluateResumeRequest, stampResumeRequest } from "./workpoint-request-binding.js";
 import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } from "./project-binding.js";
 import { resolveCanonicalMarkerProjectRoot } from "./project-identity-working-context.js";
@@ -2369,27 +2368,54 @@ pi.registerTool({
     async execute(params: any) {
       const trigger = String(params?.trigger || "manual_gate");
       const projectRoot = await resolveFocusaToolProjectRoot();
-      if (isProjectRootAuthoritySafe(projectRoot)) {
-        try {
-          await refreshTrajectoryClarityLifecycle(`north_star_gate:${trigger}`, projectRoot);
-        } catch {
-          // Snapshot rendering remains fail-closed and carries its recovery route.
-        }
-      }
-      const snapshot = buildNorthStarSnapshot(trigger);
-      return {
-        content: [{ type: "text", text: renderNorthStarCard(snapshot).join("\n") }],
-        details: {
-          ok: snapshot.status === "ready",
-          status: snapshot.status,
+      const continuityId = getContinuityId() || ensureContinuityId(projectRoot);
+      if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) {
+        const blocked = {
+          ok: false,
+          status: "scope_unresolved",
           canonical: false,
-          advisory: true,
-          snapshot,
-          next_tools:
-            snapshot.status === "ready"
-              ? ["focusa_workpoint_resume"]
-              : ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
-        },
+          advisory: false,
+          failure_class: "scope_recovery_required",
+          next_tools: ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
+        };
+        return {
+          content: [{ type: "text", text: "🧭 NORTH STAR BLOCKED · exact project/continuity scope is unresolved" }],
+          details: blocked,
+        };
+      }
+      const query = new URLSearchParams({
+        project_root: projectRoot,
+        continuity_id: continuityId,
+        trigger,
+      });
+      const response = await focusaFetchDetailed(`/project/north-star-gate?${query.toString()}`);
+      const body = response.body && typeof response.body === "object" ? response.body : {};
+      const guard = body.trajectory_integrity_guard || {};
+      const ready = response.ok && body.status === "completed" && guard.status === "ready";
+      const status = ready
+        ? "ready"
+        : String(body.code || guard.status || body.status || `http_${response.status}`);
+      const details = {
+        ...body,
+        ok: ready,
+        status,
+        canonical: body.canonical === true,
+        advisory: false,
+        authority: body.authority || "daemon_owned",
+        next_tools: ready
+          ? ["focusa_workpoint_resume"]
+          : ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
+      };
+      return {
+        content: [
+          {
+            type: "text",
+            text: ready
+              ? "🧭 NORTH STAR READY · daemon verified the canonical Trajectory Ladder"
+              : `🧭 NORTH STAR BLOCKED · ${status}`,
+          },
+        ],
+        details,
       };
     },
   });

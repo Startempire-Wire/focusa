@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 679,
+  "route_count": 680,
   "classification_counts": {
     "agent_eligible": 164,
     "internal": 6,
-    "operator_only": 503,
+    "operator_only": 504,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -5166,6 +5166,18 @@
       ],
       "methods": [
         "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/project/north-star-gate",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },

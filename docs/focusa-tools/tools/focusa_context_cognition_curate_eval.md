@@ -2,10 +2,6 @@
 
 Spec 100 Phase 4 — run a curator eval case. Computes precision/recall/F1 vs. expected_selected_paths. Appends to curator-eval-ledger/{hash}/eval-runs.jsonl. Returns run_id, eval_ref, scores, and promoted flag (F1 > baseline_f1 AND F1 >= score_threshold). Use it when Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
-## Purpose
-
-Run one bounded Spec 100 curator evaluation case and record its precision, recall, F1, and promotion decision without exposing raw prediction or candidate content.
-
 ## When to use
 
 - Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.
@@ -27,7 +23,7 @@ Run one bounded Spec 100 curator evaluation case and record its precision, recal
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_context_cognition_curate_eval`.
 
-## Expected result
+## Output
 
 Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
@@ -64,9 +60,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Failure and recovery
 
-This read-only, deterministic evaluation route is a query-side (CQRS read) operation: it never mutates prediction or candidate state.
-
-Failure settles through the strict `failure_class` envelope. Declared `failure_class` values: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
 
 - scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
 - resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request

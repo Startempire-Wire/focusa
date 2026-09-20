@@ -2,9 +2,9 @@
 
 Generated from current Axum route declarations plus the Spec135/Spec141 operation registry. Explicit inline cfg(test) modules are excluded. This source inventory does not prove HTTP mounting, permissions, or installed availability. It is release-gated; do not edit route rows manually.
 
-- Classified paths: `679`
+- Classified paths: `680`
 - Agent eligible: `164`
-- Operator only: `503`
+- Operator only: `504`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -3315,6 +3315,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/project/new`
 
 - Methods: `POST /v1/project/new`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/project.rs`
+- Agent operations: none
+
+### `/v1/project/north-star-gate`
+
+- Methods: `GET /v1/project/north-star-gate`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/project.rs`
