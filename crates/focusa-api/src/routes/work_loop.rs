@@ -4107,6 +4107,12 @@ async fn ingest_transport_event(
         return Err(forbid("work-loop:write"));
     }
 
+    require_scoped_north_star_mutation_admission(
+        &work_loop_scope_context(&scope),
+        &state,
+        "work_loop_transport_ingest",
+    )
+    .await?;
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
         .await
