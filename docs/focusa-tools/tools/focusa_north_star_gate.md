@@ -11,6 +11,7 @@ Inspect the current verified Project → HLT → MLG → STG → waypoint → ga
 ## Parameters and strict input schema
 
 - `trigger` (optional; string): Lifecycle or operator trigger being checked.
+- `projection` (optional; string | string | string): Projection depth over the same daemon-owned records; defaults to short.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_north_star_gate`.
 
@@ -74,4 +75,4 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - CLI: none.
 - REST: `GET /v1/project/north-star-gate`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:4034e5462a223fe22110fa72c62bcb3037dd00f6dffb896af2eb5d414e34a953`.
+- Descriptor digest: `sha256:c5a2a2c31bc35a88af49af6b8f077cedcffa17e2bb3c3bbde9e8c62334487cb7`.

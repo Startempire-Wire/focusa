@@ -43230,6 +43230,23 @@
           "trigger": {
             "description": "Lifecycle or operator trigger being checked.",
             "type": "string"
+          },
+          "projection": {
+            "description": "Projection depth over the same daemon-owned records; defaults to short.",
+            "anyOf": [
+              {
+                "const": "short",
+                "type": "string"
+              },
+              {
+                "const": "medium",
+                "type": "string"
+              },
+              {
+                "const": "full",
+                "type": "string"
+              }
+            ]
           }
         },
         "additionalProperties": false
@@ -43642,7 +43659,7 @@
         "snippet": "Use before meaningful work and after session/compaction/model/project/provider/writer transitions; stale authority remains advisory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4034e5462a223fe22110fa72c62bcb3037dd00f6dffb896af2eb5d414e34a953"
+      "descriptor_digest": "sha256:c5a2a2c31bc35a88af49af6b8f077cedcffa17e2bb3c3bbde9e8c62334487cb7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86617,5 +86634,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:eef2bcc5d84c92eb9a1c8907dd44cfea02e5a59b5b9144403352eb50f70f34a8"
+  "registry_digest": "sha256:f6814129690d789f4c92f3be2cf03f3c1b9fe8380d6b47cc89aa6c93d9ae6c31"
 }

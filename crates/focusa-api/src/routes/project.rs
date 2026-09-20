@@ -174,6 +174,7 @@ struct NorthStarGateQuery {
     project_root: Option<String>,
     continuity_id: Option<String>,
     trigger: Option<String>,
+    projection: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -5342,6 +5343,120 @@ pub(crate) fn north_star_workpoint_linkage(
     }
 }
 
+fn north_star_depth_projection(
+    focusa: &focusa_core::types::FocusaState,
+    project_root: &str,
+    continuity_id: Option<&str>,
+    linkage: &Value,
+    depth: &str,
+) -> Value {
+    let trajectory = focusa.trajectory.records.iter().rev().find(|record| {
+        record.canonical
+            && record.project_root.as_deref() == Some(project_root)
+            && continuity_id
+                .is_none_or(|continuity| record.continuity_id.as_deref() == Some(continuity))
+    });
+    let Some(trajectory) = trajectory else {
+        return json!({
+            "schema": "focusa.north_star_projection.v1",
+            "depth": depth,
+            "status": "missing",
+            "source": "canonical_trajectory_projection_record",
+            "project_root": project_root,
+            "continuity_id": continuity_id,
+            "coverage_complete": false,
+            "omitted_coverage": ["trajectory", "requirements", "worksets", "callgraphs", "evidence"],
+        });
+    };
+    let active_waypoint = trajectory
+        .active_waypoint_id
+        .as_deref()
+        .and_then(|active_id| {
+            trajectory
+                .waypoints
+                .iter()
+                .find(|waypoint| waypoint.waypoint_id == active_id)
+        });
+    let omitted_coverage = match depth {
+        "short" => vec![
+            "non_active_waypoints",
+            "desired_end_state",
+            "current_state",
+            "requirements",
+            "worksets",
+            "callgraphs",
+            "evidence",
+            "unresolved_scope",
+        ],
+        "medium" => vec![
+            "cross_branch_requirements",
+            "worksets",
+            "callgraphs",
+            "evidence",
+            "unresolved_scope",
+        ],
+        _ => vec![
+            "requirements",
+            "worksets",
+            "callgraphs",
+            "evidence",
+            "unresolved_scope",
+        ],
+    };
+    let mut projection = json!({
+        "schema": "focusa.north_star_projection.v1",
+        "depth": depth,
+        "status": if omitted_coverage.is_empty() { "complete" } else { "incomplete" },
+        "source": "canonical_trajectory_projection_record",
+        "record_ref": {
+            "trajectory_id": trajectory.trajectory_id,
+            "updated_at": trajectory.updated_at,
+        },
+        "project_root": project_root,
+        "continuity_id": continuity_id,
+        "ancestry": {
+            "hlt": trajectory.root_long_term_goal,
+            "mlg": trajectory.mid_level_goal,
+            "stg": trajectory.short_term_goal,
+            "active_waypoint": active_waypoint,
+        },
+        "gap": trajectory.gap_summary,
+        "workpoint_frontier": linkage,
+        "coverage_complete": omitted_coverage.is_empty(),
+        "omitted_coverage": omitted_coverage,
+        "expansion": {
+            "same_endpoint": "/v1/project/north-star-gate",
+            "available_depths": ["short", "medium", "full"],
+            "same_versioned_records": true,
+        },
+    });
+    if depth != "short"
+        && let Some(object) = projection.as_object_mut()
+    {
+        object.insert(
+            "desired_end_state".to_string(),
+            json!(trajectory.desired_end_state),
+        );
+        object.insert("current_state".to_string(), json!(trajectory.current_state));
+        object.insert("waypoints".to_string(), json!(trajectory.waypoints));
+    }
+    if depth == "full"
+        && let Some(object) = projection.as_object_mut()
+    {
+        object.insert("blockers".to_string(), json!(trajectory.blockers));
+        object.insert(
+            "open_questions".to_string(),
+            json!(trajectory.open_questions),
+        );
+        object.insert(
+            "definition_of_done".to_string(),
+            json!(trajectory.definition_of_done),
+        );
+        object.insert("source_refs".to_string(), trajectory.source_refs.clone());
+    }
+    projection
+}
+
 pub(crate) fn north_star_workpoint_admission_ready(linkage: &Value) -> bool {
     linkage.get("status").and_then(Value::as_str) == Some("linked")
         && linkage.get("frontier_status").and_then(Value::as_str) == Some("ready")
@@ -5390,6 +5505,23 @@ async fn north_star_gate(
     State(state): State<Arc<AppState>>,
     Query(query): Query<NorthStarGateQuery>,
 ) -> (axum::http::StatusCode, Json<Value>) {
+    let projection_depth = query
+        .projection
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("short")
+        .to_ascii_lowercase();
+    if !matches!(projection_depth.as_str(), "short" | "medium" | "full") {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(json!({
+                "status": "blocked",
+                "code": "NORTH_STAR_PROJECTION_INVALID",
+                "message": "projection must be short, medium, or full",
+            })),
+        );
+    }
     let trigger = query
         .trigger
         .as_deref()
@@ -5416,16 +5548,26 @@ async fn north_star_gate(
     if status_code.is_success()
         && let Some(project_root) = requested_root.as_deref()
     {
-        let linkage = {
+        let normalized_root = normalize_path(Path::new(project_root));
+        let (linkage, projection) = {
             let focusa = state.focusa.read().await;
-            north_star_workpoint_linkage(
+            let linkage = north_star_workpoint_linkage(
                 &focusa,
-                &normalize_path(Path::new(project_root)),
+                &normalized_root,
                 requested_continuity.as_deref(),
-            )
+            );
+            let projection = north_star_depth_projection(
+                &focusa,
+                &normalized_root,
+                requested_continuity.as_deref(),
+                &linkage,
+                &projection_depth,
+            );
+            (linkage, projection)
         };
         let linkage_ready = north_star_workpoint_admission_ready(&linkage);
         if let Some(object) = payload.as_object_mut() {
+            object.insert("projection".to_string(), projection);
             object.insert("workpoint_linkage".to_string(), linkage);
             if object.get("status").and_then(Value::as_str) == Some("completed") && !linkage_ready {
                 object.insert("status".to_string(), Value::String("blocked".to_string()));
@@ -5478,6 +5620,72 @@ mod tests {
         assert_eq!(payload["advisory"], false);
         assert_eq!(payload["trigger"], "model_switch");
         assert_eq!(payload["canonical"], true);
+    }
+
+    #[test]
+    fn north_star_projection_depths_share_records_and_disclose_omissions() {
+        let mut state = focusa_core::types::FocusaState::default();
+        let mut trajectory = focusa_core::types::TrajectoryProjectionRecord {
+            trajectory_id: "trajectory-1".to_string(),
+            project_root: Some("/repo/focusa".to_string()),
+            continuity_id: Some("cont-focusa".to_string()),
+            root_long_term_goal: "Ship the accepted outcome".to_string(),
+            mid_level_goal: Some("Complete the workstream".to_string()),
+            short_term_goal: Some("Execute the current slice".to_string()),
+            desired_end_state: "Consumer-visible acceptance".to_string(),
+            current_state: Some("Implementation underway".to_string()),
+            gap_summary: Some("Projection parity remains".to_string()),
+            active_waypoint_id: Some("waypoint-1".to_string()),
+            blockers: vec!["installed proof pending".to_string()],
+            canonical: true,
+            ..focusa_core::types::TrajectoryProjectionRecord::default()
+        };
+        trajectory
+            .waypoints
+            .push(focusa_core::types::TrajectoryWaypointRecord {
+                waypoint_id: "waypoint-1".to_string(),
+                title: "Daemon projection".to_string(),
+                ..focusa_core::types::TrajectoryWaypointRecord::default()
+            });
+        state.trajectory.records.push(trajectory);
+        let linkage = json!({"status":"linked","frontier_status":"ready","next_slice":"test"});
+
+        let short = north_star_depth_projection(
+            &state,
+            "/repo/focusa",
+            Some("cont-focusa"),
+            &linkage,
+            "short",
+        );
+        let medium = north_star_depth_projection(
+            &state,
+            "/repo/focusa",
+            Some("cont-focusa"),
+            &linkage,
+            "medium",
+        );
+        let full = north_star_depth_projection(
+            &state,
+            "/repo/focusa",
+            Some("cont-focusa"),
+            &linkage,
+            "full",
+        );
+
+        assert_eq!(short["record_ref"]["trajectory_id"], "trajectory-1");
+        assert_eq!(medium["record_ref"]["trajectory_id"], "trajectory-1");
+        assert_eq!(full["record_ref"]["trajectory_id"], "trajectory-1");
+        assert!(short.get("waypoints").is_none());
+        assert!(medium["waypoints"].is_array());
+        assert!(medium.get("blockers").is_none());
+        assert!(full["blockers"].is_array());
+        assert_eq!(full["coverage_complete"], false);
+        assert!(
+            full["omitted_coverage"]
+                .as_array()
+                .is_some_and(|items| items.contains(&json!("worksets")))
+        );
+        assert_eq!(short["expansion"]["same_versioned_records"], true);
     }
 
     #[test]

@@ -2364,9 +2364,15 @@ pi.registerTool({
       "Use before meaningful work and after session/compaction/model/project/provider/writer transitions; stale authority remains advisory.",
     parameters: Type.Object({
       trigger: Type.Optional(Type.String({ description: "Lifecycle or operator trigger being checked." })),
+      projection: Type.Optional(
+        Type.Union([Type.Literal("short"), Type.Literal("medium"), Type.Literal("full")], {
+          description: "Projection depth over the same daemon-owned records; defaults to short.",
+        }),
+      ),
     }),
     async execute(params: any) {
       const trigger = String(params?.trigger || "manual_gate");
+      const projection = String(params?.projection || "short");
       const projectRoot = await resolveFocusaToolProjectRoot();
       const continuityId = getContinuityId() || ensureContinuityId(projectRoot);
       if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) {
@@ -2387,6 +2393,7 @@ pi.registerTool({
         project_root: projectRoot,
         continuity_id: continuityId,
         trigger,
+        projection,
       });
       const response = await focusaFetchDetailed(`/project/north-star-gate?${query.toString()}`);
       const body = response.body && typeof response.body === "object" ? response.body : {};

@@ -28,6 +28,11 @@ test("north-star gate delegates exact-scope enforcement to daemon authority", ()
   assert.match(block, /resolveFocusaToolProjectRoot/);
   assert.match(block, /getContinuityId\(\) \|\| ensureContinuityId/);
   assert.match(block, /\/project\/north-star-gate\?/);
+  assert.match(block, /projection: Type\.Optional/);
+  assert.match(block, /Type\.Literal\("short"\)/);
+  assert.match(block, /Type\.Literal\("medium"\)/);
+  assert.match(block, /Type\.Literal\("full"\)/);
+  assert.match(block, /projection,/);
   assert.match(block, /body\.canonical === true/);
   assert.match(block, /body\.status === "completed"/);
   assert.match(block, /guard\.status === "ready"/);
