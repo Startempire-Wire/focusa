@@ -3827,6 +3827,12 @@ async fn prompt_pi_driver(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
+    require_scoped_north_star_mutation_admission(
+        &work_loop_scope_context(&scope),
+        &state,
+        "work_loop_driver_prompt",
+    )
+    .await?;
     ensure_writer_claim(&scope, &state, &headers).await?;
     let mut guard = state.pi_rpc_session.lock().await;
     let Some(session) = guard.as_mut() else {

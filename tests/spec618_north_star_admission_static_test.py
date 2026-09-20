@@ -22,6 +22,7 @@ EXPECTED = {
         "work_loop_resume",
         "work_loop_select_next",
         "work_loop_driver_start",
+        "work_loop_driver_prompt",
     ],
     "crates/focusa-api/src/routes/task_plans.rs": [
         "task_plan_approve",
