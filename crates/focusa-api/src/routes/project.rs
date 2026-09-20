@@ -5255,8 +5255,36 @@ fn north_star_workpoint_linkage(
     project_root: &str,
     continuity_id: Option<&str>,
 ) -> Value {
-    let active = focusa.workpoint.records.iter().rev().find(|record| {
+    let trajectory = focusa.trajectory.records.iter().rev().find(|record| {
         record.canonical
+            && record.project_root.as_deref() == Some(project_root)
+            && continuity_id
+                .is_none_or(|continuity| record.continuity_id.as_deref() == Some(continuity))
+    });
+    let Some(trajectory) = trajectory else {
+        return json!({
+            "status": "missing",
+            "reason": "trajectory_scope_missing",
+            "link_basis": "trajectory_active_workpoint_id",
+            "project_root": project_root,
+            "continuity_id": continuity_id,
+            "frontier_status": "missing",
+        });
+    };
+    let Some(bound_workpoint_id) = trajectory.active_workpoint_id else {
+        return json!({
+            "status": "missing",
+            "reason": "trajectory_workpoint_unbound",
+            "link_basis": "trajectory_active_workpoint_id",
+            "trajectory_id": trajectory.trajectory_id,
+            "project_root": project_root,
+            "continuity_id": continuity_id,
+            "frontier_status": "missing",
+        });
+    };
+    let active = focusa.workpoint.records.iter().rev().find(|record| {
+        record.workpoint_id == bound_workpoint_id
+            && record.canonical
             && record.status == focusa_core::types::WorkpointStatus::Active
             && record.project_root.as_deref() == Some(project_root)
             && continuity_id
@@ -5265,7 +5293,8 @@ fn north_star_workpoint_linkage(
     match active {
         Some(record) => json!({
             "status": "linked",
-            "link_basis": "exact_project_continuity_scope",
+            "link_basis": "trajectory_active_workpoint_id",
+            "trajectory_id": trajectory.trajectory_id,
             "workpoint_id": record.workpoint_id,
             "work_item_id": record.work_item_id,
             "project_root": record.project_root,
@@ -5275,8 +5304,11 @@ fn north_star_workpoint_linkage(
             "frontier_status": if record.action_intent.is_some() || record.next_slice.is_some() { "ready" } else { "missing" },
         }),
         None => json!({
-            "status": "missing",
-            "link_basis": "exact_project_continuity_scope",
+            "status": "mismatch",
+            "reason": "bound_workpoint_not_active_in_exact_scope",
+            "link_basis": "trajectory_active_workpoint_id",
+            "trajectory_id": trajectory.trajectory_id,
+            "workpoint_id": bound_workpoint_id,
             "project_root": project_root,
             "continuity_id": continuity_id,
             "frontier_status": "missing",
@@ -5396,13 +5428,35 @@ mod tests {
                 next_slice: Some("verify the frontier".to_string()),
                 ..focusa_core::types::WorkpointRecord::default()
             });
+        state
+            .trajectory
+            .records
+            .push(focusa_core::types::TrajectoryProjectionRecord {
+                trajectory_id: "trajectory:focusa".to_string(),
+                project_root: Some("/repo/focusa".to_string()),
+                continuity_id: Some("cont-focusa".to_string()),
+                active_workpoint_id: Some(workpoint_id),
+                canonical: true,
+                ..focusa_core::types::TrajectoryProjectionRecord::default()
+            });
         let linked = north_star_workpoint_linkage(&state, "/repo/focusa", Some("cont-focusa"));
         assert_eq!(linked["status"], "linked");
+        assert_eq!(linked["link_basis"], "trajectory_active_workpoint_id");
+        assert_eq!(linked["trajectory_id"], "trajectory:focusa");
         assert_eq!(linked["frontier_status"], "ready");
         assert_eq!(linked["workpoint_id"], workpoint_id.to_string());
         let wrong_scope = north_star_workpoint_linkage(&state, "/repo/other", Some("cont-focusa"));
         assert_eq!(wrong_scope["status"], "missing");
+        assert_eq!(wrong_scope["reason"], "trajectory_scope_missing");
         assert_eq!(wrong_scope["frontier_status"], "missing");
+        state.trajectory.records[0].active_workpoint_id = Some(Uuid::now_v7());
+        let stale_binding =
+            north_star_workpoint_linkage(&state, "/repo/focusa", Some("cont-focusa"));
+        assert_eq!(stale_binding["status"], "mismatch");
+        assert_eq!(
+            stale_binding["reason"],
+            "bound_workpoint_not_active_in_exact_scope"
+        );
     }
 
     fn temp_project(name: &str) -> PathBuf {
