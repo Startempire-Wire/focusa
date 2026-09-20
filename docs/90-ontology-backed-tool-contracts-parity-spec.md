@@ -78,7 +78,7 @@ Use dotted action ids:
 
 ### 6.2 Ontology projection
 
-The current build MUST expose or document tool contracts as ontology actions. Minimum initial implementation may be a machine-readable registry consumed by docs/tests/doctor. A later implementation may project it through `/v1/ontology/actions`.
+The current build MUST expose or document tool contracts as ontology actions. Minimum initial implementation may be a machine-readable registry consumed by docs/tests/doctor. A later implementation may project it through `/v1/ontology/actions`. Mutating ontology actions require exact verified project/continuity scope and canonical North Star admission after request validation but before reducer-event dispatch.
 
 ### 6.3 Object kinds
 

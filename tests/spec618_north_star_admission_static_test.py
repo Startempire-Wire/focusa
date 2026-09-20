@@ -17,6 +17,7 @@ EXPECTED = {
     "crates/focusa-api/src/routes/background_jobs.rs": ["background_job_create"],
     "crates/focusa-api/src/routes/attachments.rs": ["thread_attach"],
     "crates/focusa-api/src/routes/ecs.rs": ["ecs_artifact_store"],
+    "crates/focusa-api/src/routes/ontology.rs": ["ontology_action_execute"],
     "crates/focusa-api/src/routes/instances.rs": ["instance_connect"],
     "crates/focusa-api/src/routes/role_profiles.rs": ["role_profile_approve"],
     "crates/focusa-api/src/routes/spec_workbench.rs": ["spec_workbench_final_approve"],

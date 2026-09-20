@@ -9,6 +9,7 @@ use crate::routes::bounded::{
     pressure_status, record_json_response_size,
 };
 use crate::routes::predictions::append_prediction_record_scoped;
+use crate::routes::project::require_scoped_north_star_mutation_admission;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -8488,6 +8489,8 @@ async fn execute_ontology_action(
             body.action_type
         )));
     }
+
+    require_scoped_north_star_mutation_admission(&scope, &state, "ontology_action_execute").await?;
 
     let mut events = proposed_events_from_action(
         proposal_id,
