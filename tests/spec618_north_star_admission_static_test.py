@@ -15,6 +15,7 @@ EXPECTED = {
     "crates/focusa-api/src/routes/attachments.rs": ["thread_attach"],
     "crates/focusa-api/src/routes/ecs.rs": ["ecs_artifact_store"],
     "crates/focusa-api/src/routes/instances.rs": ["instance_connect"],
+    "crates/focusa-api/src/routes/role_profiles.rs": ["role_profile_approve"],
     "crates/focusa-api/src/routes/commands.rs": [
         "command_session_start",
         "command_visual_evidence_store",
