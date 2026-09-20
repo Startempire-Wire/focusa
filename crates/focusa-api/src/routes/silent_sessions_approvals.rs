@@ -20,7 +20,7 @@ use crate::{middleware::principal::ApiRequestPrincipal, server::AppState};
 use super::{
     silent_sessions::{
         ApiResponse, disclose_principal_side_effect, durable_request_principal, failure,
-        persistence_failure,
+        persistence_failure, require_silent_session_north_star_admission,
     },
     silent_sessions_contract::{
         ApiSideEffect, ExactSessionRunTarget, SilentSessionApiEnvelope, guard_exact_target,
@@ -128,6 +128,16 @@ pub(super) async fn create(
         Err(error) => {
             return disclose_principal_side_effect(persistence_failure(error), &principal);
         }
+    }
+    if let Err(response) = require_silent_session_north_star_admission(
+        &state,
+        &approval.project_root,
+        &approval.continuity_id,
+        "silent_session_approval_create",
+    )
+    .await
+    {
+        return disclose_principal_side_effect(response, &principal);
     }
     if let Err(error) = save_durable_approval(&state.persistence, &approval) {
         return disclose_principal_side_effect(persistence_failure(error), &principal);
