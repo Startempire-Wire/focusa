@@ -4209,6 +4209,12 @@ async fn delegate_authorship(
         &headers,
         "delegated authorship changes authority state and requires explicit approval",
     )?;
+    require_scoped_north_star_mutation_admission(
+        &work_loop_scope_context(&scope),
+        &state,
+        "work_loop_delegate_authorship",
+    )
+    .await?;
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     send_work_loop_action(
         &state,
