@@ -4,7 +4,10 @@
 //! POST /v1/attachments/detach
 //! GET  /v1/attachments/list
 
-use crate::server::AppState;
+use crate::{
+    routes::project::require_scoped_north_star_mutation_admission, scope::ScopeContext,
+    server::AppState,
+};
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::{
@@ -96,6 +99,17 @@ async fn attach(
     let thread_id = Uuid::parse_str(&body.thread_id)
         .map_err(|_| attachment_invalid_uuid("thread_id", &body.thread_id))?;
 
+    let session = state.focusa.read().await.session.clone();
+    let scope = ScopeContext {
+        project_root: session
+            .as_ref()
+            .and_then(|value| value.project_root.clone()),
+        continuity_id: session
+            .as_ref()
+            .and_then(|value| value.continuity_id.clone()),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, &state, "thread_attach").await?;
     state
         .command_tx
         .send(Action::ThreadAttach {
