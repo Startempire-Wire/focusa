@@ -13,6 +13,7 @@ EXPECTED = {
     ],
     "crates/focusa-api/src/routes/background_jobs.rs": ["background_job_create"],
     "crates/focusa-api/src/routes/workpoint.rs": [
+        "workpoint_checkpoint_promote",
         "workpoint_evidence_link",
         "workpoint_rollover_target_materialize",
     ],
