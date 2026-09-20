@@ -5,6 +5,7 @@
 use axum::Json;
 use axum::Router;
 use axum::extract::{Query, State};
+use axum::http::StatusCode;
 use axum::routing::{get, post};
 use focusa_core::background_jobs::{
     BACKGROUND_JOB_SCHEMA, BackgroundJobCompletionEvent, BackgroundJobFailureClass,
@@ -15,6 +16,8 @@ use serde_json::{Value, json};
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::routes::project::require_scoped_north_star_mutation_admission;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -92,22 +95,84 @@ fn default_wait_timeout_ms() -> u64 {
     30_000
 }
 
+fn background_job_admission_scope(
+    request_scope: &ScopeContext,
+    attachment: Option<&focusa_core::scoped_state::AttachmentKey>,
+) -> Result<ScopeContext, (StatusCode, Json<Value>)> {
+    let Some(attachment) = attachment else {
+        return Ok(request_scope.clone());
+    };
+    if let Err(error) = attachment.validate() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "status": "rejected",
+                "code": "INVALID_BACKGROUND_JOB_ATTACHMENT",
+                "message": error.to_string(),
+            })),
+        ));
+    }
+    if attachment.workstream.root_scope.scope_kind != focusa_core::scoped_state::ScopeKind::Project
+    {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "status": "rejected",
+                "code": "BACKGROUND_JOB_PROJECT_SCOPE_REQUIRED",
+            })),
+        ));
+    }
+    let attached_root = attachment
+        .workstream
+        .root_scope
+        .root_path
+        .to_string_lossy()
+        .to_string();
+    let attached_continuity = attachment.workstream.continuity_id.clone();
+    let scope_conflict = request_scope
+        .project_root
+        .as_deref()
+        .is_some_and(|root| root.trim_end_matches('/') != attached_root.trim_end_matches('/'))
+        || request_scope
+            .continuity_id
+            .as_deref()
+            .is_some_and(|continuity| continuity != attached_continuity);
+    if scope_conflict {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(json!({
+                "status": "blocked",
+                "code": "BACKGROUND_JOB_SCOPE_MISMATCH",
+                "request_scope": {
+                    "project_root": request_scope.project_root,
+                    "continuity_id": request_scope.continuity_id,
+                },
+                "attachment_scope": {
+                    "project_root": attached_root,
+                    "continuity_id": attached_continuity,
+                },
+            })),
+        ));
+    }
+    Ok(ScopeContext {
+        project_root: Some(attached_root),
+        continuity_id: Some(attached_continuity),
+        ..request_scope.clone()
+    })
+}
+
 async fn create_job(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(body): Json<CreateJobBody>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let admission_scope = background_job_admission_scope(&scope, body.attachment.as_ref())?;
+    require_scoped_north_star_mutation_admission(&admission_scope, &state, "background_job_create")
+        .await?;
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::background_job_store::ensure_schema(&conn)?;
-        if let Some(attachment) = body.attachment.as_ref() {
-            attachment.validate()?;
-            anyhow::ensure!(
-                attachment.workstream.root_scope.scope_kind
-                    == focusa_core::scoped_state::ScopeKind::Project,
-                "background job attachment must use a verified project scope"
-            );
-        }
         let job_id = body
             .job_id
             .unwrap_or_else(|| uuid::Uuid::now_v7().to_string());
@@ -134,7 +199,7 @@ async fn create_job(
         Ok(json!({ "status": "queued", "job": record }))
     })
     .await;
-    match result {
+    Ok(match result {
         Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
             "route",
@@ -144,7 +209,7 @@ async fn create_job(
             "join",
             &format!("join error: {error}"),
         )),
-    }
+    })
 }
 
 async fn update_job(
@@ -476,6 +541,48 @@ async fn wait_job(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use focusa_core::scoped_state::{AttachmentKey, ScopeRef, WorkstreamKey};
+
+    fn attachment() -> AttachmentKey {
+        let root = std::env::temp_dir().join("focusa-bg-admission-project");
+        let scope =
+            ScopeRef::project("project:bg", root, "Background Project", "fingerprint:bg").unwrap();
+        AttachmentKey::new(
+            WorkstreamKey::new(scope, "continuity-bg").unwrap(),
+            "pi-bg",
+            "session-bg",
+            "attachment-bg",
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn background_job_attachment_supplies_exact_admission_scope_and_rejects_conflicts() {
+        let attachment = attachment();
+        let expected_root = attachment
+            .workstream
+            .root_scope
+            .root_path
+            .to_string_lossy()
+            .to_string();
+        let resolved =
+            background_job_admission_scope(&ScopeContext::default(), Some(&attachment)).unwrap();
+        assert_eq!(
+            resolved.project_root.as_deref(),
+            Some(expected_root.as_str())
+        );
+        assert_eq!(resolved.continuity_id.as_deref(), Some("continuity-bg"));
+
+        let conflict = ScopeContext {
+            project_root: Some("/wrong/project".to_string()),
+            continuity_id: Some("continuity-bg".to_string()),
+            ..ScopeContext::default()
+        };
+        let (status, Json(body)) =
+            background_job_admission_scope(&conflict, Some(&attachment)).unwrap_err();
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body["code"], "BACKGROUND_JOB_SCOPE_MISMATCH");
+    }
 
     #[test]
     fn legacy_create_and_update_payloads_remain_valid() {

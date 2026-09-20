@@ -5278,7 +5278,7 @@
       "version": "2.0.0",
       "title": "Focusa BG Run",
       "summary": "Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt.",
-      "description": "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Run a terminal-blocking command in the background as a first-class Focusa job. Daemon creation requires exact attachment-backed North Star admission; completion receipts remain writable for already-admitted jobs. The front terminal receives completion with bounded output tail (no polling). Use instead of raw setsid/nohup shells whenever Focusa is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "background_job",
       "namespace": "focusa.background_job",
       "operation_policy": {
@@ -5760,7 +5760,7 @@
         "snippet": "The canonical non-blocking dispatch for builds/tests/long scans.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:e325c11f824d89a3bd2d291d6bfa07986d0b1f4bf20c17f7b566864e20db763c"
+      "descriptor_digest": "sha256:11ea121fb477c71f4e883e9f0dec9ee90bf106c9d5b9e153d124cf3197a8d95d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5801,7 +5801,7 @@
       "version": "2.0.0",
       "title": "Focusa BG Run Many (parallel orchestration)",
       "summary": "Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure.",
-      "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each creation requires exact attachment-backed North Star admission; admitted jobs complete independently and deliver bounded output through SSE. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "background_job",
       "namespace": "focusa.background_job",
       "operation_policy": {
@@ -6300,7 +6300,7 @@
         "snippet": "Use to parallelize independent long-running commands.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:94eb9d688eda728faa0ec6d3610f2310f32a11e0f429ee5da4327d005d240533"
+      "descriptor_digest": "sha256:b726a031acbcba08b61f5ed7f109950786e2d7e01a07c964ddaf20c225618dc1"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86606,5 +86606,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:5aea56898e7dfb76d9a108f5968ccf29b116a8f46cb588f26aaed2f28e64a547"
+  "registry_digest": "sha256:7c1ced348e29e4083bad084d55754412c87cbda79f61e5c3a16e93a41f3c4ba9"
 }

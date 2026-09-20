@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::routes::project::{north_star_workpoint_linkage, require_north_star_mutation_admission};
+use crate::routes::project::require_scoped_north_star_mutation_admission;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 
@@ -252,22 +252,6 @@ pub struct PreflightBody {
     pub revision: u64,
 }
 
-async fn require_callgraph_north_star_admission(
-    scope: &ScopeContext,
-    state: &Arc<AppState>,
-    requested_mutation: &str,
-) -> Result<(), (StatusCode, Json<Value>)> {
-    let linkage = {
-        let focusa = state.focusa.read().await;
-        north_star_workpoint_linkage(
-            &focusa,
-            scope.project_root.as_deref().unwrap_or_default(),
-            scope.continuity_id.as_deref(),
-        )
-    };
-    require_north_star_mutation_admission(&linkage, requested_mutation)
-}
-
 /// Create a run for a stored, preflightable graph revision (Spec 155 §19.1).
 async fn create_run(
     scope: ScopeContext,
@@ -275,7 +259,7 @@ async fn create_run(
     axum::extract::Path(graph_id): axum::extract::Path<String>,
     Json(body): Json<PreflightBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    require_callgraph_north_star_admission(&scope, &state, "callgraph_run_create").await?;
+    require_scoped_north_star_mutation_admission(&scope, &state, "callgraph_run_create").await?;
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let revision = body.revision;
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
@@ -752,8 +736,12 @@ async fn control_run(
     Json(body): Json<ControlBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if body.action == "dispatch_entry_frontier" {
-        require_callgraph_north_star_admission(&scope, &state, "callgraph_dispatch_entry_frontier")
-            .await?;
+        require_scoped_north_star_mutation_admission(
+            &scope,
+            &state,
+            "callgraph_dispatch_entry_frontier",
+        )
+        .await?;
     }
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let events_tx = state.events_tx.clone();

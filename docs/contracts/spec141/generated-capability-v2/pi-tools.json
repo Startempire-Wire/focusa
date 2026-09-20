@@ -1,6 +1,6 @@
 {
   "schema": "focusa.pi_tool_projection.v2",
-  "registry_digest": "sha256:5aea56898e7dfb76d9a108f5968ccf29b116a8f46cb588f26aaed2f28e64a547",
+  "registry_digest": "sha256:7c1ced348e29e4083bad084d55754412c87cbda79f61e5c3a16e93a41f3c4ba9",
   "tools": [
     {
       "name": "focusa_active_object_resolve",
@@ -2518,7 +2518,7 @@
     {
       "name": "focusa_bg_run",
       "label": "Focusa BG Run",
-      "description": "Run a terminal-blocking command in the background as a first-class Focusa job. The daemon records the job durably; on completion the agent's front terminal receives the completion notification with a bounded output tail (no polling). Canonical TBQ dispatch primitive — use instead of raw setsid/nohup shells whenever the Focusa daemon is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Run a terminal-blocking command in the background as a first-class Focusa job. Daemon creation requires exact attachment-backed North Star admission; completion receipts remain writable for already-admitted jobs. The front terminal receives completion with bounded output tail (no polling). Use instead of raw setsid/nohup shells whenever Focusa is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "parameters": {
         "type": "object",
         "required": [
@@ -2777,7 +2777,7 @@
     {
       "name": "focusa_bg_run_many",
       "label": "Focusa BG Run Many (parallel orchestration)",
-      "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each job completes independently and delivers its completion notification (with bounded output tail) to the agent front terminal via SSE — the orchestration primitive for parallel builds, test shards, and multi-step pipelines. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each creation requires exact attachment-backed North Star admission; admitted jobs complete independently and deliver bounded output through SSE. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "parameters": {
         "type": "object",
         "required": [
