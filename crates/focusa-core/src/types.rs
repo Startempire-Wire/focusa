@@ -770,6 +770,10 @@ pub struct WorkpointActionIntentRecord {
     pub status: Option<String>,
     #[serde(default)]
     pub lifecycle_stage: WorkpointLifecycleStage,
+    #[serde(default)]
+    pub lifecycle_transition_reason: Option<String>,
+    #[serde(default)]
+    pub lifecycle_transition_evidence_refs: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

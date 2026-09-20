@@ -1,6 +1,6 @@
 {
   "schema": "focusa.pi_tool_projection.v2",
-  "registry_digest": "sha256:a64878a42f3174a14cf7e7e0dc862bdc7b0e331309ac5c010adf37eca93fb0dc",
+  "registry_digest": "sha256:eef2bcc5d84c92eb9a1c8907dd44cfea02e5a59b5b9144403352eb50f70f34a8",
   "tools": [
     {
       "name": "focusa_active_object_resolve",
@@ -40859,6 +40859,17 @@
           "lifecycle_stage": {
             "description": "Daemon-owned canonical lifecycle stage. North Star admission blocks unknown/omitted values: prepare|plan|decompose|verify_against_specs|refine|implement|autonomy|deploy|verify_outcome|accept_and_learn.",
             "type": "string"
+          },
+          "lifecycle_transition_reason": {
+            "description": "Bounded reason for changing from the active Workpoint lifecycle stage.",
+            "type": "string"
+          },
+          "lifecycle_transition_evidence_refs": {
+            "description": "Stable evidence refs proving the lifecycle stage transition action or outcome.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "verified_evidence": {
             "description": "Short evidence refs/results already verified; use handles, not raw logs.",

@@ -18,6 +18,8 @@ Create a typed Focusa Workpoint checkpoint before compaction, resume, context ov
 - `target_objects` (optional; array): Ontology/file/component/endpoint refs currently targeted.
 - `current_action` (optional; string): Typed action, e.g. patch_component_binding or resume_workpoint.
 - `lifecycle_stage` (optional; string): Daemon-owned canonical lifecycle stage. North Star admission blocks unknown/omitted values: prepare|plan|decompose|verify_against_specs|refine|implement|autonomy|deploy|verify_outcome|accept_and_learn.
+- `lifecycle_transition_reason` (optional; string): Bounded reason for changing from the active Workpoint lifecycle stage.
+- `lifecycle_transition_evidence_refs` (optional; array): Stable evidence refs proving the lifecycle stage transition action or outcome.
 - `verified_evidence` (optional; array): Short evidence refs/results already verified; use handles, not raw logs.
 - `blockers` (optional; array): Open blockers or drift boundaries.
 - `next_action` (required; string): Exact bounded next action to resume after compact/retry.
@@ -92,4 +94,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_active_object_resolve`, `focusa_
 - CLI: `focusa workpoint checkpoint`.
 - REST: `POST /v1/workpoint/checkpoint`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:07f19d7dbefef93c9c8415f1e03ed89aeed6bf039e82d8851ac53d543aab124d`.
+- Descriptor digest: `sha256:f9c819190f7f887c5de21889d97ef9ec01452ce9073184cbe29f479e3f956b4d`.

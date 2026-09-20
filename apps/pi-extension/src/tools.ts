@@ -8890,6 +8890,16 @@ pi.registerTool({
             "Daemon-owned canonical lifecycle stage. North Star admission blocks unknown/omitted values: prepare|plan|decompose|verify_against_specs|refine|implement|autonomy|deploy|verify_outcome|accept_and_learn.",
         })
       ),
+      lifecycle_transition_reason: Type.Optional(
+        Type.String({
+          description: "Bounded reason for changing from the active Workpoint lifecycle stage.",
+        })
+      ),
+      lifecycle_transition_evidence_refs: Type.Optional(
+        Type.Array(Type.String(), {
+          description: "Stable evidence refs proving the lifecycle stage transition action or outcome.",
+        })
+      ),
       verified_evidence: Type.Optional(
         Type.Array(Type.String(), {
           description: "Short evidence refs/results already verified; use handles, not raw logs.",
@@ -8988,6 +8998,10 @@ pi.registerTool({
           verification_hooks: evidence,
           status: "ready",
           lifecycle_stage: p.lifecycle_stage,
+          lifecycle_transition_reason: p.lifecycle_transition_reason,
+          lifecycle_transition_evidence_refs: Array.isArray(p.lifecycle_transition_evidence_refs)
+            ? p.lifecycle_transition_evidence_refs
+            : [],
         },
         verification_records: evidence.map((e: string) => ({
           target_ref: p.work_item_id || "workpoint",

@@ -15907,7 +15907,7 @@
   "schema": "focusa.entitlement_coverage.v1",
   "source_digests": {
     "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "325103e2cad44e6278bd312bb19537f6edfd22eb0ec948d7e71715d16295c983",
-    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "9964d79c6a6ac7dec832241f8c5c65f73c8ccf2ecfd1d8dc782d7a557beaf1ed",
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "207699b048605ea0e5af2a18dcd9a76d3ee0727856ec56073be22ec0d536ddac",
     "docs/contracts/spec141/generated-capability-v2/route-classification.json": "b2890d1936ae38aaaca96f99c02b54894c7a64a2d3cd47d93da385c4d4b6c6b1"
   },
   "unmatched_surfaces": []

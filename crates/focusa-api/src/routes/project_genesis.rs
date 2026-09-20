@@ -327,6 +327,7 @@ pub(super) async fn commit(
             verification_hooks: req.acceptance_criteria.clone(),
             status: Some("ready".into()),
             lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Prepare,
+            ..WorkpointActionIntentRecord::default()
         }),
         next_slice: Some(mission),
         idempotency_key: Some(req.idempotency_key.clone()),
