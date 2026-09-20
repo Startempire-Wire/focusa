@@ -1,4 +1,7 @@
-use crate::server::AppState;
+use crate::{
+    routes::project::require_scoped_north_star_mutation_admission, scope::ScopeContext,
+    server::AppState,
+};
 use axum::{
     Json, Router,
     extract::{Query, State},
@@ -34,7 +37,7 @@ pub struct ListQuery {
     #[serde(default)]
     task_plan_id: Option<String>,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MutationAction {
     Open,
@@ -43,6 +46,11 @@ pub enum MutationAction {
     Preview,
     Approve,
 }
+
+fn task_plan_action_requires_north_star(action: MutationAction) -> bool {
+    matches!(action, MutationAction::Approve)
+}
+
 #[derive(Debug, Deserialize)]
 pub struct MutationRequest {
     project_root: String,
@@ -171,6 +179,30 @@ fn validate(tasks: &[ProviderNeutralTaskRecord]) -> Result<(), String> {
     }
     Ok(())
 }
+async fn require_task_plan_north_star_admission(
+    state: &Arc<AppState>,
+    project_root: &str,
+    continuity_id: &str,
+    requested_mutation: &str,
+) -> Result<(), (StatusCode, String)> {
+    let scope = ScopeContext {
+        project_root: Some(project_root.to_string()),
+        continuity_id: Some(continuity_id.to_string()),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, state, requested_mutation)
+        .await
+        .map_err(|(status, Json(payload))| {
+            let code = payload["code"]
+                .as_str()
+                .unwrap_or("NORTH_STAR_ADMISSION_BLOCKED");
+            let message = payload["message"]
+                .as_str()
+                .unwrap_or("North Star mutation admission blocked");
+            (status, format!("{code}: {message}"))
+        })
+}
+
 pub async fn list(
     State(state): State<Arc<AppState>>,
     Query(q): Query<ListQuery>,
@@ -219,6 +251,23 @@ pub async fn mutate(
             FailureClass::ScopeMismatch,
             "exact scope and idempotency required",
         ));
+    }
+    if task_plan_action_requires_north_star(r.action) {
+        require_task_plan_north_star_admission(
+            &state,
+            &r.project_root,
+            &r.continuity_id,
+            "task_plan_approve",
+        )
+        .await
+        .map_err(|(status, message)| {
+            fail(
+                status,
+                ToolStatus::Blocked,
+                FailureClass::ValidationRejected,
+                message,
+            )
+        })?;
     }
     let snap = state.focusa.read().await;
     if snap.version != r.expected_state_version {
@@ -629,6 +678,21 @@ pub async fn materialize_beads(
             "exact scope, approved plan, lowercase worktree prefix, permission, and idempotency are required",
         ));
     }
+    require_task_plan_north_star_admission(
+        &state,
+        &request.project_root,
+        &request.continuity_id,
+        "task_plan_materialize_beads",
+    )
+    .await
+    .map_err(|(status, message)| {
+        materialize_fail(
+            status,
+            ToolStatus::Blocked,
+            FailureClass::ValidationRejected,
+            message,
+        )
+    })?;
     let root = PathBuf::from(&request.project_root);
     let beads = root.join(".beads");
     let ledger = beads.join("issues.jsonl");
@@ -931,4 +995,26 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/task-plans", get(list))
         .route(ENDPOINT, post(mutate))
         .route("/v1/task-plans/materialize/beads", post(materialize_beads))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_plan_approval_crosses_the_north_star_admission_boundary() {
+        assert!(!task_plan_action_requires_north_star(MutationAction::Open));
+        assert!(!task_plan_action_requires_north_star(
+            MutationAction::UpsertTask
+        ));
+        assert!(!task_plan_action_requires_north_star(
+            MutationAction::RemoveTask
+        ));
+        assert!(!task_plan_action_requires_north_star(
+            MutationAction::Preview
+        ));
+        assert!(task_plan_action_requires_north_star(
+            MutationAction::Approve
+        ));
+    }
 }
