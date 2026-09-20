@@ -364,27 +364,17 @@ async fn get_run(
 /// Frame settlement (Spec 155 §17/§19.1): a receipt settles the
 /// invocation, marks the dispatch receipted, and transitions the run when
 /// every dispatch is settled. Evidence links land on the settlement.
-#[derive(Deserialize)]
-pub struct SettleBody {
-    pub invocation_id: String,
-    pub receipt_ref: String,
-    pub outcome: String,
-    #[serde(default)]
-    pub evidence_refs: Vec<String>,
-}
-
-async fn settle_frame(
-    State(state): State<Arc<AppState>>,
-    axum::extract::Path(run_id): axum::extract::Path<String>,
-    Json(body): Json<SettleBody>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+async fn require_callgraph_run_admission(
+    state: &Arc<AppState>,
+    run_id: &str,
+    operation: &str,
+) -> Result<Option<focusa_core::callgraph_store::CallGraphRun>, (StatusCode, Json<Value>)> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
-    let lookup_path = path.clone();
-    let lookup_run_id = run_id.clone();
+    let run_id = run_id.to_string();
     let run = tokio::task::spawn_blocking(move || -> anyhow::Result<_> {
-        let conn = rusqlite::Connection::open(lookup_path)?;
+        let conn = rusqlite::Connection::open(path)?;
         focusa_core::callgraph_store::ensure_schema(&conn)?;
-        focusa_core::callgraph_store::load_run(&conn, &lookup_run_id)
+        focusa_core::callgraph_store::load_run(&conn, &run_id)
     })
     .await
     .map_err(|error| {
@@ -406,15 +396,37 @@ async fn settle_frame(
         )
     })?;
     let Some(run) = run else {
-        return Ok(Json(json!({"status": "missing", "run_id": run_id})));
+        return Ok(None);
     };
     let scope = ScopeContext {
-        project_root: Some(run.project_root),
-        continuity_id: Some(run.continuity_id),
+        project_root: Some(run.project_root.clone()),
+        continuity_id: Some(run.continuity_id.clone()),
         ..ScopeContext::default()
     };
-    require_scoped_north_star_mutation_admission(&scope, &state, "callgraph_frame_settle").await?;
+    require_scoped_north_star_mutation_admission(&scope, state, operation).await?;
+    Ok(Some(run))
+}
 
+#[derive(Deserialize)]
+pub struct SettleBody {
+    pub invocation_id: String,
+    pub receipt_ref: String,
+    pub outcome: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+async fn settle_frame(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(run_id): axum::extract::Path<String>,
+    Json(body): Json<SettleBody>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let Some(_run) =
+        require_callgraph_run_admission(&state, &run_id, "callgraph_frame_settle").await?
+    else {
+        return Ok(Json(json!({"status": "missing", "run_id": run_id})));
+    };
+    let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let events_tx = state.events_tx.clone();
     let invocation_id = body.invocation_id.clone();
     let receipt_ref = body.receipt_ref.clone();
@@ -584,7 +596,12 @@ async fn flowmesh_execute(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(run_id): axum::extract::Path<String>,
     Json(body): Json<serde_json::Value>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let Some(_run) =
+        require_callgraph_run_admission(&state, &run_id, "callgraph_flowmesh_execute").await?
+    else {
+        return Ok(Json(json!({"status": "missing", "run_id": run_id})));
+    };
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
@@ -625,7 +642,7 @@ async fn flowmesh_execute(
         }))
     })
     .await;
-    match result {
+    Ok(match result {
         Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
             "route",
@@ -635,7 +652,7 @@ async fn flowmesh_execute(
             "join",
             &format!("{error}"),
         )),
-    }
+    })
 }
 
 /// Run events (§19.1): the dispatch ledger as an ordered event list.
