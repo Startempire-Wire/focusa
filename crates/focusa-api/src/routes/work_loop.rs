@@ -5289,6 +5289,7 @@ mod tests {
                     verification_hooks: vec!["status includes active_workpoint".to_string()],
                     status: Some("ready".to_string()),
                     lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
+                    ..focusa_core::types::WorkpointActionIntentRecord::default()
                 }),
                 ..focusa_core::types::WorkpointRecord::default()
             });

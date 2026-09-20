@@ -3672,6 +3672,7 @@ mod tests {
                 verification_hooks: vec!["cargo test".to_string()],
                 status: Some("ready".to_string()),
                 lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
+                ..WorkpointActionIntentRecord::default()
             }),
             next_slice: Some("Implement hot-path trajectory view".to_string()),
             ..WorkpointRecord::default()

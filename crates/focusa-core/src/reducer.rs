@@ -5346,6 +5346,7 @@ mod tests {
                 ],
                 status: Some("ready".to_string()),
                 lifecycle_stage: WorkpointLifecycleStage::Implement,
+                ..WorkpointActionIntentRecord::default()
             }),
             ..WorkpointRecord::default()
         }

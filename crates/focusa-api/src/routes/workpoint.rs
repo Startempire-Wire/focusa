@@ -20,7 +20,8 @@ use focusa_core::scope_safety::classify_project_root_option;
 use focusa_core::types::{
     Action, EventLogEntry, FocusaEvent, FocusaSessionIdentity, SignalOrigin,
     WorkpointActionIntentRecord, WorkpointCheckpointReason, WorkpointConfidence,
-    WorkpointDriftSeverity, WorkpointRecord, WorkpointStatus, WorkpointVerificationRecord,
+    WorkpointDriftSeverity, WorkpointLifecycleStage, WorkpointRecord, WorkpointStatus,
+    WorkpointVerificationRecord,
 };
 use focusa_core::working_subpath::resolve_git_working_context;
 use serde::Deserialize;
@@ -949,6 +950,48 @@ pub(crate) fn active_workpoint_for_scope<'a>(
             && record.project_root.as_deref().map(str::trim) == Some(clean_project.as_str())
             && record.continuity_id.as_deref().map(str::trim) == Some(clean_continuity.as_str())
     })
+}
+
+fn validate_lifecycle_transition_evidence(
+    previous: Option<&WorkpointActionIntentRecord>,
+    next: Option<&WorkpointActionIntentRecord>,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    let Some(previous) = previous else {
+        return Ok(());
+    };
+    let Some(next) = next else {
+        return Ok(());
+    };
+    if previous.lifecycle_stage == WorkpointLifecycleStage::Unknown
+        || next.lifecycle_stage == WorkpointLifecycleStage::Unknown
+        || previous.lifecycle_stage == next.lifecycle_stage
+    {
+        return Ok(());
+    }
+    let reason_ready = next
+        .lifecycle_transition_reason
+        .as_deref()
+        .is_some_and(|reason| !reason.trim().is_empty());
+    let evidence_ready = !next.lifecycle_transition_evidence_refs.is_empty()
+        && next
+            .lifecycle_transition_evidence_refs
+            .iter()
+            .all(|evidence_ref| !evidence_ref.trim().is_empty());
+    if reason_ready && evidence_ready {
+        return Ok(());
+    }
+    Err((
+        StatusCode::CONFLICT,
+        Json(json!({
+            "status": "blocked",
+            "code": "LIFECYCLE_TRANSITION_EVIDENCE_REQUIRED",
+            "schema": "focusa.workpoint_lifecycle_transition.v1",
+            "from_stage": previous.lifecycle_stage,
+            "to_stage": next.lifecycle_stage,
+            "required": ["lifecycle_transition_reason", "lifecycle_transition_evidence_refs"],
+            "recovery_hint": "Provide a bounded transition reason and at least one stable evidence reference, then retry with the same idempotency key.",
+        })),
+    ))
 }
 
 pub(crate) fn active_workpoint_for_context<'a>(
@@ -2348,6 +2391,22 @@ async fn checkpoint(
                 req.continuity_id.as_deref(),
             ));
         }
+    }
+    if req.promote.unwrap_or(true) && req.canonical.unwrap_or(true) {
+        let previous_action_intent = {
+            let focusa = state.focusa.read().await;
+            active_workpoint_for_scope(
+                &focusa,
+                req.project_root.as_deref(),
+                req.continuity_id.as_deref(),
+            )
+            .and_then(|record| record.action_intent.as_ref())
+            .cloned()
+        };
+        validate_lifecycle_transition_evidence(
+            previous_action_intent.as_ref(),
+            req.action_intent.as_ref(),
+        )?;
     }
     let idempotency_key = req.idempotency_key.clone();
     let record = WorkpointRecord {
@@ -4351,6 +4410,7 @@ mod tests {
                 verification_hooks: vec![],
                 status: Some("ready".to_string()),
                 lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
+                ..WorkpointActionIntentRecord::default()
             }),
             ..WorkpointRecord::default()
         };
@@ -4700,6 +4760,7 @@ mod tests {
                 verification_hooks: vec!["verify UI play state".to_string()],
                 status: Some("ready".to_string()),
                 lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
+                ..WorkpointActionIntentRecord::default()
             }),
             next_slice: Some(
                 "Patch the widget binding\nDO_NOT_DRIFT: notes-only/generic validation".to_string(),
@@ -4738,6 +4799,7 @@ mod tests {
                 verification_hooks: vec![],
                 status: Some("ready".to_string()),
                 lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Implement,
+                ..WorkpointActionIntentRecord::default()
             }),
             ..WorkpointRecord::default()
         };
@@ -4770,6 +4832,38 @@ mod tests {
     }
 
     #[test]
+    fn lifecycle_stage_changes_require_reason_and_evidence() {
+        let previous = WorkpointActionIntentRecord {
+            lifecycle_stage: WorkpointLifecycleStage::Implement,
+            ..WorkpointActionIntentRecord::default()
+        };
+        let mut next = WorkpointActionIntentRecord {
+            lifecycle_stage: WorkpointLifecycleStage::VerifyOutcome,
+            ..WorkpointActionIntentRecord::default()
+        };
+        let error =
+            validate_lifecycle_transition_evidence(Some(&previous), Some(&next)).unwrap_err();
+        assert_eq!(error.0, StatusCode::CONFLICT);
+        assert_eq!(
+            error.1.0["code"],
+            Value::String("LIFECYCLE_TRANSITION_EVIDENCE_REQUIRED".to_string())
+        );
+
+        next.lifecycle_transition_reason = Some("Implementation checks passed".to_string());
+        next.lifecycle_transition_evidence_refs = vec!["test:api:576".to_string()];
+        assert!(validate_lifecycle_transition_evidence(Some(&previous), Some(&next)).is_ok());
+    }
+
+    #[test]
+    fn lifecycle_stage_restatement_does_not_require_transition_evidence() {
+        let intent = WorkpointActionIntentRecord {
+            lifecycle_stage: WorkpointLifecycleStage::Implement,
+            ..WorkpointActionIntentRecord::default()
+        };
+        assert!(validate_lifecycle_transition_evidence(Some(&intent), Some(&intent)).is_ok());
+    }
+
+    #[test]
     fn drift_classifier_does_not_match_boundary_tokens_inside_compound_words() {
         let record = WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
@@ -4781,6 +4875,7 @@ mod tests {
                 verification_hooks: vec!["api".to_string(), "cli".to_string(), "pi".to_string()],
                 status: Some("ready".to_string()),
                 lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::VerifyOutcome,
+                ..WorkpointActionIntentRecord::default()
             }),
             next_slice: Some(
                 "Complete stress suite\nDO_NOT_DRIFT: Do not demote existing tools.".to_string(),
