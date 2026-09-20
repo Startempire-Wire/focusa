@@ -802,18 +802,16 @@ pub struct ControlBody {
 }
 
 async fn control_run(
-    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     axum::extract::Path(run_id): axum::extract::Path<String>,
     Json(body): Json<ControlBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    if body.action == "dispatch_entry_frontier" {
-        require_scoped_north_star_mutation_admission(
-            &scope,
-            &state,
-            "callgraph_dispatch_entry_frontier",
-        )
-        .await?;
+    if body.action == "dispatch_entry_frontier"
+        && require_callgraph_run_admission(&state, &run_id, "callgraph_dispatch_entry_frontier")
+            .await?
+            .is_none()
+    {
+        return Ok(Json(json!({"status": "missing", "run_id": run_id})));
     }
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
     let events_tx = state.events_tx.clone();
