@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:f89cf4db13d540b4ee4be3ca420efd4f97f4e75f9bde37341a32a3aad90cdd57`
+Registry digest: `sha256:a64878a42f3174a14cf7e7e0dc862bdc7b0e331309ac5c010adf37eca93fb0dc`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -1237,7 +1237,7 @@ Typed save/continue/rollover wrapper for moving long work between Pi sessions wi
 
 ## focusa_silent_sessions
 
-Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. New session creation requires resolved-config North Star admission; recovery controls remain available. Process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Creation, start, and resume require exact daemon North Star admission; pause, interrupt, cancel, and observation remain available for recovery. Process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.silent.sessions`
 - Family: `work_loop`

@@ -15,16 +15,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-use crate::{
-    middleware::principal::ApiRequestPrincipal,
-    routes::project::require_scoped_north_star_mutation_admission, scope::ScopeContext,
-    server::AppState,
-};
+use crate::{middleware::principal::ApiRequestPrincipal, server::AppState};
 
 use super::{
     silent_sessions::{
         ApiResponse, disclose_principal_side_effect, durable_request_principal, failure,
-        persistence_failure,
+        persistence_failure, require_silent_session_north_star_admission,
     },
     silent_sessions_contract::{ApiSideEffect, SilentSessionApiEnvelope},
 };
@@ -42,14 +38,6 @@ pub(super) struct CreateBody {
     #[serde(default)]
     pub layers: Vec<ConfigLayer>,
     pub idempotency_key: String,
-}
-
-fn silent_session_admission_scope(config: &SilentSessionConfig) -> ScopeContext {
-    ScopeContext {
-        project_root: Some(config.identity.project_root.clone()),
-        continuity_id: Some(config.identity.continuity_id.clone()),
-        ..ScopeContext::default()
-    }
 }
 
 pub(super) async fn preflight(
@@ -162,25 +150,15 @@ pub(super) async fn create(
     ) {
         return disclose_principal_side_effect(*response, &principal);
     }
-    let admission_scope = silent_session_admission_scope(config);
-    if let Err((status, Json(payload))) = require_scoped_north_star_mutation_admission(
-        &admission_scope,
+    if let Err(response) = require_silent_session_north_star_admission(
         &state,
+        &config.identity.project_root,
+        &config.identity.continuity_id,
         "silent_session_create",
     )
     .await
     {
-        return disclose_principal_side_effect(
-            failure(
-                status,
-                "NORTH_STAR_ADMISSION_BLOCKED",
-                payload["code"]
-                    .as_str()
-                    .unwrap_or("north_star_admission_blocked"),
-                "Restore the exact project, trajectory, Workpoint, and frontier chain, then retry with the same idempotency key.",
-            ),
-            &principal,
-        );
+        return disclose_principal_side_effect(response, &principal);
     }
     let authority = match SilentSessionAuthority::new(
         config.identity.project_root.clone(),
@@ -461,13 +439,6 @@ mod tests {
             },
             source: ApiPrincipalSource::PairedDevice,
         }
-    }
-
-    #[test]
-    fn create_admission_scope_is_derived_from_resolved_config_identity() {
-        let scope = silent_session_admission_scope(&config());
-        assert_eq!(scope.project_root.as_deref(), Some("/repo/focusa"));
-        assert_eq!(scope.continuity_id.as_deref(), Some("continuity:test"));
     }
 
     #[test]

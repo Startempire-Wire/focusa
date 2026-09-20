@@ -18,7 +18,8 @@ use super::{
     silent_sessions::{
         ApiResponse, authorized_projection, disclose_principal_side_effect,
         durable_request_principal, ensure_silent_session_temporal_guard, failure,
-        persistence_failure, silent_session_temporal_context,
+        persistence_failure, require_silent_session_north_star_admission,
+        silent_session_temporal_context,
     },
     silent_sessions_authorize::authorize_mutation,
     silent_sessions_contract::{
@@ -271,6 +272,18 @@ async fn control(
             Ok(context) => context,
             Err(response) => return after_principal(*response, &principal),
         };
+    if matches!(kind, ControlKind::Resume) {
+        if let Err(response) = require_silent_session_north_star_admission(
+            &state,
+            &session.authority.project_root,
+            &session.authority.continuity_id,
+            "silent_session_resume",
+        )
+        .await
+        {
+            return after_principal(response, &principal);
+        }
+    }
     let Some(target) = kind.target(session.lifecycle) else {
         return after_principal(invalid_transition(session.lifecycle, kind), &principal);
     };
