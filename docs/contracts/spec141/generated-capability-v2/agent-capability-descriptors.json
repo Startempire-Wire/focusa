@@ -82302,7 +82302,7 @@
       "version": "2.0.0",
       "title": "Work Loop Control",
       "summary": "Control continuous work loop: on, pause, resume, stop.",
-      "description": "Control continuous work loop: on, pause, resume, stop. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Control continuous work loop. Daemon North Star admission applies to on/resume progression; pause/stop recovery controls remain available. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "work_loop",
       "namespace": "focusa.work_loop",
       "operation_policy": {
@@ -82908,7 +82908,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5edec67c3939e8c4fb57cc43db48afa4707642a6894fdead274571e449b81a17"
+      "descriptor_digest": "sha256:cca7eb858c18b0f505e808568bd81edd7b31f414035bc871cd18c35f9bb9b0db"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -82947,7 +82947,7 @@
       "version": "2.0.0",
       "title": "Work Loop Select Next",
       "summary": "Ask daemon to defer blocked work and select next ready work item.",
-      "description": "Ask daemon to defer blocked work and select next ready work item. Use it when Ask daemon to defer blocked work and select next ready work item. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Ask daemon to defer blocked work and select the next ready item after North Star progression admission passes. Use it when Ask daemon to defer blocked work and select next ready work item. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "work_loop",
       "namespace": "focusa.work_loop",
       "operation_policy": {
@@ -83417,7 +83417,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:069679c8ce62c061570615167060cba520faa7490ee07d25bad93b0365a8e9c9"
+      "descriptor_digest": "sha256:75ab8e20627521155294b7d2c7d7017bf036f5340328e83ae0357f44ae712980"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86606,5 +86606,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:b98d47f3b80d465469753d4093c43b0ef40683e4bef70b5ab5f018f4e48cbd06"
+  "registry_digest": "sha256:5aea56898e7dfb76d9a108f5968ccf29b116a8f46cb588f26aaed2f28e64a547"
 }

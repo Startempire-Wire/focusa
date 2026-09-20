@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:b98d47f3b80d465469753d4093c43b0ef40683e4bef70b5ab5f018f4e48cbd06",
+  "registry_digest": "sha256:5aea56898e7dfb76d9a108f5968ccf29b116a8f46cb588f26aaed2f28e64a547",
   "tools": [
     {
       "type": "function",
@@ -5910,7 +5910,7 @@
       "type": "function",
       "function": {
         "name": "focusa_work_loop_control",
-        "description": "Control continuous work loop: on, pause, resume, stop. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Control continuous work loop. Daemon North Star admission applies to on/resume progression; pause/stop recovery controls remain available. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5999,7 +5999,7 @@
       "type": "function",
       "function": {
         "name": "focusa_work_loop_select_next",
-        "description": "Ask daemon to defer blocked work and select next ready work item. Use it when Ask daemon to defer blocked work and select next ready work item. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Ask daemon to defer blocked work and select the next ready item after North Star progression admission passes. Use it when Ask daemon to defer blocked work and select next ready work item. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
         "parameters": {
           "type": "object",

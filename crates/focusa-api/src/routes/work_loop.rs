@@ -2,6 +2,7 @@
 
 use crate::routes::bounded::{record_json_response_size, resource_mode_status};
 use crate::routes::permissions::{forbid, permission_context};
+use crate::routes::project::{north_star_workpoint_linkage, require_north_star_mutation_admission};
 use crate::scope::ScopeContext;
 use crate::server::{AppState, WriterLease};
 use axum::extract::{FromRequestParts, Query, State};
@@ -95,6 +96,22 @@ fn work_loop_scope_matches(
             .trim_end_matches('/')
             == active_root
         && key.continuity_id == active_continuity
+}
+
+async fn require_work_loop_north_star_admission(
+    scope: &WorkLoopScope,
+    state: &Arc<AppState>,
+    requested_mutation: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    let linkage = {
+        let focusa = state.focusa.read().await;
+        north_star_workpoint_linkage(
+            &focusa,
+            &scope.0.root_scope.root_path.to_string_lossy(),
+            Some(&scope.0.continuity_id),
+        )
+    };
+    require_north_star_mutation_admission(&linkage, requested_mutation)
 }
 
 fn canonical_workpoint_id_for_scope_and_item(
@@ -3128,6 +3145,7 @@ async fn enable(
         &headers,
         "continuous work enable crosses a governance boundary and must be explicitly approved",
     )?;
+    require_work_loop_north_star_admission(&scope, &state, "work_loop_enable").await?;
     let preset = payload.preset.unwrap_or_default();
     let policy =
         WorkLoopPolicy::with_overrides(preset, payload.policy_overrides.unwrap_or_default());
@@ -3233,6 +3251,7 @@ async fn resume(
             "renewing or changing Work Loop budgets requires explicit approval",
         )?;
     }
+    require_work_loop_north_star_admission(&scope, &state, "work_loop_resume").await?;
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let policy = if let Some(overrides) = payload.policy_overrides {
@@ -3269,6 +3288,7 @@ async fn select_next(
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
     }
+    require_work_loop_north_star_admission(&scope, &state, "work_loop_select_next").await?;
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
     let parent_work_item_id = payload.parent_work_item_id.clone();

@@ -1,6 +1,6 @@
 # `focusa_work_loop_control`
 
-Control continuous work loop: on, pause, resume, stop. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Control continuous work loop. Daemon North Star admission applies to on/resume progression; pause/stop recovery controls remain available. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
@@ -85,4 +85,4 @@ Likely next: `focusa_work_loop_writer_status`, `focusa_work_loop_status`, `focus
 - CLI: none.
 - REST: `POST /v1/work-loop/enable`, `POST /v1/work-loop/pause`, `POST /v1/work-loop/resume`, `POST /v1/work-loop/stop`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:5edec67c3939e8c4fb57cc43db48afa4707642a6894fdead274571e449b81a17`.
+- Descriptor digest: `sha256:cca7eb858c18b0f505e808568bd81edd7b31f414035bc871cd18c35f9bb9b0db`.
