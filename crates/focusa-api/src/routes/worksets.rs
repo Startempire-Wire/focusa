@@ -5,11 +5,14 @@
 use axum::Json;
 use axum::Router;
 use axum::extract::{Path, State};
+use axum::http::StatusCode;
 use axum::routing::{get, post};
 use focusa_core::workset_ledger::{WorksetDefinition, WorksetEvent, replay_projection};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
+use crate::routes::project::require_scoped_north_star_mutation_admission;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -102,8 +105,54 @@ async fn append_event(
     State(state): State<Arc<AppState>>,
     Path(workset_id): Path<String>,
     Json(event): Json<WorksetEvent>,
-) -> Json<Value> {
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let path = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+    let lookup_path = path.clone();
+    let lookup_workset_id = workset_id.clone();
+    let definition =
+        tokio::task::spawn_blocking(move || -> anyhow::Result<Option<WorksetDefinition>> {
+            let conn = rusqlite::Connection::open(lookup_path)?;
+            focusa_core::workset_store::ensure_schema(&conn)?;
+            focusa_core::workset_store::load_latest_definition(&conn, &lookup_workset_id)
+        })
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(focusa_core::error_envelope::internal_error(
+                    "join",
+                    &format!("{error}"),
+                )),
+            )
+        })?
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(focusa_core::error_envelope::internal_error(
+                    "route",
+                    &error.to_string(),
+                )),
+            )
+        })?;
+    let Some(definition) = definition else {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(focusa_core::error_envelope::standard_error(
+                "rejected",
+                "workset_not_found",
+                "do_not_retry_unchanged",
+                "Create or restore the exact scoped Workset definition before appending events.",
+                "workset definition was not found",
+            )),
+        ));
+    };
+    let scope = ScopeContext {
+        project_root: Some(definition.scope.project_root),
+        continuity_id: Some(definition.scope.continuity_id),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, &state, "workset_append_event").await?;
+
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
         focusa_core::workset_store::ensure_schema(&conn)?;
@@ -111,7 +160,7 @@ async fn append_event(
         Ok(json!({"status": "appended", "workset_id": workset_id, "seq": seq}))
     })
     .await;
-    match result {
+    Ok(match result {
         Ok(Ok(payload)) => Json(payload),
         Ok(Err(error)) => Json(focusa_core::error_envelope::internal_error(
             "route",
@@ -121,7 +170,7 @@ async fn append_event(
             "join",
             &format!("{error}"),
         )),
-    }
+    })
 }
 
 #[derive(serde::Deserialize)]
