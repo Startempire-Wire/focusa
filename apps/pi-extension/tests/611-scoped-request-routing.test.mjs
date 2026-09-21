@@ -58,7 +58,21 @@ test("self-model handler preserves healthy, empty and precise failure responses"
       operation_id: "self_model.get", project_root: "/fixture/project", continuity_id: "fixture-continuity",
     });
     assert.equal(result.details.ok, ok);
-    assert.deepEqual(result.details.response, body);
+    const expectedResponse = body.self_model === null
+      ? {
+          ...body,
+          supported: true,
+          state: "empty",
+          reason_code: "no_learning_data",
+          next_step: "Record or evaluate a scoped prediction before expecting self-model estimates.",
+          self_model: {},
+        }
+      : body;
+    assert.deepEqual(result.details.response, expectedResponse);
+    if (body.self_model === null) {
+      assert.equal(result.details.response.state, "empty");
+      assert.equal(result.details.response.reason_code, "no_learning_data");
+    }
     if (!ok) {
       assert.ok(result.content[0].text.includes(reason));
       assert.ok(result.content[0].text.includes(`HTTP ${status}`));

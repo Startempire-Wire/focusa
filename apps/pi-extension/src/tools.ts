@@ -3211,6 +3211,18 @@ pi.registerTool({
     ).slice(0, 500);
   }
 
+  function normalizeSelfModelResponse(body: any): any {
+    if (body?.status !== "completed" || body?.self_model !== null) return body;
+    return {
+      ...body,
+      supported: true,
+      state: "empty",
+      reason_code: "no_learning_data",
+      next_step: "Record or evaluate a scoped prediction before expecting self-model estimates.",
+      self_model: {},
+    };
+  }
+
   function typedTrajectoryScopeMatches(value: any, projectRoot: string, continuityId: string): boolean {
     const responseRoot = normalizeProjectRoot(
       value?.project_identity?.project_root ||
@@ -15308,10 +15320,13 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         method: "POST",
         body: JSON.stringify({ operation_id: descriptor.operation_id, scope, event: p.event }),
       } : undefined);
-      const status = res.body?.status || (res.ok ? "completed" : "blocked");
+      const responseBody = descriptor.operation_id === "self_model.get"
+        ? normalizeSelfModelResponse(res.body)
+        : res.body;
+      const status = responseBody?.status || (res.ok ? "completed" : "blocked");
       const failed = !res.ok || ["blocked", "denied", "error", "failed"].includes(status);
-      const failureClass = failed ? scopedResponseFailureClass(res, res.body) : undefined;
-      const diagnostic = failed ? scopedResponseHuman(res.body, `HTTP ${res.status}`) : "";
+      const failureClass = failed ? scopedResponseFailureClass(res, responseBody) : undefined;
+      const diagnostic = failed ? scopedResponseHuman(responseBody, `HTTP ${res.status}`) : "";
       return {
         content: [{ type: "text", text: `${descriptor.label} → ${status}${failed ? ` (HTTP ${res.status}): ${diagnostic}` : ""}` }],
         details: {
@@ -15322,7 +15337,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
               ? ["focusa_project_identity", "focusa_workpoint_resume"]
               : ["focusa_agent_runtime_doctor"]
             : [],
-          authority: res.body?.authority, response: res.body,
+          authority: responseBody?.authority, response: responseBody,
           project_root: projectRoot, continuity_id: continuityId,
         },
       };
