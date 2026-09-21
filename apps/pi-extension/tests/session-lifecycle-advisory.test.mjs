@@ -17,24 +17,25 @@ const compiled = ts.transpileModule(source, {
   fileName: advisoryPath,
 }).outputText;
 const module = { exports: {} };
+const execFileCalls = [];
+const defaultExecFile = (command, args, options, callback) => {
+  execFileCalls.push({ command, args, options });
+  callback(null, '{"operator":{"preferred_address":"Sir V3","timezone":"America/Los_Angeles","local_time":"2026-08-01T02:00:00-07:00"}}\n');
+};
 vm.runInNewContext(compiled, {
   module,
   exports: module.exports,
   require: (specifier) => {
-    if (specifier === "node:child_process")
-      return {
-        execFile: (_command, _args, _options, callback) =>
-          callback(null, '{"operator":{"preferred_address":"Sir V3","timezone":"America/Los_Angeles","local_time":"2026-08-01T02:00:00-07:00"}}\n'),
-      };
+    if (specifier === "node:child_process") return { execFile: defaultExecFile };
     throw new Error(`unexpected require: ${specifier}`);
   },
   Date,
   Error,
   Intl,
-  process: { env: { TZ: "America/Los_Angeles", FOCUSA_PREFERRED_ADDRESS: "Sir V3" } },
+  process: { env: { TZ: "America/Los_Angeles", FOCUSA_PREFERRED_ADDRESS: "" } },
   setTimeout: (fn) => fn(),
 });
-const { queueLifecycleAdvisory, queueStartupReceptionistTurn } = module.exports;
+const { queueLifecycleAdvisory, queueStartupReceptionistTurn, resolveReceptionOperatorContext } = module.exports;
 
 function input() {
   return {
@@ -46,6 +47,41 @@ function input() {
     projectRoot: "/projects/focusa",
     sessionId: "session:test",
   };
+}
+
+{
+  const calls = [];
+  const success = await resolveReceptionOperatorContext((command, args, options, callback) => {
+    calls.push({ command, args, options });
+    callback(null, '{"operator":{"preferred_address":"Sir V3","timezone":"UTC","local_time":"09:00"}}');
+  });
+  assert.equal(calls[0].command, "agent-kb");
+  assert.deepEqual(Array.from(calls[0].args), ["operator", "--json"]);
+  assert.equal(calls[0].options.timeout, 1500);
+  assert.equal(success.preferredAddress, "Sir V3");
+  assert.equal(success.timezone, "UTC");
+  assert.equal(success.localTime, "09:00");
+
+  const missing = await resolveReceptionOperatorContext((_command, _args, _options, callback) =>
+    callback(Object.assign(new Error("missing"), { code: "ENOENT" }), "")
+  );
+  assert.equal(missing.failureClass, "operator_context_command_missing");
+  assert.equal(missing.timezone, "America/Los_Angeles");
+
+  const timeout = await resolveReceptionOperatorContext((_command, _args, _options, callback) =>
+    callback(Object.assign(new Error("timeout"), { code: "ETIMEDOUT", killed: true }), "")
+  );
+  assert.equal(timeout.failureClass, "operator_context_timeout");
+
+  const failed = await resolveReceptionOperatorContext((_command, _args, _options, callback) =>
+    callback(new Error("nonzero"), "")
+  );
+  assert.equal(failed.failureClass, "operator_context_command_failed");
+
+  const malformed = await resolveReceptionOperatorContext((_command, _args, _options, callback) =>
+    callback(null, "not json")
+  );
+  assert.equal(malformed.failureClass, "operator_context_malformed_json");
 }
 
 {

@@ -24,34 +24,70 @@ type ReceptionOperatorContext = {
   preferredAddress: string;
   timezone: string;
   localTime: string;
+  failureClass?: string;
 };
 
-function resolveReceptionOperatorContext(): Promise<ReceptionOperatorContext> {
-  const fallback = {
+type OperatorContextExecFile = (
+  command: string,
+  args: string[],
+  options: { timeout: number; maxBuffer: number },
+  callback: (error: NodeJS.ErrnoException | null, stdout: string | Buffer) => void
+) => unknown;
+
+function fallbackReceptionOperatorContext(failureClass?: string): ReceptionOperatorContext {
+  return {
     preferredAddress: String(
       process.env.FOCUSA_PREFERRED_ADDRESS || process.env.OPERATOR_PREFERRED_ADDRESS || ""
     ).trim(),
     timezone: String(process.env.TZ || "").trim(),
     localTime: "",
+    failureClass,
   };
+}
+
+function operatorContextFailureClass(error: NodeJS.ErrnoException | null): string {
+  if (error?.code === "ENOENT") return "operator_context_command_missing";
+  if (error?.code === "ETIMEDOUT" || (error as (NodeJS.ErrnoException & { killed?: boolean }) | null)?.killed) {
+    return "operator_context_timeout";
+  }
+  return "operator_context_command_failed";
+}
+
+export function resolveReceptionOperatorContext(
+  run: OperatorContextExecFile = execFile as unknown as OperatorContextExecFile
+): Promise<ReceptionOperatorContext> {
+  const fallback = fallbackReceptionOperatorContext();
   if (fallback.preferredAddress && fallback.timezone) return Promise.resolve(fallback);
   return new Promise((resolve) => {
-    execFile(
-      "zsh",
-      ["-lic", "akb_operator"],
+    run(
+      "agent-kb",
+      ["operator", "--json"],
       { timeout: 1_500, maxBuffer: 64 * 1024 },
-      (_error, stdout) => {
+      (error, stdout) => {
+        if (error) {
+          resolve(fallbackReceptionOperatorContext(operatorContextFailureClass(error)));
+          return;
+        }
         try {
-          const jsonLine = String(stdout || "").split(/\r?\n/).find((line) => line.trim().startsWith("{"));
-          const parsed = jsonLine ? JSON.parse(jsonLine) : null;
+          const output = String(stdout || "");
+          const jsonLine = output.split(/\r?\n/).find((line) => line.trim().startsWith("{"));
+          if (!jsonLine) {
+            resolve(
+              fallbackReceptionOperatorContext(
+                output.trim() ? "operator_context_malformed_json" : "operator_context_empty_response"
+              )
+            );
+            return;
+          }
+          const parsed = JSON.parse(jsonLine);
           const operator = parsed?.operator || {};
           resolve({
             preferredAddress: String(operator.preferred_address || operator.nickname || fallback.preferredAddress),
             timezone: String(operator.timezone || fallback.timezone),
-            localTime: String(operator.local_time || ""),
+            localTime: String(operator.local_time || fallback.localTime),
           });
         } catch {
-          resolve(fallback);
+          resolve(fallbackReceptionOperatorContext("operator_context_malformed_json"));
         }
       }
     );
@@ -208,7 +244,7 @@ export function queueStartupReceptionistTurn(
         },
         { triggerTurn: true }
       );
-      appendOutcome(pi, input, "queued");
+      appendOutcome(pi, input, "queued", operator.failureClass);
     } catch (error) {
       appendOutcome(
         pi,
