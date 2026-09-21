@@ -97,12 +97,15 @@ databases, evidence, ledgers, user files) is never a removable.
 ## De-duplication discipline (deslop, mandatory)
 
 Before writing a new helper, envelope block, or test setup, check the
-deslop analysis for an existing similar implementation (`deslop` CLI in
-CI reports; the Deslop MCP `find-similar` when connected). Renamed
-copies of existing helpers are rejected in review; converge intentional
-boilerplate (error envelopes, tool results) through the canonical
-constructors (focusa_core::error_envelope, tool_result_v1) instead of
-re-typing them. The duplication ceiling lives in `.deslop.toml`.
+canonical local scan with `scripts/deslop .` (or the Deslop MCP
+`find-similar` when connected). The local entry point retrieves and verifies
+the pinned producer, runs it in the bounded immutable container used by CI,
+and reports the `.deslop.toml` ceiling; set `DESLOP_REPORT_DIR` to retain
+machine-readable reports. Renamed copies of existing helpers are rejected in
+review; converge intentional boilerplate (error envelopes, tool results)
+through the canonical constructors (focusa_core::error_envelope,
+tool_result_v1) instead of re-typing them. The duplication ceiling lives in
+`.deslop.toml`.
 
 ## Pre-work rule: always check remote first (mandatory)
 

@@ -8,28 +8,45 @@
 set -euo pipefail
 
 DESLOP_BIN=""
-for arg in "$@"; do
-  case "$arg" in
+JOB_NAME_OVERRIDE=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --deslop-bin)
-      shift; DESLOP_BIN="${1:-}"; ;;
+      [[ $# -ge 2 ]] || { echo "missing value for --deslop-bin" >&2; exit 2; }
+      DESLOP_BIN="$2"
+      shift 2
+      ;;
     --job-name)
-      shift; JOB_NAME_OVERRIDE="${1:-}"; ;;
+      [[ $# -ge 2 ]] || { echo "missing value for --job-name" >&2; exit 2; }
+      JOB_NAME_OVERRIDE="$2"
+      shift 2
+      ;;
+    *)
+      echo "unknown option: $1" >&2
+      exit 2
+      ;;
   esac
-  shift 2>/dev/null || true
 done
-DESLOP_BIN="${DESLOP_BIN:-$(command -v deslop || echo /tmp/deslop-0.32.0-linux-x64/deslop)}"
 JOB_NAME="${JOB_NAME_OVERRIDE:-deslop-scan}"
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 
-if [[ ! -x "$DESLOP_BIN" ]]; then
-  echo "deslop binary not found at $DESLOP_BIN; pass --deslop-bin" >&2
-  exit 2
+if [[ -n "$DESLOP_BIN" ]]; then
+  [[ -x "$DESLOP_BIN" ]] || {
+    echo "deslop binary not found at $DESLOP_BIN" >&2
+    exit 2
+  }
+  SCAN_COMMAND="'$DESLOP_BIN' ."
+else
+  [[ -x "$PROJECT_ROOT/scripts/deslop" ]] || {
+    echo "canonical local Deslop entry point missing: $PROJECT_ROOT/scripts/deslop" >&2
+    exit 2
+  }
+  SCAN_COMMAND="'$PROJECT_ROOT/scripts/deslop' ."
 fi
-
-cd "$(git rev-parse --show-toplevel)"
 
 # The bg job is the ONLY background mechanism (AGENTS.md TBQ rule).
 focusa bg run --name "$JOB_NAME" -- bash -c "\
   set -e; set -o pipefail; \
-  '$DESLOP_BIN' check . > /tmp/deslop-report.log 2>&1 || { echo DESLOP=FAIL; exit 1; }; \
-  echo DESLOP-GREEN; \
+  $SCAN_COMMAND > /tmp/deslop-report.log 2>&1 || { cat /tmp/deslop-report.log; echo DESLOP=FAIL; exit 1; }; \
+  cat /tmp/deslop-report.log; \
   echo 'receipt covers acceptance atom: deslop-ceiling'"

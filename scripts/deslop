@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# Canonical local Deslop entry point.
+#
+# The pinned producer binary is verified before use and runs in the same
+# immutable, resource-bounded container as CI. The host never executes the
+# glibc-incompatible binary directly unless DESLOP_BIN is explicitly supplied.
+set -euo pipefail
+
+ROOT="${DESLOP_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+ROOT="$(cd "$ROOT" && pwd)"
+CONFIG="$ROOT/config/deslop-tool.env"
+if [[ ! -r "$CONFIG" ]]; then
+  echo "deslop: missing canonical policy: $CONFIG" >&2
+  exit 2
+fi
+# shellcheck disable=SC1090
+source "$CONFIG"
+
+TARGET="${1:-.}"
+if [[ "$TARGET" == -* ]]; then
+  echo "deslop: expected a project directory, got option '$TARGET'" >&2
+  echo "usage: scripts/deslop [PROJECT_DIR]" >&2
+  exit 2
+fi
+if [[ "$TARGET" == /* ]]; then
+  TARGET_INPUT="$TARGET"
+else
+  TARGET_INPUT="$ROOT/$TARGET"
+fi
+TARGET_ABS="$(cd "$TARGET_INPUT" 2>/dev/null && pwd)"
+case "$TARGET_ABS" in
+  "$ROOT"|"$ROOT"/*) ;;
+  *)
+    echo "deslop: target must remain inside project root $ROOT" >&2
+    exit 2
+    ;;
+esac
+TARGET_SUFFIX="${TARGET_ABS#"$ROOT"}"
+TARGET_IN_CONTAINER="/workspace${TARGET_SUFFIX:-/}"
+
+REPORT_DIR="${DESLOP_REPORT_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/focusa-deslop.XXXXXX")}"
+REPORT_DIR="$(mkdir -p "$REPORT_DIR" && cd "$REPORT_DIR" && pwd)"
+cleanup_report=0
+if [[ -z "${DESLOP_REPORT_DIR:-}" ]]; then
+  cleanup_report=1
+fi
+cleanup() {
+  if [[ "$cleanup_report" == 1 ]]; then
+    rm -rf -- "$REPORT_DIR"
+  fi
+}
+trap cleanup EXIT
+rm -rf -- "$REPORT_DIR/deslop-report.json" "$REPORT_DIR/deslop-report.txt" "$REPORT_DIR/deslop-report.html"
+
+run_host_binary() {
+  local binary="$1"
+  [[ -x "$binary" ]] || {
+    echo "deslop: DESLOP_BIN is not executable: $binary" >&2
+    return 2
+  }
+  "$binary" "$TARGET_ABS" --no-incremental --min-nodes "$DESLOP_MIN_NODES" \
+    --output "$REPORT_DIR/deslop-report"
+}
+
+run_pinned_container() {
+  command -v curl >/dev/null || {
+    echo "deslop: curl is required to acquire the verified producer" >&2
+    return 2
+  }
+  command -v sha256sum >/dev/null || {
+    echo "deslop: sha256sum is required for producer verification" >&2
+    return 2
+  }
+  command -v tar >/dev/null || {
+    echo "deslop: tar is required to unpack the verified producer" >&2
+    return 2
+  }
+  command -v podman >/dev/null || {
+    echo "deslop: podman is required; use the canonical container path rather than executing an unverified host binary" >&2
+    return 2
+  }
+
+  local cache_root="${DESLOP_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/focusa/deslop/$DESLOP_VERSION}"
+  local archive="$cache_root/deslop-${DESLOP_VERSION}-linux-x64.tar.gz"
+  local extracted="$cache_root/deslop-${DESLOP_VERSION}-linux-x64/deslop"
+  mkdir -p "$cache_root"
+  (
+    flock -w 120 9 || {
+      echo "deslop: timed out waiting for producer-cache lock: $cache_root" >&2
+      exit 2
+    }
+    if [[ ! -x "$extracted" ]]; then
+      local url="https://github.com/Nimblesite/Deslop/releases/download/v${DESLOP_VERSION}/deslop-${DESLOP_VERSION}-linux-x64.tar.gz"
+      curl --fail --silent --show-error --location --retry 3 --output "$archive.part" "$url"
+      printf '%s  %s\n' "$DESLOP_ARCHIVE_SHA256" "$archive.part" | sha256sum -c -
+      mv -f -- "$archive.part" "$archive"
+      rm -rf -- "$cache_root/deslop-${DESLOP_VERSION}-linux-x64"
+      tar -xzf "$archive" -C "$cache_root"
+      test -x "$extracted"
+    fi
+  ) 9>"$cache_root/.lock"
+
+  podman run --rm \
+    --network=none \
+    --memory 4g \
+    --memory-swap 4g \
+    --userns=keep-id \
+    --user "$(id -u):$(id -g)" \
+    --volume "$ROOT:/workspace:ro,Z" \
+    --volume "$REPORT_DIR:/reports:Z" \
+    --volume "$extracted:/usr/local/bin/deslop:ro,Z" \
+    --workdir /workspace \
+    "$DESLOP_CONTAINER" \
+    deslop "$TARGET_IN_CONTAINER" --no-incremental --min-nodes "$DESLOP_MIN_NODES" --output /reports/deslop-report
+}
+
+set +e
+if [[ -n "${DESLOP_BIN:-}" ]]; then
+  run_host_binary "$DESLOP_BIN"
+else
+  run_pinned_container
+fi
+status=$?
+set -e
+
+if [[ ! -s "$REPORT_DIR/deslop-report.txt" ]]; then
+  echo "deslop: producer did not emit deslop-report.txt (status $status)" >&2
+  exit 2
+fi
+printf 'DESLOP=%s\n' "$([[ "$status" == 0 ]] && echo GREEN || echo FAIL)"
+printf 'configured_max_duplication_percent=%s\n' "$DESLOP_MAX_DUPLICATION_PERCENT"
+printf 'report_dir=%s\n' "$REPORT_DIR"
+cat "$REPORT_DIR/deslop-report.txt"
+exit "$status"
