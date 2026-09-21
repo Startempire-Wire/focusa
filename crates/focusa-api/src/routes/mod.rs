@@ -88,6 +88,7 @@ pub mod reflection;
 pub mod reflex;
 pub mod release;
 pub mod remote_workspaces;
+pub mod research_packet;
 pub mod resource;
 pub mod rfm;
 pub mod runtime_constitution;

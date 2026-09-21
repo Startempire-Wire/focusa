@@ -24,11 +24,13 @@ error envelopes everywhere, tool taxonomy dedup.
 
 ## Missed opportunities (gaps found this audit)
 
-1. **UIAI research packets do not land in Focusa evidence** — the
-   UIAI agent-card composes research packets
-   (/api/agent/research-packet) but no daemon route ingests them into
-   evidence_refs/workset events. The hand-in-glove loop is broken at
-   the intake seam.
+1. **UIAI research packet intake is source-wired; installed delivery remains
+   separate acceptance** — `POST /v1/evidence/research-packet` now extracts
+   bounded, deduplicated evidence refs, persists only those refs in the typed
+   evidence table, and returns the canonical Workpoint evidence-link next step.
+   Raw browser payloads are not persisted. Source producer and router-wiring
+   regressions are present; an installed daemon must still prove the route before
+   installed-runtime completion is claimed.
 2. **Cockpit has no typed Focusa projection** — no cockpit crate or
    route; the browser-interop routes exist but there is no
    workset/callgraph/envelope projection for the cockpit surface
