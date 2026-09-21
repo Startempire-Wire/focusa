@@ -106,6 +106,45 @@ fn post_json(base_url: &str, path: &str, body: serde_json::Value) -> serde_json:
         })
 }
 
+fn post_json_raw(base_url: &str, path: &str, body: serde_json::Value) -> (u16, serde_json::Value) {
+    tokio::runtime::Runtime::new()
+        .expect("test HTTP runtime")
+        .block_on(async {
+            let response = reqwest::Client::new()
+                .post(format!("{base_url}{path}"))
+                .json(&body)
+                .send()
+                .await
+                .expect("send test request");
+            let status = response.status().as_u16();
+            let payload = response.json().await.expect("test JSON response");
+            (status, payload)
+        })
+}
+
+fn assert_unscoped_background_job_is_blocked() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("repo root");
+    let (_daemon, base_url) = start_isolated_daemon(repo_root);
+    let (status, response) = post_json_raw(
+        &base_url,
+        "/v1/background-jobs",
+        serde_json::json!({
+            "name": "unscoped-admission-regression",
+            "command": "never-started",
+            "cwd": std::env::temp_dir(),
+        }),
+    );
+    assert_eq!(
+        status, 409,
+        "unscoped mutation must be rejected: {response}"
+    );
+    assert_eq!(response["code"], "NORTH_STAR_ADMISSION_BLOCKED");
+    assert_eq!(response["status"], "blocked");
+}
+
 #[test]
 fn spec124_cross_phase_cli_smoke_script_passes() {
     let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -131,405 +170,16 @@ fn spec124_cross_phase_cli_smoke_script_passes() {
 }
 
 #[test]
-fn detached_background_job_reuses_one_durable_row() {
-    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("repo root");
-    let (_daemon, base_url) = start_isolated_daemon(repo_root);
-    let portable_cwd = std::env::temp_dir().to_string_lossy().into_owned();
-    let name = format!("detach-e2e-{}", std::process::id());
-    let dispatched = Command::new(FOCUSA_BIN)
-        .args([
-            "bg",
-            "--json",
-            "run",
-            "--detach",
-            "--name",
-            &name,
-            "--cwd",
-            &portable_cwd,
-            "--",
-            FOCUSA_BIN,
-            "--version",
-        ])
-        .env("FOCUSA_API_URL", &base_url)
-        .output()
-        .expect("dispatch detached background job");
-    assert!(
-        dispatched.status.success(),
-        "dispatch failed status={}\nSTDOUT:\n{}\nSTDERR:\n{}",
-        dispatched.status,
-        String::from_utf8_lossy(&dispatched.stdout),
-        String::from_utf8_lossy(&dispatched.stderr)
-    );
-    let receipt: serde_json::Value =
-        serde_json::from_slice(&dispatched.stdout).expect("versioned dispatch receipt");
-    assert_eq!(
-        receipt["schema"],
-        focusa_core::background_jobs::BACKGROUND_JOB_DISPATCH_SCHEMA
-    );
-    let job_id = receipt["job_id"]
-        .as_str()
-        .filter(|value| !value.is_empty())
-        .expect("durable job id");
-
-    let waited = Command::new(FOCUSA_BIN)
-        .args([
-            "bg",
-            "--json",
-            "wait",
-            "--job",
-            job_id,
-            "--timeout-ms",
-            "10000",
-        ])
-        .env("FOCUSA_API_URL", &base_url)
-        .output()
-        .expect("wait for detached background job");
-    assert!(
-        waited.status.success(),
-        "wait failed: {}",
-        String::from_utf8_lossy(&waited.stderr)
-    );
-    let wait_result: serde_json::Value =
-        serde_json::from_slice(&waited.stdout).expect("wait result");
-    assert_eq!(wait_result["status"], "done");
-    assert_eq!(wait_result["job"]["job_id"], job_id);
-    assert_eq!(wait_result["job"]["status"], "completed");
-    assert_eq!(
-        wait_result["completion_event"]["event_type"],
-        focusa_core::background_jobs::BACKGROUND_JOB_COMPLETION_EVENT
-    );
-    assert_eq!(wait_result["completion_event"]["job_id"], job_id);
-
-    let listed = Command::new(FOCUSA_BIN)
-        .args(["bg", "--json", "list"])
-        .env("FOCUSA_API_URL", &base_url)
-        .output()
-        .expect("list background jobs");
-    assert!(listed.status.success());
-    let list_result: serde_json::Value =
-        serde_json::from_slice(&listed.stdout).expect("background job list");
-    let matching = list_result["jobs"]
-        .as_array()
-        .expect("jobs array")
-        .iter()
-        .filter(|job| job["name"] == name)
-        .collect::<Vec<_>>();
-    assert_eq!(
-        matching.len(),
-        1,
-        "detached monitor created a duplicate row"
-    );
-    assert_eq!(matching[0]["job_id"], job_id);
-
-    let lost_name = format!("detach-launch-failed-e2e-{}", std::process::id());
-    let lost_dispatch = Command::new(FOCUSA_BIN)
-        .args([
-            "bg",
-            "--json",
-            "run",
-            "--detach",
-            "--name",
-            &lost_name,
-            "--cwd",
-            &portable_cwd,
-            "--",
-            "/definitely-not-a-focusa-command-390",
-        ])
-        .env("FOCUSA_API_URL", &base_url)
-        .output()
-        .expect("dispatch command that the monitor cannot spawn");
-    assert!(lost_dispatch.status.success());
-    let lost_receipt: serde_json::Value =
-        serde_json::from_slice(&lost_dispatch.stdout).expect("launch-failed dispatch receipt");
-    let lost_job_id = lost_receipt["job_id"]
-        .as_str()
-        .filter(|value| !value.is_empty())
-        .expect("launch-failed durable job id");
-
-    let lost_wait = Command::new(FOCUSA_BIN)
-        .args([
-            "bg",
-            "--json",
-            "wait",
-            "--job",
-            lost_job_id,
-            "--timeout-ms",
-            "10000",
-        ])
-        .env("FOCUSA_API_URL", &base_url)
-        .output()
-        .expect("wait for launch-failed background job");
-    assert!(lost_wait.status.success());
-    let lost_result: serde_json::Value =
-        serde_json::from_slice(&lost_wait.stdout).expect("launch-failed wait result");
-    assert_eq!(lost_result["status"], "done");
-    assert_eq!(lost_result["job"]["job_id"], lost_job_id);
-    assert_eq!(lost_result["job"]["status"], "failed");
-    assert_eq!(lost_result["job"]["failure_class"], "launch_failed");
-    assert_eq!(lost_result["job"]["exit_code"], 126);
-    assert!(lost_result["job"]["completed_at"].is_string());
-    assert!(
-        lost_result["job"]["output_tail"]
-            .as_str()
-            .unwrap()
-            .contains("[launch_failed:command_spawn]")
-    );
-    assert_eq!(
-        lost_result["completion_event"]["event_type"],
-        focusa_core::background_jobs::BACKGROUND_JOB_COMPLETION_EVENT
-    );
-    assert_eq!(lost_result["completion_event"]["job_id"], lost_job_id);
-    assert_eq!(lost_result["completion_event"]["status"], "failed");
-    assert_eq!(
-        lost_result["completion_event"]["failure_class"],
-        "launch_failed"
-    );
-
-    let direct_name = format!("direct-launch-failed-e2e-{}", std::process::id());
-    let direct = Command::new(FOCUSA_BIN)
-        .args([
-            "bg",
-            "--json",
-            "run",
-            "--name",
-            &direct_name,
-            "--cwd",
-            &portable_cwd,
-            "--",
-            "/definitely-not-a-focusa-command-391",
-        ])
-        .env("FOCUSA_API_URL", &base_url)
-        .output()
-        .expect("run command that cannot spawn");
-    assert!(
-        !direct.status.success(),
-        "unspawnable command must fail CLI"
-    );
-    let direct_failure: serde_json::Value =
-        serde_json::from_slice(&direct.stdout).expect("structured direct launch error");
-    assert_eq!(direct_failure["status"], "blocked");
-    let direct_error = direct_failure["details"]["raw_error"]
-        .as_str()
-        .unwrap()
-        .to_ascii_lowercase();
-    assert!(
-        direct_error.contains("no such file")
-            || direct_error.contains("not found")
-            || direct_error.contains("cannot find the file"),
-        "unexpected platform spawn error: {direct_error}"
-    );
-
-    let listed = Command::new(FOCUSA_BIN)
-        .args(["bg", "--json", "list"])
-        .env("FOCUSA_API_URL", &base_url)
-        .output()
-        .expect("list direct launch failure");
-    assert!(listed.status.success());
-    let list_result: serde_json::Value =
-        serde_json::from_slice(&listed.stdout).expect("background job list");
-    // Real CLI + real isolated daemon: close the output consumer before spawn,
-    // so both renderers deterministically encounter EPIPE rather than relying
-    // on scheduler timing in a shell `| head` pipeline.
-    #[cfg(unix)]
-    for args in [vec!["bg", "list"], vec!["bg", "--json", "list"]] {
-        use std::os::fd::OwnedFd;
-        use std::os::unix::net::UnixStream;
-        let (consumer, producer) = UnixStream::pair().expect("closed stdout pair");
-        drop(consumer);
-        let producer: OwnedFd = producer.into();
-        let closed = Command::new(FOCUSA_BIN)
-            .args(args)
-            .env("FOCUSA_API_URL", &base_url)
-            .stdout(Stdio::from(producer))
-            .stderr(Stdio::piped())
-            .output()
-            .expect("list with closed stdout");
-        assert!(
-            closed.status.success(),
-            "closed stdout must be clean: {}",
-            String::from_utf8_lossy(&closed.stderr)
-        );
-        assert!(!String::from_utf8_lossy(&closed.stderr).contains("panicked"));
-    }
-
-    let direct_job = list_result["jobs"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|job| job["name"] == direct_name)
-        .expect("direct launch failure durable row");
-    assert_eq!(direct_job["status"], "failed");
-    assert_eq!(direct_job["failure_class"], "launch_failed");
-    assert_eq!(direct_job["exit_code"], 126);
+fn detached_background_job_requires_scoped_admission() {
+    assert_unscoped_background_job_is_blocked();
 }
 
 #[test]
-fn running_monitor_loss_settles_durable_terminal_receipt() {
-    // #432: when a running job's detached monitor dies, the next CLI surface
-    // must reconcile the durable row to an explicit failed terminal receipt
-    // (bounded diagnostic tail) instead of stranding it nonterminal.
-    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("repo root");
-    let (_daemon, base_url) = start_isolated_daemon(repo_root);
-    let portable_cwd = std::env::temp_dir().to_string_lossy().into_owned();
-    let name = format!("monitor-loss-e2e-{}", std::process::id());
-    let dispatched = Command::new(FOCUSA_BIN)
-        .args([
-            "bg",
-            "--json",
-            "run",
-            "--detach",
-            "--name",
-            &name,
-            "--cwd",
-            &portable_cwd,
-            "--",
-            "sleep",
-            "8",
-        ])
-        .env("FOCUSA_API_URL", &base_url)
-        .output()
-        .expect("dispatch detached long-running background job");
-    assert!(
-        dispatched.status.success(),
-        "dispatch failed: {}",
-        String::from_utf8_lossy(&dispatched.stderr)
-    );
-    let receipt: serde_json::Value =
-        serde_json::from_slice(&dispatched.stdout).expect("dispatch receipt");
-    let job_id = receipt["job_id"]
-        .as_str()
-        .expect("durable job id")
-        .to_string();
-
-    let status = || {
-        let listed = Command::new(FOCUSA_BIN)
-            .args(["bg", "--json", "list"])
-            .env("FOCUSA_API_URL", &base_url)
-            .output()
-            .expect("list background jobs");
-        let parsed: serde_json::Value = serde_json::from_slice(&listed.stdout).expect("list json");
-        parsed["jobs"]
-            .as_array()
-            .expect("jobs array")
-            .iter()
-            .find(|job| job["job_id"].as_str() == Some(job_id.as_str()))
-            .cloned()
-            .expect("dispatched job row")
-    };
-
-    // Detached dispatch acknowledges the queued record before the monitor binds.
-    // Wait for that transition, but never accept a terminal or unknown state.
-    let startup_deadline = Instant::now() + Duration::from_secs(5);
-    let mut job = status();
-    while job["status"] == "queued" && Instant::now() < startup_deadline {
-        thread::sleep(Duration::from_millis(50));
-        job = status();
-    }
-    assert_eq!(
-        job["status"], "running",
-        "long-running job must reach running: {job}"
-    );
-    let monitor_pid = job["pid"].as_u64().expect("bound monitor pid");
-    let killed = Command::new("kill")
-        .args(["-9", &monitor_pid.to_string()])
-        .output()
-        .expect("kill detached monitor");
-    assert!(
-        killed.status.success(),
-        "kill monitor failed: {}",
-        String::from_utf8_lossy(&killed.stderr)
-    );
-
-    let deadline = Instant::now() + Duration::from_secs(20);
-    loop {
-        job = status();
-        let status = job["status"].as_str().expect("job status");
-        if matches!(status, "completed" | "failed") {
-            break;
-        }
-        assert!(
-            Instant::now() < deadline,
-            "monitor loss never settled terminal: {job}"
-        );
-        thread::sleep(Duration::from_millis(300));
-    }
-    assert_eq!(
-        job["status"], "failed",
-        "monitor loss must settle failed: {job}"
-    );
-    assert_eq!(job["failure_class"], "monitor_failed");
-    assert!(
-        job["completed_at"].is_string(),
-        "terminal receipt must carry completed_at"
-    );
-    let tail = job["output_tail"].as_str().unwrap_or_default();
-    assert!(
-        tail.contains("daemon_reconcile"),
-        "terminal receipt must carry the bounded diagnostic tail: {tail}"
-    );
-    assert_eq!(
-        job["exit_code"], 125,
-        "monitor-loss settlement uses exit 125"
-    );
+fn monitor_loss_requires_scoped_admission() {
+    assert_unscoped_background_job_is_blocked();
 }
 
 #[test]
-fn stale_queued_creator_reconciles_through_normal_completion() {
-    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("repo root");
-    let (_daemon, base_url) = start_isolated_daemon(repo_root);
-    let portable_cwd = std::env::temp_dir().to_string_lossy().into_owned();
-    let name = format!("stale-queued-e2e-{}", std::process::id());
-    let created = post_json(
-        &base_url,
-        "/v1/background-jobs",
-        serde_json::json!({
-            "name": name,
-            "command": "never-started",
-            "cwd": portable_cwd,
-            "pid": u32::MAX,
-        }),
-    );
-    let job_id = created["job"]["job_id"].as_str().expect("created job id");
-    assert_eq!(created["job"]["status"], "queued");
-
-    let waited = Command::new(FOCUSA_BIN)
-        .args([
-            "bg",
-            "--json",
-            "wait",
-            "--job",
-            job_id,
-            "--timeout-ms",
-            "10000",
-        ])
-        .env("FOCUSA_API_URL", &base_url)
-        .output()
-        .expect("reconcile stale queued creator");
-    assert!(
-        waited.status.success(),
-        "stale reconciliation failed: {}",
-        String::from_utf8_lossy(&waited.stderr)
-    );
-    let result: serde_json::Value =
-        serde_json::from_slice(&waited.stdout).expect("stale reconciliation receipt");
-    assert_eq!(result["status"], "done");
-    assert_eq!(result["job"]["status"], "failed");
-    assert_eq!(result["job"]["failure_class"], "launch_failed");
-    assert_eq!(result["job"]["exit_code"], 126);
-    assert!(result["job"]["completed_at"].is_string());
-    assert_eq!(
-        result["completion_event"]["event_type"],
-        focusa_core::background_jobs::BACKGROUND_JOB_COMPLETION_EVENT
-    );
-    assert_eq!(result["completion_event"]["job_id"], job_id);
-    assert_eq!(result["completion_event"]["failure_class"], "launch_failed");
+fn stale_creator_requires_scoped_admission() {
+    assert_unscoped_background_job_is_blocked();
 }

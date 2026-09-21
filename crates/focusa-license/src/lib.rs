@@ -25,6 +25,7 @@ pub mod facade_policy_presenter;
 pub mod feature_decision;
 pub mod license_migration;
 pub mod observability;
+mod response_budget;
 
 pub use activation_agent::{
     AGENT_ENVELOPE_SCHEMA, AgentActivationEnvelope, AgentKeyReveal, human_action_for_state,
