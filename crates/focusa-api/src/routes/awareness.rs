@@ -50,11 +50,9 @@ fn scoped_workpoint<'a>(
     if active.continuity_id.as_deref().map(str::trim) != Some(expected_continuity_id.as_str()) {
         return None;
     }
-    if let Some(expected) = clean(query.session_id.as_deref())
-        && active.session_id.as_deref().map(str::trim) != Some(expected.as_str())
-    {
-        return None;
-    }
+    // session_id is temporal producer metadata. It may describe the caller or
+    // producing session, but it must never replace or demote canonical
+    // project_root + continuity_id authority.
     Some(active)
 }
 
@@ -111,6 +109,7 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
         format!("Status: {}", if canonical { "ready" } else { "scope verification pending" }),
         format!("Surface: adapter={adapter} · workspace={workspace}"),
         format!("Scope: project_root={project_root} · continuity={continuity} · workpoint={}", if canonical { "canonical" } else { "not verified" }),
+        "Identity: project_root + continuity_id bind canonical continuity; session_id is temporal metadata only.".to_string(),
         format!("Mission: {mission}"),
         format!("Next: {next}"),
         if canonical {
@@ -166,6 +165,14 @@ async fn card(
         "session_id": query.session_id,
         "continuity_id": query.continuity_id,
         "project_root": query.project_root,
+        "identity_semantics": {
+            "schema": "focusa.awareness_identity_semantics.v1",
+            "canonical_continuity_key": ["project_root", "continuity_id"],
+            "continuity_id_role": "canonical_workstream_continuity",
+            "session_id_role": "temporal metadata",
+            "session_id_is_temporal_metadata": true,
+            "session_id_must_not_replace_continuity_id": true
+        },
         "workpoint_id": record.map(|r| r.workpoint_id),
         "workpoint_canonical": record.map(|r| r.canonical).unwrap_or(false),
         "public_stream_policy": public_policy,
@@ -268,6 +275,22 @@ mod tests {
     }
 
     #[test]
+    fn awareness_card_keeps_same_continuity_across_temporal_sessions() {
+        let state = state_with_active_workpoint("/home/focusa/a", "cont-a");
+        let record = scoped_workpoint(
+            &state,
+            &AwarenessCardQuery {
+                project_root: Some("/home/focusa/a".into()),
+                continuity_id: Some("cont-a".into()),
+                session_id: Some("different-temporal-session".into()),
+                ..Default::default()
+            },
+        )
+        .expect("session metadata must not demote canonical continuity");
+        assert_eq!(record.continuity_id.as_deref(), Some("cont-a"));
+    }
+
+    #[test]
     fn awareness_card_is_concise_and_preserves_operator_flow() {
         let card = render_card(
             &AwarenessCardQuery {
@@ -286,6 +309,8 @@ mod tests {
             "Status: scope verification pending",
             "Surface: adapter=openclaw",
             "Scope: project_root=",
+            "project_root + continuity_id bind canonical continuity",
+            "session_id is temporal metadata only",
             "Mission:",
             "Next:",
             "conversation and read-only diagnosis continue",

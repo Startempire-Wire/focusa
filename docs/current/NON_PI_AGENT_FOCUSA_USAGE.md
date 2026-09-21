@@ -113,7 +113,7 @@ Before acting in this repo, call or paste:
 2. focusa trajectory view --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --mode summary --json
 3. focusa workpoint resume --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --json
 4. focusa workpoint resume --copy-prompt
-Treat project_root+continuity_id as the identity gate. Never trust transcript tail over a canonical Workpoint/Trajectory packet. Paste the copy-prompt output when the agent cannot call Focusa directly. Capture proof with focusa evidence capture/link after tests or file/API verification.
+Treat `project_root + continuity_id` as the canonical continuity identity gate. `session_id` is temporal metadata for the producing/calling session and must never replace or demote `continuity_id`; therefore same-continuity/different-session activity remains one Workstream, while same-project/different-continuity activity remains isolated. Never trust transcript tail over a canonical Workpoint/Trajectory packet. Paste the copy-prompt output when the agent cannot call Focusa directly. Capture proof with focusa evidence capture/link after tests or file/API verification.
 ```
 
 ### OpenCode adapter card
