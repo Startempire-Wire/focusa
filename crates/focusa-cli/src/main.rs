@@ -524,6 +524,13 @@ fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static st
             "daemon overloaded or unreachable",
             "focusa doctor && focusa start",
         )
+    } else if message.contains("[DAEMON_INACTIVE]") {
+        (
+            "daemon_inactive",
+            "Focusa daemon is inactive or unreachable",
+            "the governed daemon is not accepting connections",
+            "focusa start",
+        )
     } else if message.contains("[API_CONNECT_ERROR]") {
         (
             "API_CONNECT_ERROR",
