@@ -333,20 +333,46 @@ async fn learning_conflicts(
     ))
 }
 
+fn self_model_payload(model: Value, sequence: u64) -> Value {
+    let empty = model.as_object().is_some_and(|values| values.is_empty());
+    json!({
+        "status": "completed",
+        "canonical": true,
+        "supported": true,
+        "state": if empty { "empty" } else { "available" },
+        "reason_code": if empty { "no_learning_data" } else { "self_model_available" },
+        "next_step": if empty {
+            "Record or evaluate a scoped prediction before expecting self-model estimates."
+        } else {
+            "Use the returned scoped self-model estimates for calibration decisions."
+        },
+        "self_model": model,
+        "sequence": sequence,
+    })
+}
+
 async fn self_model(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ScopeQuery>,
 ) -> ApiResult {
     let projection = projection(&state, query.scope()?)?;
-    Ok(Json(
-        json!({"status":"completed","canonical":true,"self_model":projection.self_model,"sequence":projection.sequence}),
-    ))
+    let model = serde_json::to_value(&projection.self_model)
+        .map_err(|error| invalid("self_model_encoding_failed", error.to_string()))?;
+    Ok(Json(self_model_payload(model, projection.sequence)))
 }
 
 fn invalid(code: &str, reason: impl Into<String>) -> ApiError {
+    let reason = reason.into();
     (
         StatusCode::UNPROCESSABLE_ENTITY,
-        Json(json!({"status":"blocked","error":code,"reason":reason.into()})),
+        Json(json!({
+            "status": "blocked",
+            "failure_class": "validation_rejected",
+            "error": code,
+            "reason": reason,
+            "human": {"summary": format!("{code}: {reason}")},
+            "next_step": "Correct the typed request or inspect the canonical scope and route contract.",
+        })),
     )
 }
 
@@ -357,6 +383,46 @@ fn storage_error(error: PredictionStorageError) -> ApiError {
             json!({"status":"blocked","failure_class":"prediction_authority_storage","error":format!("{error:?}")}),
         ),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn self_model_read_distinguishes_empty_and_available_states() {
+        let empty = self_model_payload(json!({}), 0);
+        assert_eq!(empty["status"], "completed");
+        assert_eq!(empty["state"], "empty");
+        assert_eq!(empty["reason_code"], "no_learning_data");
+        assert_eq!(empty["supported"], true);
+
+        let available = self_model_payload(json!({"calibration": {"accuracy": 0.5}}), 3);
+        assert_eq!(available["state"], "available");
+        assert_eq!(available["reason_code"], "self_model_available");
+        assert_eq!(available["sequence"], 3);
+    }
+
+    #[test]
+    fn storage_read_failures_have_a_stable_failure_class() {
+        let (_, Json(body)) = storage_error(PredictionStorageError::Io("disk unavailable".into()));
+        assert_eq!(body["status"], "blocked");
+        assert_eq!(body["failure_class"], "prediction_authority_storage");
+    }
+
+    #[test]
+    fn invalid_read_failures_have_typed_reason_and_next_step() {
+        let (_, Json(body)) = invalid("self_model_encoding_failed", "storage unavailable");
+        assert_eq!(body["status"], "blocked");
+        assert_eq!(body["failure_class"], "validation_rejected");
+        assert_eq!(body["reason"], "storage unavailable");
+        assert!(
+            body["next_step"]
+                .as_str()
+                .unwrap()
+                .contains("typed request")
+        );
+    }
 }
 
 pub fn router() -> Router<Arc<AppState>> {
