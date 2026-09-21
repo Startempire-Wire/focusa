@@ -5525,6 +5525,79 @@ async fn north_star_workset_join(
     .await?
 }
 
+async fn north_star_callgraph_join(
+    data_dir: String,
+    project_root: String,
+    continuity_id: String,
+) -> anyhow::Result<Value> {
+    tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let path = crate::routes::events_sqlite::focusa_db_path(&data_dir);
+        let conn = rusqlite::Connection::open_with_flags(
+            path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )?;
+        let runs = focusa_core::callgraph_store::list_runs_for_scope(
+            &conn,
+            &project_root,
+            &continuity_id,
+        )?;
+        let mut callgraphs = Vec::with_capacity(runs.len());
+        for run in runs {
+            let stored =
+                focusa_core::callgraph_store::load_definition(&conn, &run.graph_id, run.revision)?
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "CallGraph definition {} revision {} is missing",
+                            run.graph_id,
+                            run.revision
+                        )
+                    })?;
+            let definition: focusa_core::callgraph::FocusaCallGraphDefinition =
+                serde_json::from_str(&stored.definition_json)?;
+            let dispatches = focusa_core::callgraph_store::list_dispatches(&conn, &run.run_id)?;
+            let evidence = focusa_core::callgraph_store::list_evidence_for_run(&conn, &run.run_id)?;
+            let frontier = focusa_core::callgraph::replay_frontier(&definition, &dispatches);
+            callgraphs.push(json!({
+                "run": run,
+                "definition": definition,
+                "dispatches": dispatches,
+                "evidence": evidence,
+                "frontier": frontier,
+            }));
+        }
+        Ok(json!({
+            "source": "canonical_callgraph_ledger",
+            "scope": {
+                "project_root": project_root,
+                "continuity_id": continuity_id,
+            },
+            "callgraphs": callgraphs,
+        }))
+    })
+    .await?
+}
+
+fn mark_north_star_coverage(projection: &mut Value, covered_fields: &[&str]) {
+    let Some(object) = projection.as_object_mut() else {
+        return;
+    };
+    if let Some(omitted) = object
+        .get_mut("omitted_coverage")
+        .and_then(Value::as_array_mut)
+    {
+        omitted.retain(|item| {
+            item.as_str()
+                .is_none_or(|field| !covered_fields.contains(&field))
+        });
+        let complete = omitted.is_empty();
+        object.insert("coverage_complete".to_string(), json!(complete));
+        object.insert(
+            "status".to_string(),
+            json!(if complete { "complete" } else { "incomplete" }),
+        );
+    }
+}
+
 fn apply_north_star_workset_join(projection: &mut Value, join: Value) {
     let Some(object) = projection.as_object_mut() else {
         return;
@@ -5546,18 +5619,25 @@ fn apply_north_star_workset_join(projection: &mut Value, join: Value) {
             "scope": join.get("scope").cloned().unwrap_or(Value::Null),
         }),
     );
-    if let Some(omitted) = object
-        .get_mut("omitted_coverage")
-        .and_then(Value::as_array_mut)
-    {
-        omitted.retain(|item| item != "requirements" && item != "worksets");
-        let complete = omitted.is_empty();
-        object.insert("coverage_complete".to_string(), json!(complete));
-        object.insert(
-            "status".to_string(),
-            json!(if complete { "complete" } else { "incomplete" }),
-        );
-    }
+    mark_north_star_coverage(projection, &["requirements", "worksets"]);
+}
+
+fn apply_north_star_callgraph_join(projection: &mut Value, join: Value) {
+    let Some(object) = projection.as_object_mut() else {
+        return;
+    };
+    object.insert(
+        "callgraphs".to_string(),
+        join.get("callgraphs").cloned().unwrap_or_else(|| json!([])),
+    );
+    object.insert(
+        "callgraph_source".to_string(),
+        json!({
+            "source": join.get("source").cloned().unwrap_or(Value::Null),
+            "scope": join.get("scope").cloned().unwrap_or(Value::Null),
+        }),
+    );
+    mark_north_star_coverage(projection, &["callgraphs"]);
 }
 
 pub(crate) fn north_star_workpoint_admission_ready(linkage: &Value) -> bool {
@@ -5685,6 +5765,26 @@ async fn north_star_gate(
                                 json!({
                                     "status": "unavailable",
                                     "failure_class": "canonical_workset_projection_unavailable",
+                                }),
+                            );
+                        }
+                    }
+                }
+                match north_star_callgraph_join(
+                    state.config.data_dir.clone(),
+                    normalized_root.clone(),
+                    continuity_id.to_string(),
+                )
+                .await
+                {
+                    Ok(join) => apply_north_star_callgraph_join(&mut projection, join),
+                    Err(_) => {
+                        if let Some(object) = projection.as_object_mut() {
+                            object.insert(
+                                "callgraph_join".to_string(),
+                                json!({
+                                    "status": "unavailable",
+                                    "failure_class": "canonical_callgraph_projection_unavailable",
                                 }),
                             );
                         }
@@ -5905,6 +6005,20 @@ mod tests {
                 && !items.contains(&json!("worksets"))
                 && items.contains(&json!("callgraphs"))
         }));
+        apply_north_star_callgraph_join(
+            &mut joined,
+            json!({
+                "source": "canonical_callgraph_ledger",
+                "scope": {"project_root":"/repo/focusa","continuity_id":"cont-focusa"},
+                "callgraphs": [{"run":{"run_id":"run-1"},"frontier":{"eligible":[]}}],
+            }),
+        );
+        assert_eq!(joined["callgraphs"][0]["run"]["run_id"], "run-1");
+        assert!(
+            joined["omitted_coverage"]
+                .as_array()
+                .is_some_and(|items| !items.contains(&json!("callgraphs")))
+        );
         assert_eq!(short["expansion"]["same_versioned_records"], true);
     }
 

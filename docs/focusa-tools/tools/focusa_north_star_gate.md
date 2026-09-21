@@ -1,6 +1,6 @@
 # `focusa_north_star_gate`
 
-Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain. It returns a typed Focusa result with bounded recovery and likely next capabilities. Full projection includes canonical verification evidence from the exact active Workpoint plus exact-project/continuity requirements, Worksets, and evidence-bearing Workset events replayed from the canonical ledger; unavailable joins remain explicitly listed in `omitted_coverage`.
+Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain. It returns a typed Focusa result with bounded recovery and likely next capabilities. Full projection includes canonical verification evidence from the exact active Workpoint plus exact-project/continuity requirements, Worksets, evidence-bearing Workset events, and CallGraph runs/frontiers/dispatch evidence replayed from canonical ledgers; unavailable joins remain explicitly listed in `omitted_coverage`.
 
 ## When to use
 

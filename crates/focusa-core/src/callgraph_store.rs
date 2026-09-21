@@ -60,6 +60,13 @@ pub struct FrameDispatch {
     pub receipt_ref: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DispatchEvidenceLink {
+    pub dispatch_id: String,
+    pub run_id: String,
+    pub evidence_ref: String,
+}
+
 /// Durable dispatch commit — written BEFORE any adapter call.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DispatchCommit {
@@ -234,6 +241,33 @@ pub fn load_run(conn: &Connection, run_id: &str) -> Result<Option<CallGraphRun>>
     .map_err(Into::into)
 }
 
+pub fn list_runs_for_scope(
+    conn: &Connection,
+    project_root: &str,
+    continuity_id: &str,
+) -> Result<Vec<CallGraphRun>> {
+    let mut stmt = conn.prepare(
+        "SELECT run_id, graph_id, revision, project_root, continuity_id, state, created_at, updated_at
+         FROM callgraph_runs
+         WHERE project_root = ?1 AND continuity_id = ?2
+         ORDER BY created_at, run_id",
+    )?;
+    let rows = stmt.query_map(params![project_root, continuity_id], |row| {
+        Ok(CallGraphRun {
+            run_id: row.get(0)?,
+            graph_id: row.get(1)?,
+            revision: row.get::<_, i64>(2)? as u64,
+            project_root: row.get(3)?,
+            continuity_id: row.get(4)?,
+            state: run_state_from(row.get::<_, String>(5)?),
+            created_at: row.get(6)?,
+            updated_at: row.get(7)?,
+        })
+    })?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
+}
+
 /// The §12 commit boundary: persist the dispatch row before any adapter
 /// call. Returns Err on any failure so callers cannot proceed to dispatch.
 pub fn commit_dispatch(conn: &Connection, commit: &DispatchCommit) -> Result<()> {
@@ -273,6 +307,24 @@ pub fn list_dispatches(conn: &Connection, run_id: &str) -> Result<Vec<FrameDispa
             attempt: row.get(6)?,
             committed_at: row.get(7)?,
             receipt_ref: row.get(8)?,
+        })
+    })?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
+}
+
+pub fn list_evidence_for_run(conn: &Connection, run_id: &str) -> Result<Vec<DispatchEvidenceLink>> {
+    let mut stmt = conn.prepare(
+        "SELECT dispatch_id, run_id, evidence_ref
+         FROM callgraph_dispatch_evidence
+         WHERE run_id = ?1
+         ORDER BY rowid",
+    )?;
+    let rows = stmt.query_map(params![run_id], |row| {
+        Ok(DispatchEvidenceLink {
+            dispatch_id: row.get(0)?,
+            run_id: row.get(1)?,
+            evidence_ref: row.get(2)?,
         })
     })?;
     rows.collect::<rusqlite::Result<Vec<_>>>()
@@ -454,8 +506,8 @@ pub fn mark_dispatch_settled(
     for evidence in evidence_refs {
         conn.execute(
             "INSERT INTO callgraph_dispatch_evidence (dispatch_id, run_id, evidence_ref)
-             VALUES (?1, ?2, ?3)",
-            params![dispatch_id, "", evidence],
+             SELECT ?1, run_id, ?2 FROM callgraph_dispatches WHERE dispatch_id = ?1",
+            params![dispatch_id, evidence],
         )?;
     }
     let _ = outcome;
@@ -611,6 +663,29 @@ mod tests {
             },
         )
         .unwrap();
+        assert_eq!(
+            list_runs_for_scope(&conn, "/workspace/focusa", "focusa-cont-test")
+                .unwrap()
+                .len(),
+            1
+        );
+        assert!(
+            list_runs_for_scope(&conn, "/workspace/focusa", "other")
+                .unwrap()
+                .is_empty()
+        );
+        mark_dispatch_settled(
+            &conn,
+            "d1",
+            "receipt:d1",
+            "completed",
+            &["evidence:dispatch".to_string()],
+        )
+        .unwrap();
+        let evidence = list_evidence_for_run(&conn, "r1").unwrap();
+        assert_eq!(evidence.len(), 1);
+        assert_eq!(evidence[0].evidence_ref, "evidence:dispatch");
+
         transition_run(&conn, "r1", RunState::Running, "2026-08-16T00:00:01Z").unwrap();
         let run = load_run(&conn, "r1").unwrap().expect("exists");
         assert_eq!(run.project_root, "/workspace/focusa");
