@@ -5402,7 +5402,7 @@ fn north_star_depth_projection(
             "evidence",
             "unresolved_scope",
         ],
-        _ => vec!["requirements", "worksets", "callgraphs", "unresolved_scope"],
+        _ => vec!["requirements", "worksets", "callgraphs"],
     };
     if depth == "full" && active_workpoint.is_none() {
         omitted_coverage.push("evidence");
@@ -5457,6 +5457,40 @@ fn north_star_depth_projection(
             json!(trajectory.definition_of_done),
         );
         object.insert("source_refs".to_string(), trajectory.source_refs.clone());
+        let workpoint_blockers = active_workpoint
+            .map(|workpoint| workpoint.blockers.clone())
+            .unwrap_or_default();
+        let linkage_status = linkage
+            .get("status")
+            .and_then(Value::as_str)
+            .unwrap_or("missing");
+        let has_unresolved_scope = linkage_status != "linked"
+            || !trajectory.blockers.is_empty()
+            || !trajectory.open_questions.is_empty()
+            || !workpoint_blockers.is_empty();
+        object.insert(
+            "unresolved_scope".to_string(),
+            json!({
+                "status": if has_unresolved_scope { "unresolved" } else { "resolved" },
+                "requested_scope": {
+                    "project_root": project_root,
+                    "continuity_id": continuity_id,
+                },
+                "trajectory_scope": {
+                    "project_root": trajectory.project_root,
+                    "continuity_id": trajectory.continuity_id,
+                },
+                "workpoint_scope": active_workpoint.map(|workpoint| json!({
+                    "workpoint_id": workpoint.workpoint_id,
+                    "project_root": workpoint.project_root,
+                    "continuity_id": workpoint.continuity_id,
+                })),
+                "linkage_status": linkage_status,
+                "trajectory_blockers": trajectory.blockers,
+                "trajectory_open_questions": trajectory.open_questions,
+                "workpoint_blockers": workpoint_blockers,
+            }),
+        );
         if let Some(workpoint) = active_workpoint {
             object.insert(
                 "evidence".to_string(),
@@ -5966,6 +6000,27 @@ mod tests {
             &linkage,
             "full",
         );
+        let unresolved = north_star_depth_projection(
+            &state,
+            "/repo/focusa",
+            Some("cont-focusa"),
+            &json!({"status":"missing","frontier_status":"missing"}),
+            "full",
+        );
+        state
+            .trajectory
+            .records
+            .last_mut()
+            .unwrap()
+            .blockers
+            .clear();
+        let resolved = north_star_depth_projection(
+            &state,
+            "/repo/focusa",
+            Some("cont-focusa"),
+            &linkage,
+            "full",
+        );
 
         assert_eq!(short["record_ref"]["trajectory_id"], "trajectory-1");
         assert_eq!(medium["record_ref"]["trajectory_id"], "trajectory-1");
@@ -5974,6 +6029,14 @@ mod tests {
         assert!(medium["waypoints"].is_array());
         assert!(medium.get("blockers").is_none());
         assert!(full["blockers"].is_array());
+        assert_eq!(full["unresolved_scope"]["status"], "unresolved");
+        assert_eq!(unresolved["unresolved_scope"]["status"], "unresolved");
+        assert_eq!(resolved["unresolved_scope"]["status"], "resolved");
+        assert!(
+            full["omitted_coverage"]
+                .as_array()
+                .is_some_and(|items| !items.contains(&json!("unresolved_scope")))
+        );
         assert_eq!(full["coverage_complete"], false);
         assert!(
             full["omitted_coverage"]
@@ -6019,6 +6082,8 @@ mod tests {
                 .as_array()
                 .is_some_and(|items| !items.contains(&json!("callgraphs")))
         );
+        assert_eq!(joined["coverage_complete"], true);
+        assert_eq!(joined["status"], "complete");
         assert_eq!(short["expansion"]["same_versioned_records"], true);
     }
 
