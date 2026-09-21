@@ -5471,6 +5471,95 @@ fn north_star_depth_projection(
     projection
 }
 
+async fn north_star_workset_join(
+    data_dir: String,
+    project_root: String,
+    continuity_id: String,
+) -> anyhow::Result<Value> {
+    tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
+        let path = crate::routes::events_sqlite::focusa_db_path(&data_dir);
+        let conn = rusqlite::Connection::open_with_flags(
+            path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )?;
+        let definitions = focusa_core::workset_store::list_latest_definitions_for_scope(
+            &conn,
+            &project_root,
+            &continuity_id,
+        )?;
+        let mut worksets = Vec::with_capacity(definitions.len());
+        let mut requirements = Vec::new();
+        for definition in definitions {
+            let events = focusa_core::workset_store::list_events(&conn, &definition.workset_id)?;
+            let replayed = focusa_core::workset_ledger::replay_projection(&definition, &events)
+                .map_err(anyhow::Error::msg)?;
+            requirements.extend(replayed.requirements.values().map(|requirement| {
+                json!({
+                    "workset_id": definition.workset_id,
+                    "requirement_id": requirement.requirement_id,
+                    "provider_ref": requirement.provider_ref,
+                    "disposition": requirement.disposition,
+                })
+            }));
+            worksets.push(json!({
+                "workset_id": definition.workset_id,
+                "revision": definition.revision,
+                "completion_contract": definition.completion_contract,
+                "events": events,
+                "requirements": replayed.requirements,
+                "membership": replayed.membership,
+                "settled": replayed.settled,
+                "digest": replayed.digest,
+            }));
+        }
+        Ok(json!({
+            "source": "canonical_workset_ledger",
+            "scope": {
+                "project_root": project_root,
+                "continuity_id": continuity_id,
+            },
+            "requirements": requirements,
+            "worksets": worksets,
+        }))
+    })
+    .await?
+}
+
+fn apply_north_star_workset_join(projection: &mut Value, join: Value) {
+    let Some(object) = projection.as_object_mut() else {
+        return;
+    };
+    object.insert(
+        "requirements".to_string(),
+        join.get("requirements")
+            .cloned()
+            .unwrap_or_else(|| json!([])),
+    );
+    object.insert(
+        "worksets".to_string(),
+        join.get("worksets").cloned().unwrap_or_else(|| json!([])),
+    );
+    object.insert(
+        "workset_source".to_string(),
+        json!({
+            "source": join.get("source").cloned().unwrap_or(Value::Null),
+            "scope": join.get("scope").cloned().unwrap_or(Value::Null),
+        }),
+    );
+    if let Some(omitted) = object
+        .get_mut("omitted_coverage")
+        .and_then(Value::as_array_mut)
+    {
+        omitted.retain(|item| item != "requirements" && item != "worksets");
+        let complete = omitted.is_empty();
+        object.insert("coverage_complete".to_string(), json!(complete));
+        object.insert(
+            "status".to_string(),
+            json!(if complete { "complete" } else { "incomplete" }),
+        );
+    }
+}
+
 pub(crate) fn north_star_workpoint_admission_ready(linkage: &Value) -> bool {
     linkage.get("status").and_then(Value::as_str) == Some("linked")
         && linkage.get("frontier_status").and_then(Value::as_str) == Some("ready")
@@ -5563,7 +5652,7 @@ async fn north_star_gate(
         && let Some(project_root) = requested_root.as_deref()
     {
         let normalized_root = normalize_path(Path::new(project_root));
-        let (linkage, projection) = {
+        let (linkage, mut projection) = {
             let focusa = state.focusa.read().await;
             let linkage = north_star_workpoint_linkage(
                 &focusa,
@@ -5579,6 +5668,30 @@ async fn north_star_gate(
             );
             (linkage, projection)
         };
+        if projection_depth == "full" {
+            if let Some(continuity_id) = requested_continuity.as_deref() {
+                match north_star_workset_join(
+                    state.config.data_dir.clone(),
+                    normalized_root.clone(),
+                    continuity_id.to_string(),
+                )
+                .await
+                {
+                    Ok(join) => apply_north_star_workset_join(&mut projection, join),
+                    Err(_) => {
+                        if let Some(object) = projection.as_object_mut() {
+                            object.insert(
+                                "workset_join".to_string(),
+                                json!({
+                                    "status": "unavailable",
+                                    "failure_class": "canonical_workset_projection_unavailable",
+                                }),
+                            );
+                        }
+                    }
+                }
+            }
+        }
         let linkage_ready = north_star_workpoint_admission_ready(&linkage);
         if let Some(object) = payload.as_object_mut() {
             object.insert("projection".to_string(), projection);
@@ -5634,6 +5747,58 @@ mod tests {
         assert_eq!(payload["advisory"], false);
         assert_eq!(payload["trigger"], "model_switch");
         assert_eq!(payload["canonical"], true);
+    }
+
+    #[tokio::test]
+    async fn north_star_workset_join_replays_only_the_exact_scope() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("focusa.sqlite");
+        let conn = rusqlite::Connection::open(path).unwrap();
+        focusa_core::workset_store::ensure_schema(&conn).unwrap();
+        let definition = focusa_core::workset_ledger::WorksetDefinition {
+            schema: focusa_core::workset_ledger::WORKSET_LEDGER_SCHEMA.to_string(),
+            workset_id: "ws-focusa".to_string(),
+            revision: 1,
+            scope: focusa_core::workset_ledger::WorksetScope {
+                project_root: "/repo/focusa".to_string(),
+                continuity_id: "cont-focusa".to_string(),
+            },
+            completion_contract: focusa_core::workset_ledger::CompletionContract {
+                required_requirement_ids: vec!["r1".to_string()],
+                release_gate_ref: None,
+            },
+        };
+        focusa_core::workset_store::upsert_definition(&conn, &definition).unwrap();
+        focusa_core::workset_store::append_event(
+            &conn,
+            "ws-focusa",
+            &focusa_core::workset_ledger::WorksetEvent::RequirementAdmitted {
+                requirement_id: "r1".to_string(),
+                provider_ref: "github:618".to_string(),
+                evidence_ref: Some("evidence:r1".to_string()),
+            },
+        )
+        .unwrap();
+        let mut foreign = definition;
+        foreign.workset_id = "ws-foreign".to_string();
+        foreign.scope.continuity_id = "other".to_string();
+        focusa_core::workset_store::upsert_definition(&conn, &foreign).unwrap();
+        drop(conn);
+
+        let joined = north_star_workset_join(
+            dir.path().display().to_string(),
+            "/repo/focusa".to_string(),
+            "cont-focusa".to_string(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(joined["worksets"].as_array().unwrap().len(), 1);
+        assert_eq!(joined["worksets"][0]["workset_id"], "ws-focusa");
+        assert_eq!(
+            joined["worksets"][0]["events"][0]["evidence_ref"],
+            "evidence:r1"
+        );
+        assert_eq!(joined["requirements"][0]["requirement_id"], "r1");
     }
 
     #[test]
@@ -5724,6 +5889,22 @@ mod tests {
             full["evidence"]["verification_records"][0]["evidence_ref"],
             "evidence:projection"
         );
+        let mut joined = full.clone();
+        apply_north_star_workset_join(
+            &mut joined,
+            json!({
+                "source": "canonical_workset_ledger",
+                "requirements": [{"workset_id":"ws-1","requirement_id":"r1"}],
+                "worksets": [{"workset_id":"ws-1","settled":false}],
+            }),
+        );
+        assert_eq!(joined["requirements"][0]["requirement_id"], "r1");
+        assert_eq!(joined["worksets"][0]["workset_id"], "ws-1");
+        assert!(joined["omitted_coverage"].as_array().is_some_and(|items| {
+            !items.contains(&json!("requirements"))
+                && !items.contains(&json!("worksets"))
+                && items.contains(&json!("callgraphs"))
+        }));
         assert_eq!(short["expansion"]["same_versioned_records"], true);
     }
 

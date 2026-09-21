@@ -71,6 +71,35 @@ pub fn load_latest_definition(
         .transpose()
 }
 
+pub fn list_latest_definitions_for_scope(
+    conn: &Connection,
+    project_root: &str,
+    continuity_id: &str,
+) -> Result<Vec<WorksetDefinition>> {
+    let mut stmt = conn.prepare(
+        "SELECT current.definition_json
+         FROM worksets AS current
+         WHERE current.revision = (
+             SELECT MAX(candidate.revision)
+             FROM worksets AS candidate
+             WHERE candidate.workset_id = current.workset_id
+         )
+         ORDER BY current.workset_id",
+    )?;
+    let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+    let mut definitions = Vec::new();
+    for raw in rows {
+        let definition: WorksetDefinition =
+            serde_json::from_str(&raw?).context("invalid stored Workset definition")?;
+        if definition.scope.project_root == project_root
+            && definition.scope.continuity_id == continuity_id
+        {
+            definitions.push(definition);
+        }
+    }
+    Ok(definitions)
+}
+
 pub fn append_event(conn: &Connection, workset_id: &str, event: &WorksetEvent) -> Result<i64> {
     conn.execute(
         "INSERT INTO workset_events (workset_id, event_json, recorded_at)
@@ -200,6 +229,32 @@ mod tests {
         .unwrap();
         let events = list_events(&conn, "ws-1").unwrap();
         assert_eq!(events.len(), 1);
+    }
+
+    #[test]
+    fn latest_scope_listing_excludes_superseded_and_foreign_definitions() {
+        let conn = Connection::open_in_memory().unwrap();
+        ensure_schema(&conn).unwrap();
+
+        let mut first = definition();
+        upsert_definition(&conn, &first).unwrap();
+        first.revision = 2;
+        first.completion_contract.required_requirement_ids = vec!["r2".to_string()];
+        upsert_definition(&conn, &first).unwrap();
+
+        let mut foreign = definition();
+        foreign.workset_id = "ws-foreign".to_string();
+        foreign.scope.continuity_id = "other".to_string();
+        upsert_definition(&conn, &foreign).unwrap();
+
+        let definitions = list_latest_definitions_for_scope(&conn, "/r", "c").unwrap();
+        assert_eq!(definitions.len(), 1);
+        assert_eq!(definitions[0].workset_id, "ws-1");
+        assert_eq!(definitions[0].revision, 2);
+        assert_eq!(
+            definitions[0].completion_contract.required_requirement_ids,
+            vec!["r2"]
+        );
     }
 
     #[test]
