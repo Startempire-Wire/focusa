@@ -12,6 +12,8 @@ MVP focuses on generic I/O methods:
 
 No harness internals required.
 
+Provider forwarding is an executor boundary: OpenAI-compatible, Messages, and ACP proxy requests require exact verified project/continuity scope plus canonical North Star admission after authentication/request validation and before session mutation, telemetry dispatch, or upstream I/O.
+
 ## Integration Modes
 
 ### Mode A — Wrap Harness CLI (MVP Primary)

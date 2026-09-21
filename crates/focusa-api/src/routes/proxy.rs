@@ -22,6 +22,8 @@
 //! 4. TurnComplete — record result (success or failure)
 //! 5. Emit signals to Focus Gate
 
+use crate::routes::project::require_scoped_north_star_mutation_admission;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use async_stream::try_stream;
 use axum::body::{Body, Bytes};
@@ -450,10 +452,12 @@ async fn stream_messages_response(
 /// POST /proxy/v1/chat/completions — OpenAI proxy with turn tracking.
 async fn chat_completions(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     headers: HeaderMap,
     Json(request): Json<ChatCompletionRequest>,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
     let key = api_key(&headers).ok_or_else(|| proxy_auth_missing("OpenAI-compatible"))?;
+    require_scoped_north_star_mutation_admission(&scope, &state, "proxy_openai_dispatch").await?;
 
     ensure_session(&state).await;
 
@@ -1014,10 +1018,12 @@ async fn chat_completions(
 /// POST /proxy/v1/messages — Anthropic proxy with turn tracking.
 async fn messages_proxy(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     headers: HeaderMap,
     Json(request): Json<MessagesRequest>,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
     let auth = messages_auth(&headers).ok_or_else(|| proxy_auth_missing("Anthropic messages"))?;
+    require_scoped_north_star_mutation_admission(&scope, &state, "proxy_messages_dispatch").await?;
 
     ensure_session(&state).await;
 
@@ -1389,12 +1395,14 @@ async fn messages_proxy(
 /// POST /proxy/acp — ACP JSON-RPC proxy. — ACP JSON-RPC proxy.
 async fn acp_proxy(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     use focusa_core::adapters::acp;
 
     let bytes = serde_json::to_vec(&body).unwrap_or_default();
     let mut msg = acp::parse_message(&bytes).map_err(proxy_validation_rejected)?;
+    require_scoped_north_star_mutation_admission(&scope, &state, "proxy_acp_dispatch").await?;
 
     let s = state.focusa.read().await;
     let session_id = s
