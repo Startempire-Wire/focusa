@@ -5377,7 +5377,14 @@ fn north_star_depth_projection(
                 .iter()
                 .find(|waypoint| waypoint.waypoint_id == active_id)
         });
-    let omitted_coverage = match depth {
+    let active_workpoint = focusa.workpoint.records.iter().rev().find(|record| {
+        record.canonical
+            && record.status == focusa_core::types::WorkpointStatus::Active
+            && record.project_root.as_deref() == Some(project_root)
+            && continuity_id
+                .is_none_or(|continuity| record.continuity_id.as_deref() == Some(continuity))
+    });
+    let mut omitted_coverage = match depth {
         "short" => vec![
             "non_active_waypoints",
             "desired_end_state",
@@ -5395,14 +5402,11 @@ fn north_star_depth_projection(
             "evidence",
             "unresolved_scope",
         ],
-        _ => vec![
-            "requirements",
-            "worksets",
-            "callgraphs",
-            "evidence",
-            "unresolved_scope",
-        ],
+        _ => vec!["requirements", "worksets", "callgraphs", "unresolved_scope"],
     };
+    if depth == "full" && active_workpoint.is_none() {
+        omitted_coverage.push("evidence");
+    }
     let mut projection = json!({
         "schema": "focusa.north_star_projection.v1",
         "depth": depth,
@@ -5453,6 +5457,16 @@ fn north_star_depth_projection(
             json!(trajectory.definition_of_done),
         );
         object.insert("source_refs".to_string(), trajectory.source_refs.clone());
+        if let Some(workpoint) = active_workpoint {
+            object.insert(
+                "evidence".to_string(),
+                json!({
+                    "source": "canonical_workpoint_verification_records",
+                    "workpoint_id": workpoint.workpoint_id,
+                    "verification_records": workpoint.verification_records,
+                }),
+            );
+        }
     }
     projection
 }
@@ -5648,6 +5662,22 @@ mod tests {
                 ..focusa_core::types::TrajectoryWaypointRecord::default()
             });
         state.trajectory.records.push(trajectory);
+        state
+            .workpoint
+            .records
+            .push(focusa_core::types::WorkpointRecord {
+                project_root: Some("/repo/focusa".to_string()),
+                continuity_id: Some("cont-focusa".to_string()),
+                status: focusa_core::types::WorkpointStatus::Active,
+                canonical: true,
+                verification_records: vec![focusa_core::types::WorkpointVerificationRecord {
+                    target_ref: "test:projection".to_string(),
+                    result: "passed".to_string(),
+                    evidence_ref: Some("evidence:projection".to_string()),
+                    verified_at: None,
+                }],
+                ..Default::default()
+            });
         let linkage = json!({"status":"linked","frontier_status":"ready","next_slice":"test"});
 
         let short = north_star_depth_projection(
@@ -5684,6 +5714,15 @@ mod tests {
             full["omitted_coverage"]
                 .as_array()
                 .is_some_and(|items| items.contains(&json!("worksets")))
+        );
+        assert!(
+            full["omitted_coverage"]
+                .as_array()
+                .is_some_and(|items| !items.contains(&json!("evidence")))
+        );
+        assert_eq!(
+            full["evidence"]["verification_records"][0]["evidence_ref"],
+            "evidence:projection"
         );
         assert_eq!(short["expansion"]["same_versioned_records"], true);
     }
