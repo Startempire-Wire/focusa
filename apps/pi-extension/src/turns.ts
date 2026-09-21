@@ -9,6 +9,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import { prewarmCompactionPolicy } from "./compaction-policy-adapter.js";
+import { evaluateWorkpointMutation } from "./workpoint-mutation-enforcement.js";
 import type { PiGoverningPriorKind } from "./state.js";
 import {
   getAttachmentRuntime,
@@ -3023,8 +3024,53 @@ export function registerTurns(pi: ExtensionAPI) {
     }
   });
 
-  // ── tool_call (§33.4 batched usage) ───────────────────────────────────────
-  pi.on("tool_call", async (event, _ctx) => {
-    pushToToolUsageBatch((event as any).toolName || (event as any).name || "");
+  // ── tool_call (§33.4 batched usage + Workpoint mutation admission) ────────
+  pi.on("tool_call", async (event, ctx) => {
+    const toolName = (event as any).toolName || (event as any).name || "";
+    pushToToolUsageBatch(toolName);
+
+    const decision = evaluateWorkpointMutation({
+      toolName,
+      toolInput: ((event as any).input || (event as any).params || {}) as Record<string, unknown>,
+      packet: getActiveWorkpointPacket(),
+      cwd: ctx.cwd,
+    });
+    if (!decision.block) return undefined;
+
+    let driftReceipt: any = null;
+    let receiptError: string | null = null;
+    try {
+      driftReceipt = await focusaFetch("/workpoint/drift-check", {
+        method: "POST",
+        body: JSON.stringify({
+          workpoint_id: decision.workpointId,
+          latest_action: `${toolName} file mutation ${decision.attemptedPath || "<missing-path>"}`,
+          active_object_refs: decision.targetObjects,
+          do_not_drift: decision.doNotDrift,
+          emit: true,
+        }),
+      });
+    } catch (error) {
+      receiptError = error instanceof Error ? error.message : String(error);
+    }
+
+    const receipt = {
+      schema: "focusa.workpoint_mutation_block.v1",
+      status: "blocked",
+      attempted_path: decision.attemptedPath || null,
+      workpoint_id: decision.workpointId || null,
+      checkpoint_ref: decision.checkpointRef || null,
+      reason: decision.reason,
+      target_objects: decision.targetObjects,
+      drift_receipt: driftReceipt,
+      receipt_error: receiptError,
+    };
+    if (ctx.hasUI) {
+      ctx.ui.notify(
+        `Blocked out-of-scope mutation: ${decision.attemptedPath || "missing path"}`,
+        "warning",
+      );
+    }
+    return { block: true, reason: JSON.stringify(receipt) };
   });
 }
