@@ -160,6 +160,9 @@ enum MutationOutcome {
     Result(ExecutorValue),
 }
 
+// Admission failures intentionally preserve the full typed HTTP response so
+// mutation callers receive the same scope evidence as every other API path.
+#[allow(clippy::result_large_err)]
 async fn require_semantic_mutation_admission(
     state: &Arc<AppState>,
     request: &OperationRequest,

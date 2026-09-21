@@ -650,6 +650,9 @@ pub(super) fn disclose_principal_side_effect(
     response
 }
 
+// The canonical API failure envelope intentionally carries the full typed response
+// so callers receive the same scope/admission evidence on every rejection path.
+#[allow(clippy::result_large_err)]
 pub(super) async fn require_silent_session_north_star_admission(
     state: &Arc<AppState>,
     project_root: &str,
