@@ -42,7 +42,8 @@
     "test:pi-security": "node tests/pi-sdk-security.test.mjs",
     "test:menu-audit": "node tests/menu-audit-gate.test.mjs",
     "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-context-lifecycle.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs",
-    "test:decide-validator": "node tests/600-decision-validator.test.mjs"
+    "test:decide-validator": "node tests/600-decision-validator.test.mjs",
+    "test:toolset-integrity": "node --experimental-strip-types tests/toolset-integrity.test.mjs"
   },
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"

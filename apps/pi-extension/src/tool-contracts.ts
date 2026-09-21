@@ -99,6 +99,82 @@ export interface FocusaToolContract {
   operation_policy?: FocusaOperationPolicy;
 }
 
+export interface FocusaToolsetIntegritySnapshot {
+  schema: "focusa.pi_toolset_integrity.v1";
+  expected_count: number;
+  configured_count: number | null;
+  active_count: number | null;
+  registered_count: number | null;
+  configured_probe_available: boolean;
+  active_probe_available: boolean;
+  missing_configured: string[];
+  missing_active: string[];
+  extra_configured: string[];
+  extra_active: string[];
+  drift_detected: boolean;
+  recovery_action: string;
+}
+
+function normalizedToolNames(names: readonly string[] | undefined): string[] {
+  return Array.from(new Set((names || []).map((name) => String(name || "").trim()).filter(Boolean))).sort();
+}
+
+/**
+ * Compare the canonical extension manifest with Pi's configured and model-facing
+ * tool surfaces. The registered names are a fallback when older Pi runtimes do
+ * not expose getAllTools(), while active names remain the authoritative probe
+ * for what the next model turn can actually call.
+ */
+export function inspectFocusaToolsetIntegrity(input: {
+  configuredToolNames?: readonly string[];
+  activeToolNames?: readonly string[];
+  registeredToolNames?: readonly string[];
+  expectedToolNames?: readonly string[];
+} = {}): FocusaToolsetIntegritySnapshot {
+  const expected = normalizedToolNames(
+    input.expectedToolNames || FOCUSA_TOOL_CONTRACTS.map((contract) => contract.name)
+  );
+  const registered = input.registeredToolNames === undefined
+    ? undefined
+    : normalizedToolNames(input.registeredToolNames);
+  const configured = input.configuredToolNames === undefined
+    ? registered
+    : normalizedToolNames(input.configuredToolNames);
+  const active = input.activeToolNames === undefined
+    ? undefined
+    : normalizedToolNames(input.activeToolNames);
+  const expectedSet = new Set(expected);
+  const missing = (names: string[] | undefined) =>
+    names === undefined ? [] : expected.filter((name) => !names.includes(name));
+  const extra = (names: string[] | undefined) =>
+    names === undefined ? [] : names.filter((name) => !expectedSet.has(name));
+  const configuredProbeAvailable = configured !== undefined;
+  const activeProbeAvailable = active !== undefined;
+  const missingConfigured = missing(configured);
+  const missingActive = missing(active);
+  const extraConfigured = extra(configured);
+  const extraActive = extra(active);
+
+  return {
+    schema: "focusa.pi_toolset_integrity.v1",
+    expected_count: expected.length,
+    configured_count: configured?.length ?? null,
+    active_count: active?.length ?? null,
+    registered_count: registered?.length ?? null,
+    configured_probe_available: configuredProbeAvailable,
+    active_probe_available: activeProbeAvailable,
+    missing_configured: missingConfigured,
+    missing_active: missingActive,
+    extra_configured: extraConfigured,
+    extra_active: extraActive,
+    drift_detected:
+      (configuredProbeAvailable && (missingConfigured.length > 0 || extraConfigured.length > 0)) ||
+      (activeProbeAvailable && (missingActive.length > 0 || extraActive.length > 0)),
+    recovery_action:
+      "Reload the Focusa Pi extension or restart the Pi session while preserving the session file; MCP tools.search cannot restore Pi-native focusa_* tools.",
+  };
+}
+
 export interface FocusaToolAffordance {
   name: string;
   family: FocusaToolFamily;

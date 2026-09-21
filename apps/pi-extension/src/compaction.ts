@@ -54,9 +54,43 @@ import {
   incrementTotalCompactions,
 } from "./state.js";
 import { pushDelta } from "./tools.js";
+import { inspectFocusaToolsetIntegrity, type FocusaToolsetIntegritySnapshot } from "./tool-contracts.js";
 import { updateNorthStarCard } from "./north-star.js";
 import { canInjectCompactionMission, safeCompactionRecoveryContext } from "./compaction-resume-safety.js";
 import { compactionDeliveryAckEligible } from "./compaction-delivery-ack.js";
+
+function currentPiToolsetIntegrity(pi: any): FocusaToolsetIntegritySnapshot {
+  const focusaOnly = (names: unknown): string[] =>
+    (Array.isArray(names) ? names : [])
+      .map((name: any) => (typeof name === "string" ? name : name?.name))
+      .filter((name: any): name is string => String(name || "").startsWith("focusa_"));
+  let configuredToolNames: string[] | undefined;
+  let activeToolNames: string[] | undefined;
+  try {
+    if (typeof pi?.getAllTools === "function") configuredToolNames = focusaOnly(pi.getAllTools());
+  } catch {
+    configuredToolNames = undefined;
+  }
+  try {
+    if (typeof pi?.getActiveTools === "function") activeToolNames = focusaOnly(pi.getActiveTools());
+  } catch {
+    activeToolNames = undefined;
+  }
+  return inspectFocusaToolsetIntegrity({ configuredToolNames, activeToolNames });
+}
+
+function toolsetIntegrityWarning(snapshot: FocusaToolsetIntegritySnapshot): string {
+  const missing = snapshot.missing_active.length
+    ? snapshot.missing_active.join(",")
+    : snapshot.missing_configured.join(",");
+  return [
+    "FOCUSA_TOOLSET_INTEGRITY_WARNING: the Pi-facing Focusa extension toolset is incomplete after compaction/resume.",
+    `missing=${missing || "unknown"}`,
+    `configured=${snapshot.configured_count ?? "unknown"}/${snapshot.expected_count}`,
+    `active=${snapshot.active_count ?? "unknown"}/${snapshot.expected_count}`,
+    `recovery=${snapshot.recovery_action}`,
+  ].join(" ");
+}
 
 function basename(value: string): string {
   const parts = String(value || "")
@@ -1003,10 +1037,17 @@ async function prepareCompactionEpoch(event: any): Promise<CompactionPrepareResu
 async function runPostCompactionVerification(event: any, ctx: any): Promise<void> {
   const runtime = getAttachmentRuntime();
   const epoch = activeCompactionEpoch;
+  const toolsetSnapshot = currentPiToolsetIntegrity((runtime as any).pi);
+  const toolsetWarning = toolsetSnapshot.drift_detected ? toolsetIntegrityWarning(toolsetSnapshot) : "";
+  (runtime as any).postCompactionToolsetSnapshot = toolsetSnapshot;
   try {
     scheduleCompactionMemoryEvaluation();
+    if (toolsetWarning && ctx.hasUI) {
+      ctx.ui.notify(toolsetWarning, "warning");
+    }
     if (!epoch) {
       runtime.compactResumeDeliveryState = "deferred_to_next_turn";
+      if (toolsetWarning) queueCompactionResumeContext(ctx, toolsetWarning);
       return;
     }
     const entry = event?.compactionEntry || {};
@@ -1048,10 +1089,11 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
     runtime.compactResumePending = true;
     const projection = epoch.prepare.resume_projection;
     const liveScope = currentCompactionScope();
-    const resumeText =
+    const resumeProjectionText =
       projection && liveScope && canInjectCompactionMission(projection, liveScope)
         ? renderResumeProjection(projection)
         : safeCompactionRecoveryContext();
+    const resumeText = [toolsetWarning, resumeProjectionText].filter(Boolean).join("\n\n");
     queueCompactionResumeContext(ctx, resumeText);
   } catch (error) {
     runtime.compactResumePending = false;
@@ -1081,20 +1123,32 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
 export function registerCompaction(pi: ExtensionAPI) {
   // ── session_before_compact (§33.1 ASCC replacement, §33.10 fallback) ───────
   pi.on("session_before_compact", async (event: any, ctx: any): Promise<any> => {
-    (getAttachmentRuntime() as any).compactionMemoryBefore = compactionMemorySample();
+    const runtime = getAttachmentRuntime() as any;
+    runtime.compactionMemoryBefore = compactionMemorySample();
+    const toolsetSnapshot = currentPiToolsetIntegrity(pi);
+    runtime.compactionToolsetSnapshot = toolsetSnapshot;
+    pi.appendEntry("focusa-toolset-integrity-snapshot", {
+      ...toolsetSnapshot,
+      recorded_at: new Date().toISOString(),
+      phase: "before_compaction",
+    });
     try {
       // Pi 0.82.1 accepts only cancel or a full replacement compaction from
       // this hook. Persist Focusa state, then return undefined so Pi owns the
       // native summary rather than pretending a customInstructions return is used.
       const prepared = await prepareCompactionEpoch(event);
       const focusaInstructions = String(prepared?.native_compactor_instructions || "").trim();
-      if (focusaInstructions) {
-        const existingInstructions = String(event.customInstructions || "").trim();
-        event.customInstructions = [existingInstructions, focusaInstructions]
-          .filter(Boolean)
-          .join("\n\n")
-          .slice(0, 12_000);
-      }
+      const toolsetInstructions = [
+        "Focusa Pi toolset snapshot before compaction:",
+        `configured=${toolsetSnapshot.configured_count ?? "unknown"}/${toolsetSnapshot.expected_count}`,
+        `active=${toolsetSnapshot.active_count ?? "unknown"}/${toolsetSnapshot.expected_count}`,
+        "After resume, run focusa_tool_doctor if any focusa_* tool is unavailable; MCP tools.search cannot restore Pi-native tools.",
+      ].join(" ");
+      const existingInstructions = String(event.customInstructions || "").trim();
+      event.customInstructions = [existingInstructions, focusaInstructions, toolsetInstructions]
+        .filter(Boolean)
+        .join("\n\n")
+        .slice(0, 12_000);
       return undefined;
     } catch (error) {
       activeCompactionEpoch = null;

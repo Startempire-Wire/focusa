@@ -132,6 +132,7 @@ import {
   buildFocusaToolAffordanceCatalog,
   findFocusaToolContract,
   focusaToolContractSummary,
+  inspectFocusaToolsetIntegrity,
 } from "./tool-contracts.js";
 import {
   buildProjectWorkstreamKey,
@@ -2311,6 +2312,36 @@ export function registerTools(pi: ExtensionAPI) {
     }
     return registerTool(normalized);
   }) as typeof pi.registerTool;
+
+  const focusaToolsetIntegrity = () => {
+    const runtime = pi as any;
+    const focusaOnly = (names: unknown): string[] =>
+      (Array.isArray(names) ? names : [])
+        .map((name: any) => (typeof name === "string" ? name : name?.name))
+        .filter((name: any): name is string => String(name || "").startsWith("focusa_"));
+    let configuredToolNames: string[] | undefined;
+    let activeToolNames: string[] | undefined;
+    try {
+      if (typeof runtime.getAllTools === "function") {
+        configuredToolNames = focusaOnly(runtime.getAllTools());
+      }
+    } catch {
+      configuredToolNames = undefined;
+    }
+    try {
+      if (typeof runtime.getActiveTools === "function") {
+        activeToolNames = focusaOnly(runtime.getActiveTools());
+      }
+    } catch {
+      activeToolNames = undefined;
+    }
+    return inspectFocusaToolsetIntegrity({
+      configuredToolNames,
+      activeToolNames,
+      registeredToolNames: Array.from(agentFirstToolDefinitions.keys()),
+    });
+  };
+
   registerAgentRuntimeTools(pi);
   registerSmsTools(pi);
 
@@ -5120,6 +5151,7 @@ pi.registerTool({
           return live && stableJson(live) !== stableJson(contract);
         })
         .map((contract) => contract.name);
+      const toolsetIntegrity = focusaToolsetIntegrity();
       const contractDrift = {
         live_ok: liveContracts.ok,
         static_count: FOCUSA_TOOL_CONTRACTS.length,
@@ -5173,8 +5205,14 @@ pi.registerTool({
       // Diagnostic dependencies are not evidence that individual operations execute.
       const ready = health.ok && workpoint.ok && workpointCanonical &&
         sessionScopeSafe && !projectRootNeedsConfirmation && loop.ok &&
-        !contractDrift.drift_detected;
+        !contractDrift.drift_detected &&
+        !toolsetIntegrity.drift_detected;
       const recommendations: string[] = [];
+      if (toolsetIntegrity.drift_detected) {
+        recommendations.unshift(
+          `Pi-facing Focusa toolset drift detected; missing_active=${toolsetIntegrity.missing_active.join(",") || "none"}; recovery=${toolsetIntegrity.recovery_action}`
+        );
+      }
       if (!health.ok)
         recommendations.push(
           "Focusa daemon health is blocked; retry hot status or inspect daemon before state writes."
@@ -5270,10 +5308,14 @@ pi.registerTool({
         extra_live: contractDrift.extra_live.length,
         stale_live_contracts: contractDrift.stale_live_contracts.length,
       };
-      const driftSummary = contractDrift.drift_detected
-        ? ` drift=yes drift_causes=missing_live:${driftCauseCounts.missing_live},extra_live:${driftCauseCounts.extra_live},stale_live_contracts:${driftCauseCounts.stale_live_contracts} source_refs=static:apps/pi-extension/src/tools.ts,live:/v1/ontology/tool-contracts`
+      const anyDrift = contractDrift.drift_detected || toolsetIntegrity.drift_detected;
+      const toolsetSummary = toolsetIntegrity.drift_detected
+        ? ` toolset_drift=yes missing_active:${toolsetIntegrity.missing_active.length} extra_active:${toolsetIntegrity.extra_active.length}`
         : "";
-      const driftDetails = contractDrift.drift_detected
+      const driftSummary = contractDrift.drift_detected
+        ? ` drift=yes drift_causes=missing_live:${driftCauseCounts.missing_live},extra_live:${driftCauseCounts.extra_live},stale_live_contracts:${driftCauseCounts.stale_live_contracts} source_refs=static:apps/pi-extension/src/tools.ts,live:/v1/ontology/tool-contracts${toolsetSummary}`
+        : toolsetSummary;
+      const driftDetails = anyDrift
         ? {
             drift_detected: true,
             cause_counts: driftCauseCounts,
@@ -5281,25 +5323,26 @@ pi.registerTool({
             missing_live: contractDrift.missing_live.slice(0, 6),
             extra_live: contractDrift.extra_live.slice(0, 6),
             stale_live_contracts: contractDrift.stale_live_contracts.slice(0, 6),
+            toolset_integrity: toolsetIntegrity,
           }
-        : { drift_detected: false };
-      const evidenceResult = contractDrift.drift_detected
-        ? `diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified drift=yes causes=${JSON.stringify(driftCauseCounts)} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`
+        : { drift_detected: false, toolset_integrity: toolsetIntegrity };
+      const evidenceResult = anyDrift
+        ? `diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified drift=yes causes=${JSON.stringify(driftCauseCounts)} toolset=${JSON.stringify({ missing_active: toolsetIntegrity.missing_active, extra_active: toolsetIntegrity.extra_active })} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`
         : `diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure}`;
       const scopeStatus = !sessionScopeSafe
         ? "blocked_unsafe_launcher_cwd"
         : projectRootNeedsConfirmation
           ? "operator_confirmation_required"
           : "verified";
-      const text = `tool doctor → diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"}${driftSummary} scoped=${scopedContracts.length} hooks=${getAttachmentRuntime().spec92HookTelemetry.length} token_budget=${tokenBudgetStatus} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
+      const text = `tool doctor → diagnostics=${ready ? "completed" : "degraded"} execution_readiness=unverified scope=${String(p.scope || "all")} contracts=${contractSummary.total} live_contracts=${contractDrift.live_ok ? contractDrift.live_count : "blocked"} pi_toolset=${toolsetIntegrity.active_count ?? "unknown"}/${toolsetIntegrity.expected_count}${driftSummary} scoped=${scopedContracts.length} hooks=${getAttachmentRuntime().spec92HookTelemetry.length} token_budget=${tokenBudgetStatus} resource=${String(resourceMode.mode || "unknown")}/${String(resourceMode.reason || "unknown")} transition=${transitionLabel} health=${health.ok ? "ok" : "blocked"} workpoint=${workpointStatus} work_loop=${loop.ok ? String(loop.body?.status || "ok") : "blocked"} uiai_browser=${uiaiBrowser.status}/${uiaiBrowser.pressure} recommended=${recommendedAction}`;
       return {
         content: [{ type: "text", text }],
         details: {
           ok: ready,
           status: ready ? "completed" : "degraded",
           tool_readiness: {
-            status: contractDrift.drift_detected ? "degraded" : "ready",
-            basis: "contract_registry_parity_only",
+            status: anyDrift ? "degraded" : "ready",
+            basis: "daemon_contract_and_pi_toolset_parity",
             proves_operation_execution: false,
             contracts_total: contractSummary.total,
             live_contracts: contractDrift.live_ok ? contractDrift.live_count : null,
