@@ -64,8 +64,9 @@ File mutation enforcement is advisory by default. Set
 `FOCUSA_WORKPOINT_MUTATION_ENFORCEMENT=block` (also accepts `enforce` or
 `strict`) to make Pi block `write` and `edit` calls outside the active canonical
 Workpoint's `target_objects`. Exact file targets and explicitly directory-shaped
-targets ending in `/` are admitted; an absent Workpoint, missing path, or empty
-allowlist fails closed in strict mode. Blocked calls return a bounded
+targets ending in `/` are admitted. Shell execution fails closed unless the
+Workpoint explicitly includes `tool:bash`; an absent Workpoint, missing path, or
+empty allowlist also fails closed in strict mode. Blocked calls return a bounded
 `focusa.workpoint_mutation_block.v1` receipt and emit the attempted path,
 Workpoint, checkpoint, and reason through the daemon Workpoint drift-evidence
 route. Widen scope by checkpointing updated targets; never bypass the interceptor.

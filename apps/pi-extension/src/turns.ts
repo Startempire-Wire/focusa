@@ -3044,7 +3044,7 @@ export function registerTurns(pi: ExtensionAPI) {
         method: "POST",
         body: JSON.stringify({
           workpoint_id: decision.workpointId,
-          latest_action: `${toolName} file mutation ${decision.attemptedPath || "<missing-path>"}`,
+          latest_action: `${toolName} mutation ${decision.attemptedPath || "<tool-boundary>"}`,
           active_object_refs: decision.targetObjects,
           do_not_drift: decision.doNotDrift,
           emit: true,
@@ -3067,7 +3067,7 @@ export function registerTurns(pi: ExtensionAPI) {
     };
     if (ctx.hasUI) {
       ctx.ui.notify(
-        `Blocked out-of-scope mutation: ${decision.attemptedPath || "missing path"}`,
+        `Blocked out-of-scope mutation: ${decision.attemptedPath || toolName}`,
         "warning",
       );
     }

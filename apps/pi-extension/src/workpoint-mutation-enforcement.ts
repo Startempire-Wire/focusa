@@ -65,13 +65,15 @@ export function evaluateWorkpointMutation(input: {
   env?: NodeJS.ProcessEnv;
 }): WorkpointMutationDecision {
   const { toolName, toolInput, packet, cwd } = input;
-  if (toolName !== "write" && toolName !== "edit") {
+  const fileMutation = toolName === "write" || toolName === "edit";
+  const shellMutationBoundary = toolName === "bash";
+  if (!fileMutation && !shellMutationBoundary) {
     return {
       applicable: false,
       block: false,
       targetObjects: [],
       doNotDrift: [],
-      reason: "tool is not a file mutation",
+      reason: "tool is outside the governed mutation boundary",
     };
   }
 
@@ -103,6 +105,21 @@ export function evaluateWorkpointMutation(input: {
       targetObjects,
       doNotDrift,
       reason: "strict mutation enforcement requires an active canonical Workpoint",
+    };
+  }
+
+  if (shellMutationBoundary) {
+    const allowed = targetObjects.includes("tool:bash");
+    return {
+      applicable: true,
+      block: !allowed,
+      workpointId,
+      checkpointRef,
+      targetObjects,
+      doNotDrift,
+      reason: allowed
+        ? "shell execution is explicitly admitted by target_objects"
+        : "strict mutation enforcement requires an explicit tool:bash target for shell execution",
     };
   }
 

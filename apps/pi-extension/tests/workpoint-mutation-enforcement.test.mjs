@@ -81,16 +81,38 @@ assert.equal(
   "strict mode fails closed without canonical Workpoint context",
 );
 
+const blockedShell = evaluateWorkpointMutation({
+  toolName: "bash",
+  toolInput: { command: "rm -rf docs" },
+  packet,
+  cwd: "/project",
+  env: strict,
+});
+assert.equal(blockedShell.block, true, "strict mode fails closed for shell execution");
+assert.match(blockedShell.reason, /tool:bash/);
+
 assert.equal(
   evaluateWorkpointMutation({
     toolName: "bash",
-    toolInput: { command: "printf ok" },
+    toolInput: { command: "cargo test" },
+    packet: { ...packet, target_objects: [...packet.target_objects, "tool:bash"] },
+    cwd: "/project",
+    env: strict,
+  }).block,
+  false,
+  "shell execution requires explicit Workpoint expansion",
+);
+
+assert.equal(
+  evaluateWorkpointMutation({
+    toolName: "read",
+    toolInput: { path: "outside.ts" },
     packet,
     cwd: "/project",
     env: strict,
   }).applicable,
   false,
-  "non-file tools remain outside this bounded interceptor",
+  "read-only tools remain outside the mutation interceptor",
 );
 
 const turnsSource = readFileSync(
