@@ -5151,7 +5151,24 @@ pi.registerTool({
           return live && stableJson(live) !== stableJson(contract);
         })
         .map((contract) => contract.name);
-      const toolsetIntegrity = focusaToolsetIntegrity();
+      const toolsetIntegrity =
+        typeof focusaToolsetIntegrity === "function"
+          ? focusaToolsetIntegrity()
+          : {
+              schema: "focusa.pi_toolset_integrity.v1",
+              expected_count: FOCUSA_TOOL_CONTRACTS.length,
+              configured_count: null,
+              active_count: null,
+              registered_count: null,
+              configured_probe_available: false,
+              active_probe_available: false,
+              missing_configured: [],
+              missing_active: [],
+              extra_configured: [],
+              extra_active: [],
+              drift_detected: false,
+              recovery_action: "Reload the Focusa Pi extension or restart the Pi session.",
+            };
       const contractDrift = {
         live_ok: liveContracts.ok,
         static_count: FOCUSA_TOOL_CONTRACTS.length,
@@ -5206,7 +5223,7 @@ pi.registerTool({
       const ready = health.ok && workpoint.ok && workpointCanonical &&
         sessionScopeSafe && !projectRootNeedsConfirmation && loop.ok &&
         !contractDrift.drift_detected &&
-        !toolsetIntegrity.drift_detected;
+        !(typeof toolsetIntegrity === "object" && toolsetIntegrity?.drift_detected === true);
       const recommendations: string[] = [];
       if (toolsetIntegrity.drift_detected) {
         recommendations.unshift(
