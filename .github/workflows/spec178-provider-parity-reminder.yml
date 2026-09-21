@@ -1,0 +1,33 @@
+name: Spec 178 provider parity reminder
+
+on:
+  schedule:
+    - cron: "17 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-provider-authority:
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Audit temporary provider authority
+        env:
+          FOCUSA_GITHUB_HOSTED_BILLING_LOCKED: "1"
+        run: |
+          set -euo pipefail
+          result="$(python3 scripts/audit-spec178-provider-parity.py)"
+          printf '%s\n' "$result"
+          {
+            echo '## Spec 178 provider parity reminder'
+            echo
+            echo 'Temporary Linux, Windows, and macOS provider routes remain authoritative.'
+            echo 'GitHub-hosted restoration is operator-triggered, all-at-once, and requires the canonical parity proof.'
+            echo
+            printf '`%s`\n' "$result"
+          } >> "$GITHUB_STEP_SUMMARY"

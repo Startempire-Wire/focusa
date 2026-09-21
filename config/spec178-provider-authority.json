@@ -1,0 +1,38 @@
+{
+  "schema": "focusa.spec178_provider_authority.v1",
+  "temporary_mode": "active",
+  "canonical_spec": "docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md",
+  "active_providers": {
+    "linux": {
+      "provider": "github_actions_self_hosted",
+      "runner_labels": ["self-hosted", "Linux", "X64", "ovh-build-2"],
+      "entry_points": [".github/workflows/ci.yml", ".github/workflows/release.yml"]
+    },
+    "windows": {
+      "provider": "appveyor",
+      "entry_points": [".appveyor.yml"]
+    },
+    "macos": {
+      "provider": "codemagic",
+      "workflow": "menubar-macos-package-proof",
+      "entry_points": ["codemagic.yaml"]
+    }
+  },
+  "inactive_providers": ["cirrus", "azure_pipelines"],
+  "hosted_restoration": {
+    "mode": "operator_triggered_all_at_once",
+    "automatic_mutation": false,
+    "spending_change_requires_operator_approval": true,
+    "required_steps": [
+      "restore_all_github_hosted_consumers_in_one_reviewed_change",
+      "run_manual_provider_parity_proof",
+      "remove_temporary_provider_routes_only_after_green_proof",
+      "record_durable_release_and_provider_receipts"
+    ]
+  },
+  "reminder": {
+    "workflow": ".github/workflows/spec178-provider-parity-reminder.yml",
+    "runner": "github_actions_self_hosted",
+    "audit_command": "python3 scripts/audit-spec178-provider-parity.py"
+  }
+}

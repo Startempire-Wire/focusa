@@ -137,6 +137,20 @@ Windows producer waited for publication before upload. Ambiguity, a non-draft
 match, missing repository push authority, authentication failure, or bounded
 timeout fails closed.
 
+## 3.1 Machine-readable provider authority and reminder
+
+`config/spec178-provider-authority.json` is the machine-readable projection of
+this specification. It names the temporary Linux, Windows, and macOS providers,
+keeps Cirrus and Azure Pipelines explicitly inactive, and declares GitHub-hosted
+restoration `operator_triggered_all_at_once` with automatic mutation disabled.
+
+`scripts/audit-spec178-provider-parity.py` fails closed when the config, provider
+entry points, or this specification drift. The self-hosted
+`.github/workflows/spec178-provider-parity-reminder.yml` runs that read-only audit
+without hosted capacity, repository write permission, commits, pushes, spending
+changes, or partial restoration. A simulated hosted billing lock must still emit
+an actionable reminder and report `mutation_performed: false`.
+
 ## 4. Spending and trigger boundary
 
 - Codemagic uses the personal-account 500 free macOS M2 minutes/month budget.

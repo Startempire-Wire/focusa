@@ -24,6 +24,7 @@ trap 'exit 143' TERM
 
 # Fail cheap on fixture regressions before compiling the isolated daemon.
 python3 "$ROOT_DIR/tests/spec_gate_git_fixture_test.py"
+python3 "$ROOT_DIR/tests/spec178_provider_parity_audit_test.py"
 
 EXPECTED_OWNER="$(stat -c %U "$ROOT_DIR")"
 find_owner_drift() {
