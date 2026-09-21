@@ -23,6 +23,10 @@ EXPECTED = {
         "proxy_messages_dispatch",
         "proxy_acp_dispatch",
     ],
+    "crates/focusa-api/src/routes/semantic_integrity_executor.rs": [
+        "semantic_integrity_event_append",
+        "semantic_integrity_migration_run",
+    ],
     "crates/focusa-api/src/routes/instances.rs": ["instance_connect"],
     "crates/focusa-api/src/routes/role_profiles.rs": ["role_profile_approve"],
     "crates/focusa-api/src/routes/spec_workbench.rs": ["spec_workbench_final_approve"],
@@ -131,6 +135,20 @@ require_ordered(
         "let now = Utc::now()",
     ],
     "idempotent replay must precede admission and mutation",
+)
+require_ordered(
+    "crates/focusa-api/src/routes/semantic_integrity_executor.rs",
+    "pub async fn execute(",
+    "type ExecutorValue",
+    [
+        "append_event_phase(&state.persistence, request, false)",
+        "semantic_integrity_event_append",
+        "append_event_phase(&state.persistence, request, true)",
+        "run_migration(&state.persistence, request, false)",
+        "semantic_integrity_migration_run",
+        "run_migration(&state.persistence, request, true)",
+    ],
+    "semantic mutations must validate or replay before admission and persist only after admission",
 )
 require_ordered(
     "crates/focusa-api/src/routes/proxy.rs",

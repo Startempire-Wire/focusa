@@ -1,6 +1,8 @@
+use super::project::require_scoped_north_star_mutation_admission;
 use super::semantic_integrity::{
     Availability, CONTRACT, ExactScope, OperationRequest, OperationResult,
 };
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::{
     Json,
@@ -74,7 +76,47 @@ pub fn operation_is_executable(operation_id: &str) -> bool {
 pub async fn execute(state: Arc<AppState>, request: &OperationRequest) -> Option<Response> {
     let operation_id = request.operation_id.as_str();
     let result = if EVENT_APPEND_OPERATIONS.contains(&operation_id) {
-        append_event(&state.persistence, request)
+        match append_event_phase(&state.persistence, request, false) {
+            Err(error) => Err(error),
+            Ok(MutationOutcome::Result(result)) => Ok(result),
+            Ok(MutationOutcome::Validated) => {
+                if let Err(response) = require_semantic_mutation_admission(
+                    &state,
+                    request,
+                    "semantic_integrity_event_append",
+                )
+                .await
+                {
+                    return Some(response);
+                }
+                match append_event_phase(&state.persistence, request, true) {
+                    Ok(MutationOutcome::Result(result)) => Ok(result),
+                    Ok(MutationOutcome::Validated) => unreachable!("commit must settle append"),
+                    Err(error) => Err(error),
+                }
+            }
+        }
+    } else if operation_id == "semantic_pair.migration.run" {
+        match run_migration(&state.persistence, request, false) {
+            Err(error) => Err(error),
+            Ok(MutationOutcome::Result(result)) => Ok(result),
+            Ok(MutationOutcome::Validated) => {
+                if let Err(response) = require_semantic_mutation_admission(
+                    &state,
+                    request,
+                    "semantic_integrity_migration_run",
+                )
+                .await
+                {
+                    return Some(response);
+                }
+                match run_migration(&state.persistence, request, true) {
+                    Ok(MutationOutcome::Result(result)) => Ok(result),
+                    Ok(MutationOutcome::Validated) => unreachable!("commit must settle migration"),
+                    Err(error) => Err(error),
+                }
+            }
+        }
     } else {
         match operation_id {
             "semantic_pair.get"
@@ -96,7 +138,6 @@ pub async fn execute(state: Arc<AppState>, request: &OperationRequest) -> Option
             | "vertical.bundle.preview"
             | "vertical.bundle.conformance" => project_read(&state.persistence, request),
             "semantic_pair.migration.status" => migration_status(request),
-            "semantic_pair.migration.run" => run_migration(&state.persistence, request),
             "semantic_pair.settlement.preview" => settlement_preview(request),
             "semantic.reflex.visibility" => reflex_visibility(),
             _ => return None,
@@ -110,10 +151,35 @@ pub async fn execute(state: Arc<AppState>, request: &OperationRequest) -> Option
     })
 }
 
-type ExecutorResult =
-    Result<(String, Value, Vec<String>, Vec<String>), (StatusCode, &'static str, String)>;
+type ExecutorValue = (String, Value, Vec<String>, Vec<String>);
+type ExecutorError = (StatusCode, &'static str, String);
+type ExecutorResult = Result<ExecutorValue, ExecutorError>;
 
-fn append_event(persistence: &SqlitePersistence, request: &OperationRequest) -> ExecutorResult {
+enum MutationOutcome {
+    Validated,
+    Result(ExecutorValue),
+}
+
+async fn require_semantic_mutation_admission(
+    state: &Arc<AppState>,
+    request: &OperationRequest,
+    action: &str,
+) -> Result<(), Response> {
+    let scope = ScopeContext {
+        project_root: Some(request.scope.project_root.clone()),
+        continuity_id: Some(request.scope.continuity_id.clone()),
+        ..ScopeContext::default()
+    };
+    require_scoped_north_star_mutation_admission(&scope, state, action)
+        .await
+        .map_err(IntoResponse::into_response)
+}
+
+fn append_event_phase(
+    persistence: &SqlitePersistence,
+    request: &OperationRequest,
+    commit: bool,
+) -> Result<MutationOutcome, ExecutorError> {
     let event_value = request
         .payload
         .get("event")
@@ -143,16 +209,19 @@ fn append_event(persistence: &SqlitePersistence, request: &OperationRequest) -> 
     {
         let replayed =
             replay(&events).map_err(|error| conflict("replay_invalid", error.to_string()))?;
-        return Ok((
+        return Ok(MutationOutcome::Result((
             "idempotent event already persisted".into(),
             json!({"pair_id": pair_id, "aggregate": replayed.aggregate, "head_hash": replayed.head_hash}),
             vec![format!("semantic-event:{}", event.event_id)],
             vec![],
-        ));
+        )));
     }
     events.push(event.clone());
     let replayed =
         replay(&events).map_err(|error| conflict("event_rejected", error.to_string()))?;
+    if !commit {
+        return Ok(MutationOutcome::Validated);
+    }
     persistence
         .append_exact_scope_semantic_pair_events(
             &storage_key,
@@ -162,7 +231,7 @@ fn append_event(persistence: &SqlitePersistence, request: &OperationRequest) -> 
             std::slice::from_ref(&event),
         )
         .map_err(internal)?;
-    Ok((
+    Ok(MutationOutcome::Result((
         "semantic event durably persisted and replayed".into(),
         json!({"pair_id": pair_id, "aggregate": replayed.aggregate, "head_hash": replayed.head_hash}),
         vec![format!("semantic-event:{}", event.event_id)],
@@ -172,7 +241,15 @@ fn append_event(persistence: &SqlitePersistence, request: &OperationRequest) -> 
             .iter()
             .map(|receipt| receipt.receipt_id.clone())
             .collect(),
-    ))
+    )))
+}
+
+#[cfg(test)]
+fn append_event(persistence: &SqlitePersistence, request: &OperationRequest) -> ExecutorResult {
+    match append_event_phase(persistence, request, true)? {
+        MutationOutcome::Result(result) => Ok(result),
+        MutationOutcome::Validated => unreachable!("commit must settle append"),
+    }
 }
 
 fn load_and_replay(persistence: &SqlitePersistence, request: &OperationRequest) -> ExecutorResult {
@@ -431,7 +508,11 @@ fn migration_status(request: &OperationRequest) -> ExecutorResult {
     ))
 }
 
-fn run_migration(persistence: &SqlitePersistence, request: &OperationRequest) -> ExecutorResult {
+fn run_migration(
+    persistence: &SqlitePersistence,
+    request: &OperationRequest,
+    commit: bool,
+) -> Result<MutationOutcome, ExecutorError> {
     let document = request
         .payload
         .get("document")
@@ -453,13 +534,16 @@ fn run_migration(persistence: &SqlitePersistence, request: &OperationRequest) ->
     let receipt = if dry_run {
         plan.receipt.clone()
     } else {
+        if !commit {
+            return Ok(MutationOutcome::Validated);
+        }
         persistence
             .apply_semantic_pair_migration(&plan)
             .map_err(internal)?
     };
     let mut projected_receipt = receipt;
     projected_receipt.pair_id.clone_from(&pair_id);
-    Ok((
+    Ok(MutationOutcome::Result((
         if dry_run {
             "semantic migration dry-run completed"
         } else {
@@ -472,7 +556,7 @@ fn run_migration(persistence: &SqlitePersistence, request: &OperationRequest) ->
             hex::encode(Sha256::digest(&bytes))
         )],
         vec![format!("migration-receipt:{}", migration_id)],
-    ))
+    )))
 }
 
 fn reflex_visibility() -> ExecutorResult {
@@ -943,6 +1027,49 @@ mod tests {
     }
 
     #[test]
+    fn migration_preflight_preserves_dry_run_and_defers_apply() {
+        let persistence = persistence();
+        let document = json!({
+            "schema_version": 1,
+            "pair_id": "pair-migration",
+            "attempt_id": "attempt-migration",
+            "builder": "builder",
+            "started_at": "2026-08-01T00:00:00Z",
+            "project_root": "/project",
+            "continuity_id": "continuity-migration",
+            "snapshot_id": "snapshot-migration",
+            "snapshot_hash": "sha256:snapshot"
+        });
+        let dry_run = request(
+            "semantic_pair.migration.run",
+            scope("continuity-migration"),
+            json!({"document": document.clone(), "dry_run": true}),
+        );
+        let MutationOutcome::Result(dry_run_result) =
+            run_migration(&persistence, &dry_run, false).expect("dry-run")
+        else {
+            panic!("dry-run should settle without mutation admission")
+        };
+        assert!(dry_run_result.0.contains("dry-run"));
+
+        let apply = request(
+            "semantic_pair.migration.run",
+            scope("continuity-migration"),
+            json!({"document": document, "dry_run": false}),
+        );
+        assert!(matches!(
+            run_migration(&persistence, &apply, false).expect("validate migration apply"),
+            MutationOutcome::Validated
+        ));
+        let MutationOutcome::Result(applied) =
+            run_migration(&persistence, &apply, true).expect("apply migration")
+        else {
+            panic!("admitted migration should settle")
+        };
+        assert!(applied.0.contains("applied"));
+    }
+
+    #[test]
     fn durable_create_replay_is_idempotent_and_scope_isolated() {
         let persistence = persistence();
         let event = create_event();
@@ -951,9 +1078,28 @@ mod tests {
             scope("continuity-1"),
             json!({"pair_id": "pair-1", "event": event}),
         );
+        assert!(matches!(
+            append_event_phase(&persistence, &create, false).expect("validate create"),
+            MutationOutcome::Validated
+        ));
+        let replay_request = request(
+            "semantic_pair.replay",
+            scope("continuity-1"),
+            json!({"pair_id": "pair-1"}),
+        );
+        assert_eq!(
+            load_and_replay(&persistence, &replay_request)
+                .expect_err("validation must not persist")
+                .0,
+            StatusCode::NOT_FOUND
+        );
         let first = append_event(&persistence, &create).expect("create");
         assert_eq!(first.1["aggregate"]["pair_id"], "pair-1");
-        let second = append_event(&persistence, &create).expect("idempotent create");
+        let replay_preflight = append_event_phase(&persistence, &create, false)
+            .expect("existing event must replay before admission");
+        let MutationOutcome::Result(second) = replay_preflight else {
+            panic!("existing event should replay without mutation admission")
+        };
         assert!(second.0.contains("idempotent"));
         let replay_request = request(
             "semantic_pair.replay",
