@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:f6814129690d789f4c92f3be2cf03f3c1b9fe8380d6b47cc89aa6c93d9ae6c31",
+  "registry_digest": "sha256:3ab7b43ff99d56cd26f7fbc134ea73ed159f428de3b001a8cf66e500921776eb",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -3673,6 +3673,51 @@
           },
           "human_invocation": "focusa focus update --next-step",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_next_step.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa project north-star",
+      "capability_id": "focusa.north.star.gate",
+      "summary": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "trigger": {
+            "description": "Lifecycle or operator trigger being checked.",
+            "type": "string"
+          },
+          "projection": {
+            "description": "Projection depth over the same daemon-owned records; defaults to short.",
+            "anyOf": [
+              {
+                "const": "short",
+                "type": "string"
+              },
+              {
+                "const": "medium",
+                "type": "string"
+              },
+              {
+                "const": "full",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_state",
+        "read_state"
+      ],
+      "examples": [
+        {
+          "description": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection.",
+          "arguments": {},
+          "human_invocation": "focusa project north-star",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_north_star_gate.md"
         }
       ],
       "deprecation": null

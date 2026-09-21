@@ -43160,7 +43160,9 @@
         "pi": "focusa_north_star_gate",
         "mcp": "focusa.north.star.gate",
         "openai": "focusa_north_star_gate",
-        "cli": [],
+        "cli": [
+          "focusa project north-star"
+        ],
         "rest": [
           {
             "method": "GET",
@@ -43170,8 +43172,8 @@
       },
       "version": "2.0.0",
       "title": "North Star Gate",
-      "summary": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain.",
-      "description": "Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection.",
+      "description": "Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "trajectory",
       "namespace": "focusa.trajectory",
       "operation_policy": {
@@ -43219,9 +43221,10 @@
           "pi",
           "mcp",
           "openai",
-          "rest"
+          "rest",
+          "cli"
         ],
-        "parity_status": "api_pi",
+        "parity_status": "full",
         "exemptions": []
       },
       "input_schema": {
@@ -43574,9 +43577,9 @@
       },
       "examples": [
         {
-          "description": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain.",
+          "description": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection.",
           "arguments": {},
-          "human_invocation": "focusa_north_star_gate { ... }",
+          "human_invocation": "focusa project north-star",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_north_star_gate.md"
         }
       ],
@@ -43659,7 +43662,7 @@
         "snippet": "Use before meaningful work and after session/compaction/model/project/provider/writer transitions; stale authority remains advisory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c5a2a2c31bc35a88af49af6b8f077cedcffa17e2bb3c3bbde9e8c62334487cb7"
+      "descriptor_digest": "sha256:32afb81521ad0ca75c362817669bce9407ab0661d6014b8d651dcff139bb2f39"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86634,5 +86637,5 @@
       "descriptor_digest": "sha256:aea3859aa0f4911031ae22d298d1468ebe91c542712f6f17763f469947d43c8e"
     }
   ],
-  "registry_digest": "sha256:f6814129690d789f4c92f3be2cf03f3c1b9fe8380d6b47cc89aa6c93d9ae6c31"
+  "registry_digest": "sha256:3ab7b43ff99d56cd26f7fbc134ea73ed159f428de3b001a8cf66e500921776eb"
 }

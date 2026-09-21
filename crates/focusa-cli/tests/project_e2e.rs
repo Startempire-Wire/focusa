@@ -22,6 +22,33 @@ fn project_help_available() {
 }
 
 #[test]
+fn project_north_star_depth_help_and_validation() {
+    let (output, out) = run(&["project", "north-star", "--help"]);
+    assert!(
+        output.status.success(),
+        "project north-star --help should exit 0"
+    );
+    assert!(out.contains("--project-root"));
+    assert!(out.contains("--continuity-id"));
+    assert!(out.contains("short"));
+    assert!(out.contains("medium"));
+    assert!(out.contains("full"));
+
+    let (invalid, invalid_out) = run(&[
+        "project",
+        "north-star",
+        "--project-root",
+        "/repo/focusa",
+        "--continuity-id",
+        "cont-focusa",
+        "--projection",
+        "verbose",
+    ]);
+    assert!(!invalid.status.success());
+    assert!(invalid_out.contains("invalid value") || invalid_out.contains("possible values"));
+}
+
+#[test]
 fn project_identity_help() {
     let (output, out) = run(&["project", "identity", "--help"]);
     assert!(

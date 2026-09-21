@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:f6814129690d789f4c92f3be2cf03f3c1b9fe8380d6b47cc89aa6c93d9ae6c31`
+Registry digest: `sha256:3ab7b43ff99d56cd26f7fbc134ea73ed159f428de3b001a8cf66e500921776eb`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -896,7 +896,7 @@ Record what you plan to do next (max 160 chars). Use it when Record what you pla
 
 ## focusa_north_star_gate
 
-Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.north.star.gate`
 - Family: `trajectory`

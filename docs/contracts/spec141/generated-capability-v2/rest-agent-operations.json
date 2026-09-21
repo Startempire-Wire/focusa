@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:f6814129690d789f4c92f3be2cf03f3c1b9fe8380d6b47cc89aa6c93d9ae6c31",
+  "registry_digest": "sha256:3ab7b43ff99d56cd26f7fbc134ea73ed159f428de3b001a8cf66e500921776eb",
   "operations": [
     {
       "method": "POST",

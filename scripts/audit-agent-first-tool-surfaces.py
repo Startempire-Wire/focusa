@@ -253,7 +253,9 @@ def main() -> int:
     next_tool_overrides = 0
     if "const TOOL_NEXT_TOOLS:" in contract_src:
         block = contract_src.split("const TOOL_NEXT_TOOLS:", 1)[1].split("\n};", 1)[0]
-        next_tool_overrides = len(re.findall(r"^\s*focusa_[a-z0-9_]+:", block, re.M))
+        next_tool_overrides = len(
+            re.findall(r"^\s*[\"']?focusa_[a-z0-9_]+[\"']?:", block, re.M)
+        )
 
     required_agent_fields = {
         "input_schema",

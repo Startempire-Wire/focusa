@@ -1,10 +1,10 @@
 # `focusa_north_star_gate`
 
-Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain. It returns a typed Focusa result with bounded recovery and likely next capabilities. Full projection includes canonical verification evidence from the exact active Workpoint plus exact-project/continuity requirements, Worksets, evidence-bearing Workset events, CallGraph runs/frontiers/dispatch evidence, and explicit resolved/unresolved scope state derived from canonical records; unavailable joins remain listed in `omitted_coverage`.
+Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain.
+- Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection.
 - Capability family: `trajectory`; namespace: `focusa.trajectory`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -72,7 +72,7 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Runbooks: `runbook:trajectory`
 - Pi: `focusa_north_star_gate`; MCP: `focusa.north.star.gate`; OpenAI: `focusa_north_star_gate`.
-- CLI: none.
+- CLI: `focusa project north-star`.
 - REST: `GET /v1/project/north-star-gate`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:c5a2a2c31bc35a88af49af6b8f077cedcffa17e2bb3c3bbde9e8c62334487cb7`.
+- Descriptor digest: `sha256:32afb81521ad0ca75c362817669bce9407ab0661d6014b8d651dcff139bb2f39`.

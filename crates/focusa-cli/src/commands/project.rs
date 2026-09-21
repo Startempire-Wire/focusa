@@ -185,6 +185,17 @@ pub enum ProjectCmd {
         #[arg(long)]
         next_action: Option<String>,
     },
+    /// Read the daemon-owned North Star projection at Short, Medium, or Full depth.
+    NorthStar {
+        #[arg(long)]
+        project_root: String,
+        #[arg(long)]
+        continuity_id: String,
+        #[arg(long, default_value = "short", value_parser = ["short", "medium", "full"])]
+        projection: String,
+        #[arg(long, default_value = "cli_north_star")]
+        trigger: String,
+    },
     /// Verify, migrate, or repair the project Trajectory marker guard.
     TrajectoryGuard {
         #[arg(long, default_value = "verify")]
@@ -585,20 +596,70 @@ fn resolve_input_project_root(
     Ok(resolved.project_root)
 }
 
+fn render_north_star(resp: &Value) {
+    let projection = resp.get("projection").unwrap_or(&Value::Null);
+    let linkage = resp.get("workpoint_linkage").unwrap_or(&Value::Null);
+    let depth = projection
+        .get("depth")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let status = projection
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("missing");
+    let coverage = projection
+        .get("coverage_complete")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    println!("North Star: depth={depth} status={status} coverage_complete={coverage}");
+    for (label, field) in [
+        ("HLT", "hlt"),
+        ("MLG", "mlg"),
+        ("STG", "stg"),
+        ("gap", "gap"),
+        ("next", "next_slice"),
+    ] {
+        if let Some(value) = projection.get(field).and_then(Value::as_str) {
+            println!("  {label}: {value}");
+        }
+    }
+    let workpoint_id = linkage
+        .get("workpoint_id")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    let frontier = linkage
+        .get("frontier_status")
+        .and_then(Value::as_str)
+        .unwrap_or("missing");
+    println!("  Workpoint: {workpoint_id} frontier={frontier}");
+    if let Some(omitted) = projection.get("omitted_coverage").and_then(Value::as_array)
+        && !omitted.is_empty()
+    {
+        let labels = omitted
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<Vec<_>>()
+            .join(", ");
+        println!("  omitted: {labels}");
+    }
+}
+
 fn render_response(label: &str, resp: &Value) {
-    if label == "identity"
+    if label == "north-star" {
+        render_north_star(resp);
+    } else if label == "identity"
         || label == "card"
         || label == "card-outcome"
         || label == "session-transfer"
         || label == "verify"
     {
         print_summary(label, resp);
-        return;
+    } else {
+        println!(
+            "{label}: {}",
+            serde_json::to_string_pretty(resp).unwrap_or_else(|_| "{}".to_string())
+        );
     }
-    println!(
-        "{label}: {}",
-        serde_json::to_string_pretty(resp).unwrap_or_else(|_| "{}".to_string())
-    );
 }
 
 pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
@@ -1040,6 +1101,28 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             (
                 "session-transfer",
                 api.post("/v1/project/session-transfer", &body).await?,
+            )
+        }
+        ProjectCmd::NorthStar {
+            project_root,
+            continuity_id,
+            projection,
+            trigger,
+        } => {
+            let resolved = resolve_input_project_root(None, Some(project_root.as_str()))?;
+            ensure_project_root_scope_safe(
+                Some(resolved.as_str()),
+                "project north-star: project_root",
+            )?;
+            let mut qs = Vec::new();
+            push_query(&mut qs, "project_root", Some(resolved.as_str()));
+            push_query(&mut qs, "continuity_id", Some(continuity_id.as_str()));
+            push_query(&mut qs, "projection", Some(projection.as_str()));
+            push_query(&mut qs, "trigger", Some(trigger.as_str()));
+            (
+                "north-star",
+                api.get(&format!("/v1/project/north-star-gate?{}", qs.join("&")))
+                    .await?,
             )
         }
         ProjectCmd::TrajectoryGuard {

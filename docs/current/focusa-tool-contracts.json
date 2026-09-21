@@ -1337,7 +1337,7 @@
     {
       "name": "focusa_north_star_gate",
       "label": "North Star Gate",
-      "purpose": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain.",
+      "purpose": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection.",
       "family": "trajectory",
       "ontology_action": "north_star.inspect",
       "ontology_objects": [
@@ -1345,24 +1345,27 @@
         "Trajectory",
         "Workpoint"
       ],
-      "api_routes": [],
-      "cli_commands": [],
-      "core_surface": "Continuous north-star authority gate",
+      "api_routes": [
+        "GET /v1/project/north-star-gate"
+      ],
+      "cli_commands": [
+        "focusa project north-star"
+      ],
+      "core_surface": "Daemon-owned continuous north-star authority gate",
       "doc_path": "docs/focusa-tools/tools/focusa_north_star_gate.md",
       "spec_path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_state",
-      "parity_status": "pi_only",
-      "exemptions": [
-        "pi_only"
-      ],
-      "live_check": "north-star gate tests plus lifecycle transition projection",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "daemon route plus CLI/Pi north-star gate tests and lifecycle transition projection",
       "scope_requirement": {
         "kind": "read",
-        "route_family": "trajectory"
+        "route_family": "project"
       },
       "authority_requirement": {
-        "kind": "advisory_only"
+        "kind": "canonical",
+        "path": "/v1/project/north-star-gate"
       }
     },
     {
