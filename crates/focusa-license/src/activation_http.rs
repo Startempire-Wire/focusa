@@ -22,9 +22,11 @@ use crate::activation_facade::{ActivationError, ActivationErrorCode, ActivationR
 use crate::activation_reducer::ActivationTransition;
 use crate::authority::SignedEnvelope;
 use crate::authority_client::SensitiveCredential;
+use crate::response_budget::{ResponseBudget, ResponseBudgetExceeded};
 use reqwest::Url;
-use reqwest::blocking::Client as BlockingClient;
+use reqwest::blocking::{Client as BlockingClient, Response as BlockingResponse};
 use serde::{Deserialize, Serialize};
+use std::io::Read;
 use std::time::Duration;
 use thiserror::Error;
 
@@ -177,13 +179,13 @@ impl ActivationHttpClient {
             // from the reply body instead of collapsing every non-2xx into
             // AUTHORITY_UNAVAILABLE. Fail closed when the body is not a
             // decodable typed envelope.
-            let body = response.text().unwrap_or_default();
+            let body = read_bounded_response(response, self.policy.max_response_bytes)
+                .map_err(|_| self.unavailable(&request.request_id))?;
             return decode_response_body(&request.request_id, body, self.policy.max_response_bytes);
         }
         decode_response_body(
             &request.request_id,
-            response
-                .text()
+            read_bounded_response(response, self.policy.max_response_bytes)
                 .map_err(|_| self.unavailable(&request.request_id))?,
             self.policy.max_response_bytes,
         )
@@ -214,12 +216,14 @@ impl ActivationHttpClient {
         if !response.status().is_success() {
             // Spec 152E §20 (#344): typed authority errors surface verbatim;
             // non-JSON or oversized bodies still fail closed.
-            let body = response.text().unwrap_or_default();
+            let body = read_bounded_response(response, self.policy.max_response_bytes)
+                .map_err(|_| self.unavailable(request_id))?;
             return decode_response_body(request_id, body, self.policy.max_response_bytes);
         }
         decode_response_body(
             request_id,
-            response.text().map_err(|_| self.unavailable(request_id))?,
+            read_bounded_response(response, self.policy.max_response_bytes)
+                .map_err(|_| self.unavailable(request_id))?,
             self.policy.max_response_bytes,
         )
     }
@@ -412,6 +416,29 @@ pub fn code_from_label(label: &str) -> Option<ActivationErrorCode> {
 }
 
 /// Decode a bounded response body into the shared envelope/error shape.
+fn read_bounded_response(
+    mut response: BlockingResponse,
+    max_response_bytes: usize,
+) -> Result<String, ResponseBudgetExceeded> {
+    let mut budget = ResponseBudget::new(max_response_bytes, response.content_length())?;
+    let mut body = Vec::with_capacity(budget.initial_capacity());
+    let mut chunk = [0_u8; 8 * 1024];
+    loop {
+        // Read at most one byte beyond the remaining budget so chunked bodies
+        // are rejected without buffering content beyond the hard limit.
+        let read_limit = budget.remaining().saturating_add(1).min(chunk.len());
+        let read = response
+            .read(&mut chunk[..read_limit])
+            .map_err(|_| ResponseBudgetExceeded)?;
+        if read == 0 {
+            break;
+        }
+        budget.consume(read)?;
+        body.extend_from_slice(&chunk[..read]);
+    }
+    String::from_utf8(body).map_err(|_| ResponseBudgetExceeded)
+}
+
 fn decode_response_body(
     request_id: &str,
     body: String,
@@ -743,6 +770,7 @@ pub mod facade_operation_path {
 mod tests {
     use super::*;
     use crate::activation_facade::FacadeOperation;
+    use serde_json::json;
 
     #[test]
     fn transport_paths_match_the_frozen_call_stack() {
@@ -840,6 +868,110 @@ mod tests {
                 "authority max response must be within 1 KiB..=4 MiB"
             ))
         );
+    }
+
+    fn local_client(port: u16, max_response_bytes: usize) -> ActivationHttpClient {
+        let mut client = ActivationHttpClient::new(ActivationHttpPolicy {
+            base_url: Url::parse("https://wpuiai.com/authority/").expect("valid base"),
+            timeout: Duration::from_secs(5),
+            max_response_bytes,
+        })
+        .expect("activation client");
+        client.policy.base_url =
+            Url::parse(&format!("http://127.0.0.1:{port}/authority/")).expect("local base");
+        client
+    }
+
+    fn serve_once(response: Vec<u8>) -> (u16, std::thread::JoinHandle<()>) {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind test server");
+        let port = listener.local_addr().expect("server address").port();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept request");
+            let mut request = [0_u8; 4096];
+            let _ = stream.read(&mut request);
+            let _ = stream.write_all(&response);
+        });
+        (port, server)
+    }
+
+    #[test]
+    fn redirects_are_not_followed_to_another_origin() {
+        use std::io::ErrorKind;
+        use std::net::TcpListener;
+        use std::time::Duration as StdDuration;
+
+        let target = TcpListener::bind("127.0.0.1:0").expect("bind redirect target");
+        target.set_nonblocking(true).expect("nonblocking target");
+        let target_port = target.local_addr().expect("target address").port();
+        let response = format!(
+            "HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:{target_port}/capture\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        )
+        .into_bytes();
+        let (source_port, source) = serve_once(response);
+        let request = WireActivationRequest {
+            request_id: "request-redirect".to_string(),
+            idempotency_key: "idempotency-redirect".to_string(),
+            registration_id: Some("registration-secret".to_string()),
+            facade_id: "activate".to_string(),
+            presenter: "test".to_string(),
+            install_channel: "test".to_string(),
+            origin: "test".to_string(),
+            payload: json!({
+                "email": "secret@example.test",
+                "verification_code": "123456"
+            }),
+        };
+        let error = local_client(source_port, 1024)
+            .post(facade_operation_path::START, &request)
+            .expect_err("secret-bearing redirect must fail closed");
+        source.join().expect("source server");
+        assert_eq!(error.code, ActivationErrorCode::AuthorityUnavailable);
+        std::thread::sleep(StdDuration::from_millis(50));
+        let target_result = target.accept();
+        assert!(
+            target_result
+                .as_ref()
+                .is_err_and(|error| error.kind() == ErrorKind::WouldBlock),
+            "redirect target unexpectedly received a request"
+        );
+    }
+
+    #[test]
+    fn declared_oversize_is_rejected_for_success_and_error_bodies() {
+        for status in ["200 OK", "500 Internal Server Error"] {
+            let body = vec![b'x'; 2048];
+            let mut response = format!(
+                "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            )
+            .into_bytes();
+            response.extend_from_slice(&body);
+            let (port, server) = serve_once(response);
+            let error = local_client(port, 1024)
+                .get(facade_operation_path::OFFERS, "request-large", None)
+                .expect_err("oversized declared response must fail closed");
+            server.join().expect("oversize server");
+            assert_eq!(error.code, ActivationErrorCode::AuthorityUnavailable);
+        }
+    }
+
+    #[test]
+    fn chunked_oversize_stops_at_the_hard_budget() {
+        let body = vec![b'y'; 1025];
+        let mut response = b"HTTP/1.1 500 Internal Server Error\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n"
+            .to_vec();
+        response.extend_from_slice(format!("{:x}\r\n", body.len()).as_bytes());
+        response.extend_from_slice(&body);
+        response.extend_from_slice(b"\r\n0\r\n\r\n");
+        let (port, server) = serve_once(response);
+        let error = local_client(port, 1024)
+            .get(facade_operation_path::OFFERS, "request-chunked", None)
+            .expect_err("oversized chunked response must fail closed");
+        server.join().expect("chunked server");
+        assert_eq!(error.code, ActivationErrorCode::AuthorityUnavailable);
     }
 
     #[test]

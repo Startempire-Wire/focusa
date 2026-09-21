@@ -2,6 +2,7 @@ use crate::authority_client::{
     AuthorityNodeSummary, DeviceCodeChallenge, DeviceCodePollResponse, DeviceCodeStartRequest,
     SensitiveCredential,
 };
+use crate::response_budget::{ResponseBudget, ResponseBudgetExceeded};
 use reqwest::{Client, Response, Url};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{collections::BTreeSet, time::Duration};
@@ -360,30 +361,17 @@ async fn read_bounded_response(
     mut response: Response,
     max_response_bytes: usize,
 ) -> Result<Vec<u8>, AuthorityHttpError> {
-    if response
-        .content_length()
-        .is_some_and(|length| length > max_response_bytes as u64)
-    {
-        return Err(AuthorityHttpError::ResponseTooLarge);
-    }
-    let mut body = Vec::with_capacity(
-        response
-            .content_length()
-            .unwrap_or_default()
-            .min(max_response_bytes as u64) as usize,
-    );
+    let mut budget = ResponseBudget::new(max_response_bytes, response.content_length())
+        .map_err(|ResponseBudgetExceeded| AuthorityHttpError::ResponseTooLarge)?;
+    let mut body = Vec::with_capacity(budget.initial_capacity());
     while let Some(chunk) = response
         .chunk()
         .await
         .map_err(|_| AuthorityHttpError::Request("response_read"))?
     {
-        if body
-            .len()
-            .checked_add(chunk.len())
-            .is_none_or(|length| length > max_response_bytes)
-        {
-            return Err(AuthorityHttpError::ResponseTooLarge);
-        }
+        budget
+            .consume(chunk.len())
+            .map_err(|ResponseBudgetExceeded| AuthorityHttpError::ResponseTooLarge)?;
         body.extend_from_slice(&chunk);
     }
     Ok(body)
