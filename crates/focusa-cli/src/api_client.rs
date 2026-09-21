@@ -46,7 +46,16 @@ fn classify_reqwest_error(err: reqwest::Error, url: &str) -> anyhow::Error {
     if err.is_timeout() {
         anyhow::anyhow!("[API_TIMEOUT] url={} reason={}", url, err)
     } else if err.is_connect() {
-        anyhow::anyhow!("[API_CONNECT_ERROR] url={} reason={}", url, err)
+        let details = serde_json::json!({
+            "status": "blocked",
+            "code": "DAEMON_INACTIVE",
+            "failure_class": "daemon_inactive",
+            "endpoint": url,
+            "recovery_action": "focusa start",
+            "safe_recovery": "focusa start && retry the governed command",
+            "raw_reason": err.to_string(),
+        });
+        anyhow::anyhow!("[DAEMON_INACTIVE] {}", details)
     } else if err.is_decode() {
         anyhow::anyhow!("[API_DECODE_ERROR] url={} reason={}", url, err)
     } else {
