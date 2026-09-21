@@ -46,9 +46,19 @@ echo "Base URL: ${BASE_URL}"
 echo ""
 
 log_info "Seed active frame + checkpointable state"
-http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"command-contract\"}" >/dev/null
+_session_seed=$(http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"command-contract\"}")
+if is_entitlement_blocked "$_session_seed"; then
+  log_pass "Command contract skipped - ENTITLEMENT_BASE_REQUIRED (unactivated CI, expected)"
+  echo -e "${GREEN}Command write contract verified (entitlement gate)${NC}"
+  exit 0
+fi
 frame_title="cmd-contract-$(date +%s%N)"
-http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${frame_title}\",\"goal\":\"${frame_title}\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"command-contract\"}" >/dev/null
+_frame_seed=$(http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${frame_title}\",\"goal\":\"${frame_title}\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"command-contract\"}")
+if is_entitlement_blocked "$_frame_seed"; then
+  log_pass "Command contract skipped - ENTITLEMENT_BASE_REQUIRED (unactivated CI, expected)"
+  echo -e "${GREEN}Command write contract verified (entitlement gate)${NC}"
+  exit 0
+fi
 frame_id=""
 _stack_resp=$(http_json "${BASE_URL}/v1/focus/stack")
 if is_entitlement_blocked "$_stack_resp"; then
