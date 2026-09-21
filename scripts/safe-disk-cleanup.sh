@@ -14,10 +14,19 @@ APPLY=0
 VERBOSE=0
 RETENTION_DAYS="${FOCUSA_CLEANUP_RETENTION_DAYS:-14}"
 BACKUP_KEEP="${FOCUSA_CLEANUP_BACKUP_KEEP:-5}"
+LOCK_PATH="${FOCUSA_CLEANUP_LOCK_PATH:-/tmp/focusa-ovh-test-daemon.lock}"
+LOCK_TIMEOUT_SECONDS="${FOCUSA_CLEANUP_LOCK_TIMEOUT_SECONDS:-1800}"
 
 log() { printf '[focusa-cleanup] %s\n' "$*"; }
 warn() { printf '[focusa-cleanup][warn] %s\n' "$*" >&2; }
 die() { printf '[focusa-cleanup][error] %s\n' "$*" >&2; exit 1; }
+
+# Cargo target/cache pruning must serialize with the OVH build runner. A
+# bounded wait prevents cleanup from becoming another silent indefinite queue.
+exec 9>"$LOCK_PATH"
+if ! flock -w "$LOCK_TIMEOUT_SECONDS" 9; then
+  die "timed out after ${LOCK_TIMEOUT_SECONDS}s waiting for build lock ${LOCK_PATH}"
+fi
 
 usage() {
   cat <<'USAGE'
