@@ -108,14 +108,51 @@ for relative, tokens in EXPECTED.items():
         if token not in text:
             missing.append(f"{relative}: {token}")
 
-temporal_path = "crates/focusa-api/src/routes/work_item_temporal.rs"
-temporal_text = (ROOT / temporal_path).read_text(encoding="utf-8")
-transition = temporal_text.split("async fn transition(", 1)[1].split("async fn start(", 1)[0]
-replay = transition.find("return Ok(completed(schema")
-admission = transition.find("if let Some(action) = admission_action")
-mutation = transition.find("let now = Utc::now()")
-if min(replay, admission, mutation) < 0 or not replay < admission < mutation:
-    missing.append(f"{temporal_path}: idempotent replay must precede admission and mutation")
+def require_ordered(
+    relative: str, start: str, end: str, markers: list[str], description: str
+) -> None:
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    if start not in text or end not in text.split(start, 1)[1]:
+        missing.append(f"{relative}: cannot inspect {description}")
+        return
+    section = text.split(start, 1)[1].split(end, 1)[0]
+    positions = [section.find(marker) for marker in markers]
+    if min(positions) < 0 or positions != sorted(positions):
+        missing.append(f"{relative}: {description}")
+
+
+require_ordered(
+    "crates/focusa-api/src/routes/work_item_temporal.rs",
+    "async fn transition(",
+    "async fn start(",
+    [
+        "return Ok(completed(schema",
+        "if let Some(action) = admission_action",
+        "let now = Utc::now()",
+    ],
+    "idempotent replay must precede admission and mutation",
+)
+require_ordered(
+    "crates/focusa-api/src/routes/proxy.rs",
+    "async fn chat_completions(",
+    "async fn messages_proxy(",
+    ["api_key(&headers)", "proxy_openai_dispatch", "ensure_session(&state)"],
+    "OpenAI auth must precede admission and session/upstream effects",
+)
+require_ordered(
+    "crates/focusa-api/src/routes/proxy.rs",
+    "async fn messages_proxy(",
+    "async fn acp_proxy(",
+    ["messages_auth(&headers)", "proxy_messages_dispatch", "ensure_session(&state)"],
+    "Messages auth must precede admission and session/upstream effects",
+)
+require_ordered(
+    "crates/focusa-api/src/routes/proxy.rs",
+    "async fn acp_proxy(",
+    "pub fn router()",
+    ["acp::parse_message", "proxy_acp_dispatch", "state.focusa.read()"],
+    "ACP validation must precede admission and state/upstream effects",
+)
 
 if missing:
     raise SystemExit("North Star admission regression:\n" + "\n".join(missing))
