@@ -47,6 +47,7 @@ export const currentProjectBindingDecision = () => ({ state: "BOUND" });
 export const getActiveWorkpointPacket = () => null;
 export const getContinuityId = () => state.continuityId;
 export const getEffectiveFocusSnapshot = () => null;
+export const getLastTrajectoryClarity = () => null;
 export const getSessionCwd = () => state.projectRoot;
 export const normalizeProjectRoot = (value) => String(value || "").replace(/\\/$/, "");
 export const normalizeWorkpointResumePacketEnvelope = (value) => value?.packet || null;
