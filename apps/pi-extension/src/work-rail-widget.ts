@@ -1,5 +1,16 @@
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
+export interface WorkRailTrajectorySnapshot {
+  longTermGoal: string;
+  desiredEndState: string;
+  midLevelGoal: string;
+  shortTermGoal: string;
+  currentState: string;
+  waypoints: string[];
+  gap: string;
+  frontier: string;
+}
+
 export interface WorkRailWidgetSnapshot {
   provider: string;
   providerItemId: string;
@@ -35,6 +46,7 @@ export interface WorkRailWidgetSnapshot {
     | "adapter-unavailable"
     | "schema-only"
     | "approval-required";
+  trajectory?: WorkRailTrajectorySnapshot;
   badges?: string[];
 }
 
@@ -76,8 +88,46 @@ function fitToWidth(lines: string[], width: number): string[] {
   return lines.map((line) => (visibleWidth(line) <= maxWidth ? line : truncateToWidth(line, maxWidth, "…")));
 }
 
-export function workRailSnapshotFromPacket(packet: Record<string, any> | null): WorkRailWidgetSnapshot {
+export function workRailSnapshotFromPacket(
+  packet: Record<string, any> | null,
+  trajectoryClarity: Record<string, any> | null = null
+): WorkRailWidgetSnapshot {
   const workpoint = packet?.workpoint && typeof packet.workpoint === "object" ? packet.workpoint : packet;
+  const rawTrajectory = trajectoryClarity || packet?.trajectory || packet?.trajectory_ladder || packet?.trajectory_view;
+  const trajectorySource = rawTrajectory && typeof rawTrajectory === "object" ? rawTrajectory : null;
+  const trajectoryObject = trajectorySource?.ladder && typeof trajectorySource.ladder === "object"
+    ? trajectorySource.ladder
+    : trajectorySource;
+  const trajectoryText = (value: unknown): string => {
+    if (value && typeof value === "object") {
+      const object = value as Record<string, any>;
+      return String(object.summary || object.description || object.text || object.next_action || object.workpoint_id || "");
+    }
+    return String(value || "");
+  };
+  const trajectory = trajectoryObject
+    ? {
+        longTermGoal: trajectoryText(trajectoryObject.long_term_goal || trajectoryObject.longTermGoal || trajectoryObject.hlt),
+        desiredEndState: trajectoryText(trajectoryObject.desired_end_state || trajectoryObject.desiredEndState),
+        midLevelGoal: trajectoryText(trajectoryObject.mid_level_goal || trajectoryObject.midLevelGoal || trajectoryObject.mlg),
+        shortTermGoal: trajectoryText(trajectoryObject.short_term_goal || trajectoryObject.shortTermGoal || trajectoryObject.stg),
+        currentState: trajectoryText(trajectoryObject.current_state || trajectoryObject.currentState),
+        waypoints: Array.isArray(trajectoryObject.waypoints) ? trajectoryObject.waypoints.map(trajectoryText) : [],
+        gap: trajectoryText(trajectoryObject.gap || trajectoryObject.active_gap),
+        frontier: trajectoryText(trajectoryObject.frontier || trajectoryObject.next_frontier),
+      }
+    : undefined;
+  const hasTrajectory = Boolean(
+    trajectory &&
+      (trajectory.longTermGoal ||
+        trajectory.desiredEndState ||
+        trajectory.midLevelGoal ||
+        trajectory.shortTermGoal ||
+        trajectory.currentState ||
+        trajectory.waypoints.length ||
+        trajectory.gap ||
+        trajectory.frontier)
+  );
   const evidence = Array.isArray(workpoint?.verification_records)
     ? workpoint.verification_records
     : Array.isArray(packet?.evidence_refs)
@@ -117,11 +167,12 @@ export function workRailSnapshotFromPacket(packet: Record<string, any> | null): 
     providerCapability: String(
       packet?.provider_capability || workpoint?.provider_capability || "adapter-unavailable"
     ) as WorkRailWidgetSnapshot["providerCapability"],
+    ...(hasTrajectory ? { trajectory } : {}),
   };
 }
 
 export function workRailDetailRows(snapshot: WorkRailWidgetSnapshot): string[] {
-  return [
+  const rows = [
     `Provider: ${snapshot.provider} · ${snapshot.providerItemId} · ${snapshot.providerStatus} · ${snapshot.providerCapability}`,
     `Focusa: ${snapshot.focusaStatus} · Workpoint ${snapshot.workpointId}`,
     `Scope: ${snapshot.projectRoot} · ${snapshot.continuityId}`,
@@ -133,6 +184,18 @@ export function workRailDetailRows(snapshot: WorkRailWidgetSnapshot): string[] {
     `Change/receipt/closure: ${snapshot.changeSetRef} · ${snapshot.receiptRef} · ${snapshot.closureClaimRef}`,
     `Updated: ${snapshot.updatedAt}`,
   ];
+  if (snapshot.trajectory) {
+    rows.push(
+      `Trajectory HLT: ${snapshot.trajectory.longTermGoal || "unresolved"}`,
+      `Trajectory desired: ${snapshot.trajectory.desiredEndState || "unresolved"}`,
+      `Trajectory MLG: ${snapshot.trajectory.midLevelGoal || "unresolved"}`,
+      `Trajectory STG: ${snapshot.trajectory.shortTermGoal || "unresolved"}`,
+      `Trajectory current: ${snapshot.trajectory.currentState || "unresolved"}`,
+      `Trajectory waypoints: ${snapshot.trajectory.waypoints.join(" · ") || "none"}`,
+      `Trajectory gap/frontier: ${snapshot.trajectory.gap || "none"} / ${snapshot.trajectory.frontier || "unresolved"}`,
+    );
+  }
+  return rows;
 }
 
 export function renderWorkRailWidget(
@@ -167,6 +230,15 @@ export function renderWorkRailWidget(
     `${palette.accent(active)} ${palette.good(item)}  ${palette.dim(`[${state}]`)}  WP ${workpoint}  P${snapshot.priority}/${snapshot.rank}`,
     `${palette.dim(`${proof} · ${snapshot.dependencies?.length ?? 0} deps · ${snapshot.blockers?.length ?? 0} blockers · ${snapshot.artifactRefs?.length ?? 0} artifacts · ${mode} · ${capability}`)}  ${next} ${nextAction}`,
   ];
+  if (width >= 100 && snapshot.trajectory) {
+    lines.push(
+      palette.dim(`HLT: ${bounded(snapshot.trajectory.longTermGoal || "unresolved", width - 5)}`),
+      palette.dim(`MLG: ${bounded(snapshot.trajectory.midLevelGoal || "unresolved", width - 5)}`),
+      palette.dim(`STG: ${bounded(snapshot.trajectory.shortTermGoal || "unresolved", width - 5)}`),
+      palette.dim(`Waypoints: ${bounded(snapshot.trajectory.waypoints.join(" · ") || "none", width - 11)}`),
+      palette.dim(`Gap: ${bounded(snapshot.trajectory.gap || "none", width - 5)} · Frontier: ${bounded(snapshot.trajectory.frontier || "unresolved", width - 15)}`),
+    );
+  }
   if (width >= 76 && snapshot.badges?.length) lines.push(palette.dim(snapshot.badges.join(" · ")));
   return fitToWidth(lines, width);
 }

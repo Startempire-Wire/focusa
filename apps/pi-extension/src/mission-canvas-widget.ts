@@ -6,6 +6,7 @@ import {
   getActiveWorkpointPacket,
   getContinuityId,
   getEffectiveFocusSnapshot,
+  getLastTrajectoryClarity,
   getSessionCwd,
   normalizeProjectRoot,
   normalizeWorkpointResumePacketEnvelope,
@@ -71,7 +72,10 @@ export function refreshMissionCanvasWidget(ctx: ExtensionContext): void {
     }
     const workpoint = getActiveWorkpointPacket();
     const focus = getEffectiveFocusSnapshot();
-    const snapshot = workRailSnapshotFromPacket(workpoint ?? focus ?? null);
+    const snapshot = workRailSnapshotFromPacket(
+      workpoint ?? focus ?? null,
+      getLastTrajectoryClarity()
+    );
     const lines = renderWorkRailWidget(
       snapshot,
       120,
