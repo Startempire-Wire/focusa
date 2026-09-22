@@ -674,6 +674,9 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Install(_) => Some(commands::lifecycle_guidance::Flow::Install),
         Commands::Update(_) => Some(commands::lifecycle_guidance::Flow::Update),
         Commands::Uninstall(_) => Some(commands::lifecycle_guidance::Flow::Uninstall),
+        // `upgrade` is the stable-channel update path, so its lifecycle guidance
+        // must use the same update contract advertised by the global options.
+        Commands::Upgrade(_) => Some(commands::lifecycle_guidance::Flow::Update),
         _ => None,
     };
     if cli.lifecycle_action.is_some() && guided_flow.is_none() {
