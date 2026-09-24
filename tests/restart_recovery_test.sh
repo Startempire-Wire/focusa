@@ -24,7 +24,7 @@ log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
 curl() {
   command curl \
-    -H "x-scope-project-root: ${REPO_ROOT}" \
+    -H "x-scope-project-root: ${FOCUSA_FIXTURE_ROOT:-$REPO_ROOT}" \
     -H "x-scope-continuity-id: recovery-test" \
     "$@"
 }
@@ -51,6 +51,9 @@ stop_daemon() {
 
 cleanup() {
   stop_daemon
+  if [[ -n "${FOCUSA_FIXTURE_ROOT:-}" ]]; then
+    focusa_test_scope_cleanup
+  fi
   rm -rf "$DATA_DIR" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -69,12 +72,12 @@ else
 fi
 
 log_info "Seed session + frame + checkpoint data"
-if [ -z "$RECOVERY_BEADS_ISSUE_ID" ]; then
-  RECOVERY_BEADS_ISSUE_ID=$(cd "$REPO_ROOT" && bd create --silent --type task "restart-recovery-fixture")
-fi
+source "$REPO_ROOT/tests/fixtures/admitted-project-scope.sh"
+FOCUSA_TEST_MODE=1 focusa_test_scope_create "$BASE_URL" recovery-test
+RECOVERY_BEADS_ISSUE_ID="${RECOVERY_BEADS_ISSUE_ID:-focusa-032h}"
 start_resp=$(curl -sS -X POST "${BASE_URL}/v1/session/start" \
   -H "Content-Type: application/json" \
-  -d "{\"workspace_id\":\"${REPO_ROOT}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"recovery-test\"}")
+  -d "{\"workspace_id\":\"${FOCUSA_FIXTURE_ROOT}\",\"project_root\":\"${FOCUSA_FIXTURE_ROOT}\",\"continuity_id\":\"recovery-test\"}")
 if echo "$start_resp" | jq -e '.status == "accepted" and (.session_id != null)' >/dev/null 2>&1; then
   log_pass "Session start returned typed acceptance"
 else
@@ -95,7 +98,7 @@ else
 fi
 push_resp=$(curl -sS -X POST "${BASE_URL}/v1/focus/push" \
   -H "Content-Type: application/json" \
-  -d "{\"title\":\"restart-recovery\",\"goal\":\"verify restart continuity\",\"beads_issue_id\":\"${RECOVERY_BEADS_ISSUE_ID}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"recovery-test\"}")
+  -d "{\"title\":\"restart-recovery\",\"goal\":\"verify restart continuity\",\"beads_issue_id\":\"${RECOVERY_BEADS_ISSUE_ID}\",\"project_root\":\"${FOCUSA_FIXTURE_ROOT}\",\"continuity_id\":\"recovery-test\"}")
 frame_id=""
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   frame_id=$(curl -sS "${BASE_URL}/v1/focus/stack" | jq -r '.active_frame_id // empty')
