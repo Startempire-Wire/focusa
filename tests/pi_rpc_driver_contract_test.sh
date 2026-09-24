@@ -13,11 +13,16 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 curl() {
   command curl \
     -H "x-scope-project-root: ${ROOT_DIR}" \
-    -H "x-scope-continuity-id: work-loop-continuation-test" \
+    -H "x-scope-continuity-id: work-loop-pi-driver-test" \
     "$@"
 }
 http_json(){ curl -sS "$@"; }
-WORK_LOOP_ROUTE_FILE="${ROOT_DIR}/crates/focusa-api/src/routes/work_loop.rs"
+REPO_ROOT="$ROOT_DIR"
+WORK_LOOP_ROUTE_FILE="${REPO_ROOT}/crates/focusa-api/src/routes/work_loop.rs"
+source "$REPO_ROOT/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" work-loop-pi-driver-test
+trap focusa_test_scope_cleanup EXIT
+ROOT_DIR="$FOCUSA_FIXTURE_ROOT"
 if rg -n '/v1/work-loop/driver/start|/v1/work-loop/driver/prompt|/v1/work-loop/driver/abort|/v1/work-loop/driver/stop' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
   log_pass "Pi RPC driver routes are registered"
 else
@@ -57,7 +62,7 @@ else
 fi
 http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-pi-driver\",\"mission\":\"verify Pi RPC driver contract\",\"current_action\":\"spec79_pi_rpc_driver\",\"next_slice\":\"verify scoped driver lifecycle\",\"canonical\":true}" >/dev/null
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-pi-driver-test\",\"work_item_id\":\"spec79-pi-driver\",\"mission\":\"verify Pi RPC driver contract\",\"action_intent\":{\"action_type\":\"spec79_pi_rpc_driver\",\"lifecycle_stage\":\"verify_outcome\",\"status\":\"ready\"},\"next_slice\":\"verify scoped driver lifecycle\",\"canonical\":true}" >/dev/null
 WRITER_ID="spec79-pi-driver"
 ENABLE_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/enable" -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${WRITER_ID}" -H 'x-focusa-approval: approved' \
@@ -71,7 +76,7 @@ elif ! echo "$ENABLE_RESP" | jq -e '.ok == true and .writer_id == "spec79-pi-dri
 fi
 START_PAYLOAD=$(jq -n \
   --arg cwd "${ROOT_DIR}" \
-  --arg idempotency_key "spec79-pi-driver-work-loop-continuation-test" \
+  --arg idempotency_key "spec79-pi-driver-work-loop-pi-driver-test" \
   '{cwd: $cwd, idempotency_key: $idempotency_key}')
 START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${WRITER_ID}" "${FENCING_HEADERS[@]}" \

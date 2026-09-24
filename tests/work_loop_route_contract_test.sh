@@ -3,6 +3,11 @@
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$ROOT_DIR"
+source "$REPO_ROOT/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" work-loop-route-test
+trap focusa_test_scope_cleanup EXIT
+ROOT_DIR="$FOCUSA_FIXTURE_ROOT"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -13,16 +18,16 @@ log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 curl() {
   command curl \
     -H "x-scope-project-root: ${ROOT_DIR}" \
-    -H "x-scope-continuity-id: work-loop-continuation-test" \
+    -H "x-scope-continuity-id: work-loop-route-test" \
     "$@"
 }
 
 CHECKPOINT=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/checkpoint" -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-route-contract\",\"mission\":\"verify work-loop route contracts\",\"current_action\":\"route_contract\",\"next_slice\":\"verify typed route envelopes\",\"canonical\":true}")
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-route-test\",\"work_item_id\":\"spec79-route-contract\",\"mission\":\"verify work-loop route contracts\",\"action_intent\":{\"action_type\":\"route_contract\",\"lifecycle_stage\":\"verify_outcome\",\"status\":\"ready\"},\"next_slice\":\"verify typed route envelopes\",\"canonical\":true}")
 WORKPOINT_ID=$(echo "$CHECKPOINT" | jq -r '.workpoint_id // empty')
 for _ in $(seq 1 40); do
   RESUME=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/resume" -H 'Content-Type: application/json' \
-    -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"mode\":\"compact_prompt\"}")
+    -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-route-test\",\"mode\":\"compact_prompt\"}")
   echo "$RESUME" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
   sleep 0.1
 done
@@ -55,7 +60,7 @@ else
   log_fail "GET /v1/work-loop/replay/closure-bundle missing expected keys"
 fi
 
-if rg -n 'work_loop_dispatch_failed|work_loop_pi_spawn_failed|recovery_hint|misuse_hint|tool_result_v1|focusa_work_loop_writer_status' "${ROOT_DIR}/crates/focusa-api/src/routes/work_loop.rs" >/dev/null; then
+if rg -n 'work_loop_dispatch_failed|work_loop_pi_spawn_failed|recovery_hint|misuse_hint|tool_result_v1|focusa_work_loop_writer_status' "${REPO_ROOT}/crates/focusa-api/src/routes/work_loop.rs" >/dev/null; then
   log_pass "Work-loop dispatch failures expose why/recovery/misuse hints and tool_result_v1"
 else
   log_fail "Work-loop dispatch failures remain opaque"
