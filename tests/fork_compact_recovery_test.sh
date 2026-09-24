@@ -43,6 +43,11 @@ echo "=== SPEC-56: Fork + Compact Recovery ==="
 echo "Base URL: ${BASE_URL}"
 echo ""
 
+source "$ROOT_DIR/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" fork-compact-test
+trap focusa_test_scope_cleanup EXIT
+ROOT_DIR="$FOCUSA_FIXTURE_ROOT"
+
 log_info "Seed checkpointable frame"
 http_json -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
   -d '{"reason":"fork-compact-preflight-reset"}' >/dev/null || true
