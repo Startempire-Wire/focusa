@@ -34,6 +34,12 @@ frame_id_for() {
   http_json GET "/v1/focus/stack" | jq -r --arg title "$title" --arg beads "$beads" '.stack.frames | map(select(.title == $title and .beads_issue_id == $beads)) | last | .id // empty'
 }
 
+REPO_ROOT="$ROOT_DIR"
+source "$REPO_ROOT/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" frame-contract-session
+trap focusa_test_scope_cleanup EXIT
+ROOT_DIR="$FOCUSA_FIXTURE_ROOT"
+
 # Create frame A then frame B, making B active.
 TITLE_A="frame-contract-a-$$"
 BEADS_A="focusa-032h"
@@ -79,7 +85,7 @@ else
   log_fail "invalid explicit frame_id did not return no_active_frame/frame_unavailable"
 fi
 
-TOOLS_FILE="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
+TOOLS_FILE="${REPO_ROOT}/apps/pi-extension/src/tools.ts"
 if rg -n 'response\.status === "no_active_frame"' "$TOOLS_FILE" >/dev/null 2>&1 \
   && rg -n 'response\.status === "rejected"' "$TOOLS_FILE" >/dev/null 2>&1 \
   && rg -n 'response\.status !== "accepted"' "$TOOLS_FILE" >/dev/null 2>&1; then
