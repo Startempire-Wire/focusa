@@ -1,11 +1,35 @@
 {
-  "name": "focusa-pi-bridge",
-  "version": "0.9.197",
-  "type": "module",
-  "private": true,
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.0"
+  },
   "description": "Focusa cognitive integration extension for Pi coding agent",
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.82.1",
+    "@earendil-works/pi-tui": "0.82.1",
+    "@types/node": "25.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.63.0",
+    "@typescript-eslint/parser": "^8.63.0",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.4",
+    "typescript": "^5.0.0"
+  },
   "engines": {
     "node": ">=20"
+  },
+  "keywords": [
+    "pi-package",
+    "focusa",
+    "pi-extension"
+  ],
+  "name": "focusa-pi-bridge",
+  "overrides": {
+    "undici": "7.28.0",
+    "brace-expansion": "5.0.8"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
   },
   "pi": {
     "extensions": [
@@ -44,22 +68,6 @@
     "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-context-lifecycle.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs",
     "test:decide-validator": "node tests/600-decision-validator.test.mjs"
   },
-  "dependencies": {
-    "@sinclair/typebox": "^0.34.0"
-  },
-  "overrides": {
-    "undici": "7.28.0",
-    "brace-expansion": "5.0.8"
-  },
-  "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.82.1",
-    "@earendil-works/pi-tui": "0.82.1",
-    "@types/node": "25.5.0",
-    "@typescript-eslint/eslint-plugin": "^8.63.0",
-    "@typescript-eslint/parser": "^8.63.0",
-    "eslint": "^10.8.0",
-    "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.9.4",
-    "typescript": "^5.0.0"
-  }
+  "type": "module",
+  "version": "0.9.195"
 }
