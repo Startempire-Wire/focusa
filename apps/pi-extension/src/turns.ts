@@ -1151,8 +1151,9 @@ export function registerTurns(pi: ExtensionAPI) {
       "Do not use raw transcript tail to override the active scoped Workpoint.",
     ].join("\n");
 
-    (event as any).systemPrompt =
-      ((event as any).systemPrompt || "") + "\n" + behavioral + interactionModeLaw + workpointLaw;
+    // Pi exposes the event prompt through a getter; overrides belong in the hook result.
+    let systemPrompt =
+      (event.systemPrompt || "") + "\n" + behavioral + interactionModeLaw + workpointLaw;
     if (getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled === false) {
       const legacyRecentTurns = buildCachedRecentTurnsSlice(4);
       const legacyWbm = "";
@@ -1169,9 +1170,9 @@ export function registerTurns(pi: ExtensionAPI) {
         legacyRecentTurns,
         legacyWbm,
       ].filter(Boolean);
-      (event as any).systemPrompt += `\n\n${legacyDynamic.join("\n")}`;
+      systemPrompt += `\n\n${legacyDynamic.join("\n")}`;
     }
-    cacheSafetyMonitor.captureSystemPrompt(cacheSessionKey(), (event as any).systemPrompt);
+    cacheSafetyMonitor.captureSystemPrompt(cacheSessionKey(), systemPrompt);
 
     if (!getAttachmentRuntime().seenFirstBeforeAgentStart) {
       getAttachmentRuntime().seenFirstBeforeAgentStart = true;
@@ -1216,6 +1217,7 @@ export function registerTurns(pi: ExtensionAPI) {
       }
     }
     // §130: utility-card persistence block end.
+    return { systemPrompt };
   });
 
   // ── context — DECISIONS ONLY (§36.6, §33.5)

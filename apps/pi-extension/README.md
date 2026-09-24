@@ -22,6 +22,13 @@ be adopted. A late reply cannot replace newer saved work. An explicit alternate
 positive authority flags require supported reconciliation rather than assumed
 permission. Successful adoption binds the evaluated ask, not newer input.
 
+## Prompt hook compatibility
+
+The `before_agent_start` hook treats Pi's event as read-only and returns
+`{ systemPrompt }` to override the turn's prompt. Both cache-safe and legacy
+layouts use that result; cache telemetry records the returned prompt. Regression
+coverage: `node tests/636-readonly-system-prompt.test.mjs`.
+
 ## Loading model
 
 Pi has separate resource types:
