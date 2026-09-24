@@ -334,7 +334,19 @@ mod tests {
         let server = std::thread::spawn(move || {
             let (mut stream, _) = listener.accept().unwrap();
             let mut request = [0u8; 4096];
-            stream.read(&mut request).unwrap();
+            let mut read_total = 0;
+            while read_total < request.len() {
+                match stream.read(&mut request[read_total..]) {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        read_total += n;
+                        if request[..read_total].windows(4).any(|w| w == b"\r\n\r\n") {
+                            break;
+                        }
+                    }
+                    Err(e) => panic!("read test request failed: {e}"),
+                }
+            }
             std::thread::sleep(Duration::from_millis(100));
             stream
                 .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}")
