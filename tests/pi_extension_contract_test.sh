@@ -19,7 +19,7 @@ log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 BODY_FILE="${FOCUSA_CONTRACT_BODY:-/tmp/focusa-pi-contract-body.$(id -u).json}"
 http_code() {
   curl -sS \
-    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-project-root: ${SCOPE_ROOT}" \
     -H "x-scope-continuity-id: pi-extension-contract" \
     -o "$BODY_FILE" -w "%{http_code}" "$@"
 }
@@ -107,6 +107,11 @@ else
   log_fail "Pi focusa_* wrapper missing visible ID/status/next template"
 fi
 
+source "$ROOT_DIR/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" pi-extension-contract
+trap focusa_test_scope_cleanup EXIT
+SCOPE_ROOT="$FOCUSA_FIXTURE_ROOT"
+
 log_info "Health + seeded state"
 code=$(http_code "${BASE_URL}/v1/health")
 if [ "$code" = "200" ]; then
@@ -120,7 +125,7 @@ curl -sS -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/js
   -d '{"reason":"pi-extension-contract-reset"}' >/dev/null || true
 
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
-  -d "{\"adapter_id\":\"pi-contract\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract\"}")
+  -d "{\"adapter_id\":\"pi-contract\",\"workspace_id\":\"${SCOPE_ROOT}\",\"project_root\":\"${SCOPE_ROOT}\",\"continuity_id\":\"pi-extension-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed session accepted"
 else
@@ -128,7 +133,7 @@ else
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
-  -d "{\"adapter_id\":\"pi\",\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract-retry\"}")
+  -d "{\"adapter_id\":\"pi\",\"workspace_id\":\"${SCOPE_ROOT}\",\"project_root\":\"${SCOPE_ROOT}\",\"continuity_id\":\"pi-extension-contract-retry\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted" and (.session_id != null) and ((.materialized_by == "existing_active_project_session") or (.materialized_by == "existing_active_session") or (.materialized_by == "api_reducer_sync"))' "Seed session start idempotent during recovery"
 else
@@ -136,7 +141,7 @@ else
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-  -d "{\"title\":\"pi-contract-test\",\"goal\":\"testing input contract\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract\"}")
+  -d "{\"title\":\"pi-contract-test\",\"goal\":\"testing input contract\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${SCOPE_ROOT}\",\"continuity_id\":\"pi-extension-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed focus frame accepted"
 else
@@ -162,7 +167,7 @@ else
 fi
 
 code=$(http_code -X POST "${BASE_URL}/v1/focus/update" -H "Content-Type: application/json" \
-  -d "{\"delta\":{\"decisions\":[\"Pi extension contract requires non-empty recent decision evidence\"]},\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"pi-extension-contract\"}")
+  -d "{\"delta\":{\"decisions\":[\"Pi extension contract requires non-empty recent decision evidence\"]},\"project_root\":\"${SCOPE_ROOT}\",\"continuity_id\":\"pi-extension-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed ASCC decision accepted"
 else

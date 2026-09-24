@@ -6,7 +6,11 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+source "$REPO_DIR/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" command-contract
+trap focusa_test_scope_cleanup EXIT
+ROOT_DIR="$FOCUSA_FIXTURE_ROOT"
 FAILED=0
 PASSED=0
 
@@ -46,9 +50,17 @@ echo "Base URL: ${BASE_URL}"
 echo ""
 
 log_info "Seed active frame + checkpointable state"
-http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"command-contract\"}" >/dev/null
+session=$(http_json -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" -d "{\"workspace_id\":\"${ROOT_DIR}\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"command-contract\"}")
+jq -e '.status == "accepted"' <<<"$session" >/dev/null || {
+  log_fail "Session fixture rejected: $session"
+  exit 1
+}
 frame_title="cmd-contract-$(date +%s%N)"
-http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${frame_title}\",\"goal\":\"${frame_title}\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"command-contract\"}" >/dev/null
+frame=$(http_json -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" -d "{\"title\":\"${frame_title}\",\"goal\":\"${frame_title}\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"command-contract\"}")
+jq -e '.status == "accepted"' <<<"$frame" >/dev/null || {
+  log_fail "Frame fixture rejected: $frame"
+  exit 1
+}
 frame_id=""
 _stack_resp=$(http_json "${BASE_URL}/v1/focus/stack")
 if is_entitlement_blocked "$_stack_resp"; then
