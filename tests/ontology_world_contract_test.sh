@@ -76,6 +76,9 @@ EOF
 cat > "${WORKSPACE_ROOT}/migrations/001_init.sql" <<'EOF'
 create table widgets(id integer primary key);
 EOF
+source "${REPO_ROOT}/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" ontology-world "$WORKSPACE_ROOT"
+trap focusa_test_scope_cleanup EXIT
 FRAME_TITLE="ontology-world-$(date +%s%N)"
 FRAME_GOAL="verify broader ontology projection"
 ASK_TEXT="verify ontology world scope boundaries"
@@ -114,7 +117,7 @@ fi
 curl -sS -X POST "${BASE_URL}/v1/ecs/store" -H "Content-Type: application/json" \
   -d '{"kind":"text","label":"ontology-artifact","content":"artifact for ontology world contract","surface":"test"}' >/dev/null
 WORKPOINT=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/checkpoint" -H "Content-Type: application/json" \
-  -d "{\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\",\"work_item_id\":\"ontology-001\",\"mission\":\"verify ontology world contract\",\"current_action\":\"ontology_world_projection\",\"next_slice\":\"verify bounded ontology context\",\"canonical\":true}")
+  -d "{\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\",\"work_item_id\":\"ontology-001\",\"mission\":\"verify ontology world contract\",\"action_intent\":{\"action_type\":\"ontology_world_projection\",\"lifecycle_stage\":\"verify_outcome\",\"status\":\"ready\"},\"next_slice\":\"verify bounded ontology context\",\"canonical\":true}")
 WORKPOINT_ID=$(echo "$WORKPOINT" | jq -r '.workpoint_id // empty')
 for _ in $(seq 1 40); do
   RESUME=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/resume" -H "Content-Type: application/json" \

@@ -7,6 +7,10 @@ set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+source "$ROOT_DIR/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" comparative-eval
+trap focusa_test_scope_cleanup EXIT
+ROOT_DIR="$FOCUSA_FIXTURE_ROOT"
 FAILED=0
 PASSED=0
 
