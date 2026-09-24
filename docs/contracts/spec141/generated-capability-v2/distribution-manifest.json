@@ -1,12 +1,12 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.197",
-  "source_commit": "c43aa898c",
-  "generated_at": "2026-09-24T15:36:05.256811Z",
+  "source_commit": "4acba1871",
+  "generated_at": "2026-09-24T16:57:48.924331Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:88c683b78d7910ab5cbe1fad09e247d21e32bee306d2c807d206ce6e5e528c9f",
-    "apps/pi-extension/package.json": "sha256:ce5fa86c3a6544405570f5fd7729f91731a35c196915b6786856b18a2dc75de2",
+    "apps/pi-extension/package.json": "sha256:472d014cf61252054b9882758bb80dc79f0b150b7fc17ef26ae3db9e13980589",
     "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:2155f36bc42db7be22d2a2895e3cfa8e9fafcaa1744ffb5e84be669bfe175ba8",
     "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59",
     "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:2ba0149b059a1f99ec5a0912b1e662e2763cae848714fd747490b2b78d98e2ac",
@@ -26,8 +26,8 @@
     },
     "pi_extension": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:2e39f72377ec8356669b7b321e2e0bad935e53493f355d241fb30e00349226b4",
-      "file_count": 208,
+      "sha256": "sha256:0c506eb27926b0015887f53807ca8437f326f505d156e47b11e51f57f18eebf6",
+      "file_count": 209,
       "source_paths": [
         "apps/pi-extension"
       ]
