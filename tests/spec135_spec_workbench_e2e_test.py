@@ -43,8 +43,10 @@ def mutate(base, action, key, session=None, **extra):
         if status == 200:
             return p
         assert status == 409, p
+        if p.get("retry", {}).get("safe") is False:
+            raise RuntimeError(f"Workbench mutation blocked: {p}")
         time.sleep(0.05)
-    raise RuntimeError("Workbench writer busy")
+    raise RuntimeError(f"Workbench mutation did not converge: {p}")
 
 
 def main():

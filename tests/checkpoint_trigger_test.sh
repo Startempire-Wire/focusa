@@ -65,6 +65,10 @@ http_code -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/j
   -d '{"reason":"checkpoint-trigger-test-reset"}' >/dev/null 2>&1 || true
 WS_ID="checkpoint-test-$(date +%s)-$$"
 SCOPE_CONTINUITY_ID="$WS_ID"
+source "$ROOT_DIR/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" "$SCOPE_CONTINUITY_ID"
+trap focusa_test_scope_cleanup EXIT
+ROOT_DIR="$FOCUSA_FIXTURE_ROOT"
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
   -d "{\"workspace_id\":\"${WS_ID}\",\"continuity_id\":\"${WS_ID}\",\"project_root\":\"${ROOT_DIR}\",\"adapter_id\":\"pi\"}")
 if [ "$code" = "200" ]; then

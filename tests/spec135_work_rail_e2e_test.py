@@ -66,6 +66,7 @@ def main():
     try:
         h.SCOPE = wb.SCOPE = tp.SCOPE = scope
         process, log, base = h.start(data)
+        h.admit_scope(base, scope)
         source = h.commit_context(base)["source"]
         spec = wb.mutate(
             base, "open", "st4-spec-open", current_ask="Verify Work Rail closure."
@@ -152,11 +153,16 @@ def main():
                 "working_subpath_id": "mission-canvas",
                 "work_item_id": item,
                 "mission": "Verify linked Work Rail closure",
-                "current_action": "verify_close",
+                "action_intent": {
+                    "action_type": "verify_close",
+                    "lifecycle_stage": "verify_outcome",
+                    "status": "ready",
+                },
                 "next_slice": "Close only after proof",
                 "canonical": True,
                 "idempotency_key": "st4-workpoint",
             },
+            scope=scope,
         )
         assert status == 200, checkpoint
         wp = checkpoint["workpoint_id"]
@@ -175,6 +181,7 @@ def main():
                 "evidence_ref": evidence,
                 "attach_to_workpoint": True,
             },
+            scope=scope,
         )
         assert status == 200, linked
         row = mutate(

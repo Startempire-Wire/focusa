@@ -37,6 +37,7 @@ def main():
         wb.SCOPE = scope
         tp.SCOPE = scope
         process, log, base = helper.start(data)
+        helper.admit_scope(base, scope)
         source = helper.commit_context(base)["source"]
         spec = wb.mutate(
             base,

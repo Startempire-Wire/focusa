@@ -18,7 +18,7 @@ log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
 http_code() {
   curl -sS \
-    -H "x-scope-project-root: ${REPO_ROOT}" \
+    -H "x-scope-project-root: ${SCOPE_ROOT}" \
     -H "x-scope-continuity-id: channel-contract" \
     -o /tmp/focusa-channel-body.json -w "%{http_code}" "$@"
 }
@@ -39,6 +39,10 @@ echo ""
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TURNS_TS="${REPO_ROOT}/apps/pi-extension/src/turns.ts"
+source "$REPO_ROOT/tests/fixtures/admitted-project-scope.sh"
+focusa_test_scope_create "$BASE_URL" channel-contract
+trap focusa_test_scope_cleanup EXIT
+SCOPE_ROOT="$FOCUSA_FIXTURE_ROOT"
 
 log_info "Health + seed internal event"
 code=$(http_code "${BASE_URL}/v1/health")
@@ -113,14 +117,14 @@ log_info "Seed visible active frame"
 http_code -X POST "${BASE_URL}/v1/session/close" -H "Content-Type: application/json" \
   -d '{"reason":"channel-contract-preflight-reset"}' >/dev/null || true
 code=$(http_code -X POST "${BASE_URL}/v1/session/start" -H "Content-Type: application/json" \
-  -d "{\"adapter_id\":\"channel-contract\",\"workspace_id\":\"${REPO_ROOT}\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"channel-contract\"}")
+  -d "{\"adapter_id\":\"channel-contract\",\"workspace_id\":\"${SCOPE_ROOT}\",\"project_root\":\"${SCOPE_ROOT}\",\"continuity_id\":\"channel-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '(.status == "accepted") or (.status == "pending")' "Seed session start submitted"
 else
   log_fail "Seed session start failed"
 fi
 code=$(http_code -X POST "${BASE_URL}/v1/focus/push" -H "Content-Type: application/json" \
-  -d "{\"title\":\"channel-contract\",\"goal\":\"visible active frame\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${REPO_ROOT}\",\"continuity_id\":\"channel-contract\"}")
+  -d "{\"title\":\"channel-contract\",\"goal\":\"visible active frame\",\"beads_issue_id\":\"focusa-032h\",\"project_root\":\"${SCOPE_ROOT}\",\"continuity_id\":\"channel-contract\"}")
 if [ "$code" = "200" ]; then
   json_assert '.status == "accepted"' "Seed active frame accepted"
 else

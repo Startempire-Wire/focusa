@@ -31,12 +31,18 @@ def free_port():
         return listener.getsockname()[1]
 
 
-def call(base, method, path, body=None):
+def call(base, method, path, body=None, *, scope=None):
+    headers = {"content-type": "application/json"}
+    if scope is not None:
+        headers.update({
+            "x-scope-project-root": scope["project_root"],
+            "x-scope-continuity-id": scope["continuity_id"],
+        })
     request = urllib.request.Request(
         base + path,
         data=None if body is None else json.dumps(body).encode(),
         method=method,
-        headers={"content-type": "application/json"},
+        headers=headers,
     )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
@@ -44,6 +50,20 @@ def call(base, method, path, body=None):
     except urllib.error.HTTPError as error:
         payload = json.load(error)
         return error.code, payload
+
+
+def admit_scope(base, scope):
+    """Admit a caller-created temporary project using the shared fixture owner."""
+    subprocess.run(
+        [
+            "bash", "-ec",
+            'source "$1"; focusa_test_scope_create "$2" "$3" "$4"',
+            "admitted-runtime-fixture",
+            str(ROOT / "tests/fixtures/admitted-project-scope.sh"),
+            base, scope["continuity_id"], scope["project_root"],
+        ],
+        check=True,
+    )
 
 
 def start(data_dir):

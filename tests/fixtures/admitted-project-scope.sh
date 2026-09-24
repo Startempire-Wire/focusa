@@ -10,14 +10,23 @@ PY
 }
 
 focusa_test_scope_create() {
-  local base="$1" continuity="$2" response
+  local base="$1" continuity="$2" existing_root="${3:-}" response
   [[ "${FOCUSA_TEST_MODE:-0}" == 1 ]] || {
     echo 'Admitted fixture requires an isolated FOCUSA_TEST_MODE daemon' >&2
     return 1
   }
-  FOCUSA_FIXTURE_ROOT="$(mktemp -d /tmp/focusa-admitted-fixture.XXXXXX)"
-  mkdir "$FOCUSA_FIXTURE_ROOT/.beads"
-  printf '%s\n' '{"id":"focusa-032h","title":"Isolated runtime fixture","status":"open","priority":1,"issue_type":"task"}' > "$FOCUSA_FIXTURE_ROOT/.beads/issues.jsonl"
+  if [[ -n "$existing_root" ]]; then
+    # Caller-created fixtures may need an empty task ledger for materialization.
+    [[ "$existing_root" == /tmp/focusa-* && -d "$existing_root/.beads" && "$(realpath "$existing_root")" == "$existing_root" && ! -e "$existing_root/.focusa-project.json" ]] || {
+      echo 'Existing fixture must be a fresh, caller-owned temporary project' >&2
+      return 1
+    }
+    FOCUSA_FIXTURE_ROOT="$existing_root"
+  else
+    FOCUSA_FIXTURE_ROOT="$(mktemp -d /tmp/focusa-admitted-fixture.XXXXXX)"
+    mkdir "$FOCUSA_FIXTURE_ROOT/.beads"
+    printf '%s\n' '{"id":"focusa-032h","title":"Isolated runtime fixture","status":"open","priority":1,"issue_type":"task"}' > "$FOCUSA_FIXTURE_ROOT/.beads/issues.jsonl"
+  fi
   jq -nc --arg root "$FOCUSA_FIXTURE_ROOT" '{schema:"focusa.project.v1",project_id:"runtime-contract",canonical_name:"Runtime contract fixture",project_root:$root,workspace_kind:"isolated-test"}' > "$FOCUSA_FIXTURE_ROOT/.focusa-project.json"
   response=$(curl -sS --fail-with-body -X POST "$base/v1/trajectory/define-goal" \
     -H "x-scope-project-root: $FOCUSA_FIXTURE_ROOT" -H "x-scope-continuity-id: $continuity" \
