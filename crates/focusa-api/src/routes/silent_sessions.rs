@@ -650,7 +650,10 @@ pub(super) fn disclose_principal_side_effect(
     response
 }
 
-#[allow(clippy::result_large_err, reason = "Err is the API envelope contract shared by all silent-session call sites")]
+#[allow(
+    clippy::result_large_err,
+    reason = "Err is the API envelope contract shared by all silent-session call sites"
+)]
 pub(super) async fn require_silent_session_north_star_admission(
     state: &Arc<AppState>,
     project_root: &str,

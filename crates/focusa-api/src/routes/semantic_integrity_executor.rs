@@ -160,7 +160,10 @@ enum MutationOutcome {
     Result(ExecutorValue),
 }
 
-#[allow(clippy::result_large_err, reason = "Err is the axum response contract; boxing would ripple through every handler")]
+#[allow(
+    clippy::result_large_err,
+    reason = "Err is the axum response contract; boxing would ripple through every handler"
+)]
 async fn require_semantic_mutation_admission(
     state: &Arc<AppState>,
     request: &OperationRequest,
