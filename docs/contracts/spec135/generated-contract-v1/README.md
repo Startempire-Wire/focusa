@@ -11,9 +11,10 @@ A2UI catalog, and UI capability snapshot.
 
 `uiai.focusa_ui_eval_scenario.v1.schema.json` and
 `uiai.focusa_ui_eval_result.v1.schema.json` are the external UIAI Engine Eval
-boundary. The Alpha 0 scenario/result fixtures retain bounded browser session,
-screenshot, diagnostics, accessibility, Focusa Evidence, and recovery refs;
-UIAI Engine remains the browser execution owner.
+boundary. The result schema allows an optional `public_evidence_disposition`;
+published results require it and redact private browser/session refs. The
+fixtures retain bounded diagnostics, accessibility, Focusa Evidence, and
+recovery refs; UIAI Engine remains the browser execution owner.
 
 `spec135-alpha0-context-seed-proof.json` closes Alpha 0 by linking the first
 real generated Context action across the generated binding/client, canonical
