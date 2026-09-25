@@ -30,6 +30,7 @@ FOCUSA_PROJECT_FINGERPRINT = os.environ.get("FOCUSA_PROJECT_FINGERPRINT", "proje
 FOCUSA_CONTINUITY_ID = os.environ.get("FOCUSA_CONTINUITY_ID", "focusa-v0.9.135-locked-14")
 WORKFLOW_NAMES = ("CI", "Release", "Deploy Live Daemon")
 COMMAND_DIAGNOSTIC_BYTES = 2048
+RETRYABLE_READ_ERRORS = (urllib.error.URLError, ConnectionError, TimeoutError)
 
 
 def utcnow() -> str:
@@ -109,12 +110,20 @@ def api_request(method: str, path: str, payload: dict[str, Any] | None = None) -
         method=method,
         headers={"Authorization": f"Bearer {token()}", "Content-Type": "application/json"},
     )
-    try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            return json.loads(response.read())
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode(errors="replace")[:1000]
-        raise JournalApiError(error.code, detail) from error
+    read_retries = 0
+    while True:
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return json.loads(response.read())
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode(errors="replace")[:1000]
+            raise JournalApiError(error.code, detail) from error
+        except RETRYABLE_READ_ERRORS:
+            # Only idempotent reads may be retried; an uncertain POST must never replay.
+            if method != "GET" or read_retries >= 2:
+                raise
+            read_retries += 1
+            time.sleep(1)
 
 
 def focusa_headers() -> dict[str, str]:
@@ -377,7 +386,7 @@ def publish(payload: dict[str, Any]) -> dict[str, Any]:
                 # Absence is pending, never acknowledgment or permission to publish.
                 time.sleep(1)
                 continue
-            except (urllib.error.URLError, ConnectionError, TimeoutError) as error:
+            except RETRYABLE_READ_ERRORS as error:
                 # The POST may already be durable; retry only the idempotent read.
                 last_transport_error = type(error).__name__
                 time.sleep(1)

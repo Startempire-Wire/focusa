@@ -3,6 +3,7 @@
 
 import http.client
 import importlib.util
+import io
 import json
 import subprocess
 import sys
@@ -185,6 +186,85 @@ finally:
         module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = original_ack_setting
 
 assert timeout_calls == ["POST", "GET"]
+
+# Real request boundary: all journal reads share bounded transport recovery.
+class FakeReadResponse:
+    def __init__(self, data):
+        self.data = data
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self):
+        return json.dumps(self.data).encode()
+
+
+requests_seen = []
+responses = iter(())
+
+
+def fake_urlopen(request, timeout):
+    assert timeout == 30
+    requests_seen.append(request.get_method())
+    result = next(responses)
+    if isinstance(result, Exception):
+        raise result
+    return FakeReadResponse(result)
+
+
+original_urlopen = module.urllib.request.urlopen
+original_token = module.token
+original_read_sleep = module.time.sleep
+try:
+    module.token = lambda: "offline-test-token"
+    module.urllib.request.urlopen = fake_urlopen
+    module.time.sleep = lambda _seconds: None
+    responses = iter([
+        http.client.RemoteDisconnected("temporary sequence lookup disconnect"),
+        urllib.error.URLError("temporary relay failure"),
+        {"status": "ok", "events": []},
+    ])
+    assert module.query_events("focusa:v0.9.198")["events"] == []
+    assert requests_seen == ["GET"] * 3
+
+    requests_seen.clear()
+    responses = iter([http.client.RemoteDisconnected("relay unavailable") for _ in range(3)])
+    try:
+        module.query_events("focusa:v0.9.198")
+    except http.client.RemoteDisconnected:
+        pass
+    else:
+        raise AssertionError("exhausted GET must fail closed")
+    assert requests_seen == ["GET"] * 3
+
+    requests_seen.clear()
+    responses = iter([http.client.RemoteDisconnected("uncertain POST")])
+    try:
+        module.api_request("POST", "/v1/releases/journal", payload)
+    except http.client.RemoteDisconnected:
+        pass
+    else:
+        raise AssertionError("uncertain POST must not replay")
+    assert requests_seen == ["POST"]
+
+    requests_seen.clear()
+    responses = iter([urllib.error.HTTPError(
+        "http://example.test", 409, "conflict", {}, io.BytesIO(b'{"summary":"conflict"}')
+    )])
+    try:
+        module.api_request("GET", "/v1/releases/journal")
+    except module.JournalApiError as error:
+        assert error.status_code == 409
+    else:
+        raise AssertionError("HTTP conflict must fail without retry")
+    assert requests_seen == ["GET"]
+finally:
+    module.urllib.request.urlopen = original_urlopen
+    module.token = original_token
+    module.time.sleep = original_read_sleep
 
 actuals = {"total_elapsed_seconds": 900, "remote_pipeline_seconds": 600, "asset_count": 60, "problems_count": 1}
 estimates = {"total_elapsed_seconds": 1200, "remote_pipeline_seconds": 500, "asset_count": 60, "problems_count": 0}
