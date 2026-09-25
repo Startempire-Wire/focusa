@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Offline contract tests for the canonical release journal client."""
 
+import http.client
 import importlib.util
 import json
 import subprocess
 import sys
+import urllib.error
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -96,6 +98,8 @@ api_calls = []
 replication_reads = iter(
     [
         module.JournalApiError(404, '{"summary":"release journal replication state not found"}'),
+        http.client.RemoteDisconnected("temporary relay disconnect"),
+        urllib.error.URLError("temporary replication lookup failure"),
         {"status": "pending", "state": "local_durable"},
         {
             "status": "ok",
@@ -124,7 +128,7 @@ try:
     module.api_request = fake_api_request
     module.time.sleep = lambda _seconds: None
     # Delayed canonical acknowledgment must not cause a false failure at 45s.
-    clock = iter([0.0, 0.0, 45.0, 90.0])
+    clock = iter([0.0, 0.0, 45.0, 60.0, 90.0, 135.0])
     module.time.monotonic = lambda: next(clock)
     module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = "1"
     receipt = module.publish(payload)
@@ -139,11 +143,48 @@ finally:
 
 assert receipt["master_acknowledged"] is True
 assert receipt["replication"]["state"] == "master_accepted"
+assert [method for method, _path, _body in api_calls].count("POST") == 1
+assert [method for method, _path, _body in api_calls].count("GET") == 5
 assert api_calls[1][1].startswith(
     "/v1/releases/journal?view=replication&event_id="
 )
 assert "focusa%3Av0.9.136%3Aplan%3Atest" in api_calls[1][1]
 assert "view=projection" not in SCRIPT.read_text()
+
+# A disconnected master cannot be mistaken for acknowledgment or replay the POST.
+timeout_calls = []
+
+
+def disconnected_api_request(method, _path, _body=None):
+    timeout_calls.append(method)
+    if method == "POST":
+        return {"status": "appended", "event_hash": "local-hash"}
+    raise http.client.RemoteDisconnected("relay disconnected")
+
+
+try:
+    module.api_request = disconnected_api_request
+    module.time.sleep = lambda _seconds: None
+    clock = iter([0.0, 0.0, 180.0])
+    module.time.monotonic = lambda: next(clock)
+    module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = "1"
+    try:
+        module.publish(payload)
+    except RuntimeError as error:
+        assert "master acknowledgement timed out" in str(error)
+        assert "RemoteDisconnected" in str(error)
+    else:
+        raise AssertionError("transport timeout must not acknowledge the release journal")
+finally:
+    module.api_request = original_api_request
+    module.time.sleep = original_sleep
+    module.time.monotonic = original_monotonic
+    if original_ack_setting is None:
+        module.os.environ.pop("AGENT_KB_REQUIRE_MASTER_ACK", None)
+    else:
+        module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = original_ack_setting
+
+assert timeout_calls == ["POST", "GET"]
 
 actuals = {"total_elapsed_seconds": 900, "remote_pipeline_seconds": 600, "asset_count": 60, "problems_count": 1}
 estimates = {"total_elapsed_seconds": 1200, "remote_pipeline_seconds": 500, "asset_count": 60, "problems_count": 0}

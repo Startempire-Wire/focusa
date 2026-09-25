@@ -366,6 +366,7 @@ def publish(payload: dict[str, Any]) -> dict[str, Any]:
         # Replication can acknowledge a durably accepted event after 45s.
         # Allow a bounded three-minute window without relaxing master proof.
         deadline = time.monotonic() + 180
+        last_transport_error: str | None = None
         while time.monotonic() < deadline:
             try:
                 replication = api_request("GET", replication_path)
@@ -374,6 +375,11 @@ def publish(payload: dict[str, Any]) -> dict[str, Any]:
                     raise
                 # The accepted event can precede its replication projection.
                 # Absence is pending, never acknowledgment or permission to publish.
+                time.sleep(1)
+                continue
+            except (urllib.error.URLError, ConnectionError, TimeoutError) as error:
+                # The POST may already be durable; retry only the idempotent read.
+                last_transport_error = type(error).__name__
                 time.sleep(1)
                 continue
             if (
@@ -390,8 +396,9 @@ def publish(payload: dict[str, Any]) -> dict[str, Any]:
                 )
             time.sleep(1)
         else:
+            diagnostic = f" (last transport error: {last_transport_error})" if last_transport_error else ""
             raise RuntimeError(
-                f"agent-kb master acknowledgement timed out for event_id {event_id}"
+                f"agent-kb master acknowledgement timed out for event_id {event_id}{diagnostic}"
             )
     return receipt
 
