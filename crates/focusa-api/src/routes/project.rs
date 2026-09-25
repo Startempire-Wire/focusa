@@ -2314,6 +2314,27 @@ fn write_json_file<T: serde::Serialize>(path: &Path, value: &T) -> Result<(), St
     Ok(())
 }
 
+fn preserve_file_metadata(source: &Path, destination: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(source).map_err(|error| error.to_string())?;
+    if !metadata.file_type().is_file() {
+        return Err(format!(
+            "marker metadata source is not a regular file: {}",
+            source.display()
+        ));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{MetadataExt, chown};
+        let current = fs::metadata(destination).map_err(|error| error.to_string())?;
+        if current.uid() != metadata.uid() || current.gid() != metadata.gid() {
+            chown(destination, Some(metadata.uid()), Some(metadata.gid()))
+                .map_err(|error| format!("preserve marker owner/group: {error}"))?;
+        }
+    }
+    fs::set_permissions(destination, metadata.permissions())
+        .map_err(|error| format!("preserve marker permissions: {error}"))
+}
+
 fn write_json_file_atomic<T: serde::Serialize>(path: &Path, value: &T) -> Result<(), String> {
     let serialized = serde_json::to_vec_pretty(value)
         .map_err(|error| format!("json-serialize failed: {error}"))?;
@@ -2321,20 +2342,39 @@ fn write_json_file_atomic<T: serde::Serialize>(path: &Path, value: &T) -> Result
         .parent()
         .ok_or_else(|| "marker path has no parent".to_string())?;
     fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    let existing = match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_file() => true,
+        Ok(_) => return Err("marker is not a regular file".to_string()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(error) => return Err(error.to_string()),
+    };
     let temporary = parent.join(format!(".focusa-project.json.tmp-{}", Uuid::now_v7()));
     let mut file = fs::OpenOptions::new()
         .create_new(true)
         .write(true)
         .open(&temporary)
         .map_err(|error| error.to_string())?;
-    file.write_all(&serialized)
-        .map_err(|error| error.to_string())?;
-    file.write_all(b"\n").map_err(|error| error.to_string())?;
-    file.sync_all().map_err(|error| error.to_string())?;
-    fs::rename(&temporary, path).map_err(|error| error.to_string())?;
-    fs::File::open(parent)
-        .and_then(|directory| directory.sync_all())
-        .map_err(|error| error.to_string())?;
+    let write_result = (|| -> Result<(), String> {
+        file.write_all(&serialized)
+            .map_err(|error| error.to_string())?;
+        file.write_all(b"\n").map_err(|error| error.to_string())?;
+        if existing {
+            preserve_file_metadata(path, &temporary)?;
+        }
+        file.sync_all().map_err(|error| error.to_string())?;
+        fs::rename(&temporary, path).map_err(|error| error.to_string())?;
+        fs::File::open(parent)
+            .and_then(|directory| directory.sync_all())
+            .map_err(|error| error.to_string())?;
+        Ok(())
+    })();
+    if let Err(error) = write_result {
+        if temporary.exists() {
+            fs::remove_file(&temporary)
+                .map_err(|cleanup| format!("{error}; cleanup: {cleanup}"))?;
+        }
+        return Err(error);
+    }
     Ok(())
 }
 
@@ -4865,8 +4905,29 @@ fn projection_matches_ladder_events(
     trajectory: &TrajectoryProjectionRecord,
     events: &[TrajectoryLadderEvent],
 ) -> bool {
+    // A project/continuity ledger retains superseded trajectories and older HLT
+    // versions of the same trajectory. Only the current HLT version can attest
+    // to the active projection's goal and waypoint state.
+    let active_hlt_version = events
+        .iter()
+        .rev()
+        .find(|event| {
+            event.trajectory_id == trajectory.trajectory_id
+                && event.level == TrajectoryLadderLevel::Hlt
+        })
+        .map(|event| event.hlt_version);
+    if !events.is_empty() && active_hlt_version.is_none() {
+        return false;
+    }
+    let active_events: Vec<&TrajectoryLadderEvent> = events
+        .iter()
+        .filter(|event| {
+            event.trajectory_id == trajectory.trajectory_id
+                && Some(event.hlt_version) == active_hlt_version
+        })
+        .collect();
     let latest_string = |level| {
-        events
+        active_events
             .iter()
             .rev()
             .find(|event| event.level == level)
@@ -4878,7 +4939,7 @@ fn projection_matches_ladder_events(
         .is_none_or(|value| trajectory.mid_level_goal.as_deref() == Some(value));
     let stg_matches = latest_string(TrajectoryLadderLevel::Stg)
         .is_none_or(|value| trajectory.short_term_goal.as_deref() == Some(value));
-    let event_waypoints: BTreeSet<&str> = events
+    let event_waypoints: BTreeSet<&str> = active_events
         .iter()
         .filter(|event| event.level == TrajectoryLadderLevel::Waypoint)
         .filter_map(|event| event.object_id.as_deref())
@@ -4932,10 +4993,12 @@ fn build_trajectory_guard(
     };
     let hlt_version = events
         .iter()
-        .filter(|event| event.level == TrajectoryLadderLevel::Hlt)
-        .map(|event| event.hlt_version)
-        .max()
-        .unwrap_or(1);
+        .rev()
+        .find(|event| {
+            event.trajectory_id == trajectory.trajectory_id
+                && event.level == TrajectoryLadderLevel::Hlt
+        })
+        .map_or(1, |event| event.hlt_version);
     let no_placeholder_values = !guard_value_is_placeholder(&trajectory.long_term_goal)
         && trajectory
             .mid_level_goal
@@ -5043,6 +5106,12 @@ async fn trajectory_guard(
     Json(request): Json<TrajectoryGuardRequest>,
 ) -> (axum::http::StatusCode, Json<Value>) {
     let action = request.action.as_deref().unwrap_or("verify");
+    if !matches!(action, "verify" | "preview" | "migrate" | "repair") {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(json!({"status":"blocked","code":"UNSUPPORTED_GUARD_ACTION"})),
+        );
+    }
     let Some(requested_root) = request
         .project_root
         .as_deref()
@@ -5106,10 +5175,21 @@ async fn trajectory_guard(
             })
             .cloned()
     };
-    let events = state
-        .persistence
-        .read_trajectory_ladder_events(&project_root, request.continuity_id.as_deref(), 500)
-        .unwrap_or_default();
+    let events = match state.persistence.read_trajectory_ladder_events(
+        &project_root,
+        request.continuity_id.as_deref(),
+        500,
+    ) {
+        Ok(events) => events,
+        Err(error) => {
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    json!({"status":"blocked","code":"TRAJECTORY_LEDGER_READ_FAILED","error":error.to_string()}),
+                ),
+            );
+        }
+    };
     let (binding, mut guard) =
         build_trajectory_guard(&project_root, trajectory.as_ref(), &events, &marker);
     if let Some(expected) = request.expected_trajectory_id.as_deref()
@@ -5121,6 +5201,35 @@ async fn trajectory_guard(
         && guard.expected_hlt_version != expected
     {
         guard.status = TrajectoryIntegrityStatus::IntegrityRepairRequired;
+    }
+    // A recomputed READY guard is not a durable no-op when the marker still
+    // persists a stale red guard from a previously broken verifier.
+    let stored_guard_ready = marker
+        .pointer("/trajectory_integrity_guard/status")
+        .and_then(Value::as_str)
+        == Some("READY");
+    if action == "preview" {
+        let would_change = guard.status == TrajectoryIntegrityStatus::MigrationRequired
+            || (guard.status == TrajectoryIntegrityStatus::Ready && !stored_guard_ready);
+        let can_apply = matches!(
+            guard.status,
+            TrajectoryIntegrityStatus::Ready | TrajectoryIntegrityStatus::MigrationRequired
+        );
+        return (
+            axum::http::StatusCode::OK,
+            Json(json!({
+                "status": if can_apply { "preview_ready" } else { "blocked" },
+                "canonical": true,
+                "action": "preview",
+                "project_root": project_root,
+                "trajectory_binding": binding,
+                "trajectory_integrity_guard": guard,
+                "would_write_marker": would_change,
+                "would_create_backup": would_change,
+                "would_append_event": would_change,
+                "side_effects": false,
+            })),
+        );
     }
     let mut backup_ref = None;
     let mut receipt_ref = None;
@@ -5137,6 +5246,31 @@ async fn trajectory_guard(
                 Json(json!({"status":"blocked","code":"HLT_IMPASSE","guard":guard})),
             );
         };
+        // A marker-only repair is safe after semantic verification; it cannot
+        // reconcile an inconsistent goal projection or a caller identity mismatch.
+        // Reject before backup, marker write, or ledger append.
+        if !matches!(
+            guard.status,
+            TrajectoryIntegrityStatus::Ready | TrajectoryIntegrityStatus::MigrationRequired
+        ) {
+            return (
+                axum::http::StatusCode::CONFLICT,
+                Json(
+                    json!({"status":"blocked","code":"TRAJECTORY_RECONCILIATION_REQUIRED","guard":guard}),
+                ),
+            );
+        }
+        if guard.status == TrajectoryIntegrityStatus::Ready && stored_guard_ready {
+            return (
+                axum::http::StatusCode::OK,
+                Json(json!({
+                    "status":"completed", "action":action, "idempotent_no_op":true,
+                    "trajectory_binding":binding, "trajectory_integrity_guard":guard,
+                    "marker_path":marker_path,
+                })),
+            );
+        }
+        let original_marker = marker.clone();
         let backup = canonical_root.join(format!(".focusa-project.json.backup-{}", Uuid::now_v7()));
         if let Err(error) = fs::copy(&marker_path, &backup) {
             return (
@@ -5144,6 +5278,19 @@ async fn trajectory_guard(
                 Json(
                     json!({"status":"blocked","code":"MARKER_BACKUP_FAILED","error":error.to_string()}),
                 ),
+            );
+        }
+        if let Err(error) = preserve_file_metadata(&marker_path, &backup) {
+            let cleanup = fs::remove_file(&backup)
+                .err()
+                .map(|reason| reason.to_string());
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "status":if cleanup.is_some() { "partial_migration" } else { "blocked" },
+                    "code":"MARKER_BACKUP_METADATA_FAILED", "error":error,
+                    "backup_ref":backup, "cleanup_error":cleanup,
+                })),
             );
         }
         backup_ref = Some(backup.to_string_lossy().to_string());
@@ -5173,9 +5320,16 @@ async fn trajectory_guard(
             );
         }
         if let Err(error) = write_json_file_atomic(&marker_path, &marker) {
+            let changed = read_json_value(&marker_path).as_ref() != Some(&original_marker);
+            let rollback = changed.then(|| write_json_file_atomic(&marker_path, &original_marker));
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"status":"blocked","code":"MARKER_WRITE_FAILED","error":error})),
+                Json(json!({
+                    "status":if rollback.as_ref().is_some_and(Result::is_err) { "partial_migration" } else { "blocked" },
+                    "code":"MARKER_WRITE_FAILED", "error":error, "backup_ref":backup_ref,
+                    "marker_rollback":if rollback.as_ref().is_some_and(Result::is_err) { "failed" } else if changed { "completed" } else { "not_needed" },
+                    "rollback_error":rollback.and_then(Result::err),
+                })),
             );
         }
         let event = TrajectoryLadderEvent {
@@ -5210,11 +5364,17 @@ async fn trajectory_guard(
             timestamp: Utc::now(),
         };
         if let Err(error) = state.persistence.append_trajectory_ladder_events(&[event]) {
+            // Append errors can have an uncertain ledger effect. Restore the marker
+            // atomically, but require explicit ledger reconciliation before retry.
+            let rollback = write_json_file_atomic(&marker_path, &original_marker);
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    json!({"status":"blocked","code":"TRAJECTORY_LEDGER_WRITE_FAILED","error":error.to_string(),"backup_ref":backup_ref}),
-                ),
+                Json(json!({
+                    "status":"partial_migration", "code":"TRAJECTORY_LEDGER_WRITE_FAILED",
+                    "error":error.to_string(), "backup_ref":backup_ref,
+                    "marker_rollback":if rollback.is_ok() { "completed" } else { "failed" },
+                    "rollback_error":rollback.err(), "ledger_effect":"unknown",
+                })),
             );
         }
         receipt_ref = Some(receipt);
@@ -7066,6 +7226,235 @@ mod tests {
     }
 
     #[test]
+    fn trajectory_guard_ignores_superseded_trajectory_events() {
+        let current = TrajectoryProjectionRecord {
+            trajectory_id: "trajectory:current".to_string(),
+            long_term_goal: "Current goal".to_string(),
+            mid_level_goal: Some("Current middle".to_string()),
+            short_term_goal: Some("Current short".to_string()),
+            waypoints: vec![focusa_core::types::TrajectoryWaypointRecord {
+                waypoint_id: "current:waypoint".to_string(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let mut old_goal = guard_test_event(
+            TrajectoryLadderLevel::Hlt,
+            "old-goal",
+            None,
+            None,
+            json!("Old goal"),
+            1,
+        );
+        old_goal.trajectory_id = "trajectory:previous".to_string();
+        let mut old_waypoint = guard_test_event(
+            TrajectoryLadderLevel::Waypoint,
+            "old-waypoint",
+            Some("old-goal"),
+            Some("old:waypoint"),
+            json!("Old waypoint"),
+            2,
+        );
+        old_waypoint.trajectory_id = "trajectory:previous".to_string();
+        let mut current_goal = guard_test_event(
+            TrajectoryLadderLevel::Hlt,
+            "current-goal",
+            Some("old-waypoint"),
+            None,
+            json!("Current goal"),
+            3,
+        );
+        current_goal.trajectory_id = current.trajectory_id.clone();
+        let mut current_waypoint = guard_test_event(
+            TrajectoryLadderLevel::Waypoint,
+            "current-waypoint",
+            Some("current-goal"),
+            Some("current:waypoint"),
+            json!("Current waypoint"),
+            4,
+        );
+        current_waypoint.trajectory_id = current.trajectory_id.clone();
+        let events = vec![old_goal, old_waypoint, current_goal, current_waypoint];
+        assert!(projection_matches_ladder_events(&current, &events));
+        assert!(trajectory_causal_chain_valid(&events));
+        let mut mismatched = current;
+        mismatched.waypoints.clear();
+        assert!(!projection_matches_ladder_events(&mismatched, &events));
+    }
+
+    #[test]
+    fn trajectory_guard_ignores_prior_hlt_version_of_same_trajectory() {
+        let trajectory = TrajectoryProjectionRecord {
+            trajectory_id: "trajectory:test".to_string(),
+            long_term_goal: "Current".to_string(),
+            waypoints: vec![focusa_core::types::TrajectoryWaypointRecord {
+                waypoint_id: "current:waypoint".to_string(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let previous_goal = guard_test_event(
+            TrajectoryLadderLevel::Hlt,
+            "old-hlt",
+            None,
+            None,
+            json!("Previous"),
+            1,
+        );
+        let previous_waypoint = guard_test_event(
+            TrajectoryLadderLevel::Waypoint,
+            "old-waypoint",
+            Some("old-hlt"),
+            Some("previous:waypoint"),
+            json!("Previous waypoint"),
+            2,
+        );
+        let mut current_goal = guard_test_event(
+            TrajectoryLadderLevel::Hlt,
+            "new-hlt",
+            Some("old-waypoint"),
+            None,
+            json!("Current"),
+            3,
+        );
+        current_goal.hlt_version = 2;
+        let mut current_waypoint = guard_test_event(
+            TrajectoryLadderLevel::Waypoint,
+            "new-waypoint",
+            Some("new-hlt"),
+            Some("current:waypoint"),
+            json!("Current waypoint"),
+            4,
+        );
+        current_waypoint.hlt_version = 2;
+        assert!(projection_matches_ladder_events(
+            &trajectory,
+            &[
+                previous_goal,
+                previous_waypoint,
+                current_goal,
+                current_waypoint
+            ]
+        ));
+    }
+
+    #[test]
+    fn trajectory_guard_reconciles_historical_events_before_marker_migration() {
+        let waypoint = focusa_core::types::TrajectoryWaypointRecord {
+            waypoint_id: "current:waypoint".to_string(),
+            title: "Current waypoint".to_string(),
+            ..Default::default()
+        };
+        let trajectory = TrajectoryProjectionRecord {
+            trajectory_id: "trajectory:current".to_string(),
+            project_root: Some("/tmp/focusa-test".to_string()),
+            continuity_id: Some("continuity:test".to_string()),
+            long_term_goal: "Ship Focusa".to_string(),
+            mid_level_goal: Some("Build the Ladder".to_string()),
+            short_term_goal: Some("Verify marker guard".to_string()),
+            waypoints: vec![waypoint.clone()],
+            ..Default::default()
+        };
+        let mut events = Vec::new();
+        let mut parent: Option<String> = None;
+        for index in 1..=3 {
+            let hlt_id = format!("old-hlt-{index}");
+            let waypoint_id = format!("old-waypoint-{index}");
+            let trajectory_id = format!("trajectory:previous-{index}");
+            let mut old_hlt = guard_test_event(
+                TrajectoryLadderLevel::Hlt,
+                &hlt_id,
+                parent.as_deref(),
+                None,
+                json!("Prior goal"),
+                index * 2 - 1,
+            );
+            old_hlt.trajectory_id = trajectory_id.clone();
+            let mut old_waypoint = guard_test_event(
+                TrajectoryLadderLevel::Waypoint,
+                &waypoint_id,
+                Some(&hlt_id),
+                Some(&format!("previous:{index}:waypoint")),
+                json!("Prior waypoint"),
+                index * 2,
+            );
+            old_waypoint.trajectory_id = trajectory_id;
+            events.extend([old_hlt, old_waypoint]);
+            parent = Some(waypoint_id);
+        }
+        let mut current = vec![
+            guard_test_event(
+                TrajectoryLadderLevel::Hlt,
+                "new-hlt",
+                parent.as_deref(),
+                None,
+                json!("Ship Focusa"),
+                7,
+            ),
+            guard_test_event(
+                TrajectoryLadderLevel::Mlg,
+                "new-mlg",
+                Some("new-hlt"),
+                None,
+                json!("Build the Ladder"),
+                8,
+            ),
+            guard_test_event(
+                TrajectoryLadderLevel::Stg,
+                "new-stg",
+                Some("new-mlg"),
+                None,
+                json!("Verify marker guard"),
+                9,
+            ),
+            guard_test_event(
+                TrajectoryLadderLevel::Waypoint,
+                "new-waypoint",
+                Some("new-stg"),
+                Some("current:waypoint"),
+                json!(waypoint),
+                10,
+            ),
+        ];
+        for event in &mut current {
+            event.trajectory_id = trajectory.trajectory_id.clone();
+            event.hlt_version = 2;
+        }
+        events.extend(current);
+        let (binding, before_migration) = build_trajectory_guard(
+            "/tmp/focusa-test",
+            Some(&trajectory),
+            &events,
+            &json!({"schema":"focusa.project.v1","project_id":"focusa"}),
+        );
+        assert_eq!(
+            before_migration.status,
+            TrajectoryIntegrityStatus::MigrationRequired
+        );
+        assert!(before_migration.causal_chain_valid);
+        assert!(before_migration.projection_matches_ledger);
+        assert_eq!(
+            binding.as_ref().map(|value| value.active_hlt_version),
+            Some(2)
+        );
+        let marker_v2 = json!({
+            "schema":"focusa.project.v2", "project_id":"focusa",
+            "trajectory_binding": binding,
+        });
+        let (_, verified) =
+            build_trajectory_guard("/tmp/focusa-test", Some(&trajectory), &events, &marker_v2);
+        assert_eq!(verified.status, TrajectoryIntegrityStatus::Ready);
+        let mut mismatched = trajectory;
+        mismatched.waypoints[0].waypoint_id = "different:waypoint".to_string();
+        let (_, rejected) =
+            build_trajectory_guard("/tmp/focusa-test", Some(&mismatched), &events, &marker_v2);
+        assert_eq!(
+            rejected.status,
+            TrajectoryIntegrityStatus::IntegrityRepairRequired
+        );
+    }
+
+    #[test]
     fn trajectory_guard_fails_closed_for_placeholder_and_broken_causality() {
         let trajectory = TrajectoryProjectionRecord {
             trajectory_id: "trajectory:test".to_string(),
@@ -7093,6 +7482,41 @@ mod tests {
         assert_eq!(guard.status, TrajectoryIntegrityStatus::HltImpasse);
         assert!(!guard.no_placeholder_values);
         assert!(!guard.causal_chain_valid);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn trajectory_guard_preserves_marker_owner_group_and_mode() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt, chown};
+        let root = std::env::temp_dir().join(format!("focusa-marker-owner-{}", Uuid::now_v7()));
+        fs::create_dir_all(&root).unwrap();
+        let marker = root.join(".focusa-project.json");
+        fs::write(&marker, "{}\n").unwrap();
+        fs::set_permissions(&marker, fs::Permissions::from_mode(0o640)).unwrap();
+        if fs::metadata(&marker).unwrap().uid() == 0 {
+            // A root-run test models an unprivileged account's existing marker.
+            chown(&marker, Some(65534), Some(65534)).unwrap();
+        }
+        let before = fs::metadata(&marker).unwrap();
+        write_json_file_atomic(&marker, &json!({"schema":"focusa.project.v2"})).unwrap();
+        let after = fs::metadata(&marker).unwrap();
+        assert_eq!(
+            (after.uid(), after.gid(), after.mode() & 0o777),
+            (before.uid(), before.gid(), before.mode() & 0o777)
+        );
+        let backup = root.join(".focusa-project.json.backup-test");
+        fs::copy(&marker, &backup).unwrap();
+        preserve_file_metadata(&marker, &backup).unwrap();
+        let backup_metadata = fs::metadata(&backup).unwrap();
+        assert_eq!(
+            (
+                backup_metadata.uid(),
+                backup_metadata.gid(),
+                backup_metadata.mode() & 0o777
+            ),
+            (before.uid(), before.gid(), before.mode() & 0o777)
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

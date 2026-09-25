@@ -142,7 +142,7 @@ The canonical marker schema adds:
 
 Guard states: `READY`, `HLT_IMPASSE`, `ONBOARDING_REQUIRED`, `TRAJECTORY_REVIEW_REQUIRED`, `CONFLICTED`, `MIGRATION_REQUIRED`, `INTEGRITY_REPAIR_REQUIRED`, `ARCHIVED`.
 
-The guard runs at bootstrap commit, project switch, session start/resume, compaction recovery, before durable mutation/release, and after sync/migration/repair/external change. It diagnoses from committed records and never generates Ladder content.
+The guard runs at bootstrap commit, project switch, session start/resume, compaction recovery, before durable mutation/release, and after sync/migration/repair/external change. It diagnoses from committed records and never generates Ladder content. For projection comparison, only events belonging to the active trajectory and its current HLT version attest the current goal and waypoint set; superseded history remains in the immutable ledger and digest, not the active waypoint requirement. A side-effect-free `preview` reports whether migration would create a backup, rewrite the marker and append a ledger event. Marker-only migration/repair rejects a semantic mismatch before those effects; a second confirmed call on a matching guard is a no-op. Existing marker and backup ownership and mode remain unchanged. If a ledger append has an uncertain effect, the response identifies a partial migration, its backup and marker rollback result; ledger reconciliation is required before retry. The operator must reconcile a mismatched projection or its producer instead of repeating repair.
 
 ## 6. Project Genesis transaction
 
