@@ -20,16 +20,16 @@ http_code() {
   curl -sS \
     -H "x-scope-project-root: ${SCOPE_ROOT}" \
     -H "x-scope-continuity-id: channel-contract" \
-    -o /tmp/focusa-channel-body.json -w "%{http_code}" "$@"
+    -o "$CHANNEL_BODY" -w "%{http_code}" "$@"
 }
 
 json_assert() {
   local expr="$1"
   local desc="$2"
-  if jq -e "$expr" /tmp/focusa-channel-body.json >/dev/null 2>&1; then
+  if jq -e "$expr" "$CHANNEL_BODY" >/dev/null 2>&1; then
     log_pass "$desc"
   else
-    log_fail "$desc :: $(cat /tmp/focusa-channel-body.json)"
+    log_fail "$desc :: $(cat "$CHANNEL_BODY")"
   fi
 }
 
@@ -43,6 +43,7 @@ source "$REPO_ROOT/tests/fixtures/admitted-project-scope.sh"
 focusa_test_scope_create "$BASE_URL" channel-contract
 trap focusa_test_scope_cleanup EXIT
 SCOPE_ROOT="$FOCUSA_FIXTURE_ROOT"
+CHANNEL_BODY="$(mktemp "${FOCUSA_FIXTURE_ROOT}/channel-body.XXXXXXXX.json")"
 
 log_info "Health + seed internal event"
 code=$(http_code "${BASE_URL}/v1/health")
@@ -83,10 +84,10 @@ fi
 
 code=$(http_code "${BASE_URL}/v1/health")
 if [ "$code" = "200" ]; then
-  if jq -e 'tostring | test("MemoryDecayTick|IntuitionSignal|CandidateSurfaced|Intuition"; "i") | not' /tmp/focusa-channel-body.json >/dev/null 2>&1; then
+  if jq -e 'tostring | test("MemoryDecayTick|IntuitionSignal|CandidateSurfaced|Intuition"; "i") | not' "$CHANNEL_BODY" >/dev/null 2>&1; then
     log_pass "Visible channel does not echo internal event names"
   else
-    log_fail "Visible channel leaked internal event markers :: $(cat /tmp/focusa-channel-body.json)"
+    log_fail "Visible channel leaked internal event markers :: $(cat "$CHANNEL_BODY")"
   fi
 else
   log_fail "Health fetch failed during anti-echo check"
