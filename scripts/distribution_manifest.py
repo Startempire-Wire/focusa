@@ -77,6 +77,7 @@ COMPONENT_PATHS: dict[str, tuple[str, ...]] = {
         "tests/154-focusa-canonical-all-platform-release-test.sh",
         "tests/154_focusa_canonical_release_assets_test.py",
         "tests/distribution_manifest_contract_test.py",
+        "tests/release_manifest_freshness_test.py",
         "tests/release_deploy_automation_static_test.sh",
         "tests/release_authority_root_embedding_test.py",
         "tests/release_deploy_proof_test.py",

@@ -33,14 +33,15 @@ node scripts/validate-docs-runtime-parity.mjs || { echo "FAIL docs/runtime parit
 echo "version surfaces: PASS"
 
 echo "=== local preflight: distribution-manifest freshness (continually fresh) ==="
-python3 << 'PYFRESH'
-import hashlib, json, pathlib, subprocess, sys, datetime
+PREFLIGHT_STRICT="$STRICT" python3 << 'PYFRESH'
+import hashlib, json, pathlib, subprocess, sys, datetime, os, re
 root = pathlib.Path(".")
 mp = root / "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json"
 m = json.loads(mp.read_text())
 head_short = subprocess.check_output(["git","rev-parse","--short","HEAD"]).decode().strip()
-head_full = subprocess.check_output(["git","rev-parse","HEAD"]).decode().strip()
-head_parent = subprocess.check_output(["git","rev-parse","--short","HEAD~1"]).decode().strip() if subprocess.call(["git","rev-parse","--verify","HEAD~1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)==0 else head_short
+head_full = subprocess.check_output(["git","rev-parse","--verify","HEAD^{commit}"]).decode().strip()
+parent = subprocess.run(["git","rev-parse","--verify","HEAD~1^{commit}"], capture_output=True, text=True)
+head_parent = parent.stdout.strip() if parent.returncode == 0 else None
 cargo_v = None
 for line in (root/"Cargo.toml").read_text().splitlines():
     if line.strip().startswith("version"):
@@ -49,23 +50,33 @@ for line in (root/"Cargo.toml").read_text().splitlines():
 if m.get("release_version") != cargo_v:
     print(f"FAIL release_version {m.get('release_version')} != Cargo {cargo_v}", file=sys.stderr)
     sys.exit(1)
-manifest_touched = "distribution-manifest.json" in subprocess.check_output(["git","diff","--name-only","HEAD~1","HEAD"]).decode() if head_parent != head_short else False
-# FAST (pre-push) allows manifest to be at any ancestor — only STRICT release requires HEAD/parent.
-# This removes agent from every non-release docs push (no need to bump manifest on ci/docs commits).
-fast_mode = subprocess.call(["git","rev-parse","--verify","HEAD~10"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)==0 and "PREFLIGHT_FAST" in __import__("os").environ
+manifest_touched = bool(head_parent) and mp.as_posix() in subprocess.check_output(
+    ["git", "diff", "--name-only", "-z", head_parent, head_full, "--", mp.as_posix()]
+).decode().split("\0")
+# Display abbreviations vary with clone contents and core.abbrev. Resolve an
+# unambiguous object ID, never a branch/tag with a hexadecimal-looking name.
 source_commit = m.get("source_commit")
-if source_commit not in (head_short, head_full, head_full[:7], head_parent):
-    if manifest_touched and source_commit == head_parent:
-        pass
-    elif fast_mode:
-        # allow any ancestor in fast mode — check is-ancestor
-        is_anc = subprocess.call(["git","merge-base","--is-ancestor", source_commit, "HEAD"]) == 0
-        if not is_anc:
-            print(f"FAIL stale source_commit {source_commit} not ancestor of HEAD {head_short} (touched={manifest_touched})", file=sys.stderr)
-            sys.exit(1)
-    else:
-        print(f"FAIL stale source_commit {source_commit} != HEAD {head_short} nor parent {head_parent} (touched={manifest_touched})", file=sys.stderr)
-        sys.exit(1)
+if not isinstance(source_commit, str) or not re.fullmatch(r"[0-9a-f]{7,40}", source_commit):
+    print(f"FAIL source_commit {source_commit!r} is not a Git object identifier", file=sys.stderr)
+    sys.exit(1)
+objects = subprocess.check_output(["git", "rev-parse", "--disambiguate=" + source_commit]).decode().splitlines()
+if len(objects) != 1:
+    print(f"FAIL source_commit {source_commit} is missing or ambiguous", file=sys.stderr)
+    sys.exit(1)
+source_full = objects[0]
+if subprocess.check_output(["git", "cat-file", "-t", source_full]).decode().strip() != "commit":
+    print(f"FAIL source_commit {source_commit} does not identify a commit", file=sys.stderr)
+    sys.exit(1)
+# FAST pre-push permits ancestors; --strict always requires HEAD or its parent
+# with this exact manifest touched in HEAD, even when PREFLIGHT_FAST is set.
+fast_mode = os.environ.get("PREFLIGHT_FAST") == "1" and os.environ.get("PREFLIGHT_STRICT") != "1"
+fresh = source_full == head_full or (manifest_touched and source_full == head_parent)
+if not fresh and fast_mode:
+    fresh = subprocess.call(["git", "merge-base", "--is-ancestor", source_full, head_full]) == 0
+if not fresh:
+    print(f"FAIL stale source_commit {source_commit} ({source_full}) for HEAD {head_full} "
+          f"parent={head_parent} touched={manifest_touched} fast={fast_mode}", file=sys.stderr)
+    sys.exit(1)
 for rel, expected in m.get("artifacts",{}).items():
     p = root / rel
     if not p.exists():

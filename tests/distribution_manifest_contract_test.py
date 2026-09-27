@@ -6,6 +6,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -15,6 +17,8 @@ spec = importlib.util.spec_from_file_location("focusa_distribution_manifest", MO
 assert spec and spec.loader
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+
+subprocess.run([sys.executable, str(ROOT / "tests/release_manifest_freshness_test.py")], check=True)
 
 publisher = (ROOT / "scripts/create-dev-release-tag.sh").read_text(encoding="utf-8")
 assert publisher.index('  scripts/stamp-release-version "${VERSION}"') < publisher.index('  scripts/stamp-menubar-version.py "${TAG}"'), "release marker must precede final component digests"

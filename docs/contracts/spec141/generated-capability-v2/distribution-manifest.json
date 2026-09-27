@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.198",
-  "source_commit": "be388ab643f",
-  "generated_at": "2026-09-25T18:30:16.316771Z",
+  "source_commit": "ac881da",
+  "generated_at": "2026-09-27T23:40:48.211095Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:31caf9c1f1f9a0a5365044c7ff33582fd778ed84e99b350ba9768a36ed198017",
@@ -77,8 +77,8 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:c73f5332a8fe663a5fb71eb315cf206315af01b99f168de16b5985320e7a3d9a",
-      "file_count": 35,
+      "sha256": "sha256:bb188689229442c300973b3fe06e7131422cf314c4ed077513a4d6e79bbbc743",
+      "file_count": 36,
       "source_paths": [
         ".appveyor.yml",
         "codemagic.yaml",
@@ -104,6 +104,7 @@
         "tests/154-focusa-canonical-all-platform-release-test.sh",
         "tests/154_focusa_canonical_release_assets_test.py",
         "tests/distribution_manifest_contract_test.py",
+        "tests/release_manifest_freshness_test.py",
         "tests/release_deploy_automation_static_test.sh",
         "tests/release_authority_root_embedding_test.py",
         "tests/release_deploy_proof_test.py",
