@@ -13,6 +13,8 @@
 #   scripts/create-dev-release-tag.sh --base 0.9 --push
 # Publish an exact stable or preview tag:
 #   scripts/create-dev-release-tag.sh --tag v0.9.136 --push
+# Independent waits: --ci-timeout 1200; --release-timeout 10800 (1..86400 seconds).
+# Release covers 150-minute external receipt jobs plus 30 minutes of margin.
 # Canonical journal mode: auto (default), required, or off.
 #   FOCUSA_RELEASE_JOURNAL_MODE=required scripts/create-dev-release-tag.sh --tag v0.9.136 --push
 
@@ -26,6 +28,7 @@ DRY_RUN=0
 WAIT_CI=1
 WAIT_DEPLOY=1
 CI_TIMEOUT_SECS=1200
+RELEASE_TIMEOUT_SECS=10800
 FORCE_RELEASE=0
 RELEASE_REASON=""
 RELEASE_JOURNAL_MODE="${FOCUSA_RELEASE_JOURNAL_MODE:-auto}"
@@ -66,7 +69,11 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --ci-timeout)
-      CI_TIMEOUT_SECS="${2:?--ci-timeout requires seconds (default 1200; keep release path within 15-20 minutes unless GitHub is degraded)}"
+      CI_TIMEOUT_SECS="${2:?--ci-timeout requires seconds (default 1200 for source CI and deploy)}"
+      shift 2
+      ;;
+    --release-timeout)
+      RELEASE_TIMEOUT_SECS="${2:?--release-timeout requires seconds (default 10800, range 1..86400)}"
       shift 2
       ;;
     --wait-deploy)
@@ -78,7 +85,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h|--help)
-      sed -n '1,18p' "$0"
+      sed -n '1,20p' "$0"
       exit 0
       ;;
     *)
@@ -105,6 +112,10 @@ fi
 
 if ! [[ "$CI_TIMEOUT_SECS" =~ ^[0-9]+$ ]]; then
   echo "Invalid --ci-timeout '$CI_TIMEOUT_SECS'; expected seconds" >&2
+  exit 2
+fi
+if ! [[ "$RELEASE_TIMEOUT_SECS" =~ ^[1-9][0-9]{0,4}$ ]] || (( RELEASE_TIMEOUT_SECS > 86400 )); then
+  echo "Invalid --release-timeout '$RELEASE_TIMEOUT_SECS'; expected 1..86400 seconds" >&2
   exit 2
 fi
 
@@ -224,6 +235,7 @@ watch_workflow_run_bounded() {
   local workflow="$1"
   local run_id="$2"
   local deadline="$3"
+  local timeout_secs="${4:-$CI_TIMEOUT_SECS}"
   local started=$SECONDS
   local next_heartbeat=$SECONDS
   local previous_digest=""
@@ -258,7 +270,7 @@ watch_workflow_run_bounded() {
     sleep 10
   done
 
-  echo "workflow_timeout name=${workflow} run_id=${run_id} timeout_s=${CI_TIMEOUT_SECS}" >&2
+  echo "workflow_timeout name=${workflow} run_id=${run_id} timeout_s=${timeout_secs}" >&2
   gh run view "$run_id" --json url,jobs --jq '"run_url=" + .url, (.jobs[] | "job=" + .name + " status=" + .status + " conclusion=" + (.conclusion // "pending"))' >&2 || true
   return 1
 }
@@ -267,7 +279,12 @@ wait_for_workflow() {
   local workflow="$1"
   local head_sha="$2"
   local head_branch="${3:-}"
-  local deadline=$((SECONDS + CI_TIMEOUT_SECS))
+  local timeout_secs="$CI_TIMEOUT_SECS"
+  if [[ "$workflow" == "Release" ]]; then
+    timeout_secs="$RELEASE_TIMEOUT_SECS"
+  fi
+  # Discovery and execution consume one fixed deadline; never renew on discovery.
+  local deadline=$((SECONDS + timeout_secs))
   local run_id=""
 
   if ! command -v gh >/dev/null 2>&1; then
@@ -275,7 +292,7 @@ wait_for_workflow() {
     exit 1
   fi
 
-  echo "workflow_discovery name=${workflow} timeout_s=${CI_TIMEOUT_SECS} sha=${head_sha:0:7}${head_branch:+ head_branch=$head_branch}"
+  echo "workflow_discovery name=${workflow} timeout_s=${timeout_secs} sha=${head_sha:0:7}${head_branch:+ head_branch=$head_branch}"
   while [[ $SECONDS -lt $deadline ]]; do
     if [[ -n "$head_branch" ]]; then
       run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 10 --json databaseId,headBranch 2>/dev/null \
@@ -286,14 +303,14 @@ wait_for_workflow() {
     fi
     if [[ -n "$run_id" ]]; then
       echo "workflow_discovered name=${workflow} run_id=${run_id} url=https://github.com/Startempire-Wire/focusa/actions/runs/${run_id}"
-      watch_workflow_run_bounded "$workflow" "$run_id" "$deadline"
+      watch_workflow_run_bounded "$workflow" "$run_id" "$deadline" "$timeout_secs"
       return $?
     fi
-    echo "workflow_discovery_heartbeat name=${workflow} elapsed_s=$((CI_TIMEOUT_SECS - (deadline - SECONDS))) status=not_found"
+    echo "workflow_discovery_heartbeat name=${workflow} elapsed_s=$((timeout_secs - (deadline - SECONDS))) status=not_found"
     sleep 10
   done
 
-  echo "workflow_discovery_timeout name=${workflow} sha=${head_sha} timeout_s=${CI_TIMEOUT_SECS}" >&2
+  echo "workflow_discovery_timeout name=${workflow} sha=${head_sha} timeout_s=${timeout_secs}" >&2
   exit 1
 }
 

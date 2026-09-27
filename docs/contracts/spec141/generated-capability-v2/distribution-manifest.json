@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.198",
-  "source_commit": "2e9efa0",
-  "generated_at": "2026-09-27T23:51:15.492361Z",
+  "source_commit": "b71b5fb",
+  "generated_at": "2026-09-27T23:59:12.911743Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:31caf9c1f1f9a0a5365044c7ff33582fd778ed84e99b350ba9768a36ed198017",
@@ -77,8 +77,8 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:747f04c199ad907a442c00184080d5d85daf97bbcd8da12828bec78ae983964e",
-      "file_count": 39,
+      "sha256": "sha256:a9c6964c365134502c0ee5f0676da32063883928fe7e5a42aa0d0dbb7a19b478",
+      "file_count": 41,
       "source_paths": [
         ".appveyor.yml",
         "codemagic.yaml",
@@ -91,6 +91,7 @@
         "scripts/audit-distribution-parity.mjs",
         "scripts/stamp-menubar-version.py",
         "scripts/local-release-preflight.sh",
+        "scripts/create-dev-release-tag.sh",
         "scripts/run-guardian-release-cleanup.sh",
         "scripts/verify-canonical-release-assets.py",
         "scripts/wait-for-external-release-assets.py",
@@ -106,6 +107,7 @@
         "tests/154_focusa_canonical_release_assets_test.py",
         "tests/distribution_manifest_contract_test.py",
         "tests/release_manifest_freshness_test.py",
+        "tests/release_workflow_deadline_test.py",
         "tests/release_temp_artifacts_test.py",
         "tests/channel_separation_test.sh",
         "tests/release_deploy_automation_static_test.sh",

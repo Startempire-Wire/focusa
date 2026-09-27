@@ -18,7 +18,11 @@ assert spec and spec.loader
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
-for regression in ("release_manifest_freshness_test.py", "release_temp_artifacts_test.py"):
+for regression in (
+    "release_manifest_freshness_test.py",
+    "release_temp_artifacts_test.py",
+    "release_workflow_deadline_test.py",
+):
     subprocess.run([sys.executable, str(ROOT / "tests" / regression)], check=True)
 
 publisher = (ROOT / "scripts/create-dev-release-tag.sh").read_text(encoding="utf-8")
