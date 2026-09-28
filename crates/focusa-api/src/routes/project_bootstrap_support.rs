@@ -168,18 +168,51 @@ pub(super) fn receipt_path(root: &Path) -> PathBuf {
 }
 
 pub(super) fn write_json_atomic(path: &Path, value: &Value) -> Result<(), String> {
+    publish_json(path, value, true)
+}
+
+/// Publish a new artifact without replacing a file that appeared after inspection.
+pub(super) fn create_json_atomic(path: &Path, value: &Value) -> Result<(), String> {
+    publish_json(path, value, false)
+}
+
+fn publish_json(path: &Path, value: &Value, replace: bool) -> Result<(), String> {
+    let bytes = serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?;
     let parent = path.parent().ok_or_else(|| "missing parent".to_string())?;
     fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     let temporary = parent.join(format!(".receipt-{}.tmp", Uuid::now_v7()));
-    let mut file = File::create(&temporary).map_err(|error| error.to_string())?;
-    file.write_all(&serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?)
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
         .map_err(|error| error.to_string())?;
-    file.write_all(b"\n").map_err(|error| error.to_string())?;
-    file.sync_all().map_err(|error| error.to_string())?;
-    fs::rename(temporary, path).map_err(|error| error.to_string())?;
+    let result = (|| -> std::io::Result<()> {
+        file.write_all(&bytes)?;
+        file.write_all(b"\n")?;
+        file.sync_all()?;
+        if replace {
+            fs::rename(&temporary, path)?;
+        } else {
+            // Same-directory hard-link publication is atomic and never clobbers
+            // an existing destination; unsupported filesystems fail closed.
+            fs::hard_link(&temporary, path)?;
+        }
+        Ok(())
+    })()
+    .map_err(|error| error.to_string());
+    drop(file);
+    if let Err(cleanup) = fs::remove_file(&temporary)
+        && cleanup.kind() != std::io::ErrorKind::NotFound
+    {
+        return Err(format!(
+            "{}; temporary cleanup: {cleanup}",
+            result.err().unwrap_or_else(|| "artifact published".into())
+        ));
+    }
     File::open(parent)
         .and_then(|directory| directory.sync_all())
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+    result
 }
 
 pub(super) fn read_json(path: &Path) -> Option<Value> {
@@ -264,6 +297,67 @@ pub(super) fn inspection(root: &Path, req: &ProjectBootstrapRequest) -> Value {
 #[cfg(test)]
 mod safety_tests {
     use super::*;
+
+    #[test]
+    fn new_json_artifact_publication_never_clobbers_existing_content() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("settings.json");
+        create_json_atomic(&path, &json!({"owner":"first"})).unwrap();
+        let before = fs::read(&path).unwrap();
+        assert!(create_json_atomic(&path, &json!({"owner":"second"})).is_err());
+        assert_eq!(fs::read(&path).unwrap(), before);
+        assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
+        write_json_atomic(&path, &json!({"owner":"updated receipt"})).unwrap();
+        assert_eq!(read_json(&path).unwrap()["owner"], "updated receipt");
+    }
+
+    #[test]
+    fn concurrent_json_creators_publish_exactly_one_winner() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("settings.json");
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(3));
+        let handles: Vec<_> = (0..2)
+            .map(|id| {
+                let path = path.clone();
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    (id, create_json_atomic(&path, &json!({"creator":id})))
+                })
+            })
+            .collect();
+        barrier.wait();
+        let results: Vec<_> = handles
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect();
+        let winners: Vec<_> = results
+            .iter()
+            .filter(|(_, result)| result.is_ok())
+            .collect();
+        assert_eq!(winners.len(), 1);
+        assert_eq!(read_json(&path).unwrap()["creator"], json!(winners[0].0));
+        assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn new_json_artifact_publication_preserves_destination_symlink() {
+        let root = tempfile::tempdir().unwrap();
+        let target = root.path().join("user-data");
+        let path = root.path().join("settings.json");
+        fs::write(&target, b"preserve user data").unwrap();
+        std::os::unix::fs::symlink(&target, &path).unwrap();
+        assert!(create_json_atomic(&path, &json!({"replacement":true})).is_err());
+        assert!(
+            fs::symlink_metadata(&path)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
+        assert_eq!(fs::read(&target).unwrap(), b"preserve user data");
+        assert_eq!(fs::read_dir(root.path()).unwrap().count(), 2);
+    }
 
     #[test]
     fn bootstrap_uses_shared_root_safety_for_existing_and_missing_paths() {

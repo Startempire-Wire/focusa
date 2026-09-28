@@ -206,6 +206,7 @@ async fn apply(
     let _lock = lock_transaction(&root)?;
     safety::validate_artifact_paths(&root)
         .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
+    validate_marker(&root, &req.project_id)?;
     let request_digest = safety::request_digest(json!(req), &root);
     if let Some(receipt) = read_receipt(&root)? {
         safety::validate_apply_receipt(&receipt, &root, &req.idempotency_key, &request_digest)
@@ -221,9 +222,8 @@ async fn apply(
         created.push("project_root".into());
     }
     let marker_path = root.join(".focusa-project.json");
-    validate_marker(&root, &req.project_id)?;
     if !marker_path.exists() {
-        write_json_atomic(&marker_path, &json!({
+        create_json_atomic(&marker_path, &json!({
             "schema":"focusa.project.v2", "project_id":req.project_id, "canonical_name":req.canonical_name,
             "project_root":root, "workspace_kind":"software_project", "created_at":Utc::now().to_rfc3339(),
         })).map_err(|error| reject(StatusCode::INTERNAL_SERVER_ERROR, "marker_create_failed", error))?;
@@ -231,7 +231,7 @@ async fn apply(
     }
     let settings = root.join(".focusa/settings.json");
     if !settings.exists() {
-        write_json_atomic(&settings, &json!({"schema":"focusa.project_settings.v1","discipline_profile":req.discipline_profile.as_deref().unwrap_or("standard_software_project")}))
+        create_json_atomic(&settings, &json!({"schema":"focusa.project_settings.v1","discipline_profile":req.discipline_profile.as_deref().unwrap_or("standard_software_project")}))
             .map_err(|error| reject(StatusCode::INTERNAL_SERVER_ERROR, "settings_create_failed", error))?;
         created.push(".focusa/settings.json".into());
     }
