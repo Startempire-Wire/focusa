@@ -20,6 +20,7 @@ pub mod bounded;
 pub mod browser_interop;
 pub mod call_stack;
 pub mod callgraph;
+mod callgraph_preflight;
 #[cfg(test)]
 mod callgraph_validation_test;
 pub mod capabilities;

@@ -10,13 +10,15 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use focusa_core::callgraph::{
-    Disposition, FocusaCallGraphDefinition, eligibility_for_frame, validate_graph,
+    Disposition, FocusaCallGraphDefinition, eligibility_for_frame,
+    eligibility_for_frame_with_adapters, validate_graph,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use super::callgraph_preflight::{preflight_stored_graph, registered_adapters};
 use crate::routes::project::require_scoped_north_star_mutation_admission;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
@@ -200,41 +202,7 @@ async fn preflight_run(
     let revision = body.revision;
     let result = tokio::task::spawn_blocking(move || -> anyhow::Result<Value> {
         let conn = rusqlite::Connection::open(path)?;
-        focusa_core::callgraph_store::ensure_schema(&conn)?;
-        let stored = focusa_core::callgraph_store::load_definition(&conn, &graph_id, revision)?;
-        let Some(stored) = stored else {
-            return Ok(json!({
-                "status": "rejected_missing_definition",
-                "graph_id": graph_id,
-                "revision": revision,
-            }));
-        };
-        let graph: FocusaCallGraphDefinition = serde_json::from_str(&stored.definition_json)
-            .map_err(|error| anyhow::anyhow!("stored definition unparsable: {error}"))?;
-        let report = validate_graph(&graph);
-        if !report.valid {
-            return Ok(json!({
-                "status": "rejected_invalid",
-                "issues": report.issues,
-            }));
-        }
-        let mut blockers = Vec::new();
-        for entry in &graph.entry_frame_ids {
-            let disposition =
-                eligibility_for_frame(&graph, entry, None, &std::collections::HashSet::new());
-            if disposition != Disposition::Eligible {
-                blockers.push(json!({
-                    "frame_id": entry,
-                    "disposition": disposition,
-                }));
-            }
-        }
-        Ok(json!({
-            "status": if blockers.is_empty() { "preflighted" } else { "blocked" },
-            "graph_id": graph_id,
-            "revision": revision,
-            "blockers": blockers,
-        }))
+        preflight_stored_graph(&conn, &graph_id, revision)
     })
     .await;
     match result {
@@ -849,18 +817,15 @@ async fn control_run(
                 let mut blocked = Vec::new();
                 // Adapter registry: route each entry frame against the
                 // registered capability sets (slice 10).
-                let adapter_capabilities: Vec<focusa_core::callgraph::AdapterCapability> =
-                    focusa_core::adapter_registry::list_adapters(&conn)?
-                        .into_iter()
-                        .map(|record| focusa_core::callgraph::AdapterCapability {
-                            adapter_id: record.adapter_id,
-                            model: record.model,
-                            capabilities: record.capabilities,
-                            healthy: record.healthy,
-                        })
-                        .collect();
+                let adapter_capabilities = registered_adapters(&conn)?;
                 for entry in &graph.entry_frame_ids {
-                    let disposition = eligibility_for_frame(&graph, entry, None, &settled);
+                    let disposition = eligibility_for_frame_with_adapters(
+                        &graph,
+                        entry,
+                        None,
+                        &settled,
+                        &adapter_capabilities,
+                    );
                     if disposition != Disposition::Eligible {
                         blocked.push(json!({
                             "frame_id": entry,
