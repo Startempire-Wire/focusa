@@ -62,10 +62,10 @@ pub(super) fn validate_root(
 ) -> Result<PathBuf, (StatusCode, Json<Value>)> {
     let path = PathBuf::from(raw);
     if !path.is_absolute()
-        || path == Path::new("/")
-        || path == Path::new("/root")
-        || path == Path::new("/home")
-        || path == Path::new("/tmp")
+        || !focusa_core::scope_safety::classify_project_root(raw).is_safe()
+        || path
+            .components()
+            .any(|part| matches!(part, std::path::Component::ParentDir))
     {
         return Err(reject(
             StatusCode::BAD_REQUEST,
@@ -73,7 +73,13 @@ pub(super) fn validate_root(
             "project_root must be an explicit safe absolute child path",
         ));
     }
-    if path.exists() {
+    let resolved = if path.try_exists().map_err(|error| {
+        reject(
+            StatusCode::BAD_REQUEST,
+            "project_root_unavailable",
+            error.to_string(),
+        )
+    })? {
         fs::canonicalize(path).map_err(|error| {
             reject(
                 StatusCode::BAD_REQUEST,
@@ -82,14 +88,79 @@ pub(super) fn validate_root(
             )
         })
     } else if allow_missing {
-        Ok(path)
+        // Bind a not-yet-created leaf to its real existing ancestor rather than
+        // persisting a symlink alias as a second project identity.
+        let mut ancestor = path.as_path();
+        let mut missing = Vec::new();
+        while !ancestor.try_exists().map_err(|error| {
+            reject(
+                StatusCode::BAD_REQUEST,
+                "project_root_unavailable",
+                error.to_string(),
+            )
+        })? {
+            missing.push(
+                ancestor
+                    .file_name()
+                    .ok_or_else(|| {
+                        reject(
+                            StatusCode::BAD_REQUEST,
+                            "unsafe_project_root",
+                            "missing safe parent",
+                        )
+                    })?
+                    .to_os_string(),
+            );
+            ancestor = ancestor.parent().ok_or_else(|| {
+                reject(
+                    StatusCode::BAD_REQUEST,
+                    "unsafe_project_root",
+                    "missing safe parent",
+                )
+            })?;
+        }
+        let mut resolved = fs::canonicalize(ancestor).map_err(|error| {
+            reject(
+                StatusCode::BAD_REQUEST,
+                "project_root_unavailable",
+                error.to_string(),
+            )
+        })?;
+        if !resolved.is_dir() {
+            return Err(reject(
+                StatusCode::BAD_REQUEST,
+                "project_root_not_directory",
+                "project root ancestor is not a directory",
+            ));
+        }
+        for component in missing.into_iter().rev() {
+            resolved.push(component);
+        }
+        Ok(resolved)
     } else {
         Err(reject(
             StatusCode::NOT_FOUND,
             "project_root_missing",
             "project root does not exist; preview/apply can create it",
         ))
+    }?;
+    if resolved.is_file() {
+        return Err(reject(
+            StatusCode::BAD_REQUEST,
+            "project_root_not_directory",
+            "project root is a file",
+        ));
     }
+    let rendered = resolved.to_string_lossy();
+    let safety = focusa_core::scope_safety::classify_project_root(&rendered);
+    if resolved.parent().is_none() || !safety.is_safe() {
+        return Err(reject(
+            StatusCode::BAD_REQUEST,
+            "unsafe_project_root",
+            format!("{}; {}", safety.human_kind(), safety.next_step_hint()),
+        ));
+    }
+    Ok(resolved)
 }
 
 pub(super) fn receipt_path(root: &Path) -> PathBuf {
@@ -188,4 +259,64 @@ pub(super) fn inspection(root: &Path, req: &ProjectBootstrapRequest) -> Value {
         "verification": ["marker guard", "local git has no remotes", "task provider health", "Genesis readiness", "first Workpoint"],
         "next_action": if wants_tasks && provider != "beads" { "supply an approved provider adapter" } else { "apply with confirm=true" },
     })
+}
+
+#[cfg(test)]
+mod safety_tests {
+    use super::*;
+
+    #[test]
+    fn bootstrap_uses_shared_root_safety_for_existing_and_missing_paths() {
+        for path in [
+            "/",
+            "/root",
+            "/home",
+            "/home/example-owner",
+            "/usr/local/bin",
+            "/tmp/../",
+        ] {
+            assert!(
+                validate_root(path, true).is_err(),
+                "accepted unsafe root {path}"
+            );
+        }
+        let root = tempfile::tempdir().unwrap();
+        let canonical = fs::canonicalize(root.path()).unwrap();
+        assert_eq!(
+            validate_root(root.path().to_str().unwrap(), false).unwrap(),
+            canonical
+        );
+        let child = root.path().join("new-project");
+        assert_eq!(
+            validate_root(child.to_str().unwrap(), true).unwrap(),
+            canonical.join("new-project")
+        );
+        assert!(!child.exists(), "root inspection must be read-only");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn aliases_cannot_bypass_shared_unsafe_root_classification() {
+        let root = tempfile::tempdir().unwrap();
+        let alias = root.path().join("alias");
+        std::os::unix::fs::symlink("/", &alias).unwrap();
+        assert!(validate_root(alias.to_str().unwrap(), false).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn missing_leaf_uses_canonical_parent_without_creating_it() {
+        let parent = tempfile::tempdir().unwrap();
+        let links = tempfile::tempdir().unwrap();
+        let alias = links.path().join("alias");
+        std::os::unix::fs::symlink(parent.path(), &alias).unwrap();
+        assert_eq!(
+            validate_root(alias.join("project").to_str().unwrap(), true).unwrap(),
+            parent.path().join("project")
+        );
+        assert!(!parent.path().join("project").exists());
+        let file = parent.path().join("file");
+        fs::write(&file, "not a directory").unwrap();
+        assert!(validate_root(file.to_str().unwrap(), false).is_err());
+    }
 }

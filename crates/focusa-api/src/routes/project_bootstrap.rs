@@ -11,24 +11,51 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
-use std::{
-    fs::{self, File, OpenOptions},
-    io::Write,
-    path::{Path, PathBuf},
-    process::Command,
-    sync::Arc,
-};
-use uuid::Uuid;
+use std::{fs, io, path::Path, process::Command, sync::Arc};
 
 use super::project_bootstrap_support::*;
+#[path = "project_bootstrap_safety.rs"]
+mod safety;
+
+fn lock_transaction(root: &Path) -> Result<safety::BootstrapLock, (StatusCode, Json<Value>)> {
+    safety::BootstrapLock::acquire(root).map_err(|error| {
+        let (status, code) = match error.kind() {
+            io::ErrorKind::WouldBlock => (StatusCode::CONFLICT, "bootstrap_in_progress"),
+            io::ErrorKind::PermissionDenied => {
+                (StatusCode::FORBIDDEN, "bootstrap_lock_permission_denied")
+            }
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "bootstrap_lock_io_failed",
+            ),
+        };
+        reject(status, code, error.to_string())
+    })
+}
+
+fn read_receipt(root: &Path) -> Result<Option<Value>, (StatusCode, Json<Value>)> {
+    let receipt = safety::read_receipt(&receipt_path(root))
+        .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_receipt_unreadable", error))?;
+    if receipt
+        .as_ref()
+        .is_some_and(|value| value["project_root"] != json!(root))
+    {
+        return Err(reject(
+            StatusCode::CONFLICT,
+            "receipt_scope_mismatch",
+            "receipt does not own this project root",
+        ));
+    }
+    Ok(receipt)
+}
 
 async fn preview(
     Json(req): Json<ProjectBootstrapRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let root = validate_root(&req.project_root, true)?;
+    safety::validate_artifact_paths(&root)
+        .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
     Ok(Json(inspection(&root, &req)))
 }
 
@@ -36,7 +63,7 @@ async fn status(
     Query(query): Query<ProjectBootstrapStatusQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let root = validate_root(&query.project_root, false)?;
-    let receipt = read_json(&receipt_path(&root));
+    let receipt = read_receipt(&root)?;
     Ok(Json(json!({
         "schema": "focusa.project_bootstrap_status.v1",
         "status": receipt.as_ref().and_then(|value| value.get("status")).and_then(Value::as_str).unwrap_or("not_started"),
@@ -49,7 +76,7 @@ async fn status(
             "tasks": root.join(".beads").is_dir(),
             "genesis": root.join(".focusa/genesis/packet.json").is_file(),
         },
-        "next_action": if receipt.is_some() { "continue from Project Genesis readiness" } else { "preview bootstrap" },
+        "next_action": safety::status_next_action(receipt.as_ref().and_then(|value| value["status"].as_str()).unwrap_or("not_started")),
     })))
 }
 
@@ -149,17 +176,6 @@ async fn apply(
         ));
     }
     let root = validate_root(&req.project_root, true)?;
-    if let Some(receipt) = read_json(&receipt_path(&root))
-        && receipt["idempotency_key"] == req.idempotency_key
-        && matches!(
-            receipt["status"].as_str(),
-            Some("ready" | "onboarding_required")
-        )
-    {
-        return Ok(Json(
-            json!({"replayed":true,"receipt":receipt,"status":receipt["status"]}),
-        ));
-    }
     let preview = inspection(&root, &req);
     if preview["status"] == "blocked" {
         return Err((StatusCode::PRECONDITION_FAILED, Json(preview)));
@@ -172,10 +188,19 @@ async fn apply(
             error.to_string(),
         )
     })?;
-    let lock_path = root.join(".focusa-bootstrap.lock");
-    let lock = OpenOptions::new().write(true).create_new(true).open(&lock_path).map_err(|_| {
-        reject(StatusCode::CONFLICT, "bootstrap_in_progress", "Another bootstrap transaction is active; inspect status or retry after it completes")
-    })?;
+    let _lock = lock_transaction(&root)?;
+    safety::validate_artifact_paths(&root)
+        .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
+    let request_digest = safety::request_digest(json!(req), &root);
+    if let Some(receipt) = read_receipt(&root)? {
+        safety::validate_apply_receipt(&receipt, &root, &req.idempotency_key, &request_digest)
+            .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_receipt_conflict", error))?;
+        if receipt["idempotency_key"] == req.idempotency_key {
+            return Ok(Json(
+                json!({"replayed":true,"receipt":receipt,"status":receipt["status"]}),
+            ));
+        }
+    }
     let mut created = Vec::new();
     if root_created {
         created.push("project_root".into());
@@ -311,8 +336,16 @@ async fn apply(
     } else {
         "onboarding_required"
     };
+    let artifact_snapshot = safety::snapshot(&root, &created).map_err(|error| {
+        reject(
+            StatusCode::CONFLICT,
+            "bootstrap_artifact_proof_failed",
+            error,
+        )
+    })?;
     let receipt = json!({
         "schema":"focusa.project_bootstrap_receipt.v1", "status":status,
+        "request_digest":request_digest, "created_artifact_snapshot":artifact_snapshot,
         "receipt_id":stable_receipt_id(&root,&req.idempotency_key), "idempotency_key":req.idempotency_key,
         "project_id":req.project_id, "canonical_name":req.canonical_name,
         "project_root":root, "marker_ref":marker_path, "identity_confidence":"high",
@@ -330,8 +363,6 @@ async fn apply(
             error,
         )
     })?;
-    drop(lock);
-    let _ = fs::remove_file(lock_path);
     Ok(Json(receipt))
 }
 
@@ -350,7 +381,8 @@ async fn repair(
         ));
     }
     let root = validate_root(&req.project_root, false)?;
-    let receipt = read_json(&receipt_path(&root)).ok_or_else(|| {
+    let _lock = lock_transaction(&root)?;
+    let mut receipt = read_receipt(&root)?.ok_or_else(|| {
         reject(
             StatusCode::NOT_FOUND,
             "receipt_missing",
@@ -364,40 +396,48 @@ async fn repair(
             "idempotency key does not own this bootstrap receipt",
         ));
     }
-    let created = receipt["created_by_this_transaction"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-    for item in created.iter().rev().filter_map(Value::as_str) {
-        let path = if item == "project_root" {
-            root.clone()
-        } else {
-            root.join(item)
-        };
-        if item == "project_root" {
-            continue;
-        }
-        if path.is_dir() {
-            fs::remove_dir_all(path).map_err(|error| {
-                reject(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "rollback_failed",
-                    error.to_string(),
-                )
-            })?;
-        } else if path.exists() {
-            fs::remove_file(path).map_err(|error| {
-                reject(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "rollback_failed",
-                    error.to_string(),
-                )
-            })?;
-        }
+    if receipt["project_root"] != json!(root) {
+        return Err(reject(
+            StatusCode::CONFLICT,
+            "receipt_scope_mismatch",
+            "receipt does not own this project root",
+        ));
     }
-    Ok(Json(
-        json!({"schema":"focusa.project_bootstrap_rollback.v1","status":"rolled_back","receipt_id":receipt["receipt_id"],"project_root":root,"preserved_adopted_state":true}),
-    ))
+    let replayed = receipt["status"] == "rolled_back";
+    if !replayed {
+        let plan = safety::rollback_plan(&root, &receipt)
+            .map_err(|error| reject(StatusCode::CONFLICT, "rollback_artifact_conflict", error))?;
+        // Persist the recovery boundary before any removal. Interrupted rollback
+        // can inspect missing entries without replaying a stale ready receipt.
+        receipt["status"] = json!("rolling_back");
+        write_json_atomic(&receipt_path(&root), &receipt).map_err(|error| {
+            reject(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "rollback_receipt_failed",
+                error,
+            )
+        })?;
+        for (relative, proof) in plan {
+            safety::remove_owned_entry(&root, &relative, &proof).map_err(|error| {
+                reject(StatusCode::CONFLICT, "rollback_artifact_conflict", error)
+            })?;
+        }
+        receipt["status"] = json!("rolled_back");
+        receipt["rolled_back_at"] = json!(Utc::now().to_rfc3339());
+        receipt["project_root_retained"] = json!(true);
+        write_json_atomic(&receipt_path(&root), &receipt).map_err(|error| {
+            reject(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "rollback_receipt_failed",
+                error,
+            )
+        })?;
+    }
+    Ok(Json(json!({
+        "schema":"focusa.project_bootstrap_rollback.v1", "status":"rolled_back",
+        "receipt_id":receipt["receipt_id"], "project_root":root, "replayed":replayed,
+        "project_root_retained":true, "preserved_adopted_state":true,
+    })))
 }
 
 pub fn router() -> Router<Arc<AppState>> {
