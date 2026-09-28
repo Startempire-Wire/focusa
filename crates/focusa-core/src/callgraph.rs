@@ -711,6 +711,48 @@ pub fn route_frame(frame: &FocusaCallFrame, adapters: &[AdapterCapability]) -> R
     RouteDecision::WaitingCapability
 }
 
+/// Evaluate registry-backed eligibility without granting predicates, authority,
+/// budgets, or Workpoint alignment merely because an adapter is registered.
+/// One healthy adapter must cover the entire frame, not a union across adapters.
+pub fn eligibility_for_frame_with_adapters(
+    graph: &FocusaCallGraphDefinition,
+    frame_id: &str,
+    parent_frame_id: Option<&str>,
+    settled_edges: &HashSet<String>,
+    adapters: &[AdapterCapability],
+) -> Disposition {
+    let healthy: Vec<_> = adapters.iter().filter(|adapter| adapter.healthy).collect();
+    let context = EligibilityContext {
+        available_capabilities: healthy
+            .iter()
+            .flat_map(|adapter| adapter.capabilities.iter().cloned())
+            .collect(),
+        healthy_adapters: healthy
+            .iter()
+            .map(|adapter| adapter.adapter_id.clone())
+            .collect(),
+        ..EligibilityContext::default()
+    };
+    let disposition = eligibility_for_frame_with_context(
+        graph,
+        frame_id,
+        parent_frame_id,
+        settled_edges,
+        &context,
+    );
+    if disposition != Disposition::Eligible {
+        return disposition;
+    }
+    let Some(frame) = graph.frames.iter().find(|frame| frame.frame_id == frame_id) else {
+        return Disposition::Rejected;
+    };
+    match route_frame(frame, adapters) {
+        RouteDecision::Routed { .. } => Disposition::Eligible,
+        RouteDecision::WaitingCapability => Disposition::WaitingCapability,
+        RouteDecision::Rejected => Disposition::Rejected,
+    }
+}
+
 /// Flow Mesh binding (§13.1): a typed execution binding for
 /// flowmesh_task frames — the controller preflights + executes through the
 /// binding; Flow Mesh persists its own events, Focusa stores the reference.
@@ -803,6 +845,84 @@ mod tests {
             },
             supersedes_revision: None,
         }
+    }
+
+    #[test]
+    fn registry_backed_eligibility_requires_one_healthy_covering_adapter() {
+        let mut g = graph(vec![frame("a", FrameKind::Agent)], vec![]);
+        g.scope.project_root = std::env::current_dir().unwrap().display().to_string();
+        g.frames[0].capability_refs = vec!["cap.read".into()];
+        let mut adapter = AdapterCapability {
+            adapter_id: "adapter-a".into(),
+            model: "test".into(),
+            capabilities: vec!["cap.read".into()],
+            healthy: true,
+        };
+        let settled = HashSet::new();
+        assert_eq!(
+            eligibility_for_frame_with_adapters(&g, "a", None, &settled, &[]),
+            Disposition::WaitingCapability
+        );
+        assert_eq!(
+            eligibility_for_frame_with_adapters(&g, "a", None, &settled, &[adapter.clone()]),
+            Disposition::Eligible
+        );
+        adapter.healthy = false;
+        assert_eq!(
+            eligibility_for_frame_with_adapters(&g, "a", None, &settled, &[adapter.clone()]),
+            Disposition::WaitingCapability
+        );
+        adapter.healthy = true;
+        g.frames[0].capability_refs.push("cap.write".into());
+        let other = AdapterCapability {
+            adapter_id: "adapter-b".into(),
+            capabilities: vec!["cap.write".into()],
+            ..adapter.clone()
+        };
+        assert_eq!(
+            eligibility_for_frame_with_adapters(&g, "a", None, &settled, &[adapter.clone(), other]),
+            Disposition::WaitingCapability
+        );
+        adapter.capabilities.push("cap.write".into());
+        assert_eq!(
+            eligibility_for_frame_with_adapters(&g, "a", None, &settled, &[adapter]),
+            Disposition::Eligible
+        );
+        assert_eq!(g.frames[0].capability_refs.len(), 2);
+    }
+
+    #[test]
+    fn registered_capability_does_not_grant_authority_or_scope_alignment() {
+        let mut g = graph(vec![frame("a", FrameKind::Agent)], vec![]);
+        g.scope.project_root = std::env::current_dir().unwrap().display().to_string();
+        g.frames[0].capability_refs = vec!["cap.read".into()];
+        let adapters = [AdapterCapability {
+            adapter_id: "adapter-a".into(),
+            model: "test".into(),
+            capabilities: vec!["cap.read".into()],
+            healthy: true,
+        }];
+        let settled = HashSet::new();
+        g.frames[0].authority_requirement = Some(AuthorityRequirement {
+            authority_kind: "operator".into(),
+            reference: None,
+        });
+        assert_eq!(
+            eligibility_for_frame_with_adapters(&g, "a", None, &settled, &adapters),
+            Disposition::WaitingAuthority
+        );
+        g.frames[0].authority_requirement = None;
+        g.workpoint_refs.push("required-workpoint".into());
+        assert_eq!(
+            eligibility_for_frame_with_adapters(&g, "a", None, &settled, &adapters),
+            Disposition::BlockedScope
+        );
+        g.workpoint_refs.clear();
+        g.frames[0].preconditions.push("required-input".into());
+        assert_eq!(
+            eligibility_for_frame_with_adapters(&g, "a", None, &settled, &adapters),
+            Disposition::WaitingInput
+        );
     }
 
     #[test]
