@@ -39,6 +39,41 @@ pub(super) fn record_stage(
 mod tests {
     use super::*;
     #[test]
+    fn each_interrupted_stage_remains_uncertain_and_preserves_unproven_content() {
+        for (stage, relative) in [
+            ("marker_create", ".focusa-project.json"),
+            ("settings_create", ".focusa/settings.json"),
+            ("docs_create", "docs"),
+            ("git_init", ".git"),
+            ("task_provider", ".beads"),
+            ("genesis", ".focusa/genesis"),
+        ] {
+            let fixture = tempfile::tempdir().unwrap();
+            let root = fixture.path();
+            let req = ProjectBootstrapRequest {
+                idempotency_key: "stage-key".into(),
+                ..ProjectBootstrapRequest::default()
+            };
+            record_stage(root, &req, "digest", &[], stage).unwrap();
+            let artifact = root.join(relative);
+            std::fs::create_dir_all(artifact.parent().unwrap()).unwrap();
+            if relative == ".focusa-project.json" || relative.ends_with(".json") {
+                std::fs::write(&artifact, b"unproven later content").unwrap();
+            } else {
+                std::fs::create_dir(&artifact).unwrap();
+            }
+            let receipt = safety::read_receipt(&receipt_path(root)).unwrap().unwrap();
+            assert_eq!(receipt["active_stage"], stage);
+            assert_eq!(receipt["status"], "applying");
+            assert!(safety::rollback_plan(root, &receipt).is_err());
+            assert!(
+                artifact.exists(),
+                "interrupted stage {stage} must not delete unproven content"
+            );
+        }
+    }
+
+    #[test]
     fn progress_is_durable_and_never_replays_success() {
         let fixture = tempfile::tempdir().unwrap();
         let root = fixture.path();
