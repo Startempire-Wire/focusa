@@ -35,6 +35,8 @@ tokio-stream = { workspace = true }
 async-stream = { workspace = true }
 futures-core = { workspace = true }
 mdns-sd = "0.11"
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.29", features = ["process", "signal", "user"] }
 
 [lints]
 workspace = true

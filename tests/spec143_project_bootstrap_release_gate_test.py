@@ -6,7 +6,8 @@ ROOT=Path(__file__).resolve().parents[1]
 route=(ROOT/'crates/focusa-api/src/routes/project_bootstrap.rs').read_text()
 support=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_support.rs').read_text()
 safety=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_safety.rs').read_text()
-implementation=route+support+safety
+provider=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_provider.rs').read_text()
+implementation=route+support+safety+provider
 cli=(ROOT/'crates/focusa-cli/src/commands/project.rs').read_text()
 e2e=(ROOT/'crates/focusa-cli/tests/project_genesis_e2e.rs').read_text()
 tools=(ROOT/'apps/pi-extension/src/tools.ts').read_text()
@@ -26,14 +27,18 @@ for command in ('bootstrap preview','bootstrap apply','bootstrap status','bootst
 for required in ('planned_changes','preserved_choices','rollback','verification','created_by_this_transaction','idempotency_key','marker_ref','identity_confidence','cross_project_marker_conflict','malformed_project_marker'):
     assert required in implementation, required
 assert '"git", &["init"]' in implementation
-assert 'Command::new("git")' in implementation and '.args(["remote"])' in implementation
+assert 'run(&root, "git", &["remote"])' in route
+assert 'provider_output_limit_exceeded' in provider and 'provider_timeout' in provider
+assert 'require_owner_context(&root)' in route and 'owner_runner_required' in support
 assert '"bd", "br"' in implementation
 assert '"init"' in implementation and '"--prefix"' in implementation
 assert '"dep"' in implementation and '"add"' in implementation
 assert 'project_genesis::start' in implementation and 'project_genesis::commit' in implementation
 assert 'implicit_remote_forbidden' in implementation
-assert route.count('validate_marker(&root, &req.project_id)?;') == 3
-assert 'safety::validate_project_marker(root, project_id)' in route
+assert route.count('validate_marker(&root, &req.project_id, &req.canonical_name)?;') == 3
+assert 'safety::validate_project_marker(root, project_id, canonical_name)' in route
+assert 'focusa_core::project_marker::ProjectMarker' in route
+assert 'focusa_core::project_marker::read_marker(root)' in safety
 assert 'programming language' in implementation and 'deployment target' in implementation
 assert 'github.com' not in implementation.lower()
 # Bootstrap delegates both supplied and canonicalized paths to the shared

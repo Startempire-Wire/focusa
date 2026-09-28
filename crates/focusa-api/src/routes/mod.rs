@@ -79,6 +79,7 @@ pub mod predictions;
 pub mod preload;
 pub mod project;
 pub mod project_bootstrap;
+mod project_bootstrap_provider;
 mod project_bootstrap_support;
 pub mod project_genesis;
 mod project_genesis_support;

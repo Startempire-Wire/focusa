@@ -72,11 +72,12 @@ impl BootstrapLock {
     }
 }
 
-/// Read-only adoption check shared by preview and apply. A v1 marker still
-/// requires explicit migration; this check never rewrites existing identity.
+/// Read-only canonical v1 adoption check shared by preview and apply.
+/// A legacy v2 bootstrap marker requires explicit migration, not a rewrite.
 pub(super) fn validate_project_marker(
     root: &Path,
     project_id: &str,
+    canonical_name: &str,
 ) -> Result<(), (&'static str, String)> {
     let path = root.join(".focusa-project.json");
     let malformed = |message: String| ("malformed_project_marker", message);
@@ -92,29 +93,31 @@ pub(super) fn validate_project_marker(
     let marker: Value = serde_json::from_slice(&bytes).map_err(|_| {
         malformed("existing marker is invalid JSON; repair it explicitly before bootstrap".into())
     })?;
-    if marker["schema"] != "focusa.project.v2" {
+    if marker["schema"] != focusa_core::project_marker::MARKER_SCHEMA {
         return Err((
             "unsupported_project_marker",
-            "existing marker must be migrated to focusa.project.v2 before bootstrap".into(),
+            "existing marker must use the canonical focusa.project.v1 schema; migrate older bootstrap markers explicitly".into(),
         ));
     }
-    if marker["project_id"]
-        .as_str()
-        .filter(|id| !id.is_empty())
-        .is_none()
-        || marker["project_root"]
-            .as_str()
-            .filter(|path| !path.is_empty())
-            .is_none()
+    match focusa_core::project_marker::read_marker(root) {
+        focusa_core::project_marker::MarkerReadOutcome::Valid
+        | focusa_core::project_marker::MarkerReadOutcome::LegacyMinimal { .. } => {}
+        focusa_core::project_marker::MarkerReadOutcome::Missing => {
+            return Err(malformed("marker disappeared during validation".into()));
+        }
+        focusa_core::project_marker::MarkerReadOutcome::Corrupted { error } => {
+            return Err(malformed(error));
+        }
+    }
+    let typed: focusa_core::project_marker::ProjectMarker =
+        serde_json::from_value(marker).map_err(|error| malformed(error.to_string()))?;
+    if typed.project_id != project_id
+        || typed.canonical_name != canonical_name
+        || typed.canonical_project_root().as_deref() != Some(root)
     {
-        return Err(malformed(
-            "existing marker lacks project identity fields".into(),
-        ));
-    }
-    if marker["project_id"] != project_id || marker["project_root"] != json!(root) {
         return Err((
             "cross_project_marker_conflict",
-            "existing marker belongs to a different project or root; verify scope before continuing".into(),
+            "existing marker belongs to a different project, name or root; verify scope before continuing".into(),
         ));
     }
     Ok(())
@@ -376,50 +379,59 @@ mod tests {
     fn marker_preflight_is_read_only_and_rejects_unproven_identity() {
         let temp = tempfile::tempdir().unwrap();
         let missing = temp.path().join("missing");
-        validate_project_marker(&missing, "project-a").unwrap();
+        validate_project_marker(&missing, "project-a", "Project A").unwrap();
         assert!(!missing.exists());
         let root = temp.path();
         let marker_path = root.join(".focusa-project.json");
+        let valid = json!({"schema":"focusa.project.v1","project_id":"project-a","canonical_name":"Project A","project_root":root,"created_at":"2026-09-28T00:00:00Z"});
         for (marker, code) in [
             (
-                json!({"schema":"focusa.project.v1"}),
+                json!({"schema":"focusa.project.v2"}),
                 "unsupported_project_marker",
             ),
             (
-                json!({"schema":"focusa.project.v2"}),
+                json!({"schema":"focusa.project.v1"}),
                 "malformed_project_marker",
-            ),
-            (
-                json!({"schema":"focusa.project.v2","project_id":"other","project_root":root}),
-                "cross_project_marker_conflict",
-            ),
-            (
-                json!({"schema":"focusa.project.v2","project_id":"project-a","project_root":"/some/other/project"}),
-                "cross_project_marker_conflict",
             ),
         ] {
             let before = serde_json::to_vec(&marker).unwrap();
             fs::write(&marker_path, &before).unwrap();
             assert_eq!(
-                validate_project_marker(root, "project-a").unwrap_err().0,
+                validate_project_marker(root, "project-a", "Project A")
+                    .unwrap_err()
+                    .0,
                 code
             );
             assert_eq!(fs::read(&marker_path).unwrap(), before);
             assert!(!root.join(".focusa-bootstrap.lock").exists());
             assert!(!root.join(".focusa").exists());
         }
+        for (field, replacement) in [
+            ("project_id", json!("other")),
+            ("project_root", json!("/some/other/project")),
+            ("canonical_name", json!("Other name")),
+        ] {
+            let mut marker = valid.clone();
+            marker[field] = replacement;
+            fs::write(&marker_path, serde_json::to_vec(&marker).unwrap()).unwrap();
+            assert_eq!(
+                validate_project_marker(root, "project-a", "Project A")
+                    .unwrap_err()
+                    .0,
+                "cross_project_marker_conflict"
+            );
+        }
         fs::write(&marker_path, b"broken JSON").unwrap();
         assert_eq!(
-            validate_project_marker(root, "project-a").unwrap_err().0,
+            validate_project_marker(root, "project-a", "Project A")
+                .unwrap_err()
+                .0,
             "malformed_project_marker"
         );
-        let valid = serde_json::to_vec(
-            &json!({"schema":"focusa.project.v2","project_id":"project-a","project_root":root}),
-        )
-        .unwrap();
-        fs::write(&marker_path, &valid).unwrap();
-        validate_project_marker(root, "project-a").unwrap();
-        assert_eq!(fs::read(&marker_path).unwrap(), valid);
+        let bytes = serde_json::to_vec(&valid).unwrap();
+        fs::write(&marker_path, &bytes).unwrap();
+        validate_project_marker(root, "project-a", "Project A").unwrap();
+        assert_eq!(fs::read(&marker_path).unwrap(), bytes);
     }
 
     #[cfg(unix)]
@@ -431,7 +443,7 @@ mod tests {
         fs::write(&target, b"preserve this file").unwrap();
         std::os::unix::fs::symlink(&target, temp.path().join(".focusa-project.json")).unwrap();
         assert_eq!(
-            validate_project_marker(temp.path(), "project-a")
+            validate_project_marker(temp.path(), "project-a", "Project A")
                 .unwrap_err()
                 .0,
             "malformed_project_marker"

@@ -12,7 +12,7 @@ use axum::{
 };
 use chrono::Utc;
 use serde_json::{Value, json};
-use std::{fs, io, path::Path, process::Command, sync::Arc};
+use std::{fs, io, path::Path, sync::Arc};
 
 use super::project_bootstrap_support::*;
 #[path = "project_bootstrap_safety.rs"]
@@ -50,8 +50,12 @@ fn read_receipt(root: &Path) -> Result<Option<Value>, (StatusCode, Json<Value>)>
     Ok(receipt)
 }
 
-fn validate_marker(root: &Path, project_id: &str) -> Result<(), (StatusCode, Json<Value>)> {
-    safety::validate_project_marker(root, project_id).map_err(|(code, message)| {
+fn validate_marker(
+    root: &Path,
+    project_id: &str,
+    canonical_name: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    safety::validate_project_marker(root, project_id, canonical_name).map_err(|(code, message)| {
         let status = if code == "cross_project_marker_conflict" {
             StatusCode::CONFLICT
         } else {
@@ -67,7 +71,9 @@ async fn preview(
     let root = validate_root(&req.project_root, true)?;
     safety::validate_artifact_paths(&root)
         .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
-    validate_marker(&root, &req.project_id)?;
+    require_owner_context(&root)
+        .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
+    validate_marker(&root, &req.project_id, &req.canonical_name)?;
     Ok(Json(inspection(&root, &req)))
 }
 
@@ -92,23 +98,7 @@ async fn status(
     })))
 }
 
-fn run(root: &Path, binary: &str, args: &[&str]) -> Result<Value, String> {
-    let output = Command::new(binary)
-        .args(args)
-        .current_dir(root)
-        .output()
-        .map_err(|error| error.to_string())?;
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
-    }
-    serde_json::from_slice(&output.stdout)
-        .or_else(|_| {
-            Ok::<Value, serde_json::Error>(
-                json!({"status":"ok","stdout":String::from_utf8_lossy(&output.stdout).trim()}),
-            )
-        })
-        .map_err(|error| error.to_string())
-}
+use super::project_bootstrap_provider::run;
 
 fn initialize_tasks(
     root: &Path,
@@ -190,12 +180,14 @@ async fn apply(
     let root = validate_root(&req.project_root, true)?;
     safety::validate_artifact_paths(&root)
         .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
-    validate_marker(&root, &req.project_id)?;
+    validate_marker(&root, &req.project_id, &req.canonical_name)?;
     let preview = inspection(&root, &req);
     if preview["status"] == "blocked" {
         return Err((StatusCode::PRECONDITION_FAILED, Json(preview)));
     }
     let root_created = !root.exists();
+    require_owner_context(&root)
+        .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
     fs::create_dir_all(&root).map_err(|error| {
         reject(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -204,9 +196,11 @@ async fn apply(
         )
     })?;
     let _lock = lock_transaction(&root)?;
+    require_owner_context(&root)
+        .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
     safety::validate_artifact_paths(&root)
         .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
-    validate_marker(&root, &req.project_id)?;
+    validate_marker(&root, &req.project_id, &req.canonical_name)?;
     let request_digest = safety::request_digest(json!(req), &root);
     if let Some(receipt) = read_receipt(&root)? {
         safety::validate_apply_receipt(&receipt, &root, &req.idempotency_key, &request_digest)
@@ -223,10 +217,26 @@ async fn apply(
     }
     let marker_path = root.join(".focusa-project.json");
     if !marker_path.exists() {
-        create_json_atomic(&marker_path, &json!({
-            "schema":"focusa.project.v2", "project_id":req.project_id, "canonical_name":req.canonical_name,
-            "project_root":root, "workspace_kind":"software_project", "created_at":Utc::now().to_rfc3339(),
-        })).map_err(|error| reject(StatusCode::INTERNAL_SERVER_ERROR, "marker_create_failed", error))?;
+        let marker = focusa_core::project_marker::ProjectMarker {
+            schema: focusa_core::project_marker::MARKER_SCHEMA.into(),
+            project_id: req.project_id.clone(),
+            canonical_name: req.canonical_name.clone(),
+            project_root: root.to_string_lossy().into_owned(),
+            repo_remote: None,
+            beads_prefix: None,
+            workspace_kind: Some("software_project".into()),
+            continuity_id: Some(req.continuity_id.clone()),
+            aliases: Vec::new(),
+            created_at: Utc::now().to_rfc3339(),
+            updated_at: None,
+        };
+        create_json_atomic(&marker_path, &json!(marker)).map_err(|error| {
+            reject(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "marker_create_failed",
+                error,
+            )
+        })?;
         created.push(".focusa-project.json".into());
     }
     let settings = root.join(".focusa/settings.json");
@@ -258,13 +268,14 @@ async fn apply(
                 error,
             )
         })?;
-        if Command::new("git")
-            .args(["remote"])
-            .current_dir(&root)
-            .output()
-            .map(|output| !output.stdout.is_empty())
-            .unwrap_or(false)
-        {
+        let remotes = run(&root, "git", &["remote"]).map_err(|error| {
+            reject(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "local_git_remote_check_failed",
+                error,
+            )
+        })?;
+        if !remotes["stdout"].as_str().is_some_and(str::is_empty) {
             return Err(reject(
                 StatusCode::CONFLICT,
                 "implicit_remote_forbidden",
@@ -339,7 +350,7 @@ async fn apply(
         "receipt_id":stable_receipt_id(&root,&req.idempotency_key), "idempotency_key":req.idempotency_key,
         "project_id":req.project_id, "canonical_name":req.canonical_name,
         "project_root":root, "marker_ref":marker_path, "identity_confidence":"high",
-        "verification":{"status":"canonical","marker_schema":"focusa.project.v2","project_root_matches":true},
+        "verification":{"status":"canonical","marker_schema":focusa_core::project_marker::MARKER_SCHEMA,"project_root_matches":true},
         "created_by_this_transaction":created, "task_provider":task_provider,
         "genesis":genesis_packet, "remote_created":false, "stack_selected":false, "deployment_selected":false,
         "rollback":{"action":"POST /v1/project/bootstrap/repair repair_action=rollback confirm=true","scope":"created_by_this_transaction only"},
@@ -371,7 +382,11 @@ async fn repair(
         ));
     }
     let root = validate_root(&req.project_root, false)?;
+    require_owner_context(&root)
+        .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
     let _lock = lock_transaction(&root)?;
+    require_owner_context(&root)
+        .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
     let mut receipt = read_receipt(&root)?.ok_or_else(|| {
         reject(
             StatusCode::NOT_FOUND,

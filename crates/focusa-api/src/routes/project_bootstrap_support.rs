@@ -167,6 +167,39 @@ pub(super) fn receipt_path(root: &Path) -> PathBuf {
     root.join(".focusa").join("bootstrap").join("receipt.json")
 }
 
+/// Bootstrap writes only as the project owner. Cross-user mutation requires a
+/// separately approved per-user runner, never ambient daemon/root privileges.
+pub(super) fn require_owner_context(root: &Path) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        let mut ancestor = root;
+        while !ancestor.exists() {
+            ancestor = ancestor
+                .parent()
+                .ok_or_else(|| "owner_context_unavailable: no existing ancestor".to_string())?;
+        }
+        let owner = fs::metadata(ancestor)
+            .map_err(|e| format!("owner_context_unavailable: {e}"))?
+            .uid();
+        let current = nix::unistd::geteuid().as_raw();
+        if owner != current {
+            return Err(format!(
+                "owner_runner_required: project ancestor owner uid {owner} differs from daemon uid {current}"
+            ));
+        }
+        Ok(())
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = root;
+        Err(
+            "owner_context_unavailable: owner-equivalent runner not verified on this platform"
+                .into(),
+        )
+    }
+}
+
 pub(super) fn write_json_atomic(path: &Path, value: &Value) -> Result<(), String> {
     publish_json(path, value, true)
 }
@@ -297,6 +330,32 @@ pub(super) fn inspection(root: &Path, req: &ProjectBootstrapRequest) -> Value {
 #[cfg(test)]
 mod safety_tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn owner_context_fails_closed_for_foreign_ancestor_before_creation() {
+        use std::os::unix::fs::MetadataExt;
+        let own = tempfile::tempdir().unwrap();
+        require_owner_context(&own.path().join("future-project")).unwrap();
+        let foreign = [Path::new("/tmp"), Path::new("/home")]
+            .into_iter()
+            .find(|path| {
+                path.is_dir()
+                    && fs::metadata(path).unwrap().uid() != nix::unistd::geteuid().as_raw()
+            });
+        if let Some(parent) = foreign {
+            let path = parent.join(format!(
+                "focusa-foreign-owner-test-{}",
+                uuid::Uuid::now_v7()
+            ));
+            assert!(
+                require_owner_context(&path)
+                    .unwrap_err()
+                    .starts_with("owner_runner_required:")
+            );
+            assert!(!path.exists());
+        }
+    }
 
     #[test]
     fn new_json_artifact_publication_never_clobbers_existing_content() {
