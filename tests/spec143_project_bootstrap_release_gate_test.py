@@ -9,6 +9,7 @@ safety=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_safety.rs').read_te
 provider=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_provider.rs').read_text()
 filesystem=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_fs.rs').read_text()
 journal=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_journal.rs').read_text()
+pre_root=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_pre_root.rs').read_text()
 status_route=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_status.rs').read_text()
 implementation=route+support+safety+provider+filesystem+journal+status_route
 cli=(ROOT/'crates/focusa-cli/src/commands/project.rs').read_text()
@@ -36,6 +37,10 @@ assert 'require_owner_context(&root)' in route and 'owner_runner_required' in fi
 assert 'artifact_write_rejection("marker_create", error)' in route
 assert 'check_write_access(&root)' in route and 'fn check_write_access(' in filesystem
 assert '"applying"' in safety and 'receipt["status"] == "applying"' in safety
+assert route.index('pre_root::reserve(&root, &req.idempotency_key, &request_digest)?') < route.index('fs::create_dir_all(&root)')
+assert 'create_json_atomic(&path(root)?, &record)' in pre_root and 'bootstrap_pre_root_interrupted' in pre_root
+assert 'rollback_without_root' in route and 'root_creation_uncertain' in status_route
+assert 'options.mode(0o600)' in filesystem
 for stage in ('marker_create','settings_create','docs_create','git_init','task_provider','genesis'):
     assert f'&created, "{stage}"' in route
 assert 'write_json_atomic(&receipt_path(root), &progress)' in journal

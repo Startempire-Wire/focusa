@@ -15,6 +15,7 @@ use serde_json::{Value, json};
 use std::{fs, io, path::Path, sync::Arc};
 
 use super::project_bootstrap_journal::record_stage;
+use super::project_bootstrap_pre_root as pre_root;
 use super::project_bootstrap_safety as safety;
 use super::project_bootstrap_status::status;
 use super::project_bootstrap_support::*;
@@ -79,6 +80,16 @@ async fn preview(
     check_write_access(&root)
         .map_err(|error| artifact_write_rejection("preview_write_access", error))?;
     validate_marker(&root, &req.project_id, &req.canonical_name)?;
+    if !root.exists() {
+        pre_root::parent_ready(&root)?;
+    }
+    if pre_root::read(&root)?.is_some() && read_receipt(&root)?.is_none() {
+        return Err(reject(
+            StatusCode::CONFLICT,
+            "bootstrap_pre_root_interrupted",
+            "pre-root reservation requires recovery before preview",
+        ));
+    }
     Ok(Json(inspection(&root, &req)))
 }
 
@@ -170,12 +181,28 @@ async fn apply(
         return Err((StatusCode::PRECONDITION_FAILED, Json(preview)));
     }
     let root_created = !root.exists();
+    let request_digest = safety::request_digest(json!(req), &root);
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
     check_write_access(&root)
         .map_err(|error| artifact_write_rejection("apply_write_access", error))?;
+    if root_created {
+        pre_root::reserve(&root, &req.idempotency_key, &request_digest)?;
+    } else if pre_root::read(&root)?.is_some() && read_receipt(&root)?.is_none() {
+        return Err(reject(
+            StatusCode::CONFLICT,
+            "bootstrap_root_creation_uncertain",
+            "root exists without a matching durable receipt; no automatic ownership assumption",
+        ));
+    }
     fs::create_dir_all(&root)
         .map_err(|error| artifact_write_rejection("project_root_create", error))?;
+    #[cfg(unix)]
+    if root_created {
+        fs::File::open(root.parent().unwrap())
+            .and_then(|parent| parent.sync_all())
+            .map_err(|error| artifact_write_rejection("project_root_sync", error))?;
+    }
     // Resolve the newly materialized root before even creating the lock inode.
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
@@ -187,11 +214,11 @@ async fn apply(
     safety::validate_artifact_paths(&root)
         .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
     validate_marker(&root, &req.project_id, &req.canonical_name)?;
-    let request_digest = safety::request_digest(json!(req), &root);
     if let Some(receipt) = read_receipt(&root)? {
         safety::validate_apply_receipt(&receipt, &root, &req.idempotency_key, &request_digest)
             .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_receipt_conflict", error))?;
         if receipt["idempotency_key"] == req.idempotency_key {
+            pre_root::settle_after_receipt(&root, &request_digest)?;
             return Ok(Json(
                 json!({"replayed":true,"receipt":receipt,"status":receipt["status"]}),
             ));
@@ -203,6 +230,7 @@ async fn apply(
     }
     let marker_path = root.join(".focusa-project.json");
     advance(&root, &req, &request_digest, &created, "marker_create")?;
+    pre_root::settle_after_receipt(&root, &request_digest)?;
     if !marker_path.exists() {
         let marker = focusa_core::project_marker::ProjectMarker {
             schema: focusa_core::project_marker::MARKER_SCHEMA.into(),
@@ -376,9 +404,27 @@ async fn repair(
             "rollback requires confirm=true",
         ));
     }
-    let root = validate_root(&req.project_root, false)?;
+    let root = validate_root(&req.project_root, true)?;
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
+    if !root.exists() {
+        if let Some(record) = pre_root::rollback_without_root(&root, &req.idempotency_key)? {
+            return Ok(Json(
+                json!({"status":"rolled_back","pre_root_journal":record}),
+            ));
+        }
+        return Err(reject(
+            StatusCode::NOT_FOUND,
+            "receipt_missing",
+            "no project root or pre-root reservation to roll back",
+        ));
+    } else if pre_root::read(&root)?.is_some() && read_receipt(&root)?.is_none() {
+        return Err(reject(
+            StatusCode::CONFLICT,
+            "bootstrap_root_creation_uncertain",
+            "root exists without receipt; refuse to remove an unproven project root",
+        ));
+    }
     let _lock = lock_transaction(&root)?;
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;

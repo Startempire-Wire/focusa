@@ -140,10 +140,14 @@ fn publish_json(path: &Path, value: &Value, replace: bool) -> io::Result<()> {
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "missing parent"))?;
     fs::create_dir_all(parent)?;
     let temporary = parent.join(format!(".receipt-{}.tmp", Uuid::now_v7()));
-    let mut file = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&temporary)?;
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options.open(&temporary)?;
     let result = (|| -> io::Result<()> {
         file.write_all(&bytes)?;
         file.write_all(b"\n")?;

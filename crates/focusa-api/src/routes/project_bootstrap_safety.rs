@@ -186,6 +186,9 @@ pub(super) fn status_next_action(status: &str) -> &'static str {
         "applying" => {
             "owner reconciliation of the active stage is required; automatic retry and rollback are blocked"
         }
+        "root_creation_uncertain" => {
+            "inspect the pre-root reservation; rollback only if no root exists, otherwise reconcile ownership manually"
+        }
         "rolling_back" => "resume rollback using the original idempotency key",
         "rolled_back" => "preview a new bootstrap transaction with a new idempotency key",
         "unverified_existing_artifacts" => {
