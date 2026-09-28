@@ -50,12 +50,24 @@ fn read_receipt(root: &Path) -> Result<Option<Value>, (StatusCode, Json<Value>)>
     Ok(receipt)
 }
 
+fn validate_marker(root: &Path, project_id: &str) -> Result<(), (StatusCode, Json<Value>)> {
+    safety::validate_project_marker(root, project_id).map_err(|(code, message)| {
+        let status = if code == "cross_project_marker_conflict" {
+            StatusCode::CONFLICT
+        } else {
+            StatusCode::PRECONDITION_FAILED
+        };
+        reject(status, code, message)
+    })
+}
+
 async fn preview(
     Json(req): Json<ProjectBootstrapRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let root = validate_root(&req.project_root, true)?;
     safety::validate_artifact_paths(&root)
         .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
+    validate_marker(&root, &req.project_id)?;
     Ok(Json(inspection(&root, &req)))
 }
 
@@ -176,6 +188,9 @@ async fn apply(
         ));
     }
     let root = validate_root(&req.project_root, true)?;
+    safety::validate_artifact_paths(&root)
+        .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
+    validate_marker(&root, &req.project_id)?;
     let preview = inspection(&root, &req);
     if preview["status"] == "blocked" {
         return Err((StatusCode::PRECONDITION_FAILED, Json(preview)));
@@ -206,32 +221,7 @@ async fn apply(
         created.push("project_root".into());
     }
     let marker_path = root.join(".focusa-project.json");
-    if marker_path.exists() {
-        let marker = read_json(&marker_path).ok_or_else(|| {
-            reject(
-                StatusCode::PRECONDITION_FAILED,
-                "malformed_project_marker",
-                "existing marker is invalid JSON; repair it explicitly before bootstrap",
-            )
-        })?;
-        if marker["schema"] != "focusa.project.v2" {
-            return Err(reject(
-                StatusCode::PRECONDITION_FAILED,
-                "unsupported_project_marker",
-                "existing marker must be migrated to focusa.project.v2 before bootstrap",
-            ));
-        }
-        if marker["project_id"]
-            .as_str()
-            .is_some_and(|value| value != req.project_id)
-        {
-            return Err(reject(
-                StatusCode::CONFLICT,
-                "cross_project_marker_conflict",
-                "existing marker belongs to a different project; verify scope before continuing",
-            ));
-        }
-    }
+    validate_marker(&root, &req.project_id)?;
     if !marker_path.exists() {
         write_json_atomic(&marker_path, &json!({
             "schema":"focusa.project.v2", "project_id":req.project_id, "canonical_name":req.canonical_name,

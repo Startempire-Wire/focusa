@@ -5,7 +5,8 @@ import json
 ROOT=Path(__file__).resolve().parents[1]
 route=(ROOT/'crates/focusa-api/src/routes/project_bootstrap.rs').read_text()
 support=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_support.rs').read_text()
-implementation=route+support
+safety=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_safety.rs').read_text()
+implementation=route+support+safety
 cli=(ROOT/'crates/focusa-cli/src/commands/project.rs').read_text()
 e2e=(ROOT/'crates/focusa-cli/tests/project_genesis_e2e.rs').read_text()
 tools=(ROOT/'apps/pi-extension/src/tools.ts').read_text()
@@ -31,6 +32,8 @@ assert '"init"' in implementation and '"--prefix"' in implementation
 assert '"dep"' in implementation and '"add"' in implementation
 assert 'project_genesis::start' in implementation and 'project_genesis::commit' in implementation
 assert 'implicit_remote_forbidden' in implementation
+assert route.count('validate_marker(&root, &req.project_id)?;') == 3
+assert 'safety::validate_project_marker(root, project_id)' in route
 assert 'programming language' in implementation and 'deployment target' in implementation
 assert 'github.com' not in implementation.lower()
 # Bootstrap delegates both supplied and canonicalized paths to the shared
