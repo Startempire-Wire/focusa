@@ -166,7 +166,8 @@ pub(super) fn receipt_path(root: &Path) -> PathBuf {
 }
 
 pub(super) use super::project_bootstrap_fs::{
-    artifact_write_rejection, create_json_atomic, require_owner_context, write_json_atomic,
+    artifact_write_rejection, check_write_access, create_json_atomic, require_owner_context,
+    write_json_atomic,
 };
 
 pub(super) fn read_json(path: &Path) -> Option<Value> {
@@ -289,6 +290,24 @@ mod safety_tests {
             );
             assert_eq!(status, StatusCode::INSUFFICIENT_STORAGE);
             assert_eq!(body["failure_class"], "bootstrap_quota_exceeded");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn preview_write_access_reports_the_same_read_only_parent_apply_would_hit() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = tempfile::tempdir().unwrap();
+        let settings_parent = root.path().join(".focusa");
+        fs::create_dir(&settings_parent).unwrap();
+        fs::set_permissions(&settings_parent, fs::Permissions::from_mode(0o500)).unwrap();
+        let checked = check_write_access(root.path());
+        fs::set_permissions(&settings_parent, fs::Permissions::from_mode(0o700)).unwrap();
+        if !nix::unistd::geteuid().is_root() {
+            let (status, Json(body)) =
+                artifact_write_rejection("preview_write_access", checked.unwrap_err());
+            assert_eq!(status, StatusCode::FORBIDDEN);
+            assert_eq!(body["failure_class"], "bootstrap_permission_denied");
         }
     }
 

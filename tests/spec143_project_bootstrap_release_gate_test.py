@@ -32,6 +32,7 @@ assert 'run(&root, "git", &["remote"])' in route
 assert 'provider_output_limit_exceeded' in provider and 'provider_timeout' in provider
 assert 'require_owner_context(&root)' in route and 'owner_runner_required' in filesystem
 assert 'artifact_write_rejection("marker_create", error)' in route
+assert 'check_write_access(&root)' in route and 'fn check_write_access(' in filesystem
 for code in ('bootstrap_artifact_already_exists','bootstrap_permission_denied','bootstrap_quota_exceeded','bootstrap_read_only_filesystem'):
     assert code in filesystem
 assert '"bd", "br"' in implementation

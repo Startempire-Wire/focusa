@@ -73,6 +73,8 @@ async fn preview(
         .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
+    check_write_access(&root)
+        .map_err(|error| artifact_write_rejection("preview_write_access", error))?;
     validate_marker(&root, &req.project_id, &req.canonical_name)?;
     Ok(Json(inspection(&root, &req)))
 }
@@ -188,11 +190,15 @@ async fn apply(
     let root_created = !root.exists();
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
+    check_write_access(&root)
+        .map_err(|error| artifact_write_rejection("apply_write_access", error))?;
     fs::create_dir_all(&root)
         .map_err(|error| artifact_write_rejection("project_root_create", error))?;
     let _lock = lock_transaction(&root)?;
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
+    check_write_access(&root)
+        .map_err(|error| artifact_write_rejection("apply_write_access", error))?;
     safety::validate_artifact_paths(&root)
         .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
     validate_marker(&root, &req.project_id, &req.canonical_name)?;
@@ -377,6 +383,8 @@ async fn repair(
     let _lock = lock_transaction(&root)?;
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
+    check_write_access(&root)
+        .map_err(|error| artifact_write_rejection("rollback_write_access", error))?;
     let mut receipt = read_receipt(&root)?.ok_or_else(|| {
         reject(
             StatusCode::NOT_FOUND,

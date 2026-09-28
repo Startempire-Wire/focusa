@@ -42,6 +42,46 @@ pub(super) fn require_owner_context(root: &Path) -> Result<(), String> {
     }
 }
 
+/// Check the existing parent of each declared write target without creating it.
+/// Apply repeats this check under the transaction lock; post-check races still
+/// return typed OS errors and never authorize a foreign-owner write.
+pub(super) fn check_write_access(root: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    {
+        use nix::unistd::{AccessFlags, access};
+        for relative in [
+            "",
+            ".focusa/bootstrap/receipt.json",
+            ".focusa/settings.json",
+        ] {
+            let target = root.join(relative);
+            let mut existing = target.as_path();
+            while !existing.exists() {
+                existing = existing.parent().ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidInput, "write target has no ancestor")
+                })?;
+            }
+            let directory = if existing.is_dir() {
+                existing
+            } else {
+                existing.parent().ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidInput, "write target has no parent")
+                })?
+            };
+            access(directory, AccessFlags::W_OK | AccessFlags::X_OK).map_err(io::Error::from)?;
+        }
+        Ok(())
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = root;
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "owner-equivalent write preflight unavailable",
+        ))
+    }
+}
+
 pub(super) fn write_json_atomic(path: &Path, value: &Value) -> Result<(), String> {
     publish_json(path, value, true).map_err(|error| error.to_string())
 }
