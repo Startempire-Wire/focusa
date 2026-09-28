@@ -157,6 +157,28 @@ pub(super) fn read_receipt(path: &Path) -> Result<Option<Value>, String> {
     Ok(Some(receipt))
 }
 
+/// A missing receipt is not a clean start when project-local bootstrap
+/// artifacts exist; observation must preserve the uncertainty read-only.
+pub(super) fn unverified_artifacts(root: &Path) -> Result<Vec<&'static str>, String> {
+    validate_artifact_paths(root)?;
+    let mut found = Vec::new();
+    for relative in [
+        ".focusa-project.json",
+        ".focusa/settings.json",
+        ".git",
+        ".beads",
+        ".focusa/genesis",
+        ".focusa-bootstrap.lock",
+    ] {
+        match fs::symlink_metadata(root.join(relative)) {
+            Ok(_) => found.push(relative),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(format!("unreadable bootstrap artifact {relative}: {error}")),
+        }
+    }
+    Ok(found)
+}
+
 pub(super) fn status_next_action(status: &str) -> &'static str {
     match status {
         "ready" => "continue from Project Genesis readiness",
@@ -166,6 +188,9 @@ pub(super) fn status_next_action(status: &str) -> &'static str {
         }
         "rolling_back" => "resume rollback using the original idempotency key",
         "rolled_back" => "preview a new bootstrap transaction with a new idempotency key",
+        "unverified_existing_artifacts" => {
+            "verify existing project artifacts and reconcile any interrupted bootstrap before apply"
+        }
         "not_started" => "preview bootstrap",
         _ => "inspect the bootstrap receipt before retrying",
     }
@@ -380,6 +405,25 @@ pub(super) fn remove_owned_entry(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn missing_receipt_with_existing_artifacts_is_not_a_clean_start() {
+        let root = tempfile::tempdir().unwrap();
+        assert!(unverified_artifacts(root.path()).unwrap().is_empty());
+        fs::write(
+            root.path().join(".focusa-project.json"),
+            b"existing identity",
+        )
+        .unwrap();
+        assert_eq!(
+            unverified_artifacts(root.path()).unwrap(),
+            vec![".focusa-project.json"]
+        );
+        assert_eq!(
+            status_next_action("unverified_existing_artifacts"),
+            "verify existing project artifacts and reconcile any interrupted bootstrap before apply"
+        );
+    }
 
     #[test]
     fn marker_preflight_is_read_only_and_rejects_unproven_identity() {

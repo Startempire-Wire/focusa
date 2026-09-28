@@ -6,7 +6,7 @@ use super::project_genesis_support::ProjectGenesisRequest;
 use crate::server::AppState;
 use axum::{
     Json, Router,
-    extract::{Query, State},
+    extract::State,
     http::StatusCode,
     routing::{get, post},
 };
@@ -16,6 +16,7 @@ use std::{fs, io, path::Path, sync::Arc};
 
 use super::project_bootstrap_journal::record_stage;
 use super::project_bootstrap_safety as safety;
+use super::project_bootstrap_status::status;
 use super::project_bootstrap_support::*;
 
 fn lock_transaction(root: &Path) -> Result<safety::BootstrapLock, (StatusCode, Json<Value>)> {
@@ -32,22 +33,6 @@ fn lock_transaction(root: &Path) -> Result<safety::BootstrapLock, (StatusCode, J
         };
         reject(status, code, error.to_string())
     })
-}
-
-fn read_receipt(root: &Path) -> Result<Option<Value>, (StatusCode, Json<Value>)> {
-    let receipt = safety::read_receipt(&receipt_path(root))
-        .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_receipt_unreadable", error))?;
-    if receipt
-        .as_ref()
-        .is_some_and(|value| value["project_root"] != json!(root))
-    {
-        return Err(reject(
-            StatusCode::CONFLICT,
-            "receipt_scope_mismatch",
-            "receipt does not own this project root",
-        ));
-    }
-    Ok(receipt)
 }
 
 fn validate_marker(
@@ -95,27 +80,6 @@ async fn preview(
         .map_err(|error| artifact_write_rejection("preview_write_access", error))?;
     validate_marker(&root, &req.project_id, &req.canonical_name)?;
     Ok(Json(inspection(&root, &req)))
-}
-
-async fn status(
-    Query(query): Query<ProjectBootstrapStatusQuery>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let root = validate_root(&query.project_root, false)?;
-    let receipt = read_receipt(&root)?;
-    Ok(Json(json!({
-        "schema": "focusa.project_bootstrap_status.v1",
-        "status": receipt.as_ref().and_then(|value| value.get("status")).and_then(Value::as_str).unwrap_or("not_started"),
-        "project_root": root,
-        "receipt": receipt,
-        "live": {
-            "marker": root.join(".focusa-project.json").is_file(),
-            "git": root.join(".git").is_dir(),
-            "docs": root.join("docs").is_dir(),
-            "tasks": root.join(".beads").is_dir(),
-            "genesis": root.join(".focusa/genesis/packet.json").is_file(),
-        },
-        "next_action": safety::status_next_action(receipt.as_ref().and_then(|value| value["status"].as_str()).unwrap_or("not_started")),
-    })))
 }
 
 use super::project_bootstrap_provider::run;
@@ -391,8 +355,16 @@ async fn repair(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ProjectBootstrapRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    if req.repair_action.as_deref() != Some("rollback") {
-        return apply(State(state), Json(req)).await;
+    match req.repair_action.as_deref() {
+        Some("rollback") => {}
+        None | Some("retry_apply") => return apply(State(state), Json(req)).await,
+        Some(_) => {
+            return Err(reject(
+                StatusCode::BAD_REQUEST,
+                "unsupported_repair_action",
+                "repair supports only rollback or retry_apply; marker migration requires a separately approved owner-safe workflow",
+            ));
+        }
     }
     if req.confirm != Some(true) {
         return Err(reject(

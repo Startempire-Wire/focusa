@@ -83,6 +83,7 @@ mod project_bootstrap_fs;
 mod project_bootstrap_journal;
 mod project_bootstrap_provider;
 mod project_bootstrap_safety;
+mod project_bootstrap_status;
 mod project_bootstrap_support;
 pub mod project_genesis;
 mod project_genesis_support;

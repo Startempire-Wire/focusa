@@ -1,5 +1,6 @@
 //! Project bootstrap request, inspection, receipt, and provider helpers.
 
+use super::project_bootstrap_safety as safety;
 use axum::{Json, http::StatusCode};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -172,6 +173,22 @@ pub(super) use super::project_bootstrap_fs::{
 
 pub(super) fn read_json(path: &Path) -> Option<Value> {
     serde_json::from_slice(&fs::read(path).ok()?).ok()
+}
+
+pub(super) fn read_receipt(root: &Path) -> Result<Option<Value>, (StatusCode, Json<Value>)> {
+    let receipt = safety::read_receipt(&receipt_path(root))
+        .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_receipt_unreadable", error))?;
+    if receipt
+        .as_ref()
+        .is_some_and(|value| value["project_root"] != json!(root))
+    {
+        return Err(reject(
+            StatusCode::CONFLICT,
+            "receipt_scope_mismatch",
+            "receipt does not own this project root",
+        ));
+    }
+    Ok(receipt)
 }
 
 pub(super) fn stable_receipt_id(root: &Path, key: &str) -> String {

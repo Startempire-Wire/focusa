@@ -9,7 +9,8 @@ safety=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_safety.rs').read_te
 provider=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_provider.rs').read_text()
 filesystem=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_fs.rs').read_text()
 journal=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_journal.rs').read_text()
-implementation=route+support+safety+provider+filesystem+journal
+status_route=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_status.rs').read_text()
+implementation=route+support+safety+provider+filesystem+journal+status_route
 cli=(ROOT/'crates/focusa-cli/src/commands/project.rs').read_text()
 e2e=(ROOT/'crates/focusa-cli/tests/project_genesis_e2e.rs').read_text()
 tools=(ROOT/'apps/pi-extension/src/tools.ts').read_text()
@@ -38,6 +39,9 @@ assert '"applying"' in safety and 'receipt["status"] == "applying"' in safety
 for stage in ('marker_create','settings_create','docs_create','git_init','task_provider','genesis'):
     assert f'&created, "{stage}"' in route
 assert 'write_json_atomic(&receipt_path(root), &progress)' in journal
+assert '"unsupported_repair_action"' in route and 'Some("retry_apply")' in route
+assert '"unverified_existing_artifacts"' in status_route and '"bootstrap_status_artifact_unreadable"' in status_route
+assert '"unverified_existing_artifacts"' in safety
 for code in ('bootstrap_artifact_already_exists','bootstrap_permission_denied','bootstrap_quota_exceeded','bootstrap_read_only_filesystem'):
     assert code in filesystem
 assert '"bd", "br"' in implementation
