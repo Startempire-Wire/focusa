@@ -33,8 +33,16 @@ assert 'project_genesis::start' in implementation and 'project_genesis::commit' 
 assert 'implicit_remote_forbidden' in implementation
 assert 'programming language' in implementation and 'deployment target' in implementation
 assert 'github.com' not in implementation.lower()
-for unsafe_root in ('Path::new("/root")','Path::new("/home")','Path::new("/tmp")'):
-    assert unsafe_root in support, unsafe_root
+# Bootstrap delegates both supplied and canonicalized paths to the shared
+# classifier; duplicating its path list here would reward divergent policy.
+classifier=(ROOT/'crates/focusa-core/src/scope_safety.rs').read_text()
+assert 'focusa_core::scope_safety::classify_project_root(raw).is_safe()' in support
+assert 'focusa_core::scope_safety::classify_project_root(&rendered)' in support
+assert 'unsafe_project_root' in support
+for unsafe_root in ('"/root"','"/home"','"/tmp"'):
+    assert unsafe_root in classifier, unsafe_root
+assert 'fn rejects_broad_roots()' in classifier
+assert 'fn rejects_user_homes()' in classifier
 assert 'standard_bootstrap_is_previewable_local_only_idempotent_and_rollback_bounded' in e2e
 assert 'bootstrap must never create a remote' in e2e
 assert 'tasks_after_replay' in e2e
