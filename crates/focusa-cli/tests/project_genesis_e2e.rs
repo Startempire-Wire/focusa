@@ -370,7 +370,7 @@ fn standard_bootstrap_is_previewable_local_only_idempotent_and_rollback_bounded(
     assert_eq!(find_string(&applied, "identity_confidence"), Some("high"));
     assert_eq!(
         find_string(&applied, "marker_schema"),
-        Some("focusa.project.v2")
+        Some("focusa.project.v1")
     );
     let identity = json_output(&run(
         &base_url,

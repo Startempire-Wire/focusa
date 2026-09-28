@@ -21,14 +21,26 @@ pub(super) fn require_owner_context(root: &Path) -> Result<(), String> {
                 .parent()
                 .ok_or_else(|| "owner_context_unavailable: no existing ancestor".to_string())?;
         }
-        let owner = fs::metadata(ancestor)
-            .map_err(|e| format!("owner_context_unavailable: {e}"))?
-            .uid();
+        let metadata = fs::symlink_metadata(ancestor)
+            .map_err(|e| format!("owner_context_unavailable: {e}"))?;
+        if metadata.file_type().is_symlink() {
+            return Err("owner_context_unavailable: project root is a symlink".into());
+        }
+        let owner = metadata.uid();
         let current = nix::unistd::geteuid().as_raw();
         if owner != current {
-            return Err(format!(
-                "owner_runner_required: project ancestor owner uid {owner} differs from daemon uid {current}"
-            ));
+            // A newly created child of the system-owned sticky /tmp will be
+            // owned by the daemon user. Never extend this to an arbitrary
+            // foreign-owned world-writable directory.
+            let disposable_root = ancestor == Path::new("/tmp")
+                && !root.exists()
+                && owner == 0
+                && metadata.mode() & 0o1777 == 0o1777;
+            if !disposable_root {
+                return Err(format!(
+                    "owner_runner_required: project ancestor owner uid {owner} differs from daemon uid {current}"
+                ));
+            }
         }
         Ok(())
     }

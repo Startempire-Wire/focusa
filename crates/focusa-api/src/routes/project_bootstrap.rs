@@ -176,6 +176,9 @@ async fn apply(
         .map_err(|error| artifact_write_rejection("apply_write_access", error))?;
     fs::create_dir_all(&root)
         .map_err(|error| artifact_write_rejection("project_root_create", error))?;
+    // Resolve the newly materialized root before even creating the lock inode.
+    require_owner_context(&root)
+        .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
     let _lock = lock_transaction(&root)?;
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;

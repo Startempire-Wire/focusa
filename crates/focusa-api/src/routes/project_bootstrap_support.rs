@@ -334,7 +334,7 @@ mod safety_tests {
         use std::os::unix::fs::MetadataExt;
         let own = tempfile::tempdir().unwrap();
         require_owner_context(&own.path().join("future-project")).unwrap();
-        let foreign = [Path::new("/tmp"), Path::new("/home")]
+        let foreign = [Path::new("/home"), Path::new("/root")]
             .into_iter()
             .find(|path| {
                 path.is_dir()
@@ -352,6 +352,21 @@ mod safety_tests {
             );
             assert!(!path.exists());
         }
+        let system_tmp = Path::new("/tmp");
+        if fs::metadata(system_tmp)
+            .is_ok_and(|meta| meta.uid() == 0 && meta.mode() & 0o1777 == 0o1777)
+        {
+            let child = system_tmp.join(format!("focusa-owned-fixture-{}", uuid::Uuid::now_v7()));
+            require_owner_context(&child).unwrap();
+            assert!(!child.exists());
+        }
+        let alias = own.path().join("project-alias");
+        std::os::unix::fs::symlink(own.path(), &alias).unwrap();
+        assert!(
+            require_owner_context(&alias)
+                .unwrap_err()
+                .contains("symlink")
+        );
     }
 
     #[test]
