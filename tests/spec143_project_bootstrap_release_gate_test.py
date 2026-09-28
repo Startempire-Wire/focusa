@@ -7,7 +7,8 @@ route=(ROOT/'crates/focusa-api/src/routes/project_bootstrap.rs').read_text()
 support=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_support.rs').read_text()
 safety=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_safety.rs').read_text()
 provider=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_provider.rs').read_text()
-implementation=route+support+safety+provider
+filesystem=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_fs.rs').read_text()
+implementation=route+support+safety+provider+filesystem
 cli=(ROOT/'crates/focusa-cli/src/commands/project.rs').read_text()
 e2e=(ROOT/'crates/focusa-cli/tests/project_genesis_e2e.rs').read_text()
 tools=(ROOT/'apps/pi-extension/src/tools.ts').read_text()
@@ -29,7 +30,10 @@ for required in ('planned_changes','preserved_choices','rollback','verification'
 assert '"git", &["init"]' in implementation
 assert 'run(&root, "git", &["remote"])' in route
 assert 'provider_output_limit_exceeded' in provider and 'provider_timeout' in provider
-assert 'require_owner_context(&root)' in route and 'owner_runner_required' in support
+assert 'require_owner_context(&root)' in route and 'owner_runner_required' in filesystem
+assert 'artifact_write_rejection("marker_create", error)' in route
+for code in ('bootstrap_artifact_already_exists','bootstrap_permission_denied','bootstrap_quota_exceeded','bootstrap_read_only_filesystem'):
+    assert code in filesystem
 assert '"bd", "br"' in implementation
 assert '"init"' in implementation and '"--prefix"' in implementation
 assert '"dep"' in implementation and '"add"' in implementation
@@ -57,4 +61,5 @@ assert 'tasks_after_replay' in e2e
 assert 'rolled_back' in e2e
 assert len(route.splitlines()) < 500
 assert len(support.splitlines()) < 500
+assert len(filesystem.splitlines()) < 240
 print('Spec143 project bootstrap release gate: PASS')

@@ -188,13 +188,8 @@ async fn apply(
     let root_created = !root.exists();
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
-    fs::create_dir_all(&root).map_err(|error| {
-        reject(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "project_root_create_failed",
-            error.to_string(),
-        )
-    })?;
+    fs::create_dir_all(&root)
+        .map_err(|error| artifact_write_rejection("project_root_create", error))?;
     let _lock = lock_transaction(&root)?;
     require_owner_context(&root)
         .map_err(|error| reject(StatusCode::FORBIDDEN, "owner_runner_required", error))?;
@@ -230,19 +225,14 @@ async fn apply(
             created_at: Utc::now().to_rfc3339(),
             updated_at: None,
         };
-        create_json_atomic(&marker_path, &json!(marker)).map_err(|error| {
-            reject(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "marker_create_failed",
-                error,
-            )
-        })?;
+        create_json_atomic(&marker_path, &json!(marker))
+            .map_err(|error| artifact_write_rejection("marker_create", error))?;
         created.push(".focusa-project.json".into());
     }
     let settings = root.join(".focusa/settings.json");
     if !settings.exists() {
         create_json_atomic(&settings, &json!({"schema":"focusa.project_settings.v1","discipline_profile":req.discipline_profile.as_deref().unwrap_or("standard_software_project")}))
-            .map_err(|error| reject(StatusCode::INTERNAL_SERVER_ERROR, "settings_create_failed", error))?;
+            .map_err(|error| artifact_write_rejection("settings_create", error))?;
         created.push(".focusa/settings.json".into());
     }
     if !root.join("docs").is_dir() {

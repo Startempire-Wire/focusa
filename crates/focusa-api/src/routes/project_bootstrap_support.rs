@@ -6,12 +6,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
-    fs::{self, File},
-    io::Write,
+    fs,
     path::{Path, PathBuf},
     process::Command,
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub(super) struct ProjectBootstrapRequest {
@@ -167,86 +165,9 @@ pub(super) fn receipt_path(root: &Path) -> PathBuf {
     root.join(".focusa").join("bootstrap").join("receipt.json")
 }
 
-/// Bootstrap writes only as the project owner. Cross-user mutation requires a
-/// separately approved per-user runner, never ambient daemon/root privileges.
-pub(super) fn require_owner_context(root: &Path) -> Result<(), String> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::MetadataExt;
-        let mut ancestor = root;
-        while !ancestor.exists() {
-            ancestor = ancestor
-                .parent()
-                .ok_or_else(|| "owner_context_unavailable: no existing ancestor".to_string())?;
-        }
-        let owner = fs::metadata(ancestor)
-            .map_err(|e| format!("owner_context_unavailable: {e}"))?
-            .uid();
-        let current = nix::unistd::geteuid().as_raw();
-        if owner != current {
-            return Err(format!(
-                "owner_runner_required: project ancestor owner uid {owner} differs from daemon uid {current}"
-            ));
-        }
-        Ok(())
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = root;
-        Err(
-            "owner_context_unavailable: owner-equivalent runner not verified on this platform"
-                .into(),
-        )
-    }
-}
-
-pub(super) fn write_json_atomic(path: &Path, value: &Value) -> Result<(), String> {
-    publish_json(path, value, true)
-}
-
-/// Publish a new artifact without replacing a file that appeared after inspection.
-pub(super) fn create_json_atomic(path: &Path, value: &Value) -> Result<(), String> {
-    publish_json(path, value, false)
-}
-
-fn publish_json(path: &Path, value: &Value, replace: bool) -> Result<(), String> {
-    let bytes = serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?;
-    let parent = path.parent().ok_or_else(|| "missing parent".to_string())?;
-    fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    let temporary = parent.join(format!(".receipt-{}.tmp", Uuid::now_v7()));
-    let mut file = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&temporary)
-        .map_err(|error| error.to_string())?;
-    let result = (|| -> std::io::Result<()> {
-        file.write_all(&bytes)?;
-        file.write_all(b"\n")?;
-        file.sync_all()?;
-        if replace {
-            fs::rename(&temporary, path)?;
-        } else {
-            // Same-directory hard-link publication is atomic and never clobbers
-            // an existing destination; unsupported filesystems fail closed.
-            fs::hard_link(&temporary, path)?;
-        }
-        Ok(())
-    })()
-    .map_err(|error| error.to_string());
-    drop(file);
-    if let Err(cleanup) = fs::remove_file(&temporary)
-        && cleanup.kind() != std::io::ErrorKind::NotFound
-    {
-        return Err(format!(
-            "{}; temporary cleanup: {cleanup}",
-            result.err().unwrap_or_else(|| "artifact published".into())
-        ));
-    }
-    File::open(parent)
-        .and_then(|directory| directory.sync_all())
-        .map_err(|error| error.to_string())?;
-    result
-}
+pub(super) use super::project_bootstrap_fs::{
+    artifact_write_rejection, create_json_atomic, require_owner_context, write_json_atomic,
+};
 
 pub(super) fn read_json(path: &Path) -> Option<Value> {
     serde_json::from_slice(&fs::read(path).ok()?).ok()
@@ -330,6 +251,46 @@ pub(super) fn inspection(root: &Path, req: &ProjectBootstrapRequest) -> Value {
 #[cfg(test)]
 mod safety_tests {
     use super::*;
+
+    #[test]
+    fn artifact_errors_preserve_distinct_http_failure_classes() {
+        for (kind, status, code) in [
+            (
+                std::io::ErrorKind::AlreadyExists,
+                StatusCode::CONFLICT,
+                "bootstrap_artifact_already_exists",
+            ),
+            (
+                std::io::ErrorKind::PermissionDenied,
+                StatusCode::FORBIDDEN,
+                "bootstrap_permission_denied",
+            ),
+            (
+                std::io::ErrorKind::ReadOnlyFilesystem,
+                StatusCode::FORBIDDEN,
+                "bootstrap_read_only_filesystem",
+            ),
+            (
+                std::io::ErrorKind::StorageFull,
+                StatusCode::INSUFFICIENT_STORAGE,
+                "bootstrap_no_space",
+            ),
+        ] {
+            let (actual_status, Json(body)) =
+                artifact_write_rejection("marker_create", std::io::Error::from(kind));
+            assert_eq!(actual_status, status);
+            assert_eq!(body["failure_class"], code);
+        }
+        #[cfg(unix)]
+        {
+            let (status, Json(body)) = artifact_write_rejection(
+                "settings_create",
+                std::io::Error::from_raw_os_error(nix::errno::Errno::EDQUOT as i32),
+            );
+            assert_eq!(status, StatusCode::INSUFFICIENT_STORAGE);
+            assert_eq!(body["failure_class"], "bootstrap_quota_exceeded");
+        }
+    }
 
     #[cfg(unix)]
     #[test]
