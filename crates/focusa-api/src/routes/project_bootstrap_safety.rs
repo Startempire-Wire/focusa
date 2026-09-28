@@ -147,7 +147,7 @@ pub(super) fn read_receipt(path: &Path) -> Result<Option<Value>, String> {
     if receipt["schema"] != "focusa.project_bootstrap_receipt.v1"
         || !matches!(
             receipt["status"].as_str(),
-            Some("ready" | "onboarding_required" | "rolling_back" | "rolled_back")
+            Some("applying" | "ready" | "onboarding_required" | "rolling_back" | "rolled_back")
         )
         || !receipt["idempotency_key"].is_string()
         || !receipt["project_root"].is_string()
@@ -161,6 +161,9 @@ pub(super) fn status_next_action(status: &str) -> &'static str {
     match status {
         "ready" => "continue from Project Genesis readiness",
         "onboarding_required" => "complete the bounded Genesis next action",
+        "applying" => {
+            "owner reconciliation of the active stage is required; automatic retry and rollback are blocked"
+        }
         "rolling_back" => "resume rollback using the original idempotency key",
         "rolled_back" => "preview a new bootstrap transaction with a new idempotency key",
         "not_started" => "preview bootstrap",
@@ -314,6 +317,9 @@ pub(super) fn snapshot(root: &Path, created: &[String]) -> Result<Snapshot, Stri
 /// Preflight the entire rollback before the first deletion. A retry may tolerate
 /// absent entries only after the durable receipt entered rolling_back.
 pub(super) fn rollback_plan(root: &Path, receipt: &Value) -> Result<Vec<(String, Value)>, String> {
+    if receipt["status"] == "applying" {
+        return Err("interrupted apply has an unproven active stage; owner reconciliation required before rollback".into());
+    }
     let expected: Snapshot =
         serde_json::from_value(receipt.get("created_artifact_snapshot").cloned().ok_or(
             "legacy receipt has no artifact ownership proof; explicit reconciliation required",

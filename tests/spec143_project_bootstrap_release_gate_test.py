@@ -8,7 +8,8 @@ support=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_support.rs').read_
 safety=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_safety.rs').read_text()
 provider=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_provider.rs').read_text()
 filesystem=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_fs.rs').read_text()
-implementation=route+support+safety+provider+filesystem
+journal=(ROOT/'crates/focusa-api/src/routes/project_bootstrap_journal.rs').read_text()
+implementation=route+support+safety+provider+filesystem+journal
 cli=(ROOT/'crates/focusa-cli/src/commands/project.rs').read_text()
 e2e=(ROOT/'crates/focusa-cli/tests/project_genesis_e2e.rs').read_text()
 tools=(ROOT/'apps/pi-extension/src/tools.ts').read_text()
@@ -33,6 +34,10 @@ assert 'provider_output_limit_exceeded' in provider and 'provider_timeout' in pr
 assert 'require_owner_context(&root)' in route and 'owner_runner_required' in filesystem
 assert 'artifact_write_rejection("marker_create", error)' in route
 assert 'check_write_access(&root)' in route and 'fn check_write_access(' in filesystem
+assert '"applying"' in safety and 'receipt["status"] == "applying"' in safety
+for stage in ('marker_create','settings_create','docs_create','git_init','task_provider','genesis'):
+    assert f'&created, "{stage}"' in route
+assert 'write_json_atomic(&receipt_path(root), &progress)' in journal
 for code in ('bootstrap_artifact_already_exists','bootstrap_permission_denied','bootstrap_quota_exceeded','bootstrap_read_only_filesystem'):
     assert code in filesystem
 assert '"bd", "br"' in implementation

@@ -14,9 +14,9 @@ use chrono::Utc;
 use serde_json::{Value, json};
 use std::{fs, io, path::Path, sync::Arc};
 
+use super::project_bootstrap_journal::record_stage;
+use super::project_bootstrap_safety as safety;
 use super::project_bootstrap_support::*;
-#[path = "project_bootstrap_safety.rs"]
-mod safety;
 
 fn lock_transaction(root: &Path) -> Result<safety::BootstrapLock, (StatusCode, Json<Value>)> {
     safety::BootstrapLock::acquire(root).map_err(|error| {
@@ -63,6 +63,24 @@ fn validate_marker(
         };
         reject(status, code, message)
     })
+}
+
+fn advance(
+    root: &Path,
+    req: &ProjectBootstrapRequest,
+    digest: &str,
+    created: &[String],
+    stage: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    record_stage(root, req, digest, created, stage)
+        .map(|_| ())
+        .map_err(|error| {
+            reject(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "bootstrap_journal_failed",
+                error,
+            )
+        })
 }
 
 async fn preview(
@@ -217,6 +235,7 @@ async fn apply(
         created.push("project_root".into());
     }
     let marker_path = root.join(".focusa-project.json");
+    advance(&root, &req, &request_digest, &created, "marker_create")?;
     if !marker_path.exists() {
         let marker = focusa_core::project_marker::ProjectMarker {
             schema: focusa_core::project_marker::MARKER_SCHEMA.into(),
@@ -236,11 +255,13 @@ async fn apply(
         created.push(".focusa-project.json".into());
     }
     let settings = root.join(".focusa/settings.json");
+    advance(&root, &req, &request_digest, &created, "settings_create")?;
     if !settings.exists() {
         create_json_atomic(&settings, &json!({"schema":"focusa.project_settings.v1","discipline_profile":req.discipline_profile.as_deref().unwrap_or("standard_software_project")}))
             .map_err(|error| artifact_write_rejection("settings_create", error))?;
         created.push(".focusa/settings.json".into());
     }
+    advance(&root, &req, &request_digest, &created, "docs_create")?;
     if !root.join("docs").is_dir() {
         fs::create_dir_all(root.join("docs")).map_err(|error| {
             reject(
@@ -256,6 +277,7 @@ async fn apply(
         .as_deref()
         .unwrap_or("standard_software_project")
         == "standard_software_project";
+    advance(&root, &req, &request_digest, &created, "git_init")?;
     if req.initialize_git.unwrap_or(standard) && !root.join(".git").is_dir() {
         let result = run(&root, "git", &["init"]).map_err(|error| {
             reject(
@@ -281,6 +303,7 @@ async fn apply(
         created.push(".git".into());
         let _ = result;
     }
+    advance(&root, &req, &request_digest, &created, "task_provider")?;
     let task_provider = if req.initialize_task_provider.unwrap_or(standard) {
         if req.task_provider.as_deref().unwrap_or("beads") != "beads" {
             return Err(reject(
@@ -300,6 +323,7 @@ async fn apply(
         json!({"provider":"none","status":"waived_by_explicit_profile"})
     };
 
+    advance(&root, &req, &request_digest, &created, "genesis")?;
     let genesis_existed = root.join(".focusa/genesis").is_dir();
     let genesis = ProjectGenesisRequest {
         project_root: root.to_string_lossy().to_string(),
