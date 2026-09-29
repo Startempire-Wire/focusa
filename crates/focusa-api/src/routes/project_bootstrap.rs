@@ -93,7 +93,7 @@ async fn preview(
     Ok(Json(inspection(&root, &req)))
 }
 
-use super::project_bootstrap_provider::run;
+use super::project_bootstrap_provider::{provider_rejection, run};
 
 fn initialize_tasks(
     root: &Path,
@@ -274,20 +274,10 @@ async fn apply(
         == "standard_software_project";
     advance(&root, &req, &request_digest, &created, "git_init")?;
     if req.initialize_git.unwrap_or(standard) && !root.join(".git").is_dir() {
-        let result = run(&root, "git", &["init"]).map_err(|error| {
-            reject(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "local_git_init_failed",
-                error,
-            )
-        })?;
-        let remotes = run(&root, "git", &["remote"]).map_err(|error| {
-            reject(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "local_git_remote_check_failed",
-                error,
-            )
-        })?;
+        let result = run(&root, "git", &["init"])
+            .map_err(|error| provider_rejection("local_git_init_failed", error))?;
+        let remotes = run(&root, "git", &["remote"])
+            .map_err(|error| provider_rejection("local_git_remote_check_failed", error))?;
         if !remotes["stdout"].as_str().is_some_and(str::is_empty) {
             return Err(reject(
                 StatusCode::CONFLICT,
@@ -307,13 +297,8 @@ async fn apply(
                 "selected provider requires an approved adapter",
             ));
         }
-        initialize_tasks(&root, &req, &mut created).map_err(|error| {
-            reject(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "task_provider_unhealthy",
-                error,
-            )
-        })?
+        initialize_tasks(&root, &req, &mut created)
+            .map_err(|error| provider_rejection("task_provider_unhealthy", error))?
     } else {
         json!({"provider":"none","status":"waived_by_explicit_profile"})
     };

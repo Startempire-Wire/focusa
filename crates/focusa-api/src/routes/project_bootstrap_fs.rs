@@ -177,3 +177,53 @@ fn publish_json(path: &Path, value: &Value, replace: bool) -> io::Result<()> {
     File::open(parent)?.sync_all()?;
     result
 }
+
+#[cfg(test)]
+mod error_classification_tests {
+    use super::*;
+
+    #[test]
+    fn filesystem_denials_keep_distinct_http_failure_classes() {
+        let cases = [
+            (
+                io::Error::from(io::ErrorKind::AlreadyExists),
+                StatusCode::CONFLICT,
+                "bootstrap_artifact_already_exists",
+            ),
+            (
+                io::Error::from(io::ErrorKind::PermissionDenied),
+                StatusCode::FORBIDDEN,
+                "bootstrap_permission_denied",
+            ),
+            (
+                io::Error::from(io::ErrorKind::ReadOnlyFilesystem),
+                StatusCode::FORBIDDEN,
+                "bootstrap_read_only_filesystem",
+            ),
+            (
+                io::Error::from(io::ErrorKind::StorageFull),
+                StatusCode::INSUFFICIENT_STORAGE,
+                "bootstrap_no_space",
+            ),
+            (
+                io::Error::from(io::ErrorKind::NotFound),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "bootstrap_artifact_io_failed",
+            ),
+        ];
+        for (error, expected_status, expected_code) in cases {
+            let (status, Json(body)) = artifact_write_rejection("marker_create", error);
+            assert_eq!(status, expected_status);
+            assert_eq!(body["failure_class"], expected_code);
+        }
+        #[cfg(unix)]
+        {
+            let (status, Json(body)) = artifact_write_rejection(
+                "marker_create",
+                io::Error::from_raw_os_error(nix::errno::Errno::EDQUOT as i32),
+            );
+            assert_eq!(status, StatusCode::INSUFFICIENT_STORAGE);
+            assert_eq!(body["failure_class"], "bootstrap_quota_exceeded");
+        }
+    }
+}

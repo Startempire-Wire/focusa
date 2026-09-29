@@ -1,4 +1,6 @@
 //! Bounded local provider invocation. This never grants cross-owner execution.
+use super::project_bootstrap_support::reject;
+use axum::{Json, http::StatusCode};
 use serde_json::{Value, json};
 use std::{
     io::Read,
@@ -12,6 +14,30 @@ use std::{
 const PROVIDER_TIMEOUT: Duration = Duration::from_secs(120);
 const OUTPUT_PARSE_LIMIT: usize = 64 * 1024;
 const STDERR_TAIL_LIMIT: usize = 8 * 1024;
+
+pub(super) fn provider_rejection(
+    fallback: &'static str,
+    error: String,
+) -> (StatusCode, Json<Value>) {
+    let (status, code) = match error.split(':').next().unwrap_or("") {
+        "provider_timeout" => (StatusCode::GATEWAY_TIMEOUT, "provider_timeout"),
+        "provider_output_limit_exceeded" => {
+            (StatusCode::BAD_GATEWAY, "provider_output_limit_exceeded")
+        }
+        "provider_output_stream_unclosed" => {
+            (StatusCode::BAD_GATEWAY, "provider_output_stream_unclosed")
+        }
+        "provider_failed" => (StatusCode::SERVICE_UNAVAILABLE, "provider_failed"),
+        "provider_spawn_failed" => (StatusCode::SERVICE_UNAVAILABLE, "provider_spawn_failed"),
+        "provider_wait_failed"
+        | "provider_reap_failed"
+        | "provider_output_read_failed"
+        | "provider_stdout_unavailable"
+        | "provider_stderr_unavailable" => (StatusCode::BAD_GATEWAY, "provider_io_failed"),
+        _ => (StatusCode::SERVICE_UNAVAILABLE, fallback),
+    };
+    reject(status, code, error)
+}
 
 type Captured = Result<(Vec<u8>, bool), String>;
 
@@ -158,6 +184,42 @@ fn run_with_timeout(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn provider_terminal_failures_remain_distinct_from_generic_health() {
+        for (input, expected_status, expected_code) in [
+            (
+                "provider_timeout: expired",
+                StatusCode::GATEWAY_TIMEOUT,
+                "provider_timeout",
+            ),
+            (
+                "provider_output_limit_exceeded: huge",
+                StatusCode::BAD_GATEWAY,
+                "provider_output_limit_exceeded",
+            ),
+            (
+                "provider_failed: exit=1",
+                StatusCode::SERVICE_UNAVAILABLE,
+                "provider_failed",
+            ),
+            (
+                "provider_spawn_failed: missing",
+                StatusCode::SERVICE_UNAVAILABLE,
+                "provider_spawn_failed",
+            ),
+            (
+                "not installed",
+                StatusCode::SERVICE_UNAVAILABLE,
+                "task_provider_unhealthy",
+            ),
+        ] {
+            let (status, Json(body)) = provider_rejection("task_provider_unhealthy", input.into());
+            assert_eq!(status, expected_status);
+            assert_eq!(body["failure_class"], expected_code);
+        }
+    }
+
     #[cfg(target_os = "linux")]
     #[test]
     fn provider_timeout_reaps_process_group() {

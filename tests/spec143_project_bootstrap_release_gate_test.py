@@ -33,6 +33,9 @@ for required in ('planned_changes','preserved_choices','rollback','verification'
 assert '"git", &["init"]' in implementation
 assert 'run(&root, "git", &["remote"])' in route
 assert 'provider_output_limit_exceeded' in provider and 'provider_timeout' in provider
+assert '"provider_timeout" => (StatusCode::GATEWAY_TIMEOUT, "provider_timeout")' in provider
+assert 'provider_rejection("task_provider_unhealthy", error)' in route
+assert '"bootstrap_quota_exceeded"' in filesystem and '"bootstrap_artifact_already_exists"' in filesystem
 assert 'require_owner_context(&root)' in route and 'owner_runner_required' in filesystem
 assert 'artifact_write_rejection("marker_create", error)' in route
 assert 'check_write_access(&root)' in route and 'fn check_write_access(' in filesystem
