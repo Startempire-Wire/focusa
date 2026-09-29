@@ -955,6 +955,22 @@ pub(crate) fn active_workpoint_for_scope<'a>(
     })
 }
 
+/// An exact-ID checkpoint is a refresh, not a lifecycle reset. The caller must
+/// first select the active Workpoint from the exact project/continuity scope.
+fn retain_exact_workpoint_action_intent(
+    req: &mut WorkpointCheckpointRequest,
+    previous: Option<&WorkpointRecord>,
+    workpoint_id: Uuid,
+) -> Option<WorkpointActionIntentRecord> {
+    let prior = previous.and_then(|record| record.action_intent.clone());
+    if req.action_intent.is_none()
+        && previous.is_some_and(|record| record.workpoint_id == workpoint_id)
+    {
+        req.action_intent = prior.clone();
+    }
+    prior
+}
+
 fn validate_lifecycle_transition_evidence(
     previous: Option<&WorkpointActionIntentRecord>,
     next: Option<&WorkpointActionIntentRecord>,
@@ -2407,21 +2423,21 @@ async fn checkpoint(
             ));
         }
     }
-    if req.promote.unwrap_or(true) && req.canonical.unwrap_or(true) {
-        let (has_active_workpoint, previous_action_intent) = {
+    let (has_active_workpoint, previous_action_intent) =
+        if requested_canonical && (promote || req.workpoint_id.is_some()) {
             let focusa = state.focusa.read().await;
             let previous = active_workpoint_for_scope(
                 &focusa,
                 req.project_root.as_deref(),
                 req.continuity_id.as_deref(),
             );
-            (
-                previous.is_some(),
-                previous
-                    .and_then(|record| record.action_intent.as_ref())
-                    .cloned(),
-            )
+            let has_active = previous.is_some();
+            let prior = retain_exact_workpoint_action_intent(&mut req, previous, workpoint_id);
+            (has_active, prior)
+        } else {
+            (false, None)
         };
+    if promote && requested_canonical {
         if has_active_workpoint {
             require_scoped_north_star_mutation_admission(
                 &scope,
@@ -4709,6 +4725,52 @@ mod tests {
         let selected = active_workpoint_for_scope(&state, Some("/repo/focusa"), Some("cont-a"))
             .expect("latest scoped active workpoint");
         assert_eq!(selected.workpoint_id, newer_id);
+    }
+
+    #[test]
+    fn exact_active_refresh_preserves_lifecycle_without_inheriting_foreign_intent() {
+        let id = Uuid::now_v7();
+        let previous = WorkpointRecord {
+            workpoint_id: id,
+            project_root: Some("/repo/homepage".into()),
+            continuity_id: Some("homepage-continuity".into()),
+            status: WorkpointStatus::Active,
+            canonical: true,
+            action_intent: Some(WorkpointActionIntentRecord {
+                action_type: "project_genesis_first_workpoint".into(),
+                lifecycle_stage: WorkpointLifecycleStage::Prepare,
+                ..WorkpointActionIntentRecord::default()
+            }),
+            ..WorkpointRecord::default()
+        };
+        let state = focusa_core::types::FocusaState {
+            workpoint: focusa_core::types::WorkpointState {
+                records: vec![previous],
+                ..focusa_core::types::WorkpointState::default()
+            },
+            ..focusa_core::types::FocusaState::default()
+        };
+        let scoped =
+            active_workpoint_for_scope(&state, Some("/repo/homepage"), Some("homepage-continuity"));
+        let mut refresh = WorkpointCheckpointRequest::default();
+        let prior = retain_exact_workpoint_action_intent(&mut refresh, scoped, id);
+        assert_eq!(
+            prior.as_ref().unwrap().lifecycle_stage,
+            WorkpointLifecycleStage::Prepare
+        );
+        assert_eq!(
+            refresh.action_intent.unwrap().lifecycle_stage,
+            WorkpointLifecycleStage::Prepare
+        );
+
+        let mut unrelated_id = WorkpointCheckpointRequest::default();
+        retain_exact_workpoint_action_intent(&mut unrelated_id, scoped, Uuid::now_v7());
+        assert!(unrelated_id.action_intent.is_none());
+        let foreign =
+            active_workpoint_for_scope(&state, Some("/repo/wirebot"), Some("wirebot-continuity"));
+        let mut unrelated_scope = WorkpointCheckpointRequest::default();
+        retain_exact_workpoint_action_intent(&mut unrelated_scope, foreign, id);
+        assert!(unrelated_scope.action_intent.is_none());
     }
 
     #[test]
