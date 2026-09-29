@@ -12,13 +12,27 @@ pub struct DeviceCodeStartRequest {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeviceCodeChallenge {
+    #[serde(default)]
     pub request_id: Uuid,
     pub device_code: String,
     pub user_code: String,
     pub verification_uri: String,
+    #[serde(default)]
     pub expires_at_unix_ms: i64,
+    #[serde(default)]
     pub interval_ms: u64,
+    /// Authority seconds-based contract (wpuiai device/start): expiry window.
+    #[serde(default)]
+    pub expires_in: Option<u64>,
+    /// Authority seconds-based contract (wpuiai device/start): poll interval.
+    #[serde(default)]
+    pub interval: Option<u64>,
 }
+
+/// Default expiry window (seconds) matching the authority's own device/start
+/// contract. Used only when the reply carries neither expires_at_unix_ms nor
+/// expires_in.
+const AUTHORITY_DEFAULT_EXPIRY_SECS: u64 = 600;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
@@ -149,8 +163,27 @@ impl DeviceAuthorizationSession {
         max_polls: u32,
     ) -> Result<Self, AuthorityClientError> {
         request.validate()?;
+        let mut challenge = challenge;
+        // GH#594: the wpuiai authority does not echo request_id and speaks
+        // seconds-based expires_in/interval instead of ms fields. Normalize
+        // once here so every consumer sees one contract.
+        if challenge.request_id.is_nil() {
+            challenge.request_id = request.request_id;
+        }
         if challenge.request_id != request.request_id {
             return Err(AuthorityClientError::RequestMismatch);
+        }
+        if challenge.expires_at_unix_ms <= 0 {
+            let window_secs = challenge
+                .expires_in
+                .unwrap_or(AUTHORITY_DEFAULT_EXPIRY_SECS);
+            challenge.expires_at_unix_ms =
+                observed_at_unix_ms.saturating_add((window_secs as i64).saturating_mul(1000));
+        }
+        if challenge.interval_ms == 0 {
+            if let Some(secs) = challenge.interval {
+                challenge.interval_ms = secs.saturating_mul(1000);
+            }
         }
         for (value, field) in [
             (&challenge.device_code, "device_code"),
@@ -298,7 +331,36 @@ mod tests {
             verification_uri: "https://license.example.test/device".into(),
             expires_at_unix_ms: 100_000,
             interval_ms: 2_000,
+            expires_in: None,
+            interval: None,
         }
+    }
+
+    #[test]
+    fn gh594_wpuiai_authority_start_reply_parses_and_admits_session() {
+        // Exact shape served by the wpuiai device/start shim: seconds-based
+        // interval/expires_in, no echoed request_id, extra facade fields.
+        let raw = serde_json::json!({
+            "registration_id": "rid-abc123",
+            "poll_credential": "cred-xyz",
+            "device_code": "rid-abc123",
+            "user_code": "abc123",
+            "verification_uri": "https://wpuiai.com/activate",
+            "interval": 5,
+            "expires_in": 600,
+            "transitions": []
+        });
+        let challenge: DeviceCodeChallenge =
+            serde_json::from_value(raw).expect("GH#594: authority-shaped start reply must parse");
+        assert_eq!(challenge.device_code, "rid-abc123");
+        let request = request();
+        let session = DeviceAuthorizationSession::new(&request, challenge, 1_000, 3).unwrap();
+        assert_eq!(
+            session.poll_action(2_000).unwrap(),
+            PollAction::Wait {
+                until_unix_ms: 6_000
+            }
+        );
     }
 
     #[test]
