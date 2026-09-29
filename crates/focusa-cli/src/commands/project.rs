@@ -950,7 +950,8 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 )?;
                 (
                     "bootstrap apply",
-                    api.post("/v1/project/bootstrap/apply", &bootstrap_body(args))
+                    ApiClient::with_timeout_secs(360)
+                        .post("/v1/project/bootstrap/apply", &bootstrap_body(args))
                         .await?,
                 )
             }
@@ -961,7 +962,8 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 )?;
                 (
                     "bootstrap repair",
-                    api.post("/v1/project/bootstrap/repair", &bootstrap_body(args))
+                    ApiClient::with_timeout_secs(360)
+                        .post("/v1/project/bootstrap/repair", &bootstrap_body(args))
                         .await?,
                 )
             }

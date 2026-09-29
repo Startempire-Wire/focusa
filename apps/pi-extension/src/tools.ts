@@ -3088,6 +3088,10 @@ pi.registerTool({
   }
 
   function timeoutBudgetForRoute(path: string, method = "GET"): number {
+    // Bootstrap provider commands share a bounded five-minute server budget;
+    // short hot/cold transport budgets would erase their typed terminal outcome.
+    if (method === "POST" && (path === "/project/bootstrap/apply" || path === "/project/bootstrap/repair"))
+      return 360000;
     const configured = getAttachmentRuntime().cfg?.focusaApiTimeoutMs || 5000;
     const tier = focusaRouteTier(path, method);
     if (tier === "hot" && path.startsWith("/trajectory/view"))
