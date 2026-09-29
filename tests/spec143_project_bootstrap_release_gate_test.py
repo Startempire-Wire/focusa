@@ -31,7 +31,11 @@ for command in ('bootstrap preview','bootstrap apply','bootstrap status','bootst
 for required in ('planned_changes','preserved_choices','rollback','verification','created_by_this_transaction','idempotency_key','marker_ref','identity_confidence','cross_project_marker_conflict','malformed_project_marker'):
     assert required in implementation, required
 assert '"git", &["init"]' in implementation
-assert 'run(&root, "git", &["remote"])' in route
+assert 'run_before_deadline(&root, "git", &["remote"], provider_deadline)' in route
+assert 'BOOTSTRAP_PROVIDER_BUDGET' in route and 'remaining.min(PROVIDER_TIMEOUT)' in provider
+pi_budget=tools[tools.index('function timeoutBudgetForRoute'):tools.index('function compactFallbackPacket')]
+assert '"/project/bootstrap/apply"' in pi_budget and 'return 360000' in pi_budget
+assert 'ApiClient::with_timeout_secs(360)' in cli
 assert 'provider_output_limit_exceeded' in provider and 'provider_timeout' in provider
 assert '"provider_timeout" => (StatusCode::GATEWAY_TIMEOUT, "provider_timeout")' in provider
 assert 'provider_rejection("task_provider_unhealthy", error)' in route

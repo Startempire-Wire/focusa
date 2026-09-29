@@ -12,6 +12,7 @@ use std::{
 };
 
 const PROVIDER_TIMEOUT: Duration = Duration::from_secs(120);
+pub(super) const BOOTSTRAP_PROVIDER_BUDGET: Duration = Duration::from_secs(300);
 const OUTPUT_PARSE_LIMIT: usize = 64 * 1024;
 const STDERR_TAIL_LIMIT: usize = 8 * 1024;
 
@@ -37,6 +38,21 @@ pub(super) fn provider_rejection(
         _ => (StatusCode::SERVICE_UNAVAILABLE, fallback),
     };
     reject(status, code, error)
+}
+
+/// A request-wide deadline prevents N independent Beads calls from multiplying
+/// the transport wait without a typed terminal outcome.
+pub(super) fn run_before_deadline(
+    root: &Path,
+    binary: &str,
+    args: &[&str],
+    deadline: Instant,
+) -> Result<Value, String> {
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        return Err("provider_timeout: total bootstrap provider deadline exceeded".into());
+    }
+    run_with_timeout(root, binary, args, remaining.min(PROVIDER_TIMEOUT))
 }
 
 type Captured = Result<(Vec<u8>, bool), String>;
@@ -220,6 +236,17 @@ mod tests {
         }
     }
 
+    #[test]
+    fn expired_request_budget_fails_before_spawning_provider() {
+        let result = run_before_deadline(
+            Path::new("/"),
+            "/bin/false",
+            &[],
+            Instant::now() - Duration::from_secs(1),
+        );
+        assert!(result.unwrap_err().starts_with("provider_timeout:"));
+    }
+
     #[cfg(target_os = "linux")]
     #[test]
     fn provider_timeout_reaps_process_group() {
@@ -238,7 +265,11 @@ mod tests {
             &[],
             Duration::from_millis(100),
         );
-        assert!(result.unwrap_err().starts_with("provider_timeout:"));
+        let error = result.unwrap_err();
+        assert!(
+            error.starts_with("provider_timeout:"),
+            "unexpected: {error}"
+        );
         let pid: i32 = std::fs::read_to_string(temp.path().join("child.pid"))
             .unwrap()
             .trim()

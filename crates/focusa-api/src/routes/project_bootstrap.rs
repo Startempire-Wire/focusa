@@ -12,7 +12,7 @@ use axum::{
 };
 use chrono::Utc;
 use serde_json::{Value, json};
-use std::{fs, io, path::Path, sync::Arc};
+use std::{fs, io, path::Path, sync::Arc, time::Instant};
 
 use super::project_bootstrap_journal::record_stage;
 use super::project_bootstrap_pre_root as pre_root;
@@ -93,12 +93,15 @@ async fn preview(
     Ok(Json(inspection(&root, &req)))
 }
 
-use super::project_bootstrap_provider::{provider_rejection, run};
+use super::project_bootstrap_provider::{
+    BOOTSTRAP_PROVIDER_BUDGET, provider_rejection, run_before_deadline,
+};
 
 fn initialize_tasks(
     root: &Path,
     req: &ProjectBootstrapRequest,
     created: &mut Vec<String>,
+    deadline: Instant,
 ) -> Result<Value, String> {
     if root.join(".beads").is_dir() {
         return Ok(json!({"provider":"beads","status":"adopted"}));
@@ -110,7 +113,7 @@ fn initialize_tasks(
         .project_id
         .to_ascii_lowercase()
         .replace(|character: char| !character.is_ascii_alphanumeric(), "-");
-    let init = run(
+    let init = run_before_deadline(
         root,
         &binary,
         &[
@@ -120,6 +123,7 @@ fn initialize_tasks(
             "--json",
             "--no-daemon",
         ],
+        deadline,
     )?;
     created.push(".beads".into());
     let mut task_ids: Vec<String> = Vec::new();
@@ -131,7 +135,7 @@ fn initialize_tasks(
                 .as_deref()
                 .unwrap_or("Project Genesis acceptance")
         );
-        let task = run(
+        let task = run_before_deadline(
             root,
             &binary,
             &[
@@ -146,13 +150,15 @@ fn initialize_tasks(
                 "--json",
                 "--no-daemon",
             ],
+            deadline,
         )?;
         if let Some(id) = task.get("id").and_then(Value::as_str) {
             if let Some(previous) = task_ids.last() {
-                run(
+                run_before_deadline(
                     root,
                     &binary,
                     &["dep", "add", id, previous, "--json", "--no-daemon"],
+                    deadline,
                 )?;
             }
             task_ids.push(id.to_string());
@@ -180,6 +186,7 @@ async fn apply(
     if preview["status"] == "blocked" {
         return Err((StatusCode::PRECONDITION_FAILED, Json(preview)));
     }
+    let provider_deadline = Instant::now() + BOOTSTRAP_PROVIDER_BUDGET;
     let root_created = !root.exists();
     let request_digest = safety::request_digest(json!(req), &root);
     require_owner_context(&root)
@@ -274,9 +281,9 @@ async fn apply(
         == "standard_software_project";
     advance(&root, &req, &request_digest, &created, "git_init")?;
     if req.initialize_git.unwrap_or(standard) && !root.join(".git").is_dir() {
-        let result = run(&root, "git", &["init"])
+        let result = run_before_deadline(&root, "git", &["init"], provider_deadline)
             .map_err(|error| provider_rejection("local_git_init_failed", error))?;
-        let remotes = run(&root, "git", &["remote"])
+        let remotes = run_before_deadline(&root, "git", &["remote"], provider_deadline)
             .map_err(|error| provider_rejection("local_git_remote_check_failed", error))?;
         if !remotes["stdout"].as_str().is_some_and(str::is_empty) {
             return Err(reject(
@@ -297,7 +304,7 @@ async fn apply(
                 "selected provider requires an approved adapter",
             ));
         }
-        initialize_tasks(&root, &req, &mut created)
+        initialize_tasks(&root, &req, &mut created, provider_deadline)
             .map_err(|error| provider_rejection("task_provider_unhealthy", error))?
     } else {
         json!({"provider":"none","status":"waived_by_explicit_profile"})
