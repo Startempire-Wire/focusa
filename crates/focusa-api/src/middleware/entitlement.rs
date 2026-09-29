@@ -1135,6 +1135,25 @@ mod tests {
     }
 
     #[test]
+    fn gh646_approval_routes_carry_exact_entitlement_descriptors() {
+        for path in [
+            "/v1/silent-sessions/019fe7ad-38b3-74f5-8835-d9efdb315ccf/approvals",
+            "/v1/silent-sessions/019fe7ad-38b3-74f5-8835-d9efdb315ccf/approvals/preview",
+        ] {
+            let policy = resolve_route_entitlement_policy(&Method::POST, path);
+            assert!(
+                policy.is_some(),
+                "GH#646: {path} has no exact entitlement descriptor"
+            );
+            assert_eq!(
+                policy.unwrap().required_feature.as_deref(),
+                Some("focusa.agent.silent_sessions"),
+                "GH#646: {path} descriptor names the wrong feature"
+            );
+        }
+    }
+
+    #[test]
     fn recovery_allowances_skip_entitlement_state_and_feature_checks() {
         let guard = LicenseGuard::eval(7);
 
