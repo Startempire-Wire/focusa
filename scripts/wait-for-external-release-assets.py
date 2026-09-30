@@ -56,12 +56,15 @@ def menubar_exact(tag: str) -> list[str]:
 
 
 def menubar_patterns() -> list[str]:
+    # Codemagic names DMGs with hyphens (Focusa-vX.Y.Z-<arch>-apple-darwin.dmg);
+    # older AppVeyor-era names use underscores. Either variant satisfies.
     return [
         "Focusa_*aarch64*.dmg",
         "Focusa-*aarch64*.dmg",
         "Focusa_*x64*.dmg",
         "Focusa-*x64*.dmg",
         "Focusa_*x86_64*.dmg",
+        "Focusa-*x86_64*.dmg",
         "Focusa_*x64*setup.exe",
         "Focusa_*x64*setup.exe.sig",
         "Focusa_*arm64*setup.exe",
@@ -71,6 +74,20 @@ def menubar_patterns() -> list[str]:
         "Focusa_*arm64*.msi",
         "Focusa_*arm64*.msi.sig",
     ]
+
+
+def menubar_pattern_families() -> list[tuple[str, list[str]]]:
+    # Each family passes when ANY of its variants matches (GH#198 follow-up:
+    # requiring every spelling variant falsely failed on real Codemagic names).
+    patterns = menubar_patterns()
+    dmg = [p for p in patterns if p.endswith(".dmg")]
+    rest = [p for p in patterns if not p.endswith(".dmg")]
+    families = [
+        ("dmg-aarch64", [p for p in dmg if "aarch64" in p or "arm64" in p]),
+        ("dmg-x64", [p for p in dmg if "x86_64" in p or "x64" in p]),
+    ]
+    families.extend((p, [p]) for p in rest)
+    return families
 
 
 def list_asset_names(tag: str) -> set[str]:
@@ -90,11 +107,11 @@ def missing_for_kind(kind: str, tag: str, names: set[str]) -> list[str]:
         missing.extend(n for n in rust_binaries_exact(tag) if n not in names)
     if kind in ("menubar", "all"):
         missing.extend(n for n in menubar_exact(tag) if n not in names)
-        missing.extend(
-            f"pattern:{p}"
-            for p in menubar_patterns()
-            if not any(fnmatch.fnmatchcase(n, p) for n in names)
-        )
+        for family, family_patterns in menubar_pattern_families():
+            if not any(
+                fnmatch.fnmatchcase(n, q) for q in family_patterns for n in names
+            ):
+                missing.append(f"pattern-family:{family}")
     return missing
 
 
