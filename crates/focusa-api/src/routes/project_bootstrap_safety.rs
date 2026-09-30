@@ -72,8 +72,9 @@ impl BootstrapLock {
     }
 }
 
-/// Read-only canonical v1 adoption check shared by preview and apply.
-/// A legacy v2 bootstrap marker requires explicit migration, not a rewrite.
+/// Read-only canonical adoption check shared by preview and apply.
+/// Genesis v2 markers are accepted alongside v1 (GH#638); foreign schemas
+/// require explicit migration, not a rewrite.
 pub(super) fn validate_project_marker(
     root: &Path,
     project_id: &str,
@@ -93,10 +94,12 @@ pub(super) fn validate_project_marker(
     let marker: Value = serde_json::from_slice(&bytes).map_err(|_| {
         malformed("existing marker is invalid JSON; repair it explicitly before bootstrap".into())
     })?;
-    if marker["schema"] != focusa_core::project_marker::MARKER_SCHEMA {
+    if !focusa_core::project_marker::is_supported_marker_schema(
+        marker.get("schema").and_then(|v| v.as_str()).unwrap_or(""),
+    ) {
         return Err((
             "unsupported_project_marker",
-            "existing marker must use the canonical focusa.project.v1 schema; migrate older bootstrap markers explicitly".into(),
+            "existing marker must use a supported schema (focusa.project.v1 or focusa.project.v2); migrate foreign bootstrap markers explicitly".into(),
         ));
     }
     match focusa_core::project_marker::read_marker(root) {
@@ -439,7 +442,7 @@ mod tests {
         let valid = json!({"schema":"focusa.project.v1","project_id":"project-a","canonical_name":"Project A","project_root":root,"created_at":"2026-09-28T00:00:00Z"});
         for (marker, code) in [
             (
-                json!({"schema":"focusa.project.v2"}),
+                json!({"schema":"focusa.project.v9"}),
                 "unsupported_project_marker",
             ),
             (
@@ -459,6 +462,11 @@ mod tests {
             assert!(!root.join(".focusa-bootstrap.lock").exists());
             assert!(!root.join(".focusa").exists());
         }
+        let genesis_v2 = json!({"schema":"focusa.project.v2","project_id":"project-a","canonical_name":"Project A","project_root":root,"created_at":"2026-09-28T00:00:00Z"});
+        fs::write(&marker_path, serde_json::to_vec(&genesis_v2).unwrap()).unwrap();
+        validate_project_marker(root, "project-a", "Project A").unwrap();
+        assert!(!root.join(".focusa-bootstrap.lock").exists());
+        assert!(!root.join(".focusa").exists());
         for (field, replacement) in [
             ("project_id", json!("other")),
             ("project_root", json!("/some/other/project")),

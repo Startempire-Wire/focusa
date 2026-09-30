@@ -24,6 +24,13 @@ use std::path::{Path, PathBuf};
 
 pub const MARKER_FILE: &str = ".focusa-project.json";
 pub const MARKER_SCHEMA: &str = "focusa.project.v1";
+pub const MARKER_SCHEMA_V2: &str = "focusa.project.v2";
+
+/// Schemas accepted as canonical project markers (GH#638).
+/// Genesis writes `focusa.project.v2`; v1 remains the writer canonical.
+pub fn is_supported_marker_schema(schema: &str) -> bool {
+    schema == MARKER_SCHEMA || schema == MARKER_SCHEMA_V2
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectMarker {
@@ -136,9 +143,9 @@ pub fn read_marker(root: &Path) -> MarkerReadOutcome {
             };
         }
     };
-    if parsed.get("schema").and_then(|v| v.as_str()) != Some(MARKER_SCHEMA) {
+    if !is_supported_marker_schema(parsed.get("schema").and_then(|v| v.as_str()).unwrap_or("")) {
         return MarkerReadOutcome::Corrupted {
-            error: format!("unknown schema (expected {MARKER_SCHEMA})"),
+            error: format!("unknown schema (expected {MARKER_SCHEMA} or {MARKER_SCHEMA_V2})"),
         };
     }
     let identity_ok = parsed.get("project_id").and_then(|v| v.as_str()).is_some()
@@ -419,6 +426,39 @@ mod tests {
             write_marker(&root, &marker_for(&root), &MarkerWriteOptions::default()).unwrap();
         assert_eq!(again, MarkerWriteOutcome::AlreadyValid);
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn genesis_v2_marker_reads_as_supported() {
+        let root = fixture();
+        std::fs::create_dir_all(&root).unwrap();
+        let genesis_v2 = serde_json::json!({
+            "schema": MARKER_SCHEMA_V2,
+            "project_id": "test-project",
+            "canonical_name": "Test Project",
+            "project_root": root.display().to_string(),
+            "created_at": "2026-08-15T00:00:00Z",
+        });
+        std::fs::write(
+            root.join(MARKER_FILE),
+            serde_json::to_vec(&genesis_v2).unwrap(),
+        )
+        .unwrap();
+        assert!(matches!(
+            read_marker(&root),
+            MarkerReadOutcome::LegacyMinimal { .. }
+        ));
+        let foreign = serde_json::json!({"schema": "focusa.project.v9"});
+        std::fs::write(
+            root.join(MARKER_FILE),
+            serde_json::to_vec(&foreign).unwrap(),
+        )
+        .unwrap();
+        assert!(matches!(
+            read_marker(&root),
+            MarkerReadOutcome::Corrupted { .. }
+        ));
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
