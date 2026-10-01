@@ -346,10 +346,12 @@ Mapping examples:
 
 ### 9.6 Flow Mesh
 
-**Flow Mesh is canonical work graph.** Owns: task status, backlog, dependencies, queue order, completion state.
+**Flow Mesh is not the work-graph authority.** It is a bidirectional cross-surface projection and synchronization fabric. It owns **none** of: task status, backlog, dependencies, queue order, completion state.
+
+It owns only its **integration state** — cross-surface identity map, per-surface revisions, event ledger, projection cursors. Task truth lives with the surface that owns it: **Beads is the local task truth**, Asana owns owner/team engineering history, Google Tasks owns personal task history. Flow Mesh mirrors all of them onto surfaces a human can work on. *(Corrected 2026-10-01; this previously read "Flow Mesh is canonical work graph. Owns: task status, backlog, dependencies, queue order, completion state.")*
 
 **Focusa ↔ Flow Mesh bridge:**
-- Each active focus frame should map to a Flow Mesh task ID (or explicit no-task reason)
+- Each active focus frame should map to a task ID from the owning surface, mirrored by Flow Mesh (or explicit no-task reason)
 - Required mapping fields: `task_id`, `project_id`, `frame_id`, `session_id`
 - Task completion does not silently close focus frame; event path required
 

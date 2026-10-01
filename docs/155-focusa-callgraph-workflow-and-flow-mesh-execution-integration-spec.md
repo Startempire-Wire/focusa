@@ -25,13 +25,15 @@ Focusa is canonical for:
 - operator authority, approval, evidence, receipts, and acceptance;
 - recovery, replay, and continuation.
 
-Flow Mesh is the preferred tightly woven execution substrate for task-backed frames. It remains canonical for:
+Flow Mesh is the preferred tightly woven execution substrate for task-backed frames. It is authoritative for its **integration state only** — the cross-surface identity map, per-surface revisions, event ledger, and projection cursors — and it is authoritative for:
 
-- its independent project spaces, tasks, dependencies, providers, and synchronization;
+- synchronized projection of task state onto every surface a human works on;
 - bound task execution and attempts;
 - connector effects;
 - runtime retries, joins, cancellation, and compensation effects when authorized;
 - immutable execution observations, receipts, and evidence handles.
+
+Flow Mesh is **not** a task authority. It does not own task status, backlog, dependencies, queue order, or completion state. It mirrors those from the surface that owns them — **Beads is the local task truth**, while Asana and Google Tasks own their own surface history — and its task records are a materialized projection view used for diffing, merging, rendering, and drift detection. Authority for any given task is resolved per disagreement, not by a blanket owner, and an adapter may never redefine project, work, progress, authority, or evidence semantics.
 
 UIAI Engine Cockpit is the flagship interaction shell. Focusa Mission Canvas supplies the canonical CallGraph workflow surface within Cockpit. UIAI renders and invokes typed operations; it does not own graph or execution truth.
 
@@ -53,7 +55,7 @@ Traditional task graphs capture dependencies but often lose the operational disc
 - which active path produced an effect;
 - how to reconstruct a useful stack trace.
 
-Focusa already owns mission authority, Workpoint continuity, evidence, and recovery. Flow Mesh already owns broad task/provider execution. The missing primitive is a typed semantic bridge that gives graph execution call-stack-grade lineage and control without making either product duplicate the other.
+Focusa already owns mission authority, Workpoint continuity, evidence, and recovery. Flow Mesh already handles broad task/provider projection and execution binding. The missing primitive is a typed semantic bridge that gives graph execution call-stack-grade lineage and control without making either product duplicate the other.
 
 ---
 
@@ -465,7 +467,7 @@ interface FlowMeshExecutionBinding {
 4. Focusa obtains required authority.
 5. Focusa emits a durable dispatch event.
 6. Flow Mesh creates or invokes the bound task with the idempotency key.
-7. Flow Mesh owns task execution and connector effects.
+7. Flow Mesh executes the bound task and applies its connector effects within its own projection/execution binding. It does not decide task semantics; the task authority remains the surface that owns the task.
 8. Flow Mesh emits immutable observations/receipts.
 9. Focusa verifies scope, mapping, freshness, and postconditions.
 10. Focusa records the semantic return and acceptance result.
