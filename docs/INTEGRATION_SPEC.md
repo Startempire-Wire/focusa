@@ -507,5 +507,5 @@ The system is "working as a single organism" when:
 2. **Graph over flat.** Wiki links, Mem0 graph (Kuzu), Focusa CLT — everything is connected, traversable.
 3. **Fail-safe degradation.** If Focusa is down → passthrough. If wiki is down → use Mem0. If Mem0 is down → use local memory. Never break the agent.
 4. **Earned autonomy.** No system escalates privileges without evidence + operator approval.
-5. **Single source of truth per concern.** Wiki = knowledge. Mem0 = memory. Focusa = cognition. Flow Mesh = tasks. No duplication.
+5. **Single source of truth per concern.** Wiki = knowledge. Mem0 = memory. Focusa = cognition. Beads = local task truth, with Asana and Google Tasks owning their own surface history. Flow Mesh = cross-surface task projection and synchronization, never a second task store. No duplication.
 6. **Continuous growth.** Nightly enrichment, autonomous maintenance, session writeback — the system is always adding knowledge, never just consuming it.

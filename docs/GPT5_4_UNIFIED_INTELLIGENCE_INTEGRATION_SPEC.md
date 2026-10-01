@@ -98,7 +98,7 @@ Knowledge  Recall  Local continuity
 - **Mem0** stores retrievable memories and associations
 - **Letta** stores agent-local continuity and narrative state
 - **wb** is the default control plane
-- **Flow Mesh** holds the work graph
+- **Flow Mesh** synchronizes the work graph across surfaces without owning it
 - **Context Core** modulates behavior according to real operator state
 
 ---
@@ -537,13 +537,41 @@ Context Core should not directly overwrite Focus State; it should modulate it.
 
 ## 14. Flow Mesh Integration Rules
 
-## 14.1 Flow Mesh is canonical work graph
-It owns:
+> **Corrected 2026-10-01 — authority drift.** The previous text of this section
+> read "Flow Mesh is canonical work graph. It owns: task status, backlog,
+> dependencies, queue order, completion state." That was false against both the
+> product's own contract and the shipped code, and building on it would have
+> created the second task authority the rest of Focusa forbids. Flow Mesh is a
+> **bidirectional cross-surface projection and synchronization fabric**. It
+> exists because Beads — a capable task authority — gives a human no easy visible
+> surface to work on a task beside an agent. Corrected here, in
+> `155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md`, and
+> at the source in `/data/flow-mesh/AGENTS.md`.
+
+## 14.1 Flow Mesh is a projection fabric, not the work-graph authority
+
+Flow Mesh owns **none** of the following:
+
 - task status
 - backlog
 - dependencies
 - queue order
 - completion state
+
+Flow Mesh is authoritative for its **integration state only**: the cross-surface
+identity map, per-surface revisions, the event ledger, and the projection cursors
+that record how current each surface is.
+
+Task truth lives with the surface that owns it — **Beads is the local task
+truth**, Asana owns owner/team engineering history, and Google Tasks owns
+personal task history. Flow Mesh mirrors all of them and renders them onto
+surfaces a human actually works on. Its `work_items` table is a **materialized
+projection view**, not a store of record; authority is resolved per disagreement
+(`mesh resolve <event-id> --winner <surface>`), never by a blanket owner.
+
+Verified in code at `/data/flow-mesh`: inbound is `sync.DetectNewSQLiteEvents`
+wired in `internal/engine/engine.go`; outbound is `BeadsSystemClient` in
+`internal/api/beads_client.go`. Both directions are implemented.
 
 ## 14.2 Focusa <-> Flow Mesh bridge
 Each active focus frame should ideally map to:

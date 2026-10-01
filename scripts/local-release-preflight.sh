@@ -53,6 +53,24 @@ if m.get("release_version") != cargo_v:
 manifest_touched = bool(head_parent) and mp.as_posix() in subprocess.check_output(
     ["git", "diff", "--name-only", "-z", head_parent, head_full, "--", mp.as_posix()]
 ).decode().split("\0")
+# A commit that touches no distribution component path cannot have made the
+# manifest stale. The 24h generated_at window is therefore a regeneration nag,
+# not a correctness signal - the component digest comparison below is the
+# signal, and it stays unconditional. Strict mode always requires freshness.
+component_paths = None
+touches_components = True
+if head_parent:
+    try:
+        sys.path.insert(0, str(root / "scripts"))
+        from distribution_manifest import COMPONENT_PATHS
+        component_paths = sorted({e for entries in COMPONENT_PATHS.values() for e in entries})
+    except Exception:
+        component_paths = None
+    if component_paths:
+        changed = subprocess.check_output(
+            ["git", "diff", "--name-only", "-z", head_parent, head_full, "--", *component_paths]
+        ).decode().split("\0")
+        touches_components = any(c for c in changed)
 # Display abbreviations vary with clone contents and core.abbrev. Resolve an
 # unambiguous object ID, never a branch/tag with a hexadecimal-looking name.
 source_commit = m.get("source_commit")
@@ -86,16 +104,25 @@ for rel, expected in m.get("artifacts",{}).items():
     if actual != expected:
         print(f"FAIL stale sha256 {rel}: {expected} != {actual}", file=sys.stderr)
         sys.exit(1)
+strict_mode = os.environ.get("PREFLIGHT_STRICT") == "1"
 try:
     gen = datetime.datetime.fromisoformat(m.get("generated_at","").replace("Z","+00:00"))
     age = datetime.datetime.now(datetime.timezone.utc) - gen
     if age.total_seconds() > 86400:
-        print(f"FAIL stale generated_at {m.get('generated_at')} age {age}", file=sys.stderr)
-        sys.exit(1)
+        if strict_mode:
+            print(f"FAIL stale generated_at {m.get('generated_at')} age {age}", file=sys.stderr)
+            sys.exit(1)
+        if touches_components:
+            print(f"FAIL stale generated_at {m.get('generated_at')} age {age} "
+                  f"(HEAD touches a distribution component path)", file=sys.stderr)
+            sys.exit(1)
+        print(f"NOTE generated_at age {age} exceeds 24h, but HEAD touches no "
+              f"distribution component path, so the manifest cannot be stale from "
+              f"this commit. Component digest check above still applied.")
 except Exception as e:
     print(f"FAIL generated_at parse {e}", file=sys.stderr)
     sys.exit(1)
-print(f"manifest FRESH: release_version={m['release_version']} source_commit={m['source_commit']} head={head_short} parent={head_parent} touched={manifest_touched}")
+print(f"manifest FRESH: release_version={m['release_version']} source_commit={m['source_commit']} head={head_short} parent={head_parent} touched={manifest_touched} touches_components={touches_components}")
 PYFRESH
 if [[ $? -ne 0 ]]; then echo "FAIL distribution-manifest freshness (stale)"; exit 1; fi
 echo "distribution-manifest: FRESH (continually)"
