@@ -804,6 +804,16 @@
       "status": "infra_allowed",
       "target": "Test-only mutex serializing process env mutation in temporal keystore regression tests",
       "acceptance_test": "cfg-test-only static classification"
+    },
+    {
+      "annex_id": "INF-10",
+      "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
+      "symbol": "CANONICAL_OPENAPI",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Immutable compile-time parse of the canonical generated OpenAPI contract (docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json), held once per process. Contains no mutable project, workstream or session authority; the served document is derived from it on every request.",
+      "acceptance_test": "served_openapi_is_never_a_subset_of_the_canonical_contract plus the Spec104 singleton inventory gate"
     }
   ]
 }

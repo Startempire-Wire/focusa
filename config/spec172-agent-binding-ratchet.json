@@ -1,0 +1,16 @@
+{
+  "schema": "focusa.agent_operation_binding_ratchet.v1",
+  "purpose": "Prevents the agent capability surface from silently drifting out of the canonical operation registry. The generator used to fall back to operation_id=null with no signal, so an entire HTTP surface could ship outside the canonical contract unnoticed.",
+  "why_a_ratchet": "A strict set-parity gate cannot be adopted today: most descriptors are not yet bound. This records the measured baseline and forbids regression, so coverage can only improve.",
+  "measured_at": "2026-10-02",
+  "invariants": {
+    "min_bound_descriptors": 35,
+    "max_unbound_http_descriptors": 141
+  },
+  "notes": [
+    "min_bound_descriptors may only increase; max_unbound_http_descriptors may only decrease.",
+    "Raising the floor without lowering the ceiling is a regression and fails closed.",
+    "These are floors, not targets. They are removed entirely once full set correspondence is reached.",
+    "The ceiling counts distinct method+path pairs across every operation of every capability, so a multi-route tool contributes each of its routes. An earlier count of 107 was taken from one operation_policy per descriptor and undercounted multi-route capabilities."
+  ]
+}
