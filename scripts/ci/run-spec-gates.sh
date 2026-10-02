@@ -26,6 +26,12 @@ trap 'exit 143' TERM
 python3 "$ROOT_DIR/tests/spec_gate_git_fixture_test.py"
 python3 "$ROOT_DIR/tests/route_module_wiring_regression_test.py"
 python3 "$ROOT_DIR/tests/spec178_provider_parity_audit_test.py"
+# Static source-contract gate: authority HTTP bounded-response transport.
+# It asserts security properties (no unbounded .bytes(), checked_add overflow
+# guard, limit enforcement) by reading Rust source, so it needs no daemon and
+# no network. It was previously unwired and silently went stale when the
+# bounded reader was refactored into ResponseBudget.
+python3 "$ROOT_DIR/tests/spec152_authority_client_protocol_test.py"
 
 EXPECTED_OWNER="$(stat -c %U "$ROOT_DIR")"
 find_owner_drift() {

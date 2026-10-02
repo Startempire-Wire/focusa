@@ -53,7 +53,15 @@ assert "read_bounded_response(response, self.policy.max_response_bytes)" in HTTP
 bounded_reader = HTTP.split("async fn read_bounded_response", 1)[1].split("fn authority_rejection", 1)[0]
 assert ".content_length()" in bounded_reader
 assert ".chunk()" in bounded_reader
-assert "checked_add(chunk.len())" in bounded_reader
+# The bounded reader no longer accumulates inline. Overflow and limit
+# enforcement moved into ResponseBudget, so assert the property where it now
+# lives rather than a string that no longer exists in the reader body.
+assert ".consume(chunk.len())" in bounded_reader
+BUDGET = (ROOT / "crates/focusa-license/src/response_budget.rs").read_text()
+budget_consume = BUDGET.split("fn consume", 1)[1].split("fn remaining", 1)[0]
+assert ".checked_add(bytes)" in budget_consume
+assert "ResponseBudgetExceeded" in budget_consume
+assert "next > self.limit" in budget_consume
 assert ".bytes()" not in bounded_reader
 assert "RequestCorrelationMismatch" in HTTP
 assert "AUTHORITY_HTTP_STATUS_{status}" in HTTP
