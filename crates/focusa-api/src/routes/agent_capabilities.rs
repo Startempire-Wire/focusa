@@ -4513,10 +4513,46 @@ pub async fn get_schema(
     Ok(Json(json_schema_document(&normalized)))
 }
 
+/// The canonical generated contract.
+///
+/// `docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json` is kept in
+/// exact bidirectional parity with `operation-registry.json` by
+/// `scripts/generate-spec135-operation-contracts.py`, which three spec gates
+/// enforce on every build. It is the single authority for the published API
+/// surface. Serving the document from a separate hand-maintained operation list
+/// is what previously caused `/v1/openapi.json` to publish a strict subset of
+/// the canonical contract.
+const CANONICAL_OPENAPI_JSON: &str = include_str!(
+    "../../../../docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json"
+);
+
+static CANONICAL_OPENAPI: LazyLock<Option<Value>> =
+    LazyLock::new(|| serde_json::from_str::<Value>(CANONICAL_OPENAPI_JSON).ok());
+
 fn openapi_document() -> Value {
     let ops = build_operations();
     let mut paths = serde_json::Map::new();
     let mut schemas = serde_json::Map::new();
+    // Union, never re-derivation. Seed from the canonical contract so the
+    // served document can never be a subset of it, then overlay the curated
+    // entries below. An operation present in either surface stays published,
+    // so nothing that is live today can be silently dropped.
+    if let Some(canonical) = CANONICAL_OPENAPI.as_ref() {
+        if let Some(canonical_paths) = canonical.get("paths").and_then(Value::as_object) {
+            for (path, item) in canonical_paths {
+                paths.insert(path.clone(), item.clone());
+            }
+        }
+        if let Some(canonical_schemas) = canonical
+            .get("components")
+            .and_then(|components| components.get("schemas"))
+            .and_then(Value::as_object)
+        {
+            for (name, schema) in canonical_schemas {
+                schemas.insert(name.clone(), schema.clone());
+            }
+        }
+    }
     for schema_id in registered_schema_ids() {
         schemas.insert(
             schema_component_name(schema_id),
@@ -4853,6 +4889,29 @@ mod tests {
         }
     }
 
+    /// Walks a JSON document and reports every string value that is a local
+    /// component reference (`#/components/...`).
+    fn collect_component_refs(value: &Value, emit: &mut dyn FnMut(&str)) {
+        match value {
+            Value::String(text) => {
+                if text.starts_with("#/components/") {
+                    emit(text);
+                }
+            }
+            Value::Array(items) => {
+                for item in items {
+                    collect_component_refs(item, emit);
+                }
+            }
+            Value::Object(map) => {
+                for item in map.values() {
+                    collect_component_refs(item, emit);
+                }
+            }
+            _ => {}
+        }
+    }
+
     #[test]
     fn openapi_export_is_3_0_3_and_resolves_every_operation_schema() {
         let document = openapi_document();
@@ -4864,8 +4923,34 @@ mod tests {
         let schemas = document["components"]["schemas"]
             .as_object()
             .expect("OpenAPI component schemas");
-        assert_eq!(schemas.len(), registered_schema_ids().len());
+        // The served document carries the canonical artifact's own schemas in
+        // addition to the registered ones, so the meaningful invariant is that
+        // every registered schema is present and that nothing dangles - not
+        // that the two sets are the same size.
+        for schema_id in registered_schema_ids() {
+            assert!(
+                schemas.contains_key(&schema_component_name(schema_id)),
+                "registered schema {schema_id} is absent from the served OpenAPI components"
+            );
+        }
         assert!(schemas.contains_key("focusa_tool_result_v1"));
+
+        // Every component reference anywhere in the document must resolve.
+        let mut dangling = Vec::new();
+        collect_component_refs(&document, &mut |reference| {
+            let name = reference
+                .strip_prefix("#/components/schemas/")
+                .unwrap_or(reference);
+            if !schemas.contains_key(name) {
+                dangling.push(reference.to_string());
+            }
+        });
+        dangling.sort();
+        dangling.dedup();
+        assert!(
+            dangling.is_empty(),
+            "served OpenAPI document contains unresolved component references: {dangling:?}"
+        );
 
         for operation in build_operations() {
             assert!(schemas.contains_key(&schema_component_name(operation.request_schema_ref)));
@@ -5049,4 +5134,119 @@ mod tests {
             .iter()
             .any(|operation| operation.operation_id == id)
     }
+
+/// Contract-parity ratchet for the published OpenAPI surface.
+///
+/// The OpenAPI document is rendered from `build_operations()`, while the agent
+/// operation registry is the canonical source for `/v1/agent/operations`. Those
+/// two have historically drifted, and because the drift is silent no gate caught
+/// it: capabilities existed on the router but were invisible to schema-driven
+/// consumers.
+///
+/// This test ratchets rather than demands instant parity. `BASELINE_PUBLISHED_NOT_IN_REGISTRY`
+/// records the currently-published paths that have no registry entry. Any NEW
+/// published path missing from the registry fails here, so the gap cannot widen
+/// again once the baseline entries are registered.
+#[test]
+fn published_openapi_paths_do_not_drift_further_from_the_operation_registry() {
+    let Ok(registry) = canonical_operation_values() else {
+        panic!("canonical operation registry must parse");
+    };
+    let registry_paths: std::collections::BTreeSet<String> = registry
+        .iter()
+        .filter_map(|op| op.get("path").and_then(Value::as_str).map(str::to_string))
+        .collect();
+
+    // Published but unregistered: known, tracked debt. Shrink this set as each
+    // path is registered; do not grow it.
+    const BASELINE_PUBLISHED_NOT_IN_REGISTRY: &[&str] =
+        &["/v1/callgraphs/validate", "/v1/predictions/evaluate"];
+
+    let mut unregistered: Vec<String> = build_operations()
+        .iter()
+        .map(|op| op.path.to_string())
+        .filter(|path| !registry_paths.contains(path))
+        .filter(|path| !BASELINE_PUBLISHED_NOT_IN_REGISTRY.contains(&path.as_str()))
+        .collect();
+    unregistered.sort();
+    unregistered.dedup();
+
+    assert!(
+        unregistered.is_empty(),
+        "these published OpenAPI paths have no operation-registry entry, so schema-driven \
+         consumers cannot discover them: {unregistered:?}. Either register each path in \
+         docs/contracts/spec135/generated-contract-v1/operation-registry.json, or (only if it \
+         is genuinely not agent-facing) remove it from build_operations(). Do not add new entries \
+         to BASELINE_PUBLISHED_NOT_IN_REGISTRY."
+    );
+
+    // Guard the baseline itself: it must never shrink unexpectedly without an
+    // intentional edit, and it must not exceed the known debt of two.
+    assert!(
+        BASELINE_PUBLISHED_NOT_IN_REGISTRY.len() <= 2,
+        "contract-parity baseline was expanded; new debt must be registered, not baselined"
+    );
+}
+
+/// The published contract is the canonical generated artifact; it must never be
+/// a strict subset of it.
+///
+/// Before `openapi_document()` was seeded from `CANONICAL_OPENAPI` it was built
+/// solely from `build_operations()`, which published 87 paths while the canonical
+/// contract carried 157. Capabilities existed on the router and were invisible to
+/// every schema-driven consumer, and because the drift was silent no gate caught
+/// it.
+///
+/// This invariant is absolute rather than ratcheted: it carries no baseline and no
+/// allowance, so the class of defect cannot reappear in any quantity.
+#[test]
+fn served_openapi_is_never_a_subset_of_the_canonical_contract() {
+    let Some(canonical) = CANONICAL_OPENAPI.as_ref() else {
+        panic!("canonical generated OpenAPI contract must parse");
+    };
+
+    let collect = |doc: &Value| -> std::collections::BTreeSet<(String, String)> {
+        let mut operations = std::collections::BTreeSet::new();
+        if let Some(paths) = doc.get("paths").and_then(Value::as_object) {
+            for (path, item) in paths {
+                if let Some(item) = item.as_object() {
+                    for method in item.keys() {
+                        if matches!(
+                            method.as_str(),
+                            "get" | "post" | "put" | "patch" | "delete"
+                        ) {
+                            operations.insert((method.to_uppercase(), path.clone()));
+                        }
+                    }
+                }
+            }
+        }
+        operations
+    };
+
+    let canonical_operations = collect(canonical);
+    let served_operations = collect(&openapi_document());
+
+    assert!(
+        !canonical_operations.is_empty(),
+        "canonical contract must expose at least one operation"
+    );
+
+    let missing: Vec<_> = canonical_operations
+        .difference(&served_operations)
+        .collect();
+
+    assert!(
+        missing.is_empty(),
+        "the served /v1/openapi.json document is missing {} operation(s) that the canonical \
+         generated contract publishes, so schema-driven consumers cannot discover them: \
+         {missing:?}. Serve the canonical artifact instead of a parallel hand-maintained list.",
+        missing.len()
+    );
+
+    assert!(
+        served_operations.len() >= canonical_operations.len(),
+        "the served contract must not be smaller than the canonical contract"
+    );
+}
 }
