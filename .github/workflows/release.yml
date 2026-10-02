@@ -1118,26 +1118,46 @@ jobs:
           # A stable tag must publish as stable, otherwise GitHub keeps the
           # previous "Latest" release and every consumer resolves an older
           # build. Candidate tags stay pre-release and never become Latest.
-          # The match is anchored and fully numeric: a shell glob such as
-          # v[0-9]*.[0-9]*.[0-9]* would also match v0.9.198-nightly.20261001
-          # and would publish a candidate as the stable channel.
-          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "release_channel=stable tag=$TAG"
-            gh release edit "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --notes-file dist/release-intelligence.md \
-              --draft=false \
-              --prerelease=false \
-              --latest
-          else
-            echo "release_channel=candidate tag=$TAG"
-            gh release edit "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --notes-file dist/release-intelligence.md \
-              --draft=false \
-              --prerelease \
-              --latest=false
-          fi
+          #
+          # Tag matching uses fnmatch globs, not regex, per the canonical
+          # release-surface contract (spec145 / structural guard mode 23).
+          # A quantifier-bracket tag pattern is regex syntax and is rejected
+          # by the structural guard.
+          #
+          # The glob alone cannot separate the channels, because
+          # `v[0-9]*.[0-9]*.[0-9]*` also matches `v0.9.198-nightly.20261001`.
+          # Every candidate tag carries a suffix separator, so a version-shaped
+          # tag containing no hyphen is the stable lane.
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*)
+              if [[ "$TAG" == *-* ]]; then
+                echo "release_channel=candidate tag=$TAG"
+                gh release edit "$TAG" \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --notes-file dist/release-intelligence.md \
+                  --draft=false \
+                  --prerelease \
+                  --latest=false
+              else
+                echo "release_channel=stable tag=$TAG"
+                gh release edit "$TAG" \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --notes-file dist/release-intelligence.md \
+                  --draft=false \
+                  --prerelease=false \
+                  --latest
+              fi
+              ;;
+            *)
+              echo "release_channel=candidate tag=$TAG"
+              gh release edit "$TAG" \
+                --repo "$GITHUB_REPOSITORY" \
+                --notes-file dist/release-intelligence.md \
+                --draft=false \
+                --prerelease \
+                --latest=false
+              ;;
+          esac
 
           # Fail closed if the published release cannot actually serve the
           # update channel. This is the assertion that was missing when

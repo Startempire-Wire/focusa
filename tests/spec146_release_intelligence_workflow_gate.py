@@ -62,13 +62,22 @@ def main() -> None:
     )
 
     # The channel decision must be a real branch, not an unconditional publish.
-    channel_branch_token = 'if [[ "$TAG" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]'
-    assert channel_branch_token in WORKFLOW, (
-        "the stable/candidate channel decision must be anchored and numeric; a "
-        "shell glob such as v[0-9]*.[0-9]*.[0-9]* also matches "
-        "v0.9.198-nightly.20261001 and would publish a candidate as stable"
+    channel_glob_token = 'v[0-9]*.[0-9]*.[0-9]*'
+    assert channel_glob_token in WORKFLOW, (
+        "the stable/candidate channel decision must use the canonical fnmatch "
+        "glob form; release.yml tag patterns must not use regex '+' "
+        "(structural guard mode 23)"
     )
-    channel_branch = WORKFLOW.index(channel_branch_token)
+    assert 'if [[ "$TAG" =~' not in WORKFLOW, (
+        "the channel decision must not use a bash regex match; use fnmatch globs "
+        "and a candidate-suffix test instead"
+    )
+    # The glob alone also matches candidate tags, so the suffix test is load-bearing.
+    assert '[[ "$TAG" == *-* ]]' in WORKFLOW, (
+        "version-shaped tags must be split on a candidate suffix; without it "
+        "v0.9.198-nightly.20261001 would publish as the stable channel"
+    )
+    channel_branch = WORKFLOW.index(channel_glob_token)
     assert channel_branch < WORKFLOW.index('release_channel=candidate'), (
         "the candidate lane must remain reachable; a publish that is unconditionally "
         "stable would repoint Latest at a nightly"
