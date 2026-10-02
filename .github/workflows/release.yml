@@ -1090,6 +1090,7 @@ jobs:
             dist/*.sig
             dist/*.pem
             dist/SHA256SUMS.txt
+            dist/latest.json
             dist/release-intelligence.json
             dist/release-intelligence.md
             dist/distribution-manifest.json
@@ -1099,19 +1100,79 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish immutable candidate prerelease
+      - name: Publish immutable release on the channel implied by its tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ env.RELEASE_TAG }}
         run: |
           set -euo pipefail
           test -s dist/release-intelligence.md
-          gh release edit "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --notes-file dist/release-intelligence.md \
-            --draft=false \
-            --prerelease \
-            --latest=false
+          # The OTA update pointer is the channel the shipped installer resolves
+          # (scripts/install-focusa-menubar-beta.sh reads
+          # releases/latest/download/latest.json). It is written after the
+          # dist/* upload, so it must be published explicitly or the channel
+          # silently resolves to an older release.
+          test -s dist/latest.json
+          python3 -m json.tool dist/latest.json >/dev/null
+
+          # A stable tag must publish as stable, otherwise GitHub keeps the
+          # previous "Latest" release and every consumer resolves an older
+          # build. Candidate tags stay pre-release and never become Latest.
+          #
+          # Tag matching uses fnmatch globs, not regex, per the canonical
+          # release-surface contract (spec145 / structural guard mode 23).
+          # A quantifier-bracket tag pattern is regex syntax and is rejected
+          # by the structural guard.
+          #
+          # The glob alone cannot separate the channels, because
+          # `v[0-9]*.[0-9]*.[0-9]*` also matches `v0.9.198-nightly.20261001`.
+          # Every candidate tag carries a suffix separator, so a version-shaped
+          # tag containing no hyphen is the stable lane.
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*)
+              if [[ "$TAG" == *-* ]]; then
+                echo "release_channel=candidate tag=$TAG"
+                gh release edit "$TAG" \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --notes-file dist/release-intelligence.md \
+                  --draft=false \
+                  --prerelease \
+                  --latest=false
+              else
+                echo "release_channel=stable tag=$TAG"
+                gh release edit "$TAG" \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --notes-file dist/release-intelligence.md \
+                  --draft=false \
+                  --prerelease=false \
+                  --latest
+              fi
+              ;;
+            *)
+              echo "release_channel=candidate tag=$TAG"
+              gh release edit "$TAG" \
+                --repo "$GITHUB_REPOSITORY" \
+                --notes-file dist/release-intelligence.md \
+                --draft=false \
+                --prerelease \
+                --latest=false
+              ;;
+          esac
+
+          # Fail closed if the published release cannot actually serve the
+          # update channel. This is the assertion that was missing when
+          # latest.json was dropped while latest.json.sig was published.
+          published="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[].name')"
+          for required in latest.json latest.json.sig SHA256SUMS.txt \
+            distribution-manifest.json release-manifest.json \
+            release-provenance.json focusa-trusted-release-keys.json; do
+            if ! grep -qx "$required" <<<"$published"; then
+              echo "::error::published release $TAG is missing required asset $required" >&2
+              exit 1
+            fi
+          done
+          echo "release_channel_assets=verified"
 
   dispatch-deploy-live-daemon:
     name: Dispatch Deploy Live Daemon
