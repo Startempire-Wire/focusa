@@ -9,8 +9,35 @@ shutil.rmtree(sys.argv[1])
 PY
 }
 
+focusa_test_scope_post() {
+  # POST a scoped request and fail with the daemon's own response body.
+  # A bare `curl ... || return 1` discards the captured body and leaves a
+  # rejected admission reported only as a curl exit code, which is not
+  # diagnosable. This preserves the fail-closed behaviour while surfacing
+  # what the daemon actually said.
+  local base="$1" path="$2" payload="$3" label="$4" response status transport_status
+  response=$(command curl -sS -w '\n%{http_code}' -X POST "${base}${path}" \
+    -H "x-scope-project-root: $FOCUSA_FIXTURE_ROOT" -H "x-scope-continuity-id: $FOCUSA_TEST_SCOPE_CONTINUITY" \
+    -H 'Content-Type: application/json' -d "$payload")
+  transport_status=$?
+  if [ "$transport_status" -ne 0 ]; then
+    printf 'Scope fixture %s: transport failure contacting %s (curl exit %s)\n' \
+      "$label" "$path" "$transport_status" >&2
+    return 1
+  fi
+  status="${response##*$'\n'}"
+  response="${response%$'\n'*}"
+  if [[ "$status" != 2* ]]; then
+    printf 'Scope fixture %s: HTTP %s from %s\nResponse: %s\n' \
+      "$label" "$status" "$path" "$response" >&2
+    return 1
+  fi
+  FOCUSA_TEST_SCOPE_RESPONSE="$response"
+}
+
 focusa_test_scope_create() {
   local base="$1" continuity="$2" existing_root="${3:-}" response
+  FOCUSA_TEST_SCOPE_CONTINUITY="$continuity"
   [[ "${FOCUSA_TEST_MODE:-0}" == 1 ]] || {
     echo 'Admitted fixture requires an isolated FOCUSA_TEST_MODE daemon' >&2
     return 1
@@ -28,16 +55,18 @@ focusa_test_scope_create() {
     printf '%s\n' '{"id":"focusa-032h","title":"Isolated runtime fixture","status":"open","priority":1,"issue_type":"task"}' > "$FOCUSA_FIXTURE_ROOT/.beads/issues.jsonl"
   fi
   jq -nc --arg root "$FOCUSA_FIXTURE_ROOT" '{schema:"focusa.project.v1",project_id:"runtime-contract",canonical_name:"Runtime contract fixture",project_root:$root,workspace_kind:"isolated-test"}' > "$FOCUSA_FIXTURE_ROOT/.focusa-project.json"
-  response=$(command curl -sS --fail-with-body -X POST "$base/v1/trajectory/define-goal" \
-    -H "x-scope-project-root: $FOCUSA_FIXTURE_ROOT" -H "x-scope-continuity-id: $continuity" \
-    -H 'Content-Type: application/json' -d "$(jq -nc --arg root "$FOCUSA_FIXTURE_ROOT" --arg continuity "$continuity" '{project_root:$root,continuity_id:$continuity,long_term_goal:"Verify isolated runtime compatibility",desired_end_state:"Admitted runtime contract checks pass",current_state:"Fresh isolated test project",current_ask:"Verify isolated runtime compatibility",mid_level_goal:"Verify runtime writes",short_term_goal:"Run runtime contract",waypoints:["Verify runtime contract"],goal_source:"operator",operator_confirmed:true}')") || return 1
+  focusa_test_scope_post "$base" /v1/trajectory/define-goal \
+    "$(jq -nc --arg root "$FOCUSA_FIXTURE_ROOT" --arg continuity "$continuity" '{project_root:$root,continuity_id:$continuity,long_term_goal:"Verify isolated runtime compatibility",desired_end_state:"Admitted runtime contract checks pass",current_state:"Fresh isolated test project",current_ask:"Verify isolated runtime compatibility",mid_level_goal:"Verify runtime writes",short_term_goal:"Run runtime contract",waypoints:["Verify runtime contract"],goal_source:"operator",operator_confirmed:true}')" \
+    trajectory-define-goal || return 1
+  response="$FOCUSA_TEST_SCOPE_RESPONSE"
   jq -e '.status == "completed" and .canonical == true' <<<"$response" >/dev/null || {
     printf 'Trajectory fixture rejected: %s\n' "$response" >&2
     return 1
   }
-  response=$(command curl -sS --fail-with-body -X POST "$base/v1/workpoint/checkpoint" \
-    -H "x-scope-project-root: $FOCUSA_FIXTURE_ROOT" -H "x-scope-continuity-id: $continuity" \
-    -H 'Content-Type: application/json' -d "$(jq -nc --arg root "$FOCUSA_FIXTURE_ROOT" --arg continuity "$continuity" '{project_root:$root,continuity_id:$continuity,mission:"Verify isolated runtime compatibility",current_ask:"Verify isolated runtime compatibility",action_intent:{action_type:"verify_runtime_contract",lifecycle_stage:"verify_outcome",status:"ready"},next_slice:"Verify runtime contract state",canonical:true}')") || return 1
+  focusa_test_scope_post "$base" /v1/workpoint/checkpoint \
+    "$(jq -nc --arg root "$FOCUSA_FIXTURE_ROOT" --arg continuity "$continuity" '{project_root:$root,continuity_id:$continuity,mission:"Verify isolated runtime compatibility",current_ask:"Verify isolated runtime compatibility",action_intent:{action_type:"verify_runtime_contract",lifecycle_stage:"verify_outcome",status:"ready"},next_slice:"Verify runtime contract state",canonical:true}')" \
+    workpoint-checkpoint || return 1
+  response="$FOCUSA_TEST_SCOPE_RESPONSE"
   jq -e '.status == "accepted" and .canonical == true' <<<"$response" >/dev/null || {
     printf 'Workpoint fixture rejected: %s\n' "$response" >&2
     return 1
