@@ -84,10 +84,21 @@ function routeKey(method: string, path: string): string {
   return `${method.toUpperCase()} ${path.split("?")[0]}`;
 }
 
+// Every HTTP-routed tool whose route is missing from the canonical operation
+// registry. Recorded so the drift is visible and cannot grow silently.
+// Keyed by method+path: policyProjection runs once per operation of a
+// capability, so a multi-route tool must not be counted more than once.
+const UNBOUND_HTTP_ROUTES = new Map<string, { method: string; path: string; tool: string }>();
+
 function policyProjection(contract: FocusaToolContract, route: { method: string; path: string }) {
   const canonical = OPERATION_BY_ROUTE.get(routeKey(route.method, route.path));
   const fallback = contract.operation_policy!;
   if (!canonical) {
+    UNBOUND_HTTP_ROUTES.set(routeKey(route.method, route.path), {
+      method: route.method,
+      path: route.path,
+      tool: contract.name,
+    });
     return {
       operation_id: null,
       method: route.method,
@@ -502,4 +513,42 @@ writeGenerated("rest-agent-operations.json", rest);
 writeGenerated("agent-card.json", agentCard);
 writeGenerated("agent-capability-reference.md", markdown);
 
-console.log(JSON.stringify({ status: "passed", mode: CHECK ? "check" : "write", capabilities: descriptors.length, registry_digest: registry.registry_digest, outputs: 8 }, null, 2));
+// Binding coverage ratchet. The fallback above keeps generation working, but it
+// must never hide a regression, so coverage is asserted in --check mode.
+const RATCHET_PATH = join(ROOT, "config/spec172-agent-binding-ratchet.json");
+const boundDescriptors = descriptors.filter((d: any) => d.operation_policy?.operation_id).length;
+const bindingCoverage = {
+  descriptors_total: descriptors.length,
+  bound_descriptors: boundDescriptors,
+  unbound_http_descriptors: UNBOUND_HTTP_ROUTES.size,
+  registry_operations: OPERATION_REGISTRY.operations.length,
+};
+
+if (CHECK) {
+  const ratchet = JSON.parse(readFileSync(RATCHET_PATH, "utf8"));
+  const { min_bound_descriptors, max_unbound_http_descriptors } = ratchet.invariants;
+  const regressions: string[] = [];
+  if (boundDescriptors < min_bound_descriptors) {
+    regressions.push(
+      `bound descriptors fell to ${boundDescriptors}, below the recorded floor of ${min_bound_descriptors}`,
+    );
+  }
+  if (UNBOUND_HTTP_ROUTES.size > max_unbound_http_descriptors) {
+    regressions.push(
+      `unbound HTTP descriptors rose to ${UNBOUND_HTTP_ROUTES.size}, above the recorded ceiling of ${max_unbound_http_descriptors}`,
+    );
+  }
+  if (regressions.length) {
+    console.error(JSON.stringify({ status: "failed", reason: "agent_operation_binding_regression", binding_coverage: bindingCoverage, regressions }, null, 2));
+    process.exit(1);
+  }
+}
+
+if (UNBOUND_HTTP_ROUTES.size) {
+  console.warn(
+    `agent operation binding: ${UNBOUND_HTTP_ROUTES.size} HTTP-routed operations have no canonical ` +
+      `operation-registry.json entry and fall back to operation_id=null.`,
+  );
+}
+
+console.log(JSON.stringify({ status: "passed", mode: CHECK ? "check" : "write", capabilities: descriptors.length, binding_coverage: bindingCoverage, registry_digest: registry.registry_digest, outputs: 8 }, null, 2));
