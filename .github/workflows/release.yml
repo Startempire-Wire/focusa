@@ -64,10 +64,21 @@ jobs:
             exit 1
           fi
           echo "Queuing AppVeyor branch=$RELEASE_TAG commit=$RELEASE_SHA"
+          # Resolve the owning account/project from the AppVeyor API instead of
+          # hardcoding an accountName/projectSlug pair. The hardcoded pair
+          # answered HTTP 404 "Project not found or access denied." on
+          # 2026-10-02 even with a valid token, which stopped the release at
+          # the external receipt gates before AppVeyor ever built anything.
+          resolved=$(python3 scripts/resolve-appveyor-project.py "${APPVEYOR_API_TOKEN}" "${RELEASE_TAG}") || {
+            echo "::error::Could not resolve the AppVeyor account/project for this repository (GH#656)."
+            exit 1
+          }
+          read -r APPVEYOR_ACCOUNT APPVEYOR_SLUG <<< "$resolved"
+          echo "Resolved AppVeyor account=$APPVEYOR_ACCOUNT project=$APPVEYOR_SLUG"
           resp=$(curl -s -m 60 -w '\n%{http_code}' -X POST https://ci.appveyor.com/api/builds \
             -H "Authorization: Bearer $APPVEYOR_API_TOKEN" \
             -H 'Content-Type: application/json' \
-            -d "$(python3 -c "import json,os; print(json.dumps({'accountName':'verioussmith','projectSlug':'focusa','branch':os.environ['RELEASE_TAG'],'commitId':os.environ['RELEASE_SHA']}))")")
+            -d "$(python3 -c "import json,os; print(json.dumps({'accountName':os.environ['APPVEYOR_ACCOUNT'],'projectSlug':os.environ['APPVEYOR_SLUG'],'branch':os.environ['RELEASE_TAG'],'commitId':os.environ['RELEASE_SHA']}))")")
           body=$(echo "$resp" | head -n -1)
           code=$(echo "$resp" | tail -n 1)
           echo "AppVeyor HTTP $code: $(echo "$body" | head -c 300)"
