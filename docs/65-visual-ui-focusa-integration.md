@@ -82,3 +82,21 @@ Visual/UI actions should eventually map to explicit contract surfaces just like 
 ## Success Condition
 
 Visual/UI Integration with Focusa is successful when the visual/UI stack behaves like a first-class Focusa domain layer rather than an isolated subsystem.
+
+---
+
+## External product composition seam
+
+Focusa's visual/UI and generated-UI machinery is also intended to serve product-family consumers without absorbing their domain semantics.
+
+A consuming product such as Wirebot may define higher-order human-facing compositions (for example insight, constraint, decision, follow-through, readiness, recovery or outcome views) over Focusa primitives and trusted UI elements, provided that:
+
+- Focusa remains owner of its Context, Evidence, Prediction, Constraint, Trajectory, Workpoint, Metacognition, Verification, Receipt and generated-action safety semantics;
+- the consuming product remains owner of its product/domain semantics and user-facing composition language;
+- A2UI/trusted-element bindings remain allowlisted and fail closed for unknown components/actions;
+- composition does not create a second reducer, approval store, Evidence store, authority store or event database;
+- product-specific mathematical/statistical engines normalize their results into bounded, evidence-linked semantic projections before rendering;
+- technical model details may be exposed through progressive disclosure, but ordinary UI should translate them into human meaning;
+- browser/computer proof remains owned by UIAI Engine and enters Focusa as bounded Evidence rather than a competing browser/proof subsystem.
+
+This seam allows Focusa to remain a reusable engine behind multiple product families while preserving product ownership and avoiding UI-framework duplication.
