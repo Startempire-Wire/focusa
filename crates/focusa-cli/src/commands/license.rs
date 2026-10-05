@@ -15,8 +15,9 @@ use crate::api_client::ApiClient;
 use anyhow::Context;
 use clap::{Args, Subcommand};
 use focusa_core::license::{
-    DEFAULT_REGISTRY, LicenseStatus, activate as core_activate, check_feature as core_check_feature,
-    deactivate as core_deactivate, doctor as core_doctor, load_license_status as core_status,
+    DEFAULT_REGISTRY, LicenseStatus, activate as core_activate,
+    check_feature as core_check_feature, deactivate as core_deactivate, doctor as core_doctor,
+    load_license_status as core_status,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -537,14 +538,26 @@ fn print_human_doctor(doctor: &focusa_core::license::DoctorReport) {
     }
     println!();
     let status = |ok: bool| if ok { "OK" } else { "FAIL" };
-    println!("  [{}] signed authority state exists", status(doctor.file_exists));
-    println!("  [{}] signed authority state readable", status(doctor.file_readable));
-    println!("  [{}] verified authority usable", status(doctor.authority_usable));
+    println!(
+        "  [{}] signed authority state exists",
+        status(doctor.file_exists)
+    );
+    println!(
+        "  [{}] signed authority state readable",
+        status(doctor.file_readable)
+    );
+    println!(
+        "  [{}] verified authority usable",
+        status(doctor.authority_usable)
+    );
     if let Some(expiry) = &doctor.credential_expires_at {
         println!("Credential expires: {expiry} (not the commercial license term)");
     }
     if doctor.offline_grace_active {
-        println!("Offline grace is active until {}", doctor.offline_valid_until.as_deref().unwrap_or("unknown"));
+        println!(
+            "Offline grace is active until {}",
+            doctor.offline_valid_until.as_deref().unwrap_or("unknown")
+        );
     }
     println!(
         "  [{}] registry HTTP reachable (not renewal proof)",
@@ -1693,7 +1706,11 @@ async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow:
     let decision = core_check_feature(&local_license_path(), feature);
     let enabled = decision.is_ok();
     // Preserve the v1 response labels while using the shared effective decision.
-    let reason = if enabled { "signed_feature_grant" } else { "unknown_or_not_granted" };
+    let reason = if enabled {
+        "signed_feature_grant"
+    } else {
+        "unknown_or_not_granted"
+    };
     let out = json!({
         "schema": "focusa.authority_feature_decision.v1",
         "feature": feature,

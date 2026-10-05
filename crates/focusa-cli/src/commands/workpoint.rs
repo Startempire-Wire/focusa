@@ -276,21 +276,42 @@ fn lifecycle_repair_request(
 ) -> anyhow::Result<Value> {
     use focusa_core::types::WorkpointLifecycleStage;
     let stage: WorkpointLifecycleStage = serde_json::from_value(json!(stage))?;
-    if !confirmed || stage == WorkpointLifecycleStage::Unknown
-        || reason.trim().is_empty() || idempotency_key.trim().is_empty()
-        || evidence_refs.is_empty() || evidence_refs.iter().any(|reference| reference.trim().is_empty()) {
-        anyhow::bail!("Stage recovery requires confirmation, a known stage, a reason, evidence and an idempotency key");
+    if !confirmed
+        || stage == WorkpointLifecycleStage::Unknown
+        || reason.trim().is_empty()
+        || idempotency_key.trim().is_empty()
+        || evidence_refs.is_empty()
+        || evidence_refs
+            .iter()
+            .any(|reference| reference.trim().is_empty())
+    {
+        anyhow::bail!(
+            "Stage recovery requires confirmation, a known stage, a reason, evidence and an idempotency key"
+        );
     }
-    let record = current.get("workpoint").filter(|record|
-        record.get("canonical").and_then(Value::as_bool) == Some(true))
-        .ok_or_else(|| anyhow::anyhow!("No active canonical work record was returned; no recovery request sent"))?;
+    let record = current
+        .get("workpoint")
+        .filter(|record| record.get("canonical").and_then(Value::as_bool) == Some(true))
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "No active canonical work record was returned; no recovery request sent"
+            )
+        })?;
     let mut body = record.clone();
-    let intent = body.get_mut("action_intent").and_then(Value::as_object_mut)
-        .ok_or_else(|| anyhow::anyhow!("The existing action is missing; stage-only recovery cannot repair it"))?;
+    let intent = body
+        .get_mut("action_intent")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| {
+            anyhow::anyhow!("The existing action is missing; stage-only recovery cannot repair it")
+        })?;
     intent.insert("lifecycle_stage".into(), json!(stage));
     intent.insert("lifecycle_transition_reason".into(), json!(reason));
-    intent.insert("lifecycle_transition_evidence_refs".into(), json!(evidence_refs));
-    body.as_object_mut().ok_or_else(|| anyhow::anyhow!("Invalid work record"))?
+    intent.insert(
+        "lifecycle_transition_evidence_refs".into(),
+        json!(evidence_refs),
+    );
+    body.as_object_mut()
+        .ok_or_else(|| anyhow::anyhow!("Invalid work record"))?
         .remove("workpoint_id"); // append a successor, never overwrite the saved record
     body["checkpoint_reason"] = json!("operator_checkpoint");
     body["promote"] = json!(true);
@@ -359,15 +380,31 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             )
         }
         WorkpointCmd::RepairStage {
-            project_root, continuity_id, stage, reason, evidence_ref,
-            idempotency_key, confirm_lifecycle_repair,
+            project_root,
+            continuity_id,
+            stage,
+            reason,
+            evidence_ref,
+            idempotency_key,
+            confirm_lifecycle_repair,
         } => {
             ensure_project_root_scope_safe(Some(&project_root), "workpoint stage recovery")?;
             let (root, subpath) = resolve_workpoint_scope(Some(project_root), None);
-            let current = api.get(&current_path(root, Some(subpath), Some(continuity_id))).await?;
-            let body = lifecycle_repair_request(&current, &stage, &reason, &evidence_ref,
-                &idempotency_key, confirm_lifecycle_repair)?;
-            ("stage recovery", api.post("/v1/workpoint/checkpoint", &body).await?)
+            let current = api
+                .get(&current_path(root, Some(subpath), Some(continuity_id)))
+                .await?;
+            let body = lifecycle_repair_request(
+                &current,
+                &stage,
+                &reason,
+                &evidence_ref,
+                &idempotency_key,
+                confirm_lifecycle_repair,
+            )?;
+            (
+                "stage recovery",
+                api.post("/v1/workpoint/checkpoint", &body).await?,
+            )
         }
         WorkpointCmd::Current {
             project_root,
@@ -492,23 +529,68 @@ mod tests {
                 "lifecycle_stage":"unknown", "verification_hooks":["source-proof"], "status":"ready"}
         }});
         let evidence = vec!["evidence:source-repair".into()];
-        let body = lifecycle_repair_request(&current, "implement", "Approved source recovery",
-            &evidence, "fixture-replay", true).unwrap();
+        let body = lifecycle_repair_request(
+            &current,
+            "implement",
+            "Approved source recovery",
+            &evidence,
+            "fixture-replay",
+            true,
+        )
+        .unwrap();
         assert!(body.get("workpoint_id").is_none());
         assert_eq!(body["mission"], current["workpoint"]["mission"]);
         assert_eq!(body["next_slice"], current["workpoint"]["next_slice"]);
-        assert_eq!(body["action_intent"]["verification_hooks"],
-            current["workpoint"]["action_intent"]["verification_hooks"]);
+        assert_eq!(
+            body["action_intent"]["verification_hooks"],
+            current["workpoint"]["action_intent"]["verification_hooks"]
+        );
         assert_eq!(body["action_intent"]["lifecycle_stage"], "implement");
         assert_eq!(body["confirm_lifecycle_repair"], true);
-        assert!(lifecycle_repair_request(&current, "implement", "Approved recovery",
-            &evidence, "fixture-replay", false).is_err());
-        assert!(lifecycle_repair_request(&current, "unknown", "Approved recovery",
-            &evidence, "fixture-replay", true).is_err());
-        assert!(lifecycle_repair_request(&current, "implement", "Approved recovery",
-            &[], "fixture-replay", true).is_err());
-        assert!(lifecycle_repair_request(&json!({"canonical":false}), "implement",
-            "Approved recovery", &evidence, "fixture-replay", true).is_err());
+        assert!(
+            lifecycle_repair_request(
+                &current,
+                "implement",
+                "Approved recovery",
+                &evidence,
+                "fixture-replay",
+                false
+            )
+            .is_err()
+        );
+        assert!(
+            lifecycle_repair_request(
+                &current,
+                "unknown",
+                "Approved recovery",
+                &evidence,
+                "fixture-replay",
+                true
+            )
+            .is_err()
+        );
+        assert!(
+            lifecycle_repair_request(
+                &current,
+                "implement",
+                "Approved recovery",
+                &[],
+                "fixture-replay",
+                true
+            )
+            .is_err()
+        );
+        assert!(
+            lifecycle_repair_request(
+                &json!({"canonical":false}),
+                "implement",
+                "Approved recovery",
+                &evidence,
+                "fixture-replay",
+                true
+            )
+            .is_err()
+        );
     }
 
     #[test]

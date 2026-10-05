@@ -2151,22 +2151,58 @@ mod premium_family_resolution_tests {
         let now = Utc::now();
         let mut active = snapshot(EntitlementState::Active);
         active.features.insert("ota_auto_update".into(), true);
-        assert!(software_feature_enabled(&active, "focusa.update.unattended", now));
-        assert!(resolve_premium_family(&active, CapabilityFamily::PremiumUpdates,
-            "focusa.update.unattended", now).is_feature());
-        active.features.insert("focusa.update.unattended".into(), false);
+        assert!(software_feature_enabled(
+            &active,
+            "focusa.update.unattended",
+            now
+        ));
+        assert!(
+            resolve_premium_family(
+                &active,
+                CapabilityFamily::PremiumUpdates,
+                "focusa.update.unattended",
+                now
+            )
+            .is_feature()
+        );
+        active
+            .features
+            .insert("focusa.update.unattended".into(), false);
         assert!(!software_feature_enabled(&active, "ota_auto_update", now));
-        assert!(!software_feature_enabled(&active, "focusa.update.unattended", now));
-        assert!(!resolve_premium_family(&active, CapabilityFamily::PremiumUpdates,
-            "focusa.update.unattended", now).is_feature());
+        assert!(!software_feature_enabled(
+            &active,
+            "focusa.update.unattended",
+            now
+        ));
+        assert!(
+            !resolve_premium_family(
+                &active,
+                CapabilityFamily::PremiumUpdates,
+                "focusa.update.unattended",
+                now
+            )
+            .is_feature()
+        );
         active.features.remove("focusa.update.unattended");
         active.expires_at = Some(now - chrono::Duration::seconds(1));
-        assert!(!software_feature_enabled(&active, "focusa.update.unattended", now));
+        assert!(!software_feature_enabled(
+            &active,
+            "focusa.update.unattended",
+            now
+        ));
         active.state = EntitlementState::OfflineGrace;
         active.offline_grace_until = Some(now + chrono::Duration::seconds(1));
-        assert!(software_feature_enabled(&active, "focusa.update.unattended", now));
+        assert!(software_feature_enabled(
+            &active,
+            "focusa.update.unattended",
+            now
+        ));
         active.offline_grace_until = Some(now - chrono::Duration::seconds(1));
-        assert!(!software_feature_enabled(&active, "focusa.update.unattended", now));
+        assert!(!software_feature_enabled(
+            &active,
+            "focusa.update.unattended",
+            now
+        ));
         active.state = EntitlementState::RecoveryOnly;
         assert!(!software_feature_enabled(&active, "ota_auto_update", now));
     }
@@ -2176,14 +2212,21 @@ mod premium_family_resolution_tests {
         let mut active = snapshot(EntitlementState::Active);
         active.product_code = Some("focusa_operator_lifetime_v1".into());
         active.posture = Some("paid".into());
-        for feature in ["focusa.update.unattended", "focusa.install.channel.preview",
-            "focusa.install.channel.nightly"] {
+        for feature in [
+            "focusa.update.unattended",
+            "focusa.install.channel.preview",
+            "focusa.install.channel.nightly",
+        ] {
             assert!(!active.features.contains_key(feature));
             assert!(software_feature_enabled(&active, feature, Utc::now()));
             active.features.insert(feature.into(), false);
             assert!(!software_feature_enabled(&active, feature, Utc::now()));
         }
-        assert!(!software_feature_enabled(&active, "unknown_future_feature", Utc::now()));
+        assert!(!software_feature_enabled(
+            &active,
+            "unknown_future_feature",
+            Utc::now()
+        ));
     }
 
     #[test]

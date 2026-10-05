@@ -124,8 +124,8 @@ fn read_node_identity(
     }
     let bytes = fs::read(config_dir.join("node-identity.json"))
         .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
-    let mut identity: NodeIdentity = serde_json::from_slice(&bytes)
-        .map_err(|_| CredentialStoreError::NodeIdentityInvalid)?;
+    let mut identity: NodeIdentity =
+        serde_json::from_slice(&bytes).map_err(|_| CredentialStoreError::NodeIdentityInvalid)?;
     // Retain #342 compatibility, but only the explicit activation path persists it.
     let normalized_node_id = identity
         .node_id

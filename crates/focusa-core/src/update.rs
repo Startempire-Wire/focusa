@@ -1368,10 +1368,19 @@ mod spec152f_update_entitlement {
             assert!(p.auto_apply_blocked_until.is_empty());
             p.refresh_auto_apply_authority(&[], false);
             assert!(!p.auto_apply_allowed);
-            assert!(p.auto_apply_blocked_until.contains(&"license_disallows_unattended_apply".into()));
+            assert!(
+                p.auto_apply_blocked_until
+                    .contains(&"license_disallows_unattended_apply".into())
+            );
         }
-        let developer = UpdatePolicy::default_for_license("developer_full",
-            &["developer_channel".into(), "focusa.update.unattended".into()], false);
+        let developer = UpdatePolicy::default_for_license(
+            "developer_full",
+            &[
+                "developer_channel".into(),
+                "focusa.update.unattended".into(),
+            ],
+            false,
+        );
         assert_eq!(developer.channel, ReleaseChannel::Dev);
         assert!(developer.auto_apply_allowed);
         let mut prompt = policy(ReleaseChannel::Stable, UpdateMode::Prompt);

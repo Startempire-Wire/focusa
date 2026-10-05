@@ -95,7 +95,8 @@ pub use entitlement_policy::{
     is_focusa_verified_no_license_family_allowed, operator_includes_software_usage,
     operator_license_type_grant, premium_family_feature_ids, reduce_entitlement_state,
     registered_software_feature_ids, resolve_base_focusa_product, resolve_export_packaged,
-    resolve_premium_family, software_feature_enabled, software_lease_current, software_license_includes_usage,
+    resolve_premium_family, software_feature_enabled, software_lease_current,
+    software_license_includes_usage,
 };
 pub use facade_policy_presenter::{
     FACADE_ALWAYS_REACHABLE, FACADE_PRESENTER_FIELDS, FACADE_PRESENTER_FORBIDDEN_FIELDS,

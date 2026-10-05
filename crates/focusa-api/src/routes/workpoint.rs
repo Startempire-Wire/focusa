@@ -2270,7 +2270,8 @@ fn legacy_lifecycle_repair_eligible(
     previous: &WorkpointRecord,
     linkage: &Value,
 ) -> bool {
-    let (Some(old), Some(next)) = (previous.action_intent.as_ref(), req.action_intent.as_ref()) else {
+    let (Some(old), Some(next)) = (previous.action_intent.as_ref(), req.action_intent.as_ref())
+    else {
         return false;
     };
     req.repair_missing_lifecycle_stage
@@ -2456,7 +2457,8 @@ async fn checkpoint(
             &focusa,
             req.project_root.as_deref(),
             req.continuity_id.as_deref(),
-        ).cloned()
+        )
+        .cloned()
     } else {
         None
     };
@@ -2473,10 +2475,14 @@ async fn checkpoint(
                     continuity_id: req.continuity_id.clone(),
                     ..Default::default()
                 }),
-            ).await;
+            )
+            .await;
             if !guard_status.is_success()
-                || guard_reply.pointer("/trajectory_integrity_guard/status")
-                    .and_then(Value::as_str) != Some("READY") {
+                || guard_reply
+                    .pointer("/trajectory_integrity_guard/status")
+                    .and_then(Value::as_str)
+                    != Some("READY")
+            {
                 return Err((StatusCode::CONFLICT, Json(guard_reply)));
             }
             let focusa = state.focusa.read().await;
@@ -2485,25 +2491,33 @@ async fn checkpoint(
                 req.project_root.as_deref().unwrap_or_default(),
                 req.continuity_id.as_deref(),
             );
-            if !previous.as_ref().is_some_and(|record|
-                legacy_lifecycle_repair_eligible(&req, record, &linkage)) {
-                return Err((StatusCode::CONFLICT, Json(json!({
-                    "status": "rejected",
-                    "canonical": false,
-                    "code": "LIFECYCLE_REPAIR_REJECTED",
-                    "failure_class": "lifecycle_repair_rejected",
-                    "next_step_hint": "confirmed recovery requires an exact unchanged legacy action, one missing stage, transition evidence and an idempotency key"
-                }))));
+            if !previous
+                .as_ref()
+                .is_some_and(|record| legacy_lifecycle_repair_eligible(&req, record, &linkage))
+            {
+                return Err((
+                    StatusCode::CONFLICT,
+                    Json(json!({
+                        "status": "rejected",
+                        "canonical": false,
+                        "code": "LIFECYCLE_REPAIR_REJECTED",
+                        "failure_class": "lifecycle_repair_rejected",
+                        "next_step_hint": "confirmed recovery requires an exact unchanged legacy action, one missing stage, transition evidence and an idempotency key"
+                    })),
+                ));
             }
         } else if previous.is_some() {
             require_scoped_north_star_mutation_admission(
                 &scope,
                 &state,
                 "workpoint_checkpoint_promote",
-            ).await?;
+            )
+            .await?;
         }
         validate_lifecycle_transition_evidence(
-            previous.as_ref().and_then(|record| record.action_intent.as_ref()),
+            previous
+                .as_ref()
+                .and_then(|record| record.action_intent.as_ref()),
             req.action_intent.as_ref(),
         )?;
     }
@@ -4122,15 +4136,32 @@ mod tests {
         assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
         req.action_intent.as_mut().unwrap().lifecycle_stage = WorkpointLifecycleStage::Implement;
         let mut already_valid = old.clone();
-        already_valid.action_intent.as_mut().unwrap().lifecycle_stage = WorkpointLifecycleStage::Implement;
-        assert!(!legacy_lifecycle_repair_eligible(&req, &already_valid, &linkage));
+        already_valid
+            .action_intent
+            .as_mut()
+            .unwrap()
+            .lifecycle_stage = WorkpointLifecycleStage::Implement;
+        assert!(!legacy_lifecycle_repair_eligible(
+            &req,
+            &already_valid,
+            &linkage
+        ));
         let mut wrong_link = linkage.clone();
         wrong_link["workpoint_id"] = json!(Uuid::now_v7());
         assert!(!legacy_lifecycle_repair_eligible(&req, &old, &wrong_link));
         let mut additional_gap = linkage.clone();
-        additional_gap["admission_gaps"] = json!(["lifecycle_stage_missing", "active_operation_missing"]);
-        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &additional_gap));
-        req.action_intent.as_mut().unwrap().lifecycle_transition_evidence_refs.clear();
+        additional_gap["admission_gaps"] =
+            json!(["lifecycle_stage_missing", "active_operation_missing"]);
+        assert!(!legacy_lifecycle_repair_eligible(
+            &req,
+            &old,
+            &additional_gap
+        ));
+        req.action_intent
+            .as_mut()
+            .unwrap()
+            .lifecycle_transition_evidence_refs
+            .clear();
         assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
     }
 
