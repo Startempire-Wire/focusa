@@ -25,6 +25,31 @@ the canonical release scripts remain the authority.
 | macOS menubar package proof | Codemagic cloud `mac_mini_m2` | `codemagic.yaml`, workflow `menubar-macos-package-proof` | npm ci, typecheck, web build, Rust/Tauri `.app`, plist lint, ad-hoc codesign and verification green | Proof is ad-hoc signed; it is not notarized customer distribution. |
 | GitHub-hosted Linux/macOS/Windows jobs | temporarily non-authoritative | `ci.yml`, `spec132-terminal-matrix.yml`, `release.yml` | Informational only while account admission is billing-locked | Must not be silently deleted or individually re-enabled. The monolithic Spec 132 receipt is substituted by exact-SHA self-hosted CI plus the downstream AppVeyor/Codemagic receipt gates. |
 
+## 2.1 Existing OVH Windows compiler — independent executable build lane
+
+The installed OVH `cargo-xwin`, LLVM/clang-cl shim, and Microsoft SDK cache
+provide an independent Windows executable compiler. AppVeyor authentication
+failure does not prove that compiler unavailable. The controller adapter is
+`scripts/ci/build-windows-xwin-release.py`, entered through
+`.github/workflows/windows-ovh-build.yml` with an existing immutable tag and
+its exact full SHA. It derives packages, targets, release profile override,
+production public roots and surface names from the candidate's `.appveyor.yml`;
+it does not create another build contract or move the candidate tag.
+
+The adapter requires clean exact-tag source, existing tools and an owner-readable
+SDK cache, enforces the canonical resource gate, builds both Windows targets,
+and runs the existing embedded-root verifier before recording checksummed
+staging artifacts. It never installs tools, uploads to a Release, changes
+credentials, publishes, or claims native Windows execution. Its receipt marks
+native-runtime, installer and publication proof false. A plan or passing adapter
+unit tests is not a completed executable build.
+
+This lane's staging evidence is not a substitute for NSIS/MSI bundles, updater
+signatures, native Windows/ConPTY/OTA tests, or the full release acceptance gates.
+Old executables cannot be renamed to the current candidate. Integrate actual
+producer receipts through the canonical release controller before promotion;
+never hand-publish a partial release to bypass a missing producer.
+
 ## 3. Canonical temporary release procedure
 
 1. Run the normal canonical preflight and create the requested dev or stable

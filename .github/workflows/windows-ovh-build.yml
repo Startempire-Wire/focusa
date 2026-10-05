@@ -1,0 +1,73 @@
+name: Windows OVH candidate build
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing immutable candidate tag
+        required: true
+        type: string
+      release_sha:
+        description: Exact immutable candidate commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-ovh-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  cross-compile:
+    name: Windows executables — OVH existing toolchain
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify controller adapter contract
+        run: python3 tests/windows_xwin_release_adapter_test.py
+      - name: Preserve controller adapter outside candidate checkout
+        run: cp scripts/ci/build-windows-xwin-release.py "$RUNNER_TEMP/build-windows-xwin-release.py"
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_sha }}
+          fetch-depth: 0
+      - name: Require existing compiler and owner-readable SDK
+        run: |
+          set -euo pipefail
+          command -v cargo-xwin
+          test -x /usr/lib/llvm-18/bin/clang-cl
+          test -x /opt/xwin-shim/clang
+          test -r /home/wirebot/build/focusa/windows-sdk-cache
+          python3 -c 'import yaml'
+      - name: Enforce canonical release resource gate
+        run: python3 scripts/check-release-resource-gate.py
+      - name: Compile exact candidate and prove embedded production roots
+        env:
+          CANDIDATE_TAG: ${{ inputs.release_tag }}
+          CANDIDATE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          python3 "$RUNNER_TEMP/build-windows-xwin-release.py" \
+            --source "$GITHUB_WORKSPACE" --tag "$CANDIDATE_TAG" --sha "$CANDIDATE_SHA" \
+            --sdk-cache /home/wirebot/build/focusa/windows-sdk-cache \
+            --target-dir "$RUNNER_TEMP/focusa-windows-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --output "$RUNNER_TEMP/focusa-windows-artifacts-${GITHUB_RUN_ID}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-cross-compile-${{ inputs.release_tag }}
+          path: ${{ runner.temp }}/focusa-windows-artifacts-${{ github.run_id }}/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Clean exact-owned rebuildable compiler target
+        if: always()
+        run: |
+          set -euo pipefail
+          target="$RUNNER_TEMP/focusa-windows-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          if [ -d "$target" ]; then cargo clean --target-dir "$target"; fi
+
+# This producer stages executables and honest cross-compile evidence only.
+# It cannot claim Windows native tests, MSI/NSIS installers, release signatures,
+# publication, installation, or full release acceptance.
