@@ -29,6 +29,8 @@ These names are also validated by repository tooling and should remain discovera
 - [`current/FOCUSA_FRIENDLY_ONBOARDING.md`](current/FOCUSA_FRIENDLY_ONBOARDING.md) — **Friendly Focusa Q** onboarding.
 - [`current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md`](current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md) — **Focusa Tool Choreography Map**.
 - [`current/TOOL_RESULT_ENVELOPE_V1.md`](current/TOOL_RESULT_ENVELOPE_V1.md) — common tool-result/recovery envelope.
+- [`current/NON_PI_AGENT_FOCUSA_USAGE.md`](current/NON_PI_AGENT_FOCUSA_USAGE.md) — current non-Pi harness usage.
+- [`93-non-pi-agent-focusa-awareness-spec.md`](93-non-pi-agent-focusa-awareness-spec.md) — normative non-Pi awareness contract, not installed-runtime proof.
 
 ## Documentation classes
 
