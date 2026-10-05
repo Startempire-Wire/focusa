@@ -26,6 +26,10 @@ For KH/OVH/operator policy, inherit `/root/AGENTS.md`: query `agent-kb-api` firs
 
 Wirebot/SOVOS may consume Focusa primitives and the trusted generated-UI substrate, but new SOVOS mathematical-intelligence / Wirebot higher-order composition registries are **target-state work**, not proof of current Focusa runtime capability. Before touching this seam, read `docs/65-visual-ui-focusa-integration.md` and preserve the distinction between Focusa's implemented cognition/generated-UI substrate and consuming-product plans. Do not add Wirebot/SOVOS domain state, a second renderer, approval store, Evidence store, or browser/proof owner to Focusa merely to satisfy those plans.
 
+## Documentation orientation
+
+Use `docs/README.md` as the purpose-based documentation router. For agent work, its canonical deeper entry is `docs/agent/01-focusa-agent-docs-index.md`; do not treat old numbered specs, dated audits, or public marketing docs as current runtime truth unless their current manifest/status says so.
+
 ## Focusa agent docs entry point
 
 Before broad Focusa code changes or after context loss, read `docs/agent/01-focusa-agent-docs-index.md`. It is the bounded, public-safe architecture/commands/API/Workpoint/Trajectory/private-boundary guide for agents.
