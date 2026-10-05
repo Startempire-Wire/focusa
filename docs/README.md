@@ -1,95 +1,451 @@
-# Focusa Documentation Router
+# Focusa Docs
 
-**Status:** CURRENT docs index  
-**Purpose:** route humans and agents to the correct source without mixing current runtime truth, normative specs, evidence, public docs and historical design material.
+**Focusa** is a local-first cognitive continuity and governance runtime for AI agents.
 
-Focusa is under active development. Do not infer current implementation from an old numbered spec or dated audit. Current source/runtime status and current agent guidance take precedence over historical design prose.
+This docs index describes the current development snapshot. Focusa is implemented across Rust core/API/CLI plus the Pi extension, and it remains under active development.
 
-## Choose your entry point
+---
 
-| You are trying to… | Start here |
-|---|---|
-| Understand/install Focusa | [`../README.md`](../README.md) |
-| Evaluate public capabilities | [`PUBLIC_INDEX.md`](PUBLIC_INDEX.md) |
-| Work as an AI/build agent | [`agent/01-focusa-agent-docs-index.md`](agent/01-focusa-agent-docs-index.md) |
-| Check what is implemented now | [`current/CURRENT_RUNTIME_STATUS.md`](current/CURRENT_RUNTIME_STATUS.md) |
-| Use the CLI/API | [`current/CLI_REFERENCE_CURRENT.md`](current/CLI_REFERENCE_CURRENT.md), [`current/API_REFERENCE_CURRENT.md`](current/API_REFERENCE_CURRENT.md) |
-| Discover Focusa tools | [`focusa-tools/README.md`](focusa-tools/README.md) |
-| Understand current tool routing | [`current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md`](current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md) |
-| Understand generated UI / Mission Canvas | [`135-series-current-manifest.md`](135-series-current-manifest.md) |
-| Understand external product composition | [`65-visual-ui-focusa-integration.md`](65-visual-ui-focusa-integration.md) |
-| Verify release/proof state | [`current/VALIDATION_AND_RELEASE_PROOF.md`](current/VALIDATION_AND_RELEASE_PROOF.md) |
+## What Focusa Solves
 
-## Current agent-awareness references
+- Context loss under compaction
+- Silent behavioral drift
+- Unverifiable autonomy
+- Unexplainable learning
+- Long-running task incoherence
 
-These names are also validated by repository tooling and should remain discoverable:
+---
 
-- [`current/AGENT_AWARENESS_QUICKSTART.md`](current/AGENT_AWARENESS_QUICKSTART.md) — **Agent Awareness Quickstart**.
-- [`current/FOCUSA_AGENT_UTILITY_CARD.md`](current/FOCUSA_AGENT_UTILITY_CARD.md) — Focusa utility/startup card.
-- [`current/FOCUSA_FRIENDLY_ONBOARDING.md`](current/FOCUSA_FRIENDLY_ONBOARDING.md) — **Friendly Focusa Q** onboarding.
-- [`current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md`](current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md) — **Focusa Tool Choreography Map**.
-- [`current/TOOL_RESULT_ENVELOPE_V1.md`](current/TOOL_RESULT_ENVELOPE_V1.md) — common tool-result/recovery envelope.
-- [`current/NON_PI_AGENT_FOCUSA_USAGE.md`](current/NON_PI_AGENT_FOCUSA_USAGE.md) — current non-Pi harness usage.
-- [`93-non-pi-agent-focusa-awareness-spec.md`](93-non-pi-agent-focusa-awareness-spec.md) — normative non-Pi awareness contract, not installed-runtime proof.
+## Current Runtime Concepts
 
-## Documentation classes
+- **Friendly Focusa Q** – project orientation prompts: where am I, where are we going, next useful move, proof, and compounding lesson.
+- **Tool choreography** – linked tool routes so agents use project identity → trajectory → Workpoint → evidence → prediction/metacog instead of only basic notes.
+- **Focus State** – bounded current cognitive state: intent, focus, decisions, constraints, failures, next steps, open questions, recent results, notes, artifacts.
+- **Workpoint** – typed continuation contract for compaction/model-switch/fork/retry recovery.
+- **Evidence refs** – stable proof handles linked to Workpoints instead of raw transcript blobs.
+- **Focus Stack** – structured attention over tasks and frames.
+- **Context Lineage Tree (CLT)** – branch-aware interaction lineage.
+- **Ontology** – objects, links, working sets, action intent, and verification relations.
+- **Metacognition** – capture/retrieve/reflect/adjust/evaluate loop for reusable learning.
+- **Work-loop** – continuous execution state with writer ownership and preflight controls.
+- **Tool Result Envelope** – common status/canonical/degraded/retry/evidence/next-tool metadata for `focusa_*` tools.
+- **UXP/UFI, autonomy, constitutions** – governance design surfaces with partial runtime support and ongoing development.
 
-### Current runtime / operational truth
+---
 
-`docs/current/` contains maintained current-state guides, runtime status, references, security/runbook material and operational contracts. A file under `current/` may still describe a proposal if it says so explicitly; read its status header.
+## Agents & Constitutions
 
-Key examples:
+Agents in Focusa are **not models**.
 
-- [`current/CURRENT_RUNTIME_STATUS.md`](current/CURRENT_RUNTIME_STATUS.md)
-- [`current/PRODUCTION_CONSISTENCY_POLICY.md`](current/PRODUCTION_CONSISTENCY_POLICY.md)
-- [`current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md`](current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md)
-- [`current/PROJECT_INTELLIGENCE_FLYWHEEL.md`](current/PROJECT_INTELLIGENCE_FLYWHEEL.md)
+An agent defines:
 
-### Normative / numbered specifications
+- behavioral defaults
+- policy constraints
+- learning permissions
+- a versioned constitution
 
-Numbered `docs/*.md` specifications define architecture, contracts or target behavior for their declared concern. They are not automatically implementation proof.
+The constitution defines **how the agent reasons when uncertain**.
 
-Use current manifests when a spec family has one. Examples:
+Constitutions:
 
-- [`135-series-current-manifest.md`](135-series-current-manifest.md) — generated UI / professional workspace family.
-- [`181-184-voice-foreman-radar-ambient-operator-current-manifest.md`](181-184-voice-foreman-radar-ambient-operator-current-manifest.md) — Voice, Foreman, Radar, Ambient Operator family.
-- [`quantitative-scientific-cognition-series-current-manifest.md`](quantitative-scientific-cognition-series-current-manifest.md) — quantitative/scientific cognition family.
+- do not change at runtime
+- are versioned
+- are human-ratified
+- are rollback-safe
 
-### Machine contracts
+---
 
-`docs/contracts/` contains generated and hand-maintained schemas, manifests, capability projections and ledgers. These are contract/projection truth for their declared surface, not proof that every consumer/runtime is deployed.
+## Constitution Synthesizer (CS)
 
-### Evidence
+CS is a **design-time assistant**, not a runtime system.
 
-`docs/evidence/` contains bounded proof, audits and dated acceptance artifacts. Evidence supports a claim; it does not become current architecture or runtime state merely because it exists.
+It:
 
-### Tool documentation
+- analyzes UXP, UFI, ARI, and task outcomes
+- detects normative tensions
+- proposes draft constitution updates
+- provides evidence-linked diffs
+- never auto-applies changes
 
-`docs/focusa-tools/` is the current human-facing index for `focusa_*` tool families and per-tool docs. Machine parity lives under `docs/contracts/spec141/generated-capability-v2/`.
+This allows agents to improve **without identity drift**.
 
-### Public documentation
+---
 
-`PUBLIC_INDEX.md` is the public/evaluator router. Public docs must remain public-safe and should not be used as private operational authority.
+## Interfaces
 
-### Historical / superseded material
+### CLI (Primary)
 
-Older design docs, audits and proposal provenance remain useful for lineage. When a current manifest, current-runtime guide, or explicit supersession statement exists, it outranks older prose. Do not delete history solely to make the tree prettier; label or route around it.
+- Inspect focus, autonomy, and trust
+- Review constitution diffs
+- Activate / rollback constitutions
+- Control agents explicitly
 
-## Product-family composition boundary
+### Menubar GUI
 
-Focusa is a reusable engine behind other product families. Wirebot/SOVOS may compose Focusa Context, Evidence, Prediction, Constraint, Trajectory, Workpoint, Metacognition, Verification, Receipt and trusted generated-UI primitives into product-specific experiences without moving those product semantics into Focusa.
+- Current audit: [`current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md`](current/TAURI_MENUBAR_FUNCTIONALITY_AUDIT.md)
+- Up-to-speed spec: [`current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md`](current/TAURI_MENUBAR_UP_TO_SPEED_SPEC.md)
+- Target role: compact runtime cockpit for project identity, trajectory, canonical Workpoints, evidence, predictions, metacognition, lineage, work-loop readiness, and health.
+- Older GUI docs are design direction unless reconciled with the current audit/spec.
 
-See [`65-visual-ui-focusa-integration.md`](65-visual-ui-focusa-integration.md). The new SOVOS/Wirebot mathematical-intelligence and higher-order composition registries are consumer target-state work, not proof of current Focusa implementation.
+---
 
-## Documentation hygiene
+## Design Philosophy
 
-Before creating a new document:
+- No silent mutation
+- No inferred emotion
+- No hidden state
+- No unbounded autonomy
+- Everything explainable
+- Everything reversible
 
-1. find the owning current guide/spec/manifest;
-2. update that owner when possible;
-3. create a new file only for a genuinely new bounded concern;
-4. state whether it is current runtime truth, normative target/spec, implementation plan, dated evidence, compatibility path or historical lineage;
-5. add it to the appropriate router/index if humans or agents need to discover it routinely;
-6. never create a parallel authority, renderer, task store, Evidence store or status source merely to make documentation easier.
+---
 
-An index should route; it should not become another full specification.
+## Why This Matters
+
+Focusa enables AI systems that can:
+
+- run for days or weeks
+- improve over time
+- adapt to users
+- remain inspectable
+- earn autonomy safely
+
+This is **institutional intelligence**, not novelty AI.
+
+---
+
+## Current-build references
+
+- [../CHANGELOG.md](../CHANGELOG.md) — current snapshot change history.
+- [current/CURRENT_RUNTIME_STATUS.md](current/CURRENT_RUNTIME_STATUS.md) — current implemented runtime status and limits.
+- [current/API_REFERENCE_CURRENT.md](current/API_REFERENCE_CURRENT.md) — current API route inventory.
+- [current/CLI_REFERENCE_CURRENT.md](current/CLI_REFERENCE_CURRENT.md) — current CLI command inventory.
+- [current/PI_EXTENSION_AND_SKILLS_GUIDE.md](current/PI_EXTENSION_AND_SKILLS_GUIDE.md) — Pi extension and skills guide.
+- [current/WORKPOINT_LIFECYCLE_GUIDE.md](current/WORKPOINT_LIFECYCLE_GUIDE.md) — Workpoint lifecycle guide.
+- [current/TOOL_RESULT_ENVELOPE_V1.md](current/TOOL_RESULT_ENVELOPE_V1.md) — structured tool result contract.
+- [current/TROUBLESHOOTING_CURRENT.md](current/TROUBLESHOOTING_CURRENT.md) — current troubleshooting runbook.
+- [current/VALIDATION_AND_RELEASE_PROOF.md](current/VALIDATION_AND_RELEASE_PROOF.md) — validation and real runtime proof, including scoped UIAI browser evidence proof.
+- [current/FOCUSA_OPERATOR_PREVIEW_PROOF.md](current/FOCUSA_OPERATOR_PREVIEW_PROOF.md) — Operator Preview proof pack for onboarding, Workpoint continuation, evidence, drift, and non-Pi/manual flows.
+- [current/PRODUCTION_RELEASE_COMMANDS.md](current/PRODUCTION_RELEASE_COMMANDS.md) — release, restart, GitHub proof, and cleanup commands.
+- [92-agent-first-polish-hooks-efficiency-spec.md](92-agent-first-polish-hooks-efficiency-spec.md) — agent-first polish, hooks, token/cache UX, and predictive-power spec.
+- [current/HOOK_COVERAGE.md](current/HOOK_COVERAGE.md) — current Pi hook coverage and Spec92 hook telemetry commands.
+- [current/EFFICIENCY_GUIDE.md](current/EFFICIENCY_GUIDE.md) — current token-budget telemetry and cache metadata commands.
+- [current/DOCTOR_CONTINUE_RELEASE_PROVE.md](current/DOCTOR_CONTINUE_RELEASE_PROVE.md) — current doctor/continue command-center usage and envelopes.
+- [current/DAEMON_RESILIENCE.md](current/DAEMON_RESILIENCE.md) — live daemon restart hardening and Pi in-session holdover/kickstart behavior.
+- [current/ERROR_EMPTY_STATES.md](current/ERROR_EMPTY_STATES.md) — recovery-first CLI/API failure and empty-state envelopes.
+- [current/MAC_APP_MISSION_CONTROL.md](current/MAC_APP_MISSION_CONTROL.md) — Mac mission-control cards for daemon/workpoint/work-loop/token/cache/release state.
+- [current/PREDICTIVE_POWER_GUIDE.md](current/PREDICTIVE_POWER_GUIDE.md) — prediction record/evaluation/stats API and CLI guide.
+- [current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md](current/PREDICTION_METACOG_SIGNAL_SUBSTRATE.md) — normalized signal substrate for prediction/metacognition/ontology flywheel.
+- [current/PREDICTIVE_METACOG_MATURITY_EVAL_2026-05-26.md](current/PREDICTIVE_METACOG_MATURITY_EVAL_2026-05-26.md) — current maturity verdict for predictive and metacognitive feature sets.
+- [current/END_OF_TASK_LEARNING_LOOP.md](current/END_OF_TASK_LEARNING_LOOP.md) — required prediction/metacog closure loop for compaction cards, trajectory reviews, and final work reports.
+- [current/PROJECT_INTELLIGENCE_FLYWHEEL.md](current/PROJECT_INTELLIGENCE_FLYWHEEL.md) — ontology-grounded project-card flywheel for trajectory bootstrap/re-bootstrap, prediction, and metacog compounding.
+- [current/PREDICTION_ALGORITHMS_IMPLEMENTED.md](current/PREDICTION_ALGORITHMS_IMPLEMENTED.md) — implemented lightweight prediction formulas behind project-card algorithmic intelligence.
+- [current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md](current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md) — local UIAI browser diagnostics evidence ingestion, scoped `focusa_evidence` artifacts, and Focusa Workpoint/prediction flow.
+- [current/DATASET_PREDICTION_SUBSTRATE.md](current/DATASET_PREDICTION_SUBSTRATE.md) — dataset-agnostic prediction substrate, with stocks as the first domain adapter.
+- [docs/evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md](evidence/SPEC92_FULL_ROLLOUT_PROOF_2026-04-28.md) — full rollout evidence, live daemon proof, and release publication proof.
+- [docs/evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md](evidence/PUBLIC_DOCS_RELEASE_SYNC_2026-05-26.md) — current public docs sync, Guardian/secret audit, runtime proof, and UIAI evidence proof.
+- [current/COMPACTION_FALLBACKS.md](current/COMPACTION_FALLBACKS.md) — intelligent related fallbacks for Pi replacement compaction.
+- [current/FOCUSA_AGENT_UTILITY_CARD.md](current/FOCUSA_AGENT_UTILITY_CARD.md) — startup/reload runtime awareness card contract.
+- [current/FOCUSA_FRIENDLY_ONBOARDING.md](current/FOCUSA_FRIENDLY_ONBOARDING.md) — friendly project onboarding Q for agents.
+- [current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md](current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md) — linked tool routes for compounding project workflows.
+- [current/FOCUSA_MODEL_VISIBLE_AWARENESS.md](current/FOCUSA_MODEL_VISIBLE_AWARENESS.md) — what Focusa shows the LLM and section precedence.
+- [current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md](current/FOCUSA_BRAIN_BODY_ANALOGY_GAP_MAP.md) — whole-organism brain/body analogy, maturity gaps, and exhaustive docs cross-reference.
+- [current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md](current/FOCUSA_FEATURE_MATURITY_AUDIT_2026-05-26.md) — code-based 1–10 feature maturity ratings and underdeveloped workflow gaps.
+- [current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md](current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md) — proposed project-vitals/stuck-detector/governor layer for continuous coding agents.
+- [current/FOCUSA_SECURITY_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_REVIEW_2026-05-26.md) — five-part whole-project security review and remediation backlog.
+- [current/FOCUSA_SECURITY_STANDARD_MATRIX_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_STANDARD_MATRIX_REVIEW_2026-05-26.md) — Focusa mapped against OWASP ASVS, OWASP API Top 10, CWE Top 25, STRIDE, and CIS Controls v8.
+- [current/API_ROUTE_PERMISSION_MATRIX.md](current/API_ROUTE_PERMISSION_MATRIX.md) — intended API route scopes and route-family authorization baseline.
+- [current/API_RESOURCE_LIMITS.md](current/API_RESOURCE_LIMITS.md) — API request body limit and resource-exhaustion posture.
+- [current/PATH_TRAVERSAL_SECURITY_TESTS.md](current/PATH_TRAVERSAL_SECURITY_TESTS.md) — CWE-22 path traversal coverage and path-sensitive route inventory.
+- [current/TAMPER_EVIDENT_EVENT_CHAIN.md](current/TAMPER_EVIDENT_EVENT_CHAIN.md) — SQLite event hash-chain checkpoints for repudiation detection.
+- [current/DATA_RETENTION_BACKUP_DELETION_POLICY.md](current/DATA_RETENTION_BACKUP_DELETION_POLICY.md) — local-first persisted-state retention, backup, restore, and deletion policy.
+- [current/RUSTSEC_INFORMATIONAL_EXCEPTIONS.md](current/RUSTSEC_INFORMATIONAL_EXCEPTIONS.md) — accepted informational RustSec exceptions and review triggers.
+- [current/DYNAMIC_API_SECURITY_SMOKE.md](current/DYNAMIC_API_SECURITY_SMOKE.md) — dynamic local API malformed JSON and oversized-body security smoke.
+- [current/PERSISTED_STATE_PRIVACY_CLASSES.md](current/PERSISTED_STATE_PRIVACY_CLASSES.md) — privacy classes and handling rules for Focusa persisted state.
+- [current/SECURITY_COMMAND_BOUNDARY.md](current/SECURITY_COMMAND_BOUNDARY.md) — reviewed shell/external command boundary and runtime unwrap static policy.
+- [93-non-pi-agent-focusa-awareness-spec.md](93-non-pi-agent-focusa-awareness-spec.md) — Spec for non-Pi agent awareness, explicitly including OpenClaw/oprnclaw Wirebot.
+- [evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md](evidence/SPEC93_NON_PI_AWARENESS_ROLLOUT_PROOF_2026-04-29.md) — live OpenClaw/Wirebot Focusa awareness activation proof.
+- [current/NON_PI_AGENT_FOCUSA_USAGE.md](current/NON_PI_AGENT_FOCUSA_USAGE.md) — Focusa awareness for OpenClaw/Wirebot, Claude Code, OpenCode, Letta, and other non-Pi agents.
+- [current/AGENT_AWARENESS_QUICKSTART.md](current/AGENT_AWARENESS_QUICKSTART.md) — minimal Focusa utility rules every agent should know.
+- [current/WORKPOINT_SESSION_SCOPE_GUARD.md](current/WORKPOINT_SESSION_SCOPE_GUARD.md) — project/session-bound Workpoint resume guard.
+- [current/AGENT_COMMAND_COOKBOOK.md](current/AGENT_COMMAND_COOKBOOK.md) — copy/paste agent workflows for start/risky edit/compaction/daemon/release/Mac/prediction/cleanup.
+- [90-ontology-backed-tool-contracts-parity-spec.md](90-ontology-backed-tool-contracts-parity-spec.md) — Spec90 tool contract/parity hardening plan.
+- [current/FOCUSA_TOOL_CONTRACT_REGISTRY.md](current/FOCUSA_TOOL_CONTRACT_REGISTRY.md) — current tool contract registry table.
+- [current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md](current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md) — implementation-to-spec parity audit and uplift gaps.
+- [91-live-tool-contract-proof-harness-spec.md](91-live-tool-contract-proof-harness-spec.md) — Spec91 live runtime proof harness.
+- [current/LIVE_TOOL_CONTRACT_PROOF.md](current/LIVE_TOOL_CONTRACT_PROOF.md) — live proof command and expected result.
+- [96-trajectory-projection-and-daemon-stability-spec.md](96-trajectory-projection-and-daemon-stability-spec.md) — Trajectory Projection, ProjectIdentity, hot/cold daemon stability, and tool failure taxonomy.
+- [98-project-root-crdt-reconciliation-foundation-spec.md](98-project-root-crdt-reconciliation-foundation-spec.md) — Project-root source of truth and CRDT reconciliation foundation for multi-session/multi-device Focusa.
+- [102-trajectory-ladder-consolidated-spec.md](102-trajectory-ladder-consolidated-spec.md) — Consolidated canonical spec for Trajectory Ladder authority, persistence, inference, and scope safety.
+- [99-original-intent-vs-implementation-audit.md](99-original-intent-vs-implementation-audit.md) — Audit of original multiplex/CRDT intent against current core/API/Pi implementation.
+
+## Focused tool and skill docs
+
+- [focusa-tools/README.md](focusa-tools/README.md) — index for all current `focusa_*` tool family docs.
+- [focusa-tools/workpoint.md](focusa-tools/workpoint.md) — Workpoint continuity tools.
+- [focusa-tools/focus-state.md](focusa-tools/focus-state.md) — Focus State and scratchpad tools.
+- [focusa-tools/work-loop.md](focusa-tools/work-loop.md) — continuous work-loop tools.
+- [focusa-tools/metacognition.md](focusa-tools/metacognition.md) — metacognition tools.
+- [focusa-tools/tree-lineage.md](focusa-tools/tree-lineage.md) — tree, lineage, snapshot tools.
+- [focusa-tools/diagnostics-hygiene.md](focusa-tools/diagnostics-hygiene.md) — troubleshooting and state hygiene tools.
+- [focusa-tools/predictive-power.md](focusa-tools/predictive-power.md) — prediction record/evaluate/stats tools.
+- [141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md](141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md) — agent-first tool, skill, browser, docs, and conformance release gate.
+- [contracts/spec141/generated-capability-v2/agent-capability-reference.md](contracts/spec141/generated-capability-v2/agent-capability-reference.md) — generated cross-harness capability reference.
+- [evidence/141-focusa-latest-spec-public-doc-alignment.md](evidence/141-focusa-latest-spec-public-doc-alignment.md) — rolling latest-15-spec public direction/status matrix.
+
+Twenty-one root and packaged Pi skills now provide progressive domain guidance and dependency-aware runbooks. The generated parity/coverage authority is [evidence/141-focusa-skill-runbook-coverage.md](evidence/141-focusa-skill-runbook-coverage.md); capability schemas remain cold-loaded through `focusa_tool_search`, `focusa_tool_describe`, `focusa_tool_graph`, and `focusa_tool_bundle`.
+
+## Status
+
+Focusa is under active development.
+The current `v0.9.120-dev` snapshot focuses on agent-first progressive discovery, strict cross-harness contracts, browser governance, durable continuity, evidence, prediction accountability, and live proof over marketing claims.
+
+---
+
+> *Agents grow by learning how to act within their values — not by rewriting them.*
+
+---
+
+# EXTENDED README (Full Detail)
+
+# README.md — Focusa
+
+**Focusa** is a local cognitive runtime that preserves **focus, intent, and meaning** across long-running AI sessions by separating *cognition* from *conversation*.
+
+Focusa sits transparently between an AI harness (Claude Code, Codex CLI, Gemini CLI, Letta, etc.) and a model backend. It does **not** replace agents, models, or frameworks. Instead, it governs *what the system is focused on* and *what meaning must persist* when context inevitably compacts.
+
+---
+
+## The Problem Focusa Solves
+
+Modern AI systems fail in long sessions because:
+
+- Conversation history is treated as memory
+- Automatic compaction silently deletes meaning
+- Intent, constraints, and decisions drift or vanish
+- Models “forget what they were doing”
+- Repeated work and regressions occur
+
+This is not a token problem.  
+It is a **continuity of mind** problem.
+
+---
+
+## The Core Insight
+
+> **Meaning should never live only in conversation.**
+
+Focusa extracts, structures, and persists meaning *outside* the model so that compaction never destroys intent.
+
+---
+
+## What Focusa Is
+
+- A **cognitive runtime**
+- A **focus and intent operating layer**
+- **Harness-agnostic**
+- **Local-first**
+- **Deterministic**
+- **Human-aligned**
+
+## What Focusa Is Not
+
+- Not a model
+- Not an agent framework
+- Not an automation engine
+- Not a RAG system
+- Not a scheduler
+- Not autonomous
+
+---
+
+## Cognitive Architecture
+
+Focusa models cognition explicitly using human-readable components:
+
+### Focus State
+
+The system’s current **state of mind**:
+
+- what it is doing
+- why it is doing it
+- what has been decided
+- what must remain true
+
+This state is injected into every model invocation and survives context compaction.
+
+---
+
+### Focus Stack
+
+A hierarchical structure that models **nested attention**.
+
+- Exactly one active Focus Frame at a time
+- Parent frames contribute selectively
+- Completed frames are archived, not forgotten
+
+This replaces linear chat history with intentional structure.
+
+---
+
+### Intuition Engine
+
+The **subconscious** layer.
+
+- Runs asynchronously
+- Detects patterns, anomalies, repetition, time pressure
+- Aggregates weak signals
+- Never decides or acts
+
+Its only role is to form intuition.
+
+---
+
+### Focus Gate
+
+The **conscious filter**.
+
+- Receives signals from the Intuition Engine
+- Applies decay, pressure, and pinning
+- Surfaces *candidates* for review
+- Never auto-switches focus
+
+---
+
+### Reference Store
+
+Externalized, lossless memory.
+
+- Holds large artifacts (diffs, logs, outputs)
+- Prevents token overload
+- Uses handles instead of inlining content
+- Explicit rehydration only
+
+---
+
+### Expression Engine
+
+The system’s **voice**.
+
+- Converts Focus State into language
+- Enforces token budgets
+- Uses deterministic structure
+- Applies explicit degradation rules when needed
+
+---
+
+## Canonical Cognitive Flow
+
+```text
+Intuition Engine
+      ↓
+  Focus Gate
+      ↓
+ Focus Stack
+      ↓
+ Focus State
+      ↓
+Expression Engine
+      ↓
+  Model Invocation
+```
+
+---
+
+## Why This Works Across Compaction
+
+When a harness or model compacts context:
+
+- Conversation can be lost
+- Meaning is not
+
+Because:
+
+- Intent lives in Focus State
+- Artifacts live in Reference Store
+- Decisions are anchored
+- Focus is re-asserted every turn
+
+Compaction becomes harmless.
+
+---
+
+## Integration Model
+
+Focusa runs as a **fast local proxy**.
+
+- Wraps existing CLI or API harnesses
+- No harness internals required
+- No model modification
+- No retraining
+
+Focusa is invisible unless you inspect it.
+
+---
+
+## Interfaces
+
+### CLI
+
+Primary control surface:
+
+- Manage Focus Stack
+- Inspect Focus Gate candidates
+- Interact with Reference Store
+- Debug events and state
+
+### Local API
+
+- JSON over HTTP
+- Used by CLI, GUI, adapters
+
+### GUI / TUI
+
+- TUI crate exists as a runtime surface.
+- Menubar/Tauri material in older docs is design direction unless a current release note or evidence file says it is shipped in the active snapshot.
+
+---
+
+## Relationship to Beads
+
+Focusa uses **Beads** as the authoritative system of record for tasks and long-term intent.
+
+- Every Focus Frame maps to a Beads issue
+- If work is not in Beads, it does not exist
+- Focusa governs *focus*
+- Beads governs *what work exists*
+
+---
+
+## Design Principles
+
+- Focus over autonomy
+- Structure over prose
+- Explicit over inferred
+- Advisory over controlling
+- Human intent always wins
+- Failure must be visible
+
+---
+
+## Status
+
+🚧 **Current snapshot: v0.9.13-dev**
+
+The Rust daemon/API/CLI, Pi extension, Workpoint continuity, tool result envelopes, evidence linking, metacognition capture/retrieve/reflect/adjust/evaluate plus evaluation readback/promotion, prediction loop, ontology memory-pipeline artifacts, work-loop dispatch-readiness health, agent-first polish commands, compaction fallbacks, Workpoint scope guard, state hygiene tools, explicit source-available/commercial licensing boundary, and live release proof are implemented in the current snapshot. Focusa remains under active development; older design docs may describe planned or partial surfaces.
+
+---
+
+## One-Sentence Summary
+
+> **Focusa preserves continuity of mind across long AI sessions by separating focus, memory, and expression from fragile conversation history.**
+
+## Prediction tool docs
+
+- [focusa_predict_record](focusa-tools/tools/focusa_predict_record.md)
+- [focusa_predict_recent](focusa-tools/tools/focusa_predict_recent.md)
+- [focusa_predict_evaluate](focusa-tools/tools/focusa_predict_evaluate.md)
+- [focusa_predict_stats](focusa-tools/tools/focusa_predict_stats.md)
+- [Predictive Power tools index](focusa-tools/predictive-power.md)
+- [Workpoint Session Scope Guard](current/WORKPOINT_SESSION_SCOPE_GUARD.md)
+- [Compaction Fallbacks](current/COMPACTION_FALLBACKS.md)
