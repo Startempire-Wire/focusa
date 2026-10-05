@@ -22,6 +22,10 @@ For KH/OVH/operator policy, inherit `/root/AGENTS.md`: query `agent-kb-api` firs
 - **iPhone/iOS is an urgent first-class implementation track, not a later port.** Use a versioned connector boundary and preserve equivalent customer-owned enrollment, consent, GitHub OTP scoping/injection, restart recovery, health, revoke/re-pair, audit, and zero-residue teardown on Android and iPhone. Use only Apple-supported/user-consented paths; never assume private iMessage/SMS APIs or weaken controls to claim parity.
 - Cross-platform done means shared contract tests plus real-device proof per supported platform. Android-only work must remain an explicitly bounded bootstrap with an active iPhone task and no architecture that blocks or materially delays iPhone delivery. Recovery codes remain forbidden.
 
+## External product composition current-state boundary
+
+Wirebot/SOVOS may consume Focusa primitives and the trusted generated-UI substrate, but new SOVOS mathematical-intelligence / Wirebot higher-order composition registries are **target-state work**, not proof of current Focusa runtime capability. Before touching this seam, read `docs/65-visual-ui-focusa-integration.md` and preserve the distinction between Focusa's implemented cognition/generated-UI substrate and consuming-product plans. Do not add Wirebot/SOVOS domain state, a second renderer, approval store, Evidence store, or browser/proof owner to Focusa merely to satisfy those plans.
+
 ## Focusa agent docs entry point
 
 Before broad Focusa code changes or after context loss, read `docs/agent/01-focusa-agent-docs-index.md`. It is the bounded, public-safe architecture/commands/API/Workpoint/Trajectory/private-boundary guide for agents.
