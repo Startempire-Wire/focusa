@@ -125,10 +125,20 @@ WP-Cron `wpuiai_license_payment_reminders` daily. Queries `status IN(single,acti
 
 ### 4.1 Focusa -> WP (validate / refresh / watch)
 
-* `crates/focusa-core/src/license.rs::activate(key, registry, persist_key)` does `POST {registry}/wp-json/wpuiai-ai-cloud/v1/license/validate` with `X-License-Key: focusa_live_…` and `{license_key:key}`. Expects `{valid:true, product, tier, status, commercial_use, customer_email, features[], expires_at}`.
-* On success writes `~/.config/focusa/license.json` (`chmod 600`, `key_hash=sha256(key)`, `key_prefix=first 16`, `product/tier/status/features/offline_valid_until=+7d/issued_at`), also optional `raw_key` when `--persist-key`.
-* `doctor(license_file)` pings `GET {registry}/wp-json/wpuiai-ai-cloud/v1/license/status?license_key=focusa_live_probe` to set `registry_reachable`.
-* CLI mirrors: `focusa license activate <key>`, `focusa license status --json`, `focusa license doctor`, `focusa license check-feature packaged_installer`, `focusa license refresh [--raw-key] [--require-real]`, `focusa license watch --interval 60`. Watch long-polls registry and rewrites local file on status change (revoke/refund propagation).
+* Runtime authority is the verified signed state in `~/.config/focusa/authority-lease.json`, resolved by `focusa-license`; signatures, production roots, product/node binding, expiry, grace and revocation remain enforced. Legacy `license.json` helpers are migration shapes, not permission authority.
+* `focusa license check-feature` uses the shared effective software-entitlement decision, including registered rights inherited from a current full-software grant. Its v1 response labels remain compatible. Canonical `focusa.update.unattended=false` overrides granted historical `ota_auto_update` / `ota_scheduled` aliases.
+* Doctor reports signed authority independently of legacy-file presence. It checks credential expiry separately from the commercial/lifetime grant, reports offline grace, and probes registry reachability with a bounded timeout even when local authority is missing or invalid. Diagnostic reads neither create identities nor rewrite legacy node prefixes; explicit activation retains that responsibility.
+* Signed renewal uses the existing activation facade's `LeaseRefresh` operation and signed transition validation. The legacy CLI `license refresh` route is retired; it must not be advertised as a renewal remedy. Reachability alone proves neither renewal nor entitlement.
+* Permission to update unattended does not opt the operator into automatic application or install a scheduler. Acceptance separately requires the existing node's supported renewal path and actual scheduler installation/operation.
+* These consumer corrections require producer tests, actual CLI tests and installed-runtime evidence before being described as delivered. They never replace the customer grant, reset a node, or relax signed release acceptance.
+
+#### 4.1.1 Legacy-stage recovery contract v1 (source; pending release proof)
+
+The existing `POST /v1/workpoint/checkpoint` accepts optional `repair_missing_lifecycle_stage` and `confirm_lifecycle_repair` booleans, both defaulting to false. Recovery still requires normal write authority and a verified existing marker/Trajectory. It is limited to a linked, active, canonical record whose sole admission gap is `lifecycle_stage_missing`.
+
+The request preserves project, continuity, task, mission, objects, action, verification hooks, status and next slice exactly; supplies a known stage, an operator-checkpoint reason, transition evidence and a replay key; and appends a successor without overwriting the saved record. Other gaps, mismatched scope, missing confirmation/evidence, and attempts to replace the original ID remain rejected. No license, execution budget or authority grant changes.
+
+The source CLI `focusa workpoint repair-stage` reads the current record rather than reconstructing it. Its required scope/stage/reason/evidence/replay inputs and `--confirm-lifecycle-repair` select this narrow recovery. A truncated or inconsistent record fails the server's exact-match checks; success must never be inferred from the command definition alone. Proof requires recovery, subsequent normal checkpoint/background admission, and continued denial of invalid requests.
 
 ### 4.2 WP -> Focusa (truth + seats)
 

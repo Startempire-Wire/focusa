@@ -151,7 +151,8 @@ impl UpdatePolicy {
         let has = |feature: &str| features.iter().any(|f| f == feature);
         let is_dev_mode = dev_override
             || license_level == "dev_mode"
-            || (has("developer_channel") && has("ota_auto_update"));
+            || (has("developer_channel")
+                && (has("focusa.update.unattended") || has("ota_auto_update")));
         let is_evaluation = license_level == "evaluation" || license_level == "eval";
         if is_dev_mode {
             Self {
@@ -267,8 +268,14 @@ impl UpdatePolicy {
         let dev_mode = dev_override
             || self.dev_mode_override
             || self.license_level == "dev_mode"
-            || (has("developer_channel") && has("ota_auto_update"));
-        let unattended_entitled = dev_mode || has("ota_auto_update") || has("ota_scheduled");
+            || (has("developer_channel")
+                && (has("focusa.update.unattended") || has("ota_auto_update")));
+        // Features come from the effective signed-authority projection; explicit
+        // canonical denials filter its legacy aliases before reaching this policy.
+        let unattended_entitled = dev_mode
+            || has("focusa.update.unattended")
+            || has("ota_auto_update")
+            || has("ota_scheduled");
         let automatic_mode = matches!(self.mode, UpdateMode::Automatic | UpdateMode::Scheduled);
         let any_part = self.parts.cli
             || self.parts.daemon
@@ -1350,6 +1357,26 @@ mod spec152f_update_entitlement {
             &["developer_channel".into(), "ota_auto_update".into()],
             false,
         )
+    }
+
+    #[test]
+    fn canonical_unattended_feature_allows_opted_in_automatic_and_scheduled_modes() {
+        for mode in [UpdateMode::Automatic, UpdateMode::Scheduled] {
+            let mut p = policy(ReleaseChannel::Stable, mode);
+            p.refresh_auto_apply_authority(&["focusa.update.unattended".into()], false);
+            assert!(p.auto_apply_allowed);
+            assert!(p.auto_apply_blocked_until.is_empty());
+            p.refresh_auto_apply_authority(&[], false);
+            assert!(!p.auto_apply_allowed);
+            assert!(p.auto_apply_blocked_until.contains(&"license_disallows_unattended_apply".into()));
+        }
+        let developer = UpdatePolicy::default_for_license("developer_full",
+            &["developer_channel".into(), "focusa.update.unattended".into()], false);
+        assert_eq!(developer.channel, ReleaseChannel::Dev);
+        assert!(developer.auto_apply_allowed);
+        let mut prompt = policy(ReleaseChannel::Stable, UpdateMode::Prompt);
+        prompt.refresh_auto_apply_authority(&["focusa.update.unattended".into()], false);
+        assert!(!prompt.auto_apply_allowed); // entitlement is not policy opt-in
     }
 
     // ── Stable security maintenance is always available ──────────────────

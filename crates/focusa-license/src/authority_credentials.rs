@@ -106,6 +106,43 @@ pub fn native_protected_store_backend() -> ProtectedStoreBackend {
         .unwrap_or(ProtectedStoreBackend::LinuxSecretService)
 }
 
+/// Read an existing identity without creating a node or rewriting legacy state.
+/// License diagnostics and entitlement reads must not rotate customer identity.
+pub fn load_node_identity(
+    config_dir: &Path,
+    product: &str,
+) -> Result<NodeIdentity, CredentialStoreError> {
+    read_node_identity(config_dir, product).map(|(identity, _)| identity)
+}
+
+fn read_node_identity(
+    config_dir: &Path,
+    product: &str,
+) -> Result<(NodeIdentity, bool), CredentialStoreError> {
+    if product.trim().is_empty() {
+        return Err(CredentialStoreError::MissingIdentity("product"));
+    }
+    let bytes = fs::read(config_dir.join("node-identity.json"))
+        .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
+    let mut identity: NodeIdentity = serde_json::from_slice(&bytes)
+        .map_err(|_| CredentialStoreError::NodeIdentityInvalid)?;
+    // Retain #342 compatibility, but only the explicit activation path persists it.
+    let normalized_node_id = identity
+        .node_id
+        .strip_prefix("node-")
+        .unwrap_or(&identity.node_id)
+        .to_string();
+    if identity.schema != "focusa.node_identity.v1"
+        || identity.product != product
+        || Uuid::parse_str(&normalized_node_id).is_err()
+    {
+        return Err(CredentialStoreError::NodeIdentityInvalid);
+    }
+    let normalized = normalized_node_id != identity.node_id;
+    identity.node_id = normalized_node_id;
+    Ok((identity, normalized))
+}
+
 pub fn load_or_create_node_identity(
     config_dir: &Path,
     product: &str,
@@ -115,32 +152,13 @@ pub fn load_or_create_node_identity(
     }
     let path = config_dir.join("node-identity.json");
     if path.exists() {
-        let bytes =
-            fs::read(&path).map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
-        let identity: NodeIdentity = serde_json::from_slice(&bytes)
-            .map_err(|_| CredentialStoreError::NodeIdentityInvalid)?;
-        // Tolerate legacy identities that stored the node id with a `node-`
-        // prefix (#342 field evidence): normalize instead of failing the whole
-        // activation flow for pre-existing installs.
-        let normalized_node_id = identity
-            .node_id
-            .strip_prefix("node-")
-            .unwrap_or(&identity.node_id)
-            .to_string();
-        if identity.schema != "focusa.node_identity.v1"
-            || identity.product != product
-            || Uuid::parse_str(&normalized_node_id).is_err()
-        {
-            return Err(CredentialStoreError::NodeIdentityInvalid);
-        }
-        if normalized_node_id != identity.node_id {
-            let mut fixed = identity;
-            fixed.node_id = normalized_node_id;
-            let bytes = serde_json::to_vec_pretty(&fixed)
-                .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
-            fs::write(&path, bytes)
-                .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
-            return Ok(fixed);
+        let (identity, normalized) = read_node_identity(config_dir, product)?;
+        if normalized {
+            atomic_private_write(
+                &path,
+                &serde_json::to_vec_pretty(&identity)
+                    .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?,
+            )?;
         }
         return Ok(identity);
     }
@@ -317,6 +335,23 @@ mod tests {
         assert_eq!(handle.service, "focusa.focusa.license-authority");
         assert_eq!(handle.account, "node:node-1:refresh");
         assert!(!format!("{handle:?}").contains("secret"));
+    }
+
+    #[test]
+    fn identity_read_never_creates_or_rewrites_customer_state() {
+        let directory = std::env::temp_dir().join(format!("focusa-node-read-{}", Uuid::now_v7()));
+        assert!(load_node_identity(&directory, "focusa").is_err());
+        assert!(!directory.exists());
+        let mut identity = load_or_create_node_identity(&directory, "focusa").unwrap();
+        identity.node_id = format!("node-{}", identity.node_id);
+        let path = directory.join("node-identity.json");
+        let original = serde_json::to_vec_pretty(&identity).unwrap();
+        fs::write(&path, &original).unwrap();
+        let read = load_node_identity(&directory, "focusa").unwrap();
+        assert_eq!(format!("node-{}", read.node_id), identity.node_id);
+        assert_eq!(fs::read(&path).unwrap(), original);
+        assert!(load_node_identity(&directory, "other-product").is_err());
+        fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]

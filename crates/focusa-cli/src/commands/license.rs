@@ -15,7 +15,7 @@ use crate::api_client::ApiClient;
 use anyhow::Context;
 use clap::{Args, Subcommand};
 use focusa_core::license::{
-    LicenseStatus, activate as core_activate, check_feature as core_check_feature,
+    DEFAULT_REGISTRY, LicenseStatus, activate as core_activate, check_feature as core_check_feature,
     deactivate as core_deactivate, doctor as core_doctor, load_license_status as core_status,
 };
 use serde::{Deserialize, Serialize};
@@ -241,7 +241,6 @@ pub(crate) struct RegistryValidateResponse {
     expires_at: Option<String>,
 }
 
-const DEFAULT_REGISTRY: &str = "https://wpuiai.com";
 const REGISTRY_VALIDATE_PATH: &str = "/wp-json/wpuiai-ai-cloud/v1/license/validate";
 const LICENSE_FILE_NAME: &str = "license.json";
 
@@ -532,14 +531,23 @@ fn print_human_status(status: &LicenseStatus, license_file: &Path) {
 
 fn print_human_doctor(doctor: &focusa_core::license::DoctorReport) {
     println!("Focusa License Doctor\n");
-    println!("License file: {}", doctor.license_file);
+    println!("Signed authority file: {}", doctor.license_file);
+    if let Some(mode) = doctor.mode {
+        println!("Current license state: {}", mode.label());
+    }
     println!();
     let status = |ok: bool| if ok { "OK" } else { "FAIL" };
-    println!("  [{}] license file exists", status(doctor.file_exists));
-    println!("  [{}] license file readable", status(doctor.file_readable));
-    println!("  [{}] license not expired", status(doctor.not_expired));
+    println!("  [{}] signed authority state exists", status(doctor.file_exists));
+    println!("  [{}] signed authority state readable", status(doctor.file_readable));
+    println!("  [{}] verified authority usable", status(doctor.authority_usable));
+    if let Some(expiry) = &doctor.credential_expires_at {
+        println!("Credential expires: {expiry} (not the commercial license term)");
+    }
+    if doctor.offline_grace_active {
+        println!("Offline grace is active until {}", doctor.offline_valid_until.as_deref().unwrap_or("unknown"));
+    }
     println!(
-        "  [{}] registry reachable",
+        "  [{}] registry HTTP reachable (not renewal proof)",
         status(doctor.registry_reachable)
     );
     println!("  [{}] features loaded", status(doctor.features_loaded));
@@ -1682,18 +1690,15 @@ fn missing_license_gates(matrix: &[Value]) -> Vec<Value> {
 
 async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow::Result<()> {
     let feature = args.feature.as_str();
-    let guard = focusa_license::resolve_license_guard();
-    let enabled = guard
-        .entitlement
-        .as_ref()
-        .and_then(|snapshot| snapshot.features.get(feature))
-        .copied()
-        .unwrap_or(false);
+    let decision = core_check_feature(&local_license_path(), feature);
+    let enabled = decision.is_ok();
+    // Preserve the v1 response labels while using the shared effective decision.
+    let reason = if enabled { "signed_feature_grant" } else { "unknown_or_not_granted" };
     let out = json!({
         "schema": "focusa.authority_feature_decision.v1",
         "feature": feature,
         "enabled": enabled,
-        "reason": if enabled { "signed_feature_grant" } else { "unknown_or_not_granted" },
+        "reason": reason,
         "recovery_policy": "recovery, export, repair, and uninstall remain available"
     });
     if json_output {
