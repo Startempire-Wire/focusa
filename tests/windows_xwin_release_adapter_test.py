@@ -42,6 +42,7 @@ class WindowsXwinContractTests(unittest.TestCase):
     def test_full_release_still_requires_desktop_and_signed_trust(self):
         release = yaml.load((ROOT / '.github/workflows/release.yml').read_text(), Loader=yaml.BaseLoader)
         self.assertIn('external-menubar-receipts', release['jobs']['checksums']['needs'])
+        self.assertIn('queue-appveyor-windows', release['jobs']['create-release']['needs'])
         self.assertEqual(release['jobs']['dispatch-deploy-live-daemon']['needs'], 'checksums')
         steps = release['jobs']['checksums']['steps']
         self.assertTrue(any('release-trust-metadata.py' in step.get('run', '') for step in steps))

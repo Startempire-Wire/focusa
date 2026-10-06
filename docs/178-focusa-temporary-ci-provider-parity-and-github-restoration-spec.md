@@ -37,7 +37,10 @@ automatically after the draft exists; workflow dispatch remains an exact-tag
 recovery path. Direct draft uploads avoid Actions artifact-storage dependency.
 AppVeyor queueing still supplies native/installer proof and checks out its
 resolver before use, exporting the resolved account/project for the API request.
-The producer does not waive desktop, native-test or signing requirements.
+Draft creation and downstream heavy producers require successful native Windows
+queue admission; provider-authentication failure stops early rather than draining
+receipt-wait deadlines. The producer does not waive desktop, native-test or
+signing requirements.
 It derives packages, targets, release profile override,
 production public roots and surface names from the candidate's `.appveyor.yml`;
 it does not create another build contract or move the candidate tag.

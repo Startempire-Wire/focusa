@@ -329,7 +329,9 @@ jobs:
   create-release:
     name: Create Release
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: [rust-check, final-release-gap-gate, pull-request-release-gate, version-policy]
+    # Fail before draft creation and heavy producers if native Windows queueing
+    # is unavailable; executable cross-compilation does not replace native proof.
+    needs: [rust-check, final-release-gap-gate, pull-request-release-gate, version-policy, queue-appveyor-windows]
     runs-on: self-hosted
     timeout-minutes: 5
     steps:

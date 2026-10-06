@@ -189,10 +189,16 @@ async fn prune(
 }
 
 pub(crate) async fn run_scheduled_retention(state: Arc<AppState>) -> Value {
-    if std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DISABLED)
-        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
-    {
-        return json!({"status":"blocked", "code":"event_retention_disabled"});
+    match scheduled_retention_disabled(
+        std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DISABLED)
+            .ok()
+            .as_deref(),
+    ) {
+        Ok(true) => return json!({"status":"blocked", "code":"event_retention_disabled"}),
+        Err(error) => {
+            return json!({"status":"blocked", "code":"invalid_retention_configuration", "error":error.to_string()});
+        }
+        Ok(false) => {}
     }
     prune(
         State(state),
@@ -206,6 +212,14 @@ pub(crate) async fn run_scheduled_retention(state: Arc<AppState>) -> Value {
     )
     .await
     .0
+}
+
+fn scheduled_retention_disabled(value: Option<&str>) -> anyhow::Result<bool> {
+    match value.map(str::to_ascii_lowercase).as_deref() {
+        None | Some("0" | "false") => Ok(false),
+        Some("1" | "true") => Ok(true),
+        Some(_) => anyhow::bail!("retention disabled flag must be true/false or 1/0"),
+    }
 }
 
 fn configured_retention_days(value: Option<&str>) -> anyhow::Result<u32> {
@@ -233,16 +247,26 @@ pub(crate) fn retention_health(data_dir: &Path) -> Value {
             .ok()
             .as_deref(),
     );
-    let disabled = std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DISABLED)
-        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"));
+    let disabled = scheduled_retention_disabled(
+        std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DISABLED)
+            .ok()
+            .as_deref(),
+    );
+    let last_completed = tail
+        .lines()
+        .rev()
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .find(|receipt| {
+            receipt.get("phase").and_then(Value::as_str) == Some("settled")
+                && receipt.get("status").and_then(Value::as_str) == Some("completed")
+        });
     json!({
         "schema":"focusa.event_retention_health.v1",
-        "status": if policy_days.is_err() { "invalid_configuration" } else if disabled { "disabled" } else { "enabled" },
+        "status": if policy_days.is_err() || disabled.is_err() { "invalid_configuration" } else if disabled.unwrap_or(true) { "disabled" } else { "enabled" },
         "before_days": policy_days.ok(),
         "db_bytes": std::fs::metadata(&db_path).ok().map(|metadata| metadata.len()),
         "last_retention_status": latest.as_ref().and_then(|receipt| receipt.get("status")),
-        "last_prune_at": latest.as_ref().filter(|receipt| receipt.get("status").and_then(Value::as_str) == Some("completed"))
-            .and_then(|receipt| receipt.get("timestamp")),
+        "last_prune_at": last_completed.as_ref().and_then(|receipt| receipt.get("timestamp")),
         "latest_receipt": latest,
         "backup_recovery_required":true,
         "event_counts":null,
@@ -298,6 +322,34 @@ mod tests {
         assert_eq!(configured_retention_days(Some("7")).unwrap(), 7);
         assert!(configured_retention_days(Some("0")).is_err());
         assert!(configured_retention_days(Some("invalid")).is_err());
+    }
+
+    #[test]
+    fn retention_disabled_flag_rejects_ambiguous_configuration() {
+        assert!(!scheduled_retention_disabled(None).unwrap());
+        assert!(scheduled_retention_disabled(Some("true")).unwrap());
+        assert!(scheduled_retention_disabled(Some("1")).unwrap());
+        assert!(!scheduled_retention_disabled(Some("false")).unwrap());
+        assert!(scheduled_retention_disabled(Some("unknown")).is_err());
+    }
+
+    #[test]
+    fn retention_health_keeps_last_success_when_latest_attempt_fails() {
+        let directory =
+            std::env::temp_dir().join(format!("retention-health-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&directory).unwrap();
+        std::fs::write(
+            directory.join("event-retention-receipts.jsonl"),
+            concat!(
+                "{\"phase\":\"settled\",\"status\":\"completed\",\"timestamp\":\"t1\"}\n",
+                "{\"phase\":\"settled\",\"status\":\"failed\",\"timestamp\":\"t2\"}\n"
+            ),
+        )
+        .unwrap();
+        let health = retention_health(&directory);
+        assert_eq!(health["last_prune_at"], "t1");
+        assert_eq!(health["last_retention_status"], "failed");
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]
