@@ -849,7 +849,7 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     # Producer-before-waiter: all Linux matrix rows must release their bounded
     # OVH lanes before a long external-provider receipt wait may begin.
-    needs: [create-release, rust-release]
+    needs: [create-release, rust-release, windows-ovh-executables]
     runs-on: self-hosted
     timeout-minutes: 150
     steps:

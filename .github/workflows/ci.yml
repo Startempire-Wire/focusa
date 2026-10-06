@@ -147,6 +147,9 @@ jobs:
           chmod +x tests/release_deploy_automation_static_test.sh
           ./tests/release_deploy_automation_static_test.sh
 
+      - name: Automatic Windows producer and full-release gate regressions
+        run: python3 tests/windows_xwin_release_adapter_test.py
+
       - name: Cross-build exact-identity cancellation ownership (#543, blocking)
         run: python3 tests/cross_cancellation_cleanup_test.py
 

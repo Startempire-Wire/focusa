@@ -3548,12 +3548,25 @@ fn json_schema_document(schema_id: &str) -> Value {
             "$schema": JSON_SCHEMA_DIALECT_2020_12,
             "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id,
             "type": "object", "additionalProperties": true,
-            "required": ["schema", "graph_id", "revision", "scope", "entry_frame_ids", "frames", "edges", "policies", "required_evidence", "created_at", "created_by"],
+            "required": ["schema", "graph_id", "revision", "scope", "mission_ref", "title", "description", "entry_frame_ids", "frames", "edges", "created_at", "created_by"],
             "properties": {
                 "schema": {"const": "focusa.callgraph.v1"},
                 "graph_id": {"type": "string", "minLength": 1},
                 "revision": {"type": "integer", "minimum": 1},
-                "scope": {"type": "object"},
+                "scope": {
+                    "type": "object",
+                    "required": ["project_root", "continuity_id"],
+                    "properties": {
+                        "project_root": {"type":"string", "minLength":1},
+                        "continuity_id": {"type":"string", "minLength":1}
+                    },
+                    "x-focusa-generated-from":"focusa_core::callgraph::CallGraphScope"
+                },
+                "mission_ref": {"type":"string"},
+                "title": {"type":"string"},
+                "description": {"type":"string"},
+                "trajectory_ref": {"type":["string", "null"]},
+                "workpoint_refs": {"type":"array", "items":{"type":"string"}},
                 "entry_frame_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
                 "frames": {"type": "array", "minItems": 1, "items": {"type": "object"}},
                 "edges": {"type": "array", "items": {"type": "object"}},
@@ -4982,6 +4995,36 @@ mod tests {
                 assert!(rendered.get(extension).is_some(), "missing {extension}");
             }
         }
+    }
+
+    #[test]
+    fn callgraph_schema_publishes_scope_and_required_runtime_fields() {
+        let schema = json_schema_document("focusa.callgraph_validate.request.v1");
+        let scope = &schema["properties"]["scope"];
+        assert_eq!(scope["required"], json!(["project_root", "continuity_id"]));
+        let value = json!({"project_root":"/project", "continuity_id":"continuity"});
+        let typed: focusa_core::callgraph::CallGraphScope =
+            serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(typed).unwrap(), value);
+        assert!(
+            serde_json::from_value::<focusa_core::callgraph::CallGraphScope>(
+                json!({"project_root":"/project"})
+            )
+            .is_err()
+        );
+        let required = schema["required"].as_array().unwrap();
+        for field in ["mission_ref", "title", "description"] {
+            assert!(required.contains(&json!(field)));
+        }
+        for defaulted in ["policies", "required_evidence"] {
+            assert!(!required.contains(&json!(defaulted)));
+        }
+        let document = openapi_document();
+        assert_eq!(
+            document["components"]["schemas"]["focusa_callgraph_validate_request_v1"]["properties"]
+                ["scope"],
+            *scope
+        );
     }
 
     #[test]

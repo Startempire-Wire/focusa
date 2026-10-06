@@ -31,6 +31,10 @@ class WindowsXwinContractTests(unittest.TestCase):
         self.assertEqual(job['uses'], './.github/workflows/windows-ovh-build.yml')
         self.assertEqual(set(job['with']), {'release_tag', 'release_sha'})
         self.assertIn('workflow_call', producer['on'])
+        self.assertIn('windows-ovh-executables', release['jobs']['external-rust-binaries']['needs'])
+        ci = yaml.load((ROOT / '.github/workflows/ci.yml').read_text(), Loader=yaml.BaseLoader)
+        self.assertTrue(any('windows_xwin_release_adapter_test.py' in step.get('run', '')
+                            for step in ci['jobs']['release-automation-static']['steps']))
         queue = release['jobs']['queue-appveyor-windows']['steps']
         self.assertEqual(queue[0]['uses'], 'actions/checkout@v6')
         self.assertIn('export APPVEYOR_ACCOUNT APPVEYOR_SLUG', queue[1]['run'])
