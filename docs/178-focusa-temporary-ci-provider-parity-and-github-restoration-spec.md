@@ -32,7 +32,13 @@ provide an independent Windows executable compiler. AppVeyor authentication
 failure does not prove that compiler unavailable. The controller adapter is
 `scripts/ci/build-windows-xwin-release.py`, entered through
 `.github/workflows/windows-ovh-build.yml` with an existing immutable tag and
-its exact full SHA. It derives packages, targets, release profile override,
+its exact full SHA. The release controller calls the same reusable workflow
+automatically after the draft exists; workflow dispatch remains an exact-tag
+recovery path. Direct draft uploads avoid Actions artifact-storage dependency.
+AppVeyor queueing still supplies native/installer proof and checks out its
+resolver before use, exporting the resolved account/project for the API request.
+The producer does not waive desktop, native-test or signing requirements.
+It derives packages, targets, release profile override,
 production public roots and surface names from the candidate's `.appveyor.yml`;
 it does not create another build contract or move the candidate tag.
 

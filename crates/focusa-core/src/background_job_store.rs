@@ -6,11 +6,11 @@
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::background_jobs::{
-    BackgroundJobFailureClass, BackgroundJobRecord, BackgroundJobStatus, ProcessIdentityStatus,
-    process_identity_status,
+    process_identity_status, BackgroundJobFailureClass, BackgroundJobRecord, BackgroundJobStatus,
+    ProcessIdentityStatus,
 };
 
 const NONTERMINAL_GRACE_SECONDS: i64 = 30;
@@ -121,7 +121,7 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
         .as_ref()
         .map(serde_json::to_string)
         .transpose()?;
-    conn.execute(
+    let changed = conn.execute(
         "INSERT INTO background_jobs
          (job_id, name, command, cwd, attachment_json, status, failure_class, exit_code, pid, log_path, started_at, completed_at, output_tail, schema, process_start_token)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
@@ -138,7 +138,9 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
             completed_at = excluded.completed_at,
             output_tail = excluded.output_tail,
             schema = excluded.schema,
-            process_start_token = excluded.process_start_token",
+            process_start_token = excluded.process_start_token
+         WHERE background_jobs.completed_at IS NULL
+           AND background_jobs.status IN ('queued', 'running')",
         params![
             record.job_id,
             record.name,
@@ -157,6 +159,16 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
             record.process_start_token,
         ],
     )?;
+    if changed == 0 {
+        // A late monitor-loss update must never erase an already durable result.
+        // Exact terminal replays remain idempotent; conflicting writes fail closed.
+        let existing = load_job(conn, &record.job_id)?;
+        anyhow::ensure!(
+            existing.as_ref().is_some_and(|saved| { saved == record }),
+            "background job {} already has a terminal receipt; conflicting update rejected",
+            record.job_id
+        );
+    }
     Ok(())
 }
 
@@ -411,6 +423,30 @@ mod tests {
         assert_eq!(loaded.status, BackgroundJobStatus::Completed);
         assert_eq!(loaded.exit_code, Some(0));
         assert_eq!(loaded.completed_at.as_deref(), Some("t1"));
+    }
+
+    #[test]
+    fn late_monitor_loss_cannot_discard_completed_result() {
+        let conn = Connection::open_in_memory().unwrap();
+        ensure_schema(&conn).unwrap();
+        let mut job = sample("terminal-race");
+        upsert_job(&conn, &job).unwrap();
+        let mut stale_monitor = job.clone();
+        job.status = BackgroundJobStatus::Completed;
+        job.exit_code = Some(0);
+        job.completed_at = Some("t1".to_string());
+        job.output_tail = "test result: passed".to_string();
+        upsert_job(&conn, &job).unwrap();
+        upsert_job(&conn, &job).expect("exact terminal replay is idempotent");
+        stale_monitor.status = BackgroundJobStatus::MonitorLost;
+        stale_monitor.completed_at = Some("t2".to_string());
+        assert!(upsert_job(&conn, &stale_monitor).is_err());
+        let saved = load_job(&conn, &job.job_id).unwrap().unwrap();
+        assert_eq!(saved.status, BackgroundJobStatus::Completed);
+        assert_eq!(saved.exit_code, Some(0));
+        assert_eq!(saved.output_tail, "test result: passed");
+        job.output_tail = "different proof".to_string();
+        assert!(upsert_job(&conn, &job).is_err());
     }
 
     #[test]

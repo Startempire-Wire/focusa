@@ -2,17 +2,17 @@
 //! broadcast), status, list, and long-poll wait. Mirrors the silent-session
 //! completion pattern (#311): durable first, broadcast second.
 
-use axum::Json;
-use axum::Router;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
+use axum::Json;
+use axum::Router;
 use focusa_core::background_jobs::{
-    BACKGROUND_JOB_SCHEMA, BackgroundJobCompletionEvent, BackgroundJobFailureClass,
-    BackgroundJobRecord, BackgroundJobStatus,
+    BackgroundJobCompletionEvent, BackgroundJobFailureClass, BackgroundJobRecord,
+    BackgroundJobStatus, BACKGROUND_JOB_SCHEMA,
 };
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -240,6 +240,8 @@ async fn update_job(
         let became_monitor_lost = record.status == BackgroundJobStatus::MonitorLost;
         if became_monitor_lost && record.completed_at.is_none() {
             record.completed_at = Some(now_iso());
+            record.output_tail =
+                focusa_core::background_jobs::resolved_background_job_output_tail(&record);
         }
         focusa_core::background_job_store::upsert_job(&conn, &record)?;
         // docs/165 v2 §2 — durable first, then broadcast lifecycle

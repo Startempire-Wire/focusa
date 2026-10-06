@@ -54,6 +54,7 @@ jobs:
     # Windows matrix explicitly so every version tag gets its .exe/.msi set.
     runs-on: self-hosted
     steps:
+      - uses: actions/checkout@v6
       - name: Queue Windows matrix via AppVeyor API
         env:
           APPVEYOR_API_TOKEN: ${{ secrets.APPVEYOR_API_TOKEN }}
@@ -74,6 +75,7 @@ jobs:
             exit 1
           }
           read -r APPVEYOR_ACCOUNT APPVEYOR_SLUG <<< "$resolved"
+          export APPVEYOR_ACCOUNT APPVEYOR_SLUG
           echo "Resolved AppVeyor account=$APPVEYOR_ACCOUNT project=$APPVEYOR_SLUG"
           resp=$(curl -s -m 60 -w '\n%{http_code}' -X POST https://ci.appveyor.com/api/builds \
             -H "Authorization: Bearer $APPVEYOR_API_TOKEN" \
@@ -834,6 +836,14 @@ jobs:
   # Spec 178: macOS (Codemagic) and Windows (AppVeyor) Rust binaries are
   # built off GitHub and uploaded back to this release. This gate fails closed
   # until all 16 external binaries (8 macOS + 8 Windows) are attached.
+  windows-ovh-executables:
+    name: Automatic Windows executable producer
+    needs: create-release
+    uses: ./.github/workflows/windows-ovh-build.yml
+    with:
+      release_tag: ${{ inputs.release_tag || github.ref_name }}
+      release_sha: ${{ inputs.release_sha || github.sha }}
+
   external-rust-binaries:
     name: External Rust Binary Receipt Gate
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}

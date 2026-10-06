@@ -4,7 +4,7 @@
 use crate::server::AppState;
 use chrono::Utc;
 use focusa_core::runtime::backup::{
-    BackupPolicy, backup_health, create_full_generation, list_verified_manifests,
+    backup_health, create_full_generation, list_verified_manifests, BackupPolicy,
 };
 use focusa_core::runtime::backup_incremental::create_incremental_generation;
 use focusa_core::runtime::backup_offhost::{latest_off_host_receipt, settle_generation_off_host};
@@ -149,7 +149,7 @@ async fn maintenance_once(state: Arc<AppState>) -> anyhow::Result<()> {
         && crate::routes::events_retention::scheduled_retention_due(&data_dir, 86_400)
     {
         let result = crate::routes::events_retention::run_scheduled_retention(state).await;
-        if result.get("status").and_then(serde_json::Value::as_str) == Some("blocked") {
+        if result.get("pruned_before").is_none() {
             return Err(anyhow::anyhow!(
                 "scheduled event retention was blocked: {result}"
             ));

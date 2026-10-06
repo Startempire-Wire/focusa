@@ -6,7 +6,7 @@ use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -42,9 +42,22 @@ async fn prune(
     let batch_size = request.batch_size.unwrap_or(5_000).clamp(100, 100_000);
     let epoch_junk = request.epoch_junk.unwrap_or(false);
     let export = request.export.unwrap_or(true);
-    let days = request
-        .before_days
-        .unwrap_or(focusa_core::runtime::event_retention::DEFAULT_RETENTION_DAYS);
+    let days = match request.before_days {
+        Some(days) if days > 0 => days,
+        Some(_) => return Json(json!({"status":"blocked", "code":"invalid_retention_days"})),
+        None => match configured_retention_days(
+            std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DAYS)
+                .ok()
+                .as_deref(),
+        ) {
+            Ok(days) => days,
+            Err(error) => {
+                return Json(
+                    json!({"status":"blocked", "code":"invalid_retention_days", "error":error.to_string()}),
+                )
+            }
+        },
+    };
 
     let mut backup_guard = None;
     if !dry_run {
@@ -176,6 +189,11 @@ async fn prune(
 }
 
 pub(crate) async fn run_scheduled_retention(state: Arc<AppState>) -> Value {
+    if std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DISABLED)
+        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+    {
+        return json!({"status":"blocked", "code":"event_retention_disabled"});
+    }
     prune(
         State(state),
         Json(PruneRequest {
@@ -190,11 +208,55 @@ pub(crate) async fn run_scheduled_retention(state: Arc<AppState>) -> Value {
     .0
 }
 
-pub(crate) fn scheduled_retention_due(data_dir: &Path, interval_seconds: u64) -> bool {
-    let raw = match std::fs::read_to_string(data_dir.join("event-retention-receipts.jsonl")) {
-        Ok(raw) => raw,
-        Err(_) => return true,
+fn configured_retention_days(value: Option<&str>) -> anyhow::Result<u32> {
+    let days = match value {
+        Some(value) => value.parse::<u32>()?,
+        None => focusa_core::runtime::event_retention::DEFAULT_RETENTION_DAYS,
     };
+    anyhow::ensure!(days > 0, "retention days must be positive");
+    Ok(days)
+}
+
+/// Bounded health projection: no full event-table scan or ledger mutation.
+pub(crate) fn retention_health(data_dir: &Path) -> Value {
+    let db_path = crate::routes::events_sqlite::focusa_db_path(&data_dir.to_string_lossy());
+    let receipt_path = data_dir.join("event-retention-receipts.jsonl");
+    let tail =
+        focusa_core::background_jobs::bounded_log_tail(&receipt_path.to_string_lossy(), 65_536);
+    let latest = tail
+        .lines()
+        .rev()
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .find(|receipt| receipt.get("phase").and_then(Value::as_str) == Some("settled"));
+    let policy_days = configured_retention_days(
+        std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DAYS)
+            .ok()
+            .as_deref(),
+    );
+    let disabled = std::env::var(focusa_core::runtime::event_retention::RETENTION_ENV_DISABLED)
+        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"));
+    json!({
+        "schema":"focusa.event_retention_health.v1",
+        "status": if policy_days.is_err() { "invalid_configuration" } else if disabled { "disabled" } else { "enabled" },
+        "before_days": policy_days.ok(),
+        "db_bytes": std::fs::metadata(&db_path).ok().map(|metadata| metadata.len()),
+        "last_retention_status": latest.as_ref().and_then(|receipt| receipt.get("status")),
+        "last_prune_at": latest.as_ref().filter(|receipt| receipt.get("status").and_then(Value::as_str) == Some("completed"))
+            .and_then(|receipt| receipt.get("timestamp")),
+        "latest_receipt": latest,
+        "backup_recovery_required":true,
+        "event_counts":null,
+        "event_counts_status":"not_scanned_on_health_hot_path",
+    })
+}
+
+pub(crate) fn scheduled_retention_due(data_dir: &Path, interval_seconds: u64) -> bool {
+    let raw = focusa_core::background_jobs::bounded_log_tail(
+        &data_dir
+            .join("event-retention-receipts.jsonl")
+            .to_string_lossy(),
+        65_536,
+    );
     let latest = raw
         .lines()
         .filter_map(|line| serde_json::from_str::<Value>(line).ok())
@@ -229,6 +291,25 @@ fn append_receipt(path: &Path, receipt: &Value) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn retention_days_are_explicit_and_invalid_values_fail_closed() {
+        assert_eq!(configured_retention_days(None).unwrap(), 30);
+        assert_eq!(configured_retention_days(Some("7")).unwrap(), 7);
+        assert!(configured_retention_days(Some("0")).is_err());
+        assert!(configured_retention_days(Some("invalid")).is_err());
+    }
+
+    #[test]
+    fn missing_receipts_do_not_claim_retention_completed() {
+        let directory =
+            std::env::temp_dir().join(format!("retention-health-{}", uuid::Uuid::now_v7()));
+        let health = retention_health(&directory);
+        assert!(health["last_prune_at"].is_null());
+        assert!(health["latest_receipt"].is_null());
+        assert!(health["db_bytes"].is_null());
+        assert_eq!(health["backup_recovery_required"], true);
+    }
 
     #[test]
     fn mutation_defaults_to_dry_run() {

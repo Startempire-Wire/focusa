@@ -22,6 +22,26 @@ class WindowsXwinContractTests(unittest.TestCase):
         self.assertIn('authority-root-20260907-0055c689', environment['FOCUSA_AUTHORITY_ROOT_KEYS_JSON'])
         self.assertEqual(environment['CARGO_PROFILE_RELEASE_LTO'], 'false')
 
+    def test_release_automatically_calls_existing_windows_producer(self):
+        # BaseLoader preserves YAML's `on` key (rather than YAML 1.1 boolean).
+        release = yaml.load((ROOT / '.github/workflows/release.yml').read_text(), Loader=yaml.BaseLoader)
+        producer = yaml.load((ROOT / '.github/workflows/windows-ovh-build.yml').read_text(), Loader=yaml.BaseLoader)
+        job = release['jobs']['windows-ovh-executables']
+        self.assertEqual(job['needs'], 'create-release')
+        self.assertEqual(job['uses'], './.github/workflows/windows-ovh-build.yml')
+        self.assertEqual(set(job['with']), {'release_tag', 'release_sha'})
+        self.assertIn('workflow_call', producer['on'])
+        queue = release['jobs']['queue-appveyor-windows']['steps']
+        self.assertEqual(queue[0]['uses'], 'actions/checkout@v6')
+        self.assertIn('export APPVEYOR_ACCOUNT APPVEYOR_SLUG', queue[1]['run'])
+
+    def test_full_release_still_requires_desktop_and_signed_trust(self):
+        release = yaml.load((ROOT / '.github/workflows/release.yml').read_text(), Loader=yaml.BaseLoader)
+        self.assertIn('external-menubar-receipts', release['jobs']['checksums']['needs'])
+        self.assertEqual(release['jobs']['dispatch-deploy-live-daemon']['needs'], 'checksums')
+        steps = release['jobs']['checksums']['steps']
+        self.assertTrue(any('release-trust-metadata.py' in step.get('run', '') for step in steps))
+
     def altered_contract(self, transform):
         contract = yaml.safe_load((ROOT / '.appveyor.yml').read_text())
         transform(contract)

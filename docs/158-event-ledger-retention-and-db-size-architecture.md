@@ -56,7 +56,17 @@ session, thread, chain) were already present.
   with batches clamped to [100, 100_000].
 - The daemon’s single Spec 181 maintenance coordinator evaluates at most one
   mutating sweep per 24 hours. It writes planned/settled receipts and refuses
-  event deletion while backup health is degraded.
+  event deletion while backup health is degraded. Scheduler failures are reported
+  as failures, not logged as a settled sweep.
+- `FOCUSA_EVENT_RETENTION_DAYS` selects the positive hot-window day count when a
+  request does not supply `before_days`; invalid values fail closed.
+  `FOCUSA_EVENT_RETENTION_DISABLED=1|true` disables scheduled event retention.
+- `GET /v1/health` includes `focusa.event_retention_health.v1`: explicit policy
+  status, configured days, database bytes and the latest settled receipt/prune
+  timestamp. Missing receipts/metadata remain null, never proof of a successful
+  sweep. Receipt reads are bounded to 64 KiB; event-table counts are explicitly
+  not scanned on the health hot path. Production retention, chain provenance,
+  off-host settlement and space reclamation still require their separate proofs.
 
 ### 3. CLI
 
