@@ -13,7 +13,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-ovh-${{ inputs.release_tag }}
@@ -61,12 +61,18 @@ jobs:
             --sdk-cache /home/wirebot/build/focusa/windows-sdk-cache \
             --target-dir "$RUNNER_TEMP/focusa-windows-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
             --output "$RUNNER_TEMP/focusa-windows-artifacts-${GITHUB_RUN_ID}"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-cross-compile-${{ inputs.release_tag }}
-          path: ${{ runner.temp }}/focusa-windows-artifacts-${{ github.run_id }}/*
-          if-no-files-found: error
-          retention-days: 14
+      - name: Upload Windows executables directly to release draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          artifacts_dir="$RUNNER_TEMP/focusa-windows-artifacts-${GITHUB_RUN_ID}"
+          if [ ! -d "$artifacts_dir" ]; then
+            echo "::error::Artifacts directory not found: $artifacts_dir"
+            exit 1
+          fi
+          echo "Uploading Windows executables to release ${{ inputs.release_tag }}"
+          gh release upload "${{ inputs.release_tag }}" "$artifacts_dir"/* --clobber
       - name: Clean exact-owned rebuildable compiler target
         if: always()
         run: |
