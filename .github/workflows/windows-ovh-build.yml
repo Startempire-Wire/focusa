@@ -42,8 +42,14 @@ jobs:
           test -x /opt/xwin-shim/clang
           test -r /home/wirebot/build/focusa/windows-sdk-cache
           python3 -c 'import yaml'
-      - name: Enforce canonical release resource gate
-        run: python3 scripts/check-release-resource-gate.py
+      - name: Enforce OVH build-host disk headroom
+        run: |
+          set -euo pipefail
+          used=$(df -P / | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
+          free_gb=$(df -P / | awk 'NR==2 {print int($4/1024/1024)}')
+          echo "OVH disk used=${used}% free=${free_gb}GiB"
+          [ "$used" -lt 90 ] || { echo "::error::OVH disk above 90% (${used}%)"; exit 1; }
+          [ "$free_gb" -ge 15 ] || { echo "::error::OVH free disk below 15GiB (${free_gb}GiB)"; exit 1; }
       - name: Compile exact candidate and prove embedded production roots
         env:
           CANDIDATE_TAG: ${{ inputs.release_tag }}
