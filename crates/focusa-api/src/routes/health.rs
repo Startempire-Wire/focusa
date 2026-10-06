@@ -3,11 +3,11 @@
 use crate::routes::bounded::resource_mode_status;
 use crate::server::AppState;
 use axum::extract::State;
-use axum::{routing::get, Json, Router};
-use serde_json::{json, Value};
+use axum::{Json, Router, routing::get};
+use serde_json::{Value, json};
 use std::path::Path;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let data_dir = std::path::PathBuf::from(&state.config.data_dir);

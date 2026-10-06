@@ -6,11 +6,11 @@
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::background_jobs::{
-    process_identity_status, BackgroundJobFailureClass, BackgroundJobRecord, BackgroundJobStatus,
-    ProcessIdentityStatus,
+    BackgroundJobFailureClass, BackgroundJobRecord, BackgroundJobStatus, ProcessIdentityStatus,
+    process_identity_status,
 };
 
 const NONTERMINAL_GRACE_SECONDS: i64 = 30;

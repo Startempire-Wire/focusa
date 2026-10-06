@@ -6,7 +6,7 @@ use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -54,7 +54,7 @@ async fn prune(
             Err(error) => {
                 return Json(
                     json!({"status":"blocked", "code":"invalid_retention_days", "error":error.to_string()}),
-                )
+                );
             }
         },
     };
