@@ -59,10 +59,15 @@ class WindowsXwinContractTests(unittest.TestCase):
         producer = yaml.load((ROOT / '.github/workflows/windows-ovh-build.yml').read_text(), Loader=yaml.BaseLoader)
         self.assertEqual(producer['on']['workflow_dispatch']['inputs']['desktop_nsis']['default'], 'false')
         steps = producer['jobs']['cross-compile']['steps']
-        tools = next(step for step in steps if step.get('name', '').startswith('Prepare job-owned'))
-        self.assertIn('apt-get download nsis=3.09-4ubuntu1', tools['run'])
-        self.assertNotIn('sudo', tools['run'])
-        self.assertIn('dpkg-deb -x', tools['run'])
+        pipeline = (ROOT / 'scripts/ci/run-windows-ovh-release.py').read_text()
+        self.assertIn('nsis=3.09-4ubuntu1', pipeline)
+        self.assertNotIn('sudo', pipeline)
+        self.assertIn("'dpkg-deb', '-x'", pipeline)
+        self.assertTrue(any('run-windows-ovh-release.py' in step.get('run', '') for step in steps))
+        # Mechanical build logic has exactly one owner, not duplicate YAML helpers.
+        for step in steps:
+            self.assertNotIn('apt-get download', step.get('run', ''))
+            self.assertNotIn('cargo clean', step.get('run', ''))
         self.assertTrue(any('TAURI_SIGNING_PRIVATE_KEY' in step.get('env', {}) for step in steps))
 
     def run_nsis_fixture(self, reject_signature=False):
@@ -138,6 +143,54 @@ class WindowsXwinContractTests(unittest.TestCase):
         self.assertIn("'published': False", adapter)
         self.assertIn('verify-embedded-authority-root.py', adapter)
         self.assertIn("'status', '--porcelain'", adapter)
+
+
+class WindowsPipelineTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location('windows_pipeline', ROOT / 'scripts/ci/run-windows-ovh-release.py')
+        cls.pipeline = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.pipeline)
+
+    def test_fractional_disk_usage_not_rounded_into_false_blocker(self):
+        with patch.object(self.pipeline.shutil, 'disk_usage', return_value=SimpleNamespace(total=1000, used=899, free=20 * 1024**3)):
+            status = self.pipeline.disk_status()
+        self.assertEqual(status['used_percent'], 89.9)
+        self.pipeline.require_headroom(status)
+
+    def test_actual_disk_threshold_and_minimum_space_remain_enforced(self):
+        for status in [{'used_percent': 90.0, 'free_gib': 20}, {'used_percent': 50, 'free_gib': 14.9}]:
+            with self.assertRaises(ValueError):
+                self.pipeline.require_headroom(status)
+
+    def test_failed_producer_never_uploads_or_promotes(self):
+        source = (ROOT / 'scripts/ci/run-windows-ovh-release.py').read_text()
+        self.assertLess(source.index('run(command, env=env)'), source.index('publish(output, args.tag)'))
+        self.assertIn('finally:', source)
+        self.assertNotIn('release edit', source)
+        self.assertNotIn('systemctl', source)
+
+    def test_no_receipt_means_no_upload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            (output / 'something.exe').write_bytes(b'not a verified artifact')
+            with patch.object(self.pipeline, 'run') as command:
+                with self.assertRaises(ValueError):
+                    self.pipeline.publish(output, 'v0.9.202')
+                command.assert_not_called()
+
+    def test_compiled_inputs_and_hashes_survive_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'target'
+            binary = target / 'x86_64-pc-windows-msvc/release/focusa-menubar.exe'
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b'independent compilation fixture')
+            saved = Path(directory) / 'saved'
+            self.pipeline.preserve_binaries(target, saved, 'v0.9.202', 'a' * 40)
+            receipt = json.loads((saved / 'compilation-receipt.json').read_text())
+            self.assertEqual(receipt['source_sha'], 'a' * 40)
+            self.assertTrue(Path(receipt['compiled_desktop_artifacts'][0]['path']).is_file())
+            self.assertFalse(receipt['installer_proof'])
 
 
 if __name__ == '__main__':

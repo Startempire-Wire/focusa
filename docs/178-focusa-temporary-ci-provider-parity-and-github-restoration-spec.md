@@ -46,6 +46,16 @@ The local producer also supports `desktop_nsis=true`: package-owned Tauri,
 existing cargo-xwin/SDK, isolated pinned NSIS tooling and Minisign verification
 of both architecture updater signatures; it does not substitute for MSI or
 claim native Windows execution or full release acceptance.
+Windows worker mechanics now have one executable owner:
+`scripts/ci/run-windows-ovh-release.py --source <candidate> --tag <tag> --sha <sha>
+--mode binaries|nsis|msi-tools [--publish]`. The workflow only binds immutable
+inputs, existing secret references and the OVH worker. The script validates the
+candidate, resolves isolated tools, checks exact (not rounded) disk usage,
+reclaims only idle rebuildable targets, invokes the existing producer, uploads
+only after producer verification, preserves compiled inputs and always performs
+owned-target cleanup. It does not promote incomplete inventory or invent native
+installation evidence. Provider channels are replaceable; acceptance is not.
+
 `msi_tools_only=true` prepares a job-owned Wine/Mono prefix and the WiX version
 and SHA-256 pinned by the package-owned Tauri CLI; it uploads no release files
 and claims neither native Windows testing nor successful MSI production.

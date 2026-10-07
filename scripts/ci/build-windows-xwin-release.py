@@ -86,9 +86,7 @@ def build_nsis(args, source, targets, env):
             shutil.copy2(artifact, destination)
             records.append({'name': destination.name, 'target': target,
                             'sha256': hashlib.sha256(destination.read_bytes()).hexdigest()})
-        # Canonical Cargo cleanup, restricted to this job-owned architecture target.
-        subprocess.run(['cargo', 'clean', '--target-dir', str(args.target_dir.resolve()),
-                        '--target', target], cwd=app / 'src-tauri', env=env, check=True)
+        # Pipeline owner preserves compiled inputs before its final Cargo cleanup.
     receipt = {'kind': 'ovh_windows_nsis', 'tag': args.tag, 'source_sha': args.sha,
                'artifacts': records, 'updater_signature_verification': 'passed',
                'native_windows_proof': False, 'msi_proof': False,
