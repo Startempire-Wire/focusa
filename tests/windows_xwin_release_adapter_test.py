@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """Focused contract regressions for the OVH Windows cross-compile adapter."""
+import base64
+import contextlib
 import importlib.util
+import io
+import json
+import subprocess
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 import tempfile
 import unittest
@@ -47,6 +54,60 @@ class WindowsXwinContractTests(unittest.TestCase):
         self.assertEqual(release['jobs']['dispatch-deploy-live-daemon']['needs'], 'checksums')
         steps = release['jobs']['checksums']['steps']
         self.assertTrue(any('release-trust-metadata.py' in step.get('run', '') for step in steps))
+
+    def test_local_nsis_tooling_is_job_owned_and_full_acceptance_is_not_claimed(self):
+        producer = yaml.load((ROOT / '.github/workflows/windows-ovh-build.yml').read_text(), Loader=yaml.BaseLoader)
+        self.assertEqual(producer['on']['workflow_dispatch']['inputs']['desktop_nsis']['default'], 'false')
+        steps = producer['jobs']['cross-compile']['steps']
+        tools = next(step for step in steps if step['name'].startswith('Prepare job-owned'))
+        self.assertIn('apt-get download nsis=3.09-4ubuntu1', tools['run'])
+        self.assertNotIn('sudo', tools['run'])
+        self.assertIn('dpkg-deb -x', tools['run'])
+        self.assertTrue(any('TAURI_SIGNING_PRIVATE_KEY' in step.get('env', {}) for step in steps))
+
+    def run_nsis_fixture(self, reject_signature=False):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        source = Path(temporary.name)
+        app = source / 'apps/menubar'
+        (app / 'src-tauri').mkdir(parents=True)
+        public = base64.b64encode(b'untrusted comment: test public key\nRWfixture').decode()
+        (app / 'src-tauri/tauri.conf.json').write_text(json.dumps({'plugins': {'updater': {'pubkey': public}}}))
+        args = SimpleNamespace(target_dir=source / 'target', output=source / 'artifacts',
+                               tag='v0.9.202', sha='a' * 40)
+        target = 'x86_64-pc-windows-msvc'
+        def execute(command, **kwargs):
+            if command[0] == 'node':
+                bundle = args.target_dir / target / 'release/bundle/nsis'
+                bundle.mkdir(parents=True)
+                installer = bundle / 'Focusa_0.9.202_x64-setup.exe'
+                installer.write_bytes(b'test fixture, not a release executable')
+                Path(str(installer) + '.sig').write_text(base64.b64encode(b'test signature').decode())
+            if command[0] == 'minisign' and reject_signature:
+                raise subprocess.CalledProcessError(1, command)
+        with patch.dict(MODULE.os.environ, {'GITHUB_ACTIONS': 'true'}), \
+                patch.object(MODULE.subprocess, 'check_output', return_value='fixture-key'), \
+                patch.object(MODULE.subprocess, 'run', side_effect=execute), \
+                contextlib.redirect_stdout(io.StringIO()):
+            if reject_signature:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    MODULE.build_nsis(args, source, [target], {})
+                self.assertFalse(list(args.output.glob('*setup.exe')))
+                self.assertFalse((args.output / 'windows-nsis-receipt.json').exists())
+            else:
+                MODULE.build_nsis(args, source, [target], {})
+                receipt = json.loads((args.output / 'windows-nsis-receipt.json').read_text())
+                self.assertEqual(len(receipt['artifacts']), 2)
+                self.assertEqual(receipt['updater_signature_verification'], 'passed')
+                self.assertFalse(receipt['native_windows_proof'])
+                self.assertFalse(receipt['msi_proof'])
+                self.assertFalse(receipt['full_release_acceptance'])
+
+    def test_nsis_receipt_distinguishes_generation_from_native_and_full_acceptance(self):
+        self.run_nsis_fixture()
+
+    def test_nsis_signature_failure_prevents_artifact_staging_and_receipt(self):
+        self.run_nsis_fixture(reject_signature=True)
 
     def altered_contract(self, transform):
         contract = yaml.safe_load((ROOT / '.appveyor.yml').read_text())

@@ -42,6 +42,10 @@ admission. `FOCUSA_WINDOWS_RELEASE_PROVIDER=ovh` disables that external queue;
 complete installer bundles, signatures, truthful execution-proof levels and full
 release asset checks remain mandatory. Existing executable receipts alone do not
 prove desktop installer production or installation.
+The local producer also supports `desktop_nsis=true`: package-owned Tauri,
+existing cargo-xwin/SDK, isolated pinned NSIS tooling and Minisign verification
+of both architecture updater signatures; it does not substitute for MSI or
+claim native Windows execution or full release acceptance.
 It derives packages, targets, release profile override,
 production public roots and surface names from the candidate's `.appveyor.yml`;
 it does not create another build contract or move the candidate tag.

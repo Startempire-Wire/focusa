@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """OVH cross-compile adapter for the immutable AppVeyor Rust build contract.
 
-Produces staging evidence only: no upload, publication, native-runtime claim,
-installer claim, credential change, or release promotion.
+Produces executables or verified NSIS staging evidence: no upload, publication,
+native-runtime claim, MSI claim, credential change, or release promotion.
 """
 import argparse
 import hashlib
@@ -44,6 +44,59 @@ def git(source, *args):
     return subprocess.check_output(['git', '-C', str(source), *args], text=True).strip()
 
 
+def build_nsis(args, source, targets, env):
+    """Use the package-owned Tauri bundler; verify updater signatures, not native runtime."""
+    import base64
+    app = source / 'apps/menubar'
+    config = json.loads((app / 'src-tauri/tauri.conf.json').read_text())
+    public_box = base64.b64decode(config['plugins']['updater']['pubkey']).decode()
+    public_key = next(line for line in public_box.splitlines()
+                      if line and not line.startswith('untrusted comment:'))
+    converter = source / 'scripts/ci/convert-legacy-tauri-signing-key.py'
+    normalized = subprocess.check_output(['python3', str(converter)], env=env, text=True).strip()
+    # GitHub masks transformed secret material too; never print it elsewhere.
+    if os.environ.get('GITHUB_ACTIONS') != 'true':
+        raise ValueError('signed packaging requires the approved GitHub secret-injection context')
+    print('::add-mask::' + normalized, flush=True)
+    env['TAURI_SIGNING_PRIVATE_KEY'] = normalized
+    subprocess.run(['npm', 'ci'], cwd=app, env=env, check=True)
+    cli = app / 'node_modules/@tauri-apps/cli/tauri.js'
+    env['CARGO_TARGET_DIR'] = str(args.target_dir.resolve())
+    output = args.output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    records = []
+    for target in targets:
+        env['XWIN_ARCH'] = target.split('-', 1)[0]
+        subprocess.run(['node', str(cli), 'build', '--runner', 'cargo-xwin',
+                        '--target', target, '--bundles', 'nsis'], cwd=app, env=env, check=True)
+        bundle = args.target_dir.resolve() / target / 'release/bundle/nsis'
+        installers = list(bundle.glob('*setup.exe'))
+        if len(installers) != 1:
+            raise ValueError(f'exactly one canonical NSIS installer required for {target}')
+        installer = installers[0]
+        signature = Path(str(installer) + '.sig')
+        if not signature.is_file():
+            raise ValueError(f'updater signature missing for {target}')
+        decoded = output / (signature.name + '.minisig')
+        decoded.write_bytes(base64.b64decode(signature.read_text().strip(), validate=True))
+        subprocess.run(['minisign', '-V', '-m', str(installer), '-x', str(decoded),
+                        '-P', public_key], cwd=app, env=env, check=True)
+        for artifact in [installer, signature]:
+            destination = output / artifact.name
+            shutil.copy2(artifact, destination)
+            records.append({'name': destination.name, 'target': target,
+                            'sha256': hashlib.sha256(destination.read_bytes()).hexdigest()})
+        # Canonical Cargo cleanup, restricted to this job-owned architecture target.
+        subprocess.run(['cargo', 'clean', '--target-dir', str(args.target_dir.resolve()),
+                        '--target', target], cwd=app / 'src-tauri', env=env, check=True)
+    receipt = {'kind': 'ovh_windows_nsis', 'tag': args.tag, 'source_sha': args.sha,
+               'artifacts': records, 'updater_signature_verification': 'passed',
+               'native_windows_proof': False, 'msi_proof': False,
+               'full_release_acceptance': False}
+    (output / 'windows-nsis-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    print(json.dumps(receipt))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', required=True, type=Path)
@@ -54,6 +107,7 @@ def main():
     parser.add_argument('--sdk-cache', required=True, type=Path)
     parser.add_argument('--clang-shim', default='/opt/xwin-shim', type=Path)
     parser.add_argument('--plan', action='store_true')
+    parser.add_argument('--desktop-nsis', action='store_true')
     args = parser.parse_args()
     source = args.source.resolve()
     if not re.fullmatch(r'v\d+\.\d+\.\d+(?:-dev)?', args.tag):
@@ -72,6 +126,10 @@ def main():
                  *[value for package in packages for value in ('-p', package)]]
                 for target in targets]
     if args.plan:
+        if args.desktop_nsis:
+            commands = [['node', 'node_modules/@tauri-apps/cli/tauri.js', 'build',
+                         '--runner', 'cargo-xwin', '--target', target, '--bundles', 'nsis']
+                        for target in targets]
         print(json.dumps({'kind': 'cross_compile_plan', 'tag': args.tag,
                           'source_sha': args.sha, 'commands': commands,
                           'surfaces': surfaces, 'native_windows_proof': False}))
@@ -85,6 +143,9 @@ def main():
     env['PATH'] = str(args.clang_shim.resolve()) + os.pathsep + env['PATH']
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
+    if args.desktop_nsis:
+        build_nsis(args, source, targets, env)
+        return
     records = []
     for target, command in zip(targets, commands):
         env['XWIN_ARCH'] = target.split('-', 1)[0]

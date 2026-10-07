@@ -9,6 +9,9 @@ on:
       release_sha:
         required: true
         type: string
+      desktop_nsis:
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       release_tag:
@@ -19,6 +22,10 @@ on:
         description: Exact immutable candidate commit
         required: true
         type: string
+      desktop_nsis:
+        description: Build and verify signed local Windows NSIS installers instead of existing executables
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -29,7 +36,7 @@ concurrency:
 
 jobs:
   cross-compile:
-    name: Windows executables — OVH existing toolchain
+    name: Windows artifacts — OVH local toolchain
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 90
     steps:
@@ -50,6 +57,54 @@ jobs:
           test -x /opt/xwin-shim/clang
           test -r /home/wirebot/build/focusa/windows-sdk-cache
           python3 -c 'import yaml'
+      - name: Prepare job-owned local NSIS and verification tools
+        if: ${{ inputs.desktop_nsis }}
+        run: |
+          set -euo pipefail
+          tools="$RUNNER_TEMP/focusa-nsis-tools-${GITHUB_RUN_ID}"
+          mkdir -p "$tools/packages" "$tools/root"
+          cd "$tools/packages"
+          apt-get download nsis=3.09-4ubuntu1 nsis-common=3.09-4ubuntu1 minisign=0.11-1
+          for package in *.deb; do dpkg-deb -x "$package" "$tools/root"; done
+          echo "$tools/root/usr/bin" >> "$GITHUB_PATH"
+          echo "NSISDIR=$tools/root/usr/share/nsis" >> "$GITHUB_ENV"
+      - name: Reclaim idle rebuildable release targets when disk is above the build threshold
+        if: ${{ inputs.desktop_nsis }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, shutil, subprocess
+          from pathlib import Path
+          used = int(subprocess.check_output(['df', '-P', '/'], text=True).splitlines()[1].split()[4].rstrip('%'))
+          if used < 90:
+              print('release cache reclamation unnecessary')
+              raise SystemExit(0)
+          for proc in Path('/proc').glob('[0-9]*/comm'):
+              try:
+                  name = proc.read_text().strip()
+              except (FileNotFoundError, PermissionError, ProcessLookupError):
+                  continue
+              if name in {'cargo', 'cargo-xwin', 'rustc', 'clang-cl', 'lld-link'}:
+                  raise SystemExit('active compiler present; shared targets preserved')
+          archive = Path('/home/wirebot/build/focusa') / ('preserved-release-cache-' + os.environ['GITHUB_RUN_ID'])
+          archive.mkdir(parents=True, exist_ok=True)
+          records = []
+          for triple in ['x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu', 'x86_64-unknown-linux-musl']:
+              target = Path('/home/wirebot/.cache/focusa-release-target') / triple
+              if not target.is_dir() or target.is_symlink():
+                  continue
+              destination = archive / triple
+              destination.mkdir(exist_ok=True)
+              for name in ['focusa', 'focusa-daemon', 'focusa-tui', 'focusa-session-runner']:
+                  binary = target / triple / 'release' / name
+                  if binary.is_file():
+                      saved = destination / name
+                      shutil.copy2(binary, saved)
+                      records.append({'path': str(saved), 'sha256': hashlib.sha256(saved.read_bytes()).hexdigest()})
+              (archive / 'preserved-binaries.json').write_text(json.dumps(records, indent=2) + '\n')
+              subprocess.run(['cargo', 'clean', '--target-dir', str(target)], check=True)
+          print(json.dumps({'preserved': str(archive), 'binaries': len(records), 'cleanup': 'cargo clean, exact idle release targets only'}))
+          PY
       - name: Enforce OVH build-host disk headroom
         run: |
           set -euo pipefail
@@ -62,14 +117,19 @@ jobs:
         env:
           CANDIDATE_TAG: ${{ inputs.release_tag }}
           CANDIDATE_SHA: ${{ inputs.release_sha }}
+          DESKTOP_NSIS: ${{ inputs.desktop_nsis }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          python3 "$RUNNER_TEMP/build-windows-xwin-release.py" \
+          extra=()
+          if [ "$DESKTOP_NSIS" = true ]; then extra+=(--desktop-nsis); fi
+          python3 "$RUNNER_TEMP/build-windows-xwin-release.py" "${extra[@]}" \
             --source "$GITHUB_WORKSPACE" --tag "$CANDIDATE_TAG" --sha "$CANDIDATE_SHA" \
             --sdk-cache /home/wirebot/build/focusa/windows-sdk-cache \
             --target-dir "$RUNNER_TEMP/focusa-windows-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
             --output "$RUNNER_TEMP/focusa-windows-artifacts-${GITHUB_RUN_ID}"
-      - name: Upload Windows executables directly to release draft
+      - name: Upload verified Windows artifacts to the exact existing release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -80,7 +140,12 @@ jobs:
             exit 1
           fi
           echo "Uploading Windows executables to release ${{ inputs.release_tag }}"
-          gh release upload "${{ inputs.release_tag }}" "$artifacts_dir"/* --clobber
+          files=()
+          for artifact in "$artifacts_dir"/*; do
+            case "$artifact" in *.minisig) continue ;; esac
+            files+=("$artifact")
+          done
+          gh release upload "${{ inputs.release_tag }}" "${files[@]}" --clobber
       - name: Clean exact-owned rebuildable compiler target
         if: always()
         run: |
@@ -88,6 +153,6 @@ jobs:
           target="$RUNNER_TEMP/focusa-windows-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           if [ -d "$target" ]; then cargo clean --target-dir "$target"; fi
 
-# This producer stages executables and honest cross-compile evidence only.
-# It cannot claim Windows native tests, MSI/NSIS installers, release signatures,
-# publication, installation, or full release acceptance.
+# The local NSIS mode emits verified updater signatures and honest generation
+# evidence; MSI, native execution, installed acceptance and full signing remain
+# separate gates. It never claims full release acceptance.
