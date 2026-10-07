@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import shlex
 import subprocess
 import sys
 
@@ -93,6 +94,13 @@ def prepare_nsis(tools, env):
         run(['apt-get', 'download', *dependencies], cwd=packages)
     for package in sorted(packages.glob('*.deb')):
         run(['dpkg-deb', '-x', package, root])
+    # Tauri deliberately removes NSISDIR before spawning makensis. Keep the
+    # portable distribution's real resource binding at the executable boundary.
+    executable = root / 'usr/bin/makensis'
+    real = executable.with_name('makensis.real')
+    executable.rename(real)
+    executable.write_text('#!/bin/sh\nexport NSISDIR=' + shlex.quote(str(root / 'usr/share/nsis')) + '\nexec ' + shlex.quote(str(real)) + ' "$@"\n')
+    executable.chmod(0o755)
     env['PATH'] = str(root / 'usr/bin') + os.pathsep + env['PATH']
     env['NSISDIR'] = str(root / 'usr/share/nsis')
     env['PKG_CONFIG_PATH'] = ':'.join(str(root / item) for item in [
@@ -146,6 +154,8 @@ def main():
                '--sdk-cache', args.sdk_cache, '--target-dir', target, '--output', output]
     if args.mode == 'nsis':
         command.append('--desktop-nsis')
+        cache = Path('/home/wirebot/build/focusa') / ('windows-desktop-binaries-' + args.tag)
+        command += ['--desktop-cache', cache]
     run([*command, '--plan'], env=env)
     archive = Path('/home/wirebot/build/focusa') / ('preserved-release-cache-' + job)
     reclaim_idle_cache(Path('/home/wirebot/.cache/focusa-release-target'), archive)

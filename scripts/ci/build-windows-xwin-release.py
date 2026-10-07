@@ -67,8 +67,33 @@ def build_nsis(args, source, targets, env):
     records = []
     for target in targets:
         env['XWIN_ARCH'] = target.split('-', 1)[0]
-        subprocess.run(['node', str(cli), 'build', '--runner', 'cargo-xwin',
-                        '--target', target, '--bundles', 'nsis'], cwd=app, env=env, check=True)
+        cached = None
+        cache = getattr(args, 'desktop_cache', None)
+        if cache and cache.is_dir():
+            for handle in sorted(cache.glob('*/compilation-receipt.json'), reverse=True):
+                receipt = json.loads(handle.read_text())
+                if receipt.get('source_sha') != args.sha or receipt.get('tag') != args.tag:
+                    continue
+                for record in receipt.get('compiled_desktop_artifacts', []):
+                    if record.get('target') != target:
+                        continue
+                    binary = Path(record['path']).resolve()
+                    binary.relative_to(handle.parent.resolve())
+                    if binary.is_file() and hashlib.sha256(binary.read_bytes()).hexdigest() == record['sha256']:
+                        cached = binary
+                        break
+                if cached:
+                    break
+        if cached:
+            destination = args.target_dir.resolve() / target / 'release/focusa-menubar.exe'
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(cached, destination)
+            subprocess.run(['npm', 'run', 'build'], cwd=app, env=env, check=True)
+            subprocess.run(['node', str(cli), 'bundle', '--target', target,
+                            '--bundles', 'nsis'], cwd=app, env=env, check=True)
+        else:
+            subprocess.run(['node', str(cli), 'build', '--runner', 'cargo-xwin',
+                            '--target', target, '--bundles', 'nsis'], cwd=app, env=env, check=True)
         bundle = args.target_dir.resolve() / target / 'release/bundle/nsis'
         installers = list(bundle.glob('*setup.exe'))
         if len(installers) != 1:
@@ -106,6 +131,7 @@ def main():
     parser.add_argument('--clang-shim', default='/opt/xwin-shim', type=Path)
     parser.add_argument('--plan', action='store_true')
     parser.add_argument('--desktop-nsis', action='store_true')
+    parser.add_argument('--desktop-cache', type=Path)
     args = parser.parse_args()
     source = args.source.resolve()
     if not re.fullmatch(r'v\d+\.\d+\.\d+(?:-dev)?', args.tag):

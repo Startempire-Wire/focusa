@@ -52,12 +52,18 @@ def main():
     wine = root / 'usr/lib/wine/wine64'
     server = root / 'usr/lib/wine/wineserver64'
     library = root / 'usr/lib/x86_64-linux-gnu/wine'
+    # Restore the distribution's relative executable layout inside the owned
+    # root; upstream Wine discovers the unversioned server in its bin directory.
+    binary_directory = root / 'usr/bin'
+    binary_directory.mkdir(parents=True, exist_ok=True)
+    (binary_directory / 'wineserver').symlink_to(server)
+    (wine.parent / 'wineserver').symlink_to(server)
     env = os.environ.copy()
     env['WINEPREFIX'] = str(tools / 'prefix')
     env['WINEARCH'] = 'win64'
     env['WINESERVER'] = str(server)
     env['WINELOADER'] = str(wine)
-    env['PATH'] = str(wine.parent) + os.pathsep + env['PATH']
+    env['PATH'] = str(binary_directory) + os.pathsep + str(wine.parent) + os.pathsep + env['PATH']
     env['WINEDLLPATH'] = ':'.join(str(library / arch) for arch in ['x86_64-windows', 'x86_64-unix'])
     env['LD_LIBRARY_PATH'] = str(library / 'x86_64-unix')
     env['WINEDLLOVERRIDES'] = 'mscoree,mshtml='
