@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import urllib.request
 import zipfile
 
@@ -13,7 +14,7 @@ WIX_URL = 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix31
 # Authoritative tauri-cli-v2.11.2 tauri-bundler/windows/msi constant.
 WIX_SHA256 = '6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31'
 MONO_URL = 'https://github.com/wine-mono/wine-mono/releases/download/wine-mono-9.0.0/wine-mono-9.0.0-x86.msi'
-PACKAGES = ['wine64=9.0~repack-4build3', 'libwine=9.0~repack-4build3']
+PACKAGES = ['wine64=9.0~repack-4build3', 'libwine=9.0~repack-4build3', 'libz-mingw-w64=1.3.1+dfsg-1']
 
 
 def download(url, destination, expected=None):
@@ -52,6 +53,12 @@ def main():
     wine = root / 'usr/lib/wine/wine64'
     server = root / 'usr/lib/wine/wineserver64'
     library = root / 'usr/lib/x86_64-linux-gnu/wine'
+    # Wine's Ubuntu package splits this actual Windows DLL into its declared
+    # runtime dependency. Resolve it inside the prefix, never the host system.
+    zlib = root / 'usr/x86_64-w64-mingw32/lib/zlib1.dll'
+    if not zlib.is_file():
+        raise ValueError('pinned Wine Windows zlib dependency missing')
+    shutil.copy2(zlib, library / 'x86_64-windows/zlib1.dll')
     # Restore the distribution's relative executable layout inside the owned
     # root; upstream Wine discovers the unversioned server in its bin directory.
     binary_directory = root / 'usr/bin'
