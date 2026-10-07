@@ -2,7 +2,7 @@
 
 ## Preconditions
 
-- Verify project root plus continuity scope when project-bound.
+- Verify project identity, exact Workstream/continuity and applicable runtime attachment; root plus continuity alone does not prove canonical cognition.
 - Resume or checkpoint the canonical Workpoint before long/risky work.
 - Confirm current operator steering and mutation approval boundaries.
 - Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
@@ -10,26 +10,25 @@
 - Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
 - Use targeted local gates during development; CI requires explicit release authorization.
 
-## Dependency graph
+## Complete journey and conditional routing
 
-```text
+Owning guide: `docs/agent/02-focusa-cohesive-project-flow.md`; contracts: Specs 143/158/164 and issue #618. Verified Workstream/attachment, current intent, accepted outcome and daemon admission determine the next action; the list below does not define execution dependencies.
 
-```
+- Discover `focusa_tool_search` when its condition is relevant; use its current strict contract.
 
-## Minimal path
-
-1. Call `focusa_tool_search` with only required bounded inputs.
+For resume, normally omit `current_ask` so the adapter forwards the exact latest instruction. A paraphrase can produce `resume_evaluated_different_ask`; use the exact request-bound ask, not a permission override. Bootstrap/Genesis readiness is not current-frontier admission. No repeated onboarding, new HLT or restore operation is implied by a routine transition.
 
 ## Current domain procedure
 
-1. Verify typed project/workstream scope before durable mutation.
-2. Return bounded evidence and executable recovery.
+1. A failed operation starts bounded diagnosis, not automatic mission abandonment; preserve the accepted outcome and confirmed effects.
+2. Discover the actual owning contract and inspect exact response/scope/version/receipt evidence before choosing supported recovery.
+3. Verify the repair and resume the affected action, or advance independently admitted work; report an actual unresolved boundary precisely, not an inferred global blocker.
 
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
-- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
-- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Scope conflict: verify the exact Workstream/continuity/attachment and current Workpoint; choose the advertised scoped reconciliation route before any checkpoint mutation. Preserve other writers and scopes.
+- Daemon/degraded state: distinguish reporting failure, request-input mismatch, stale binding and missing execution admission. Discover the supported repair, reconcile effects, verify and resume; an unchanged blind retry is not recovery.
 - Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
 - Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
 - Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.

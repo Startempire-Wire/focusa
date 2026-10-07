@@ -2,7 +2,7 @@
 
 ## Preconditions
 
-- Verify project root plus continuity scope when project-bound.
+- Verify project identity, exact Workstream/continuity and applicable runtime attachment; root plus continuity alone does not prove canonical cognition.
 - Resume or checkpoint the canonical Workpoint before long/risky work.
 - Confirm current operator steering and mutation approval boundaries.
 - Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
@@ -10,42 +10,27 @@
 - Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
 - Use targeted local gates during development; CI requires explicit release authorization.
 
-## Dependency graph
+## Complete journey and conditional routing
 
-```text
-focusa_agent_prompt -> focusa_awareness_packet
-focusa_awareness_packet -> focusa_constraint
-focusa_constraint -> focusa_current_focus
-focusa_current_focus -> focusa_decide
-focusa_decide -> focusa_failure
-focusa_failure -> focusa_intent
-focusa_intent -> focusa_next_step
-focusa_next_step -> focusa_note
-focusa_note -> focusa_open_question
-focusa_open_question -> focusa_recent_result
-focusa_recent_result -> focusa_reflex_primitives
-focusa_reflex_primitives -> focusa_scratch
-focusa_scratch -> focusa_tool_doctor
-focusa_tool_doctor -> focusa_utility_card
-```
+Owning guide: `docs/agent/02-focusa-cohesive-project-flow.md`; contracts: Specs 143/158/164 and issue #618. Verified Workstream/attachment, current intent, accepted outcome and daemon admission determine the next action; the list below does not define execution dependencies.
 
-## Minimal path
+- Discover `focusa_agent_prompt` when its condition is relevant; use its current strict contract.
+- Discover `focusa_awareness_packet` when its condition is relevant; use its current strict contract.
+- Discover `focusa_constraint` when its condition is relevant; use its current strict contract.
+- Discover `focusa_current_focus` when its condition is relevant; use its current strict contract.
+- Discover `focusa_decide` when its condition is relevant; use its current strict contract.
+- Discover `focusa_failure` when its condition is relevant; use its current strict contract.
+- Discover `focusa_intent` when its condition is relevant; use its current strict contract.
+- Discover `focusa_next_step` when its condition is relevant; use its current strict contract.
+- Discover `focusa_note` when its condition is relevant; use its current strict contract.
+- Discover `focusa_open_question` when its condition is relevant; use its current strict contract.
+- Discover `focusa_recent_result` when its condition is relevant; use its current strict contract.
+- Discover `focusa_reflex_primitives` when its condition is relevant; use its current strict contract.
+- Discover `focusa_scratch` when its condition is relevant; use its current strict contract.
+- Discover `focusa_tool_doctor` when its condition is relevant; use its current strict contract.
+- Discover `focusa_utility_card` when its condition is relevant; use its current strict contract.
 
-1. Call `focusa_agent_prompt` with only required bounded inputs.
-2. Call `focusa_awareness_packet` with only required bounded inputs.
-3. Call `focusa_constraint` with only required bounded inputs.
-4. Call `focusa_current_focus` with only required bounded inputs.
-5. Call `focusa_decide` with only required bounded inputs.
-6. Call `focusa_failure` with only required bounded inputs.
-7. Call `focusa_intent` with only required bounded inputs.
-8. Call `focusa_next_step` with only required bounded inputs.
-9. Call `focusa_note` with only required bounded inputs.
-10. Call `focusa_open_question` with only required bounded inputs.
-11. Call `focusa_recent_result` with only required bounded inputs.
-12. Call `focusa_reflex_primitives` with only required bounded inputs.
-13. Call `focusa_scratch` with only required bounded inputs.
-14. Call `focusa_tool_doctor` with only required bounded inputs.
-15. Call `focusa_utility_card` with only required bounded inputs.
+For resume, normally omit `current_ask` so the adapter forwards the exact latest instruction. A paraphrase can produce `resume_evaluated_different_ask`; use the exact request-bound ask, not a permission override. Bootstrap/Genesis readiness is not current-frontier admission. No repeated onboarding, new HLT or restore operation is implied by a routine transition.
 
 ## Current domain procedure
 
@@ -55,8 +40,8 @@ focusa_tool_doctor -> focusa_utility_card
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
-- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
-- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Scope conflict: verify the exact Workstream/continuity/attachment and current Workpoint; choose the advertised scoped reconciliation route before any checkpoint mutation. Preserve other writers and scopes.
+- Daemon/degraded state: distinguish reporting failure, request-input mismatch, stale binding and missing execution admission. Discover the supported repair, reconcile effects, verify and resume; an unchanged blind retry is not recovery.
 - Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
 - Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
 - Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.

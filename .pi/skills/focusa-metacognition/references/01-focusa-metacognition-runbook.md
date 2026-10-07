@@ -2,7 +2,7 @@
 
 ## Preconditions
 
-- Verify project root plus continuity scope when project-bound.
+- Verify project identity, exact Workstream/continuity and applicable runtime attachment; root plus continuity alone does not prove canonical cognition.
 - Resume or checkpoint the canonical Workpoint before long/risky work.
 - Confirm current operator steering and mutation approval boundaries.
 - Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
@@ -10,30 +10,21 @@
 - Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
 - Use targeted local gates during development; CI requires explicit release authorization.
 
-## Dependency graph
+## Complete journey and conditional routing
 
-```text
-focusa_metacog_capture -> focusa_metacog_doctor
-focusa_metacog_doctor -> focusa_metacog_evaluate_outcome
-focusa_metacog_evaluate_outcome -> focusa_metacog_loop_run
-focusa_metacog_loop_run -> focusa_metacog_plan_adjust
-focusa_metacog_plan_adjust -> focusa_metacog_recent_adjustments
-focusa_metacog_recent_adjustments -> focusa_metacog_recent_reflections
-focusa_metacog_recent_reflections -> focusa_metacog_reflect
-focusa_metacog_reflect -> focusa_metacog_retrieve
-```
+Owning guide: `docs/agent/02-focusa-cohesive-project-flow.md`; contracts: Specs 143/158/164 and issue #618. Verified Workstream/attachment, current intent, accepted outcome and daemon admission determine the next action; the list below does not define execution dependencies.
 
-## Minimal path
+- Discover `focusa_metacog_capture` when its condition is relevant; use its current strict contract.
+- Discover `focusa_metacog_doctor` when its condition is relevant; use its current strict contract.
+- Discover `focusa_metacog_evaluate_outcome` when its condition is relevant; use its current strict contract.
+- Discover `focusa_metacog_loop_run` when its condition is relevant; use its current strict contract.
+- Discover `focusa_metacog_plan_adjust` when its condition is relevant; use its current strict contract.
+- Discover `focusa_metacog_recent_adjustments` when its condition is relevant; use its current strict contract.
+- Discover `focusa_metacog_recent_reflections` when its condition is relevant; use its current strict contract.
+- Discover `focusa_metacog_reflect` when its condition is relevant; use its current strict contract.
+- Discover `focusa_metacog_retrieve` when its condition is relevant; use its current strict contract.
 
-1. Call `focusa_metacog_capture` with only required bounded inputs.
-2. Call `focusa_metacog_doctor` with only required bounded inputs.
-3. Call `focusa_metacog_evaluate_outcome` with only required bounded inputs.
-4. Call `focusa_metacog_loop_run` with only required bounded inputs.
-5. Call `focusa_metacog_plan_adjust` with only required bounded inputs.
-6. Call `focusa_metacog_recent_adjustments` with only required bounded inputs.
-7. Call `focusa_metacog_recent_reflections` with only required bounded inputs.
-8. Call `focusa_metacog_reflect` with only required bounded inputs.
-9. Call `focusa_metacog_retrieve` with only required bounded inputs.
+For resume, normally omit `current_ask` so the adapter forwards the exact latest instruction. A paraphrase can produce `resume_evaluated_different_ask`; use the exact request-bound ask, not a permission override. Bootstrap/Genesis readiness is not current-frontier admission. No repeated onboarding, new HLT or restore operation is implied by a routine transition.
 
 ## Current domain procedure
 
@@ -43,8 +34,8 @@ focusa_metacog_reflect -> focusa_metacog_retrieve
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
-- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
-- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Scope conflict: verify the exact Workstream/continuity/attachment and current Workpoint; choose the advertised scoped reconciliation route before any checkpoint mutation. Preserve other writers and scopes.
+- Daemon/degraded state: distinguish reporting failure, request-input mismatch, stale binding and missing execution admission. Discover the supported repair, reconcile effects, verify and resume; an unchanged blind retry is not recovery.
 - Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
 - Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
 - Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.

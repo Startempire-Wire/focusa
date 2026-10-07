@@ -7,6 +7,7 @@ Preview, apply, inspect, or repair the idempotent local project-discipline basel
 - Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff.
 - Capability family: `project_identity`; namespace: `focusa.project_identity`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- Inspect the existing baseline first; preview/apply/repair are conditional, not repeated onboarding. Bootstrap-ready does not prove current Workpoint/frontier admission.
 
 ## Parameters and strict input schema
 
@@ -77,6 +78,9 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 - canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
 ## Dependencies and workflow position
+
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
 
 - `focusa_project_genesis` (likely_next)
 - `focusa_project_verify` (likely_next)

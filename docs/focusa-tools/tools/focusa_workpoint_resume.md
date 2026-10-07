@@ -7,6 +7,8 @@ Fetch the active Focusa WorkpointResumePacket after compaction, resume, context 
 - Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.
 - Capability family: `workpoint`; namespace: `focusa.workpoint`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- Normally omit current_ask so the native adapter forwards the captured current operator instruction; an explicit override must match it exactly, not paraphrase it. resume_evaluated_different_ask is request-provenance rejection, not proof of missing operator consent.
+- A canonical resume is not dispatch admission: verify exact Workstream/attachment, current operation, lifecycle stage and frontier separately.
 
 ## Parameters and strict input schema
 
@@ -63,6 +65,9 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 - canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
 ## Dependencies and workflow position
+
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
 
 - `focusa_trajectory_view` (likely_next)
 - `focusa_active_object_resolve` (likely_next)

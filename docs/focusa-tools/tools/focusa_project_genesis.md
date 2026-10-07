@@ -7,6 +7,7 @@ Start, resume, inspect, or atomically commit the Project Genesis chain from veri
 - Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.
 - Capability family: `project_identity`; namespace: `focusa.project_identity`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- Reuse or resume the exact scoped intent-to-first-action transaction; retain confirmed HLT/history and inspect coordination options. Ready Genesis is not proof that an older Workpoint matches the current instruction; takeover needs its own authority.
 
 ## Parameters and strict input schema
 
@@ -74,6 +75,9 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 - canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
 
 ## Dependencies and workflow position
+
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
 
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_trajectory_view` (likely_next)

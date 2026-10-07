@@ -9,10 +9,10 @@
 
 ## Generated coverage
 
-- `focusa-agent-bootstrap` → `.pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md` → 8 declared tools
+- `focusa-agent-bootstrap` → `.pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md` → 10 declared tools
 - `focusa-tool-discovery` → `.pi/skills/focusa-tool-discovery/references/01-focusa-tool-discovery-runbook.md` → 5 declared tools
 - `focusa-project-scope` → `.pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md` → 4 declared tools
-- `focusa-session-recovery` → `.pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md` → 5 declared tools
+- `focusa-session-recovery` → `.pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md` → 6 declared tools
 - `focusa-browser-uiai` → `.pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md` → 4 declared tools
 - `focusa-install-lifecycle` → `.pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md` → 4 declared tools
 - `focusa-security-auth-licensing` → `.pi/skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md` → 5 declared tools
