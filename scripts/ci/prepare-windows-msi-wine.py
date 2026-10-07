@@ -57,7 +57,10 @@ def main():
     binary_directory = root / 'usr/bin'
     binary_directory.mkdir(parents=True, exist_ok=True)
     (binary_directory / 'wineserver').symlink_to(server)
-    (wine.parent / 'wineserver').symlink_to(server)
+    wrapper = wine.parent / 'wineserver'
+    if wrapper.exists() or wrapper.is_symlink():
+        wrapper.rename(wrapper.with_name('wineserver.distribution-wrapper'))
+    wrapper.symlink_to(server)
     env = os.environ.copy()
     env['WINEPREFIX'] = str(tools / 'prefix')
     env['WINEARCH'] = 'win64'

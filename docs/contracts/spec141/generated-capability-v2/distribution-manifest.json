@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.202",
-  "source_commit": "a074b18fd",
-  "generated_at": "2026-10-07T02:11:55.536335Z",
+  "source_commit": "16c813852",
+  "generated_at": "2026-10-07T02:34:21.206410Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:0256e6d78dd1b604b08f0cccfe5859df4845d9d4e2d047416684adfd30e5fe56",

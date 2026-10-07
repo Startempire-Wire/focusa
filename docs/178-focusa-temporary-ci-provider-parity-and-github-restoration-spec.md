@@ -55,7 +55,10 @@ reclaims only idle rebuildable targets, invokes the existing producer, uploads
 only after producer verification, preserves compiled inputs and always performs
 owned-target cleanup. It does not promote incomplete inventory or invent native
 installation evidence. The default `all` mode emits executables and signed NSIS installers in one
-production lane; partial modes are recovery-only. Cached compiled desktop inputs
+production lane; partial modes are recovery-only. Packaging package versions are
+frozen in `scripts/ci/windows-nsis-packages.lock`, replacing per-build dependency
+resolution. Build time derives from the source commit; timezone/locale are fixed.
+Fresh security signatures retain their real issuance times. Cached desktop inputs
 are reused only for the exact source/tag/target with a matching SHA-256. Provider
 channels are replaceable; complete MSI/native/install acceptance remains required.
 

@@ -15,7 +15,7 @@ import shlex
 import subprocess
 import sys
 
-PINNED_NSIS = ['nsis=3.09-4ubuntu1', 'nsis-common=3.09-4ubuntu1', 'minisign=0.11-1']
+NSIS_PACKAGE_LOCK = Path(__file__).with_name('windows-nsis-packages.lock')
 LINUX_CACHE_TARGETS = ['x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu', 'x86_64-unknown-linux-musl']
 
 
@@ -83,15 +83,12 @@ def prepare_nsis(tools, env):
     packages, root = tools / 'packages', tools / 'root'
     packages.mkdir(parents=True, exist_ok=True)
     root.mkdir(parents=True, exist_ok=True)
-    run(['apt-get', 'download', *PINNED_NSIS], cwd=packages)
-    # Real Linux tray metadata is required by Tauri's Linux CLI even for Windows.
-    # APT simulation + download + extraction never upgrade the host or its demos.
-    simulation = subprocess.check_output(['apt-get', '--simulate', '--no-upgrade',
-        '--no-install-recommends', 'install', 'libayatana-appindicator3-dev'], text=True)
-    dependencies = [name + '=' + version for name, version in re.findall(
-        r'^Inst (\S+) (?:\[[^]]+\] )?\((\S+)', simulation, re.MULTILINE)]
-    if dependencies:
-        run(['apt-get', 'download', *dependencies], cwd=packages)
+    # No floating APT solver: exact versions come from the successful producer.
+    dependencies = [line for line in NSIS_PACKAGE_LOCK.read_text().splitlines()
+                    if line and not line.startswith('#')]
+    if not dependencies or any(not re.fullmatch(r'[a-z0-9+.-]+=[^\s]+', line) for line in dependencies):
+        raise ValueError('invalid pinned Windows packaging tool lock')
+    run(['apt-get', 'download', *dependencies], cwd=packages)
     for package in sorted(packages.glob('*.deb')):
         run(['dpkg-deb', '-x', package, root])
     # Tauri deliberately removes NSISDIR before spawning makensis. Keep the
@@ -148,7 +145,15 @@ def main():
     work = temporary / ('focusa-windows-pipeline-' + job)
     work.mkdir(parents=True, exist_ok=False)
     target, output = work / 'target', work / 'artifacts'
+    # Declare this fresh, exact-owned job directory as rebuildable before a
+    # cached binary creates it; otherwise Cargo correctly refuses to clean it.
+    target.mkdir()
+    (target / 'CACHEDIR.TAG').write_text('Signature: 8a477f597d28d172789f06886806bc55\n# Job-owned rebuildable Cargo target cache.\n')
     env = os.environ.copy()
+    env['SOURCE_DATE_EPOCH'] = subprocess.check_output(
+        ['git', '-C', str(args.source), 'show', '-s', '--format=%ct', args.sha], text=True).strip()
+    env['TZ'] = 'UTC'
+    env['LC_ALL'] = 'C.UTF-8'
     command = [sys.executable, controller / 'build-windows-xwin-release.py',
                '--source', args.source.resolve(), '--tag', args.tag, '--sha', args.sha,
                '--sdk-cache', args.sdk_cache, '--target-dir', target, '--output', output]

@@ -63,7 +63,7 @@ class WindowsXwinContractTests(unittest.TestCase):
         self.assertEqual(producer['on']['workflow_dispatch']['inputs']['desktop_nsis']['default'], 'false')
         steps = producer['jobs']['cross-compile']['steps']
         pipeline = (ROOT / 'scripts/ci/run-windows-ovh-release.py').read_text()
-        self.assertIn('nsis=3.09-4ubuntu1', pipeline)
+        self.assertIn('nsis=3.09-4ubuntu1', (ROOT / 'scripts/ci/windows-nsis-packages.lock').read_text())
         self.assertNotIn('sudo', pipeline)
         self.assertIn("'dpkg-deb', '-x'", pipeline)
         self.assertTrue(any('run-windows-ovh-release.py' in step.get('run', '') for step in steps))
@@ -194,10 +194,25 @@ class WindowsPipelineTests(unittest.TestCase):
             self.assertIn('exec ', executable.read_text())
             self.assertTrue(executable.stat().st_mode & 0o111)
 
+    def test_build_tool_versions_and_environment_are_not_floating(self):
+        source = (ROOT / 'scripts/ci/run-windows-ovh-release.py').read_text()
+        self.assertNotIn('--simulate', source)
+        self.assertIn('SOURCE_DATE_EPOCH', source)
+        self.assertIn("env['TZ'] = 'UTC'", source)
+        lock = ROOT / 'scripts/ci/windows-nsis-packages.lock'
+        packages = [line for line in lock.read_text().splitlines() if line and not line.startswith('#')]
+        self.assertTrue(packages)
+        self.assertTrue(all('=' in line and '*' not in line for line in packages))
+
     def test_actual_disk_threshold_and_minimum_space_remain_enforced(self):
         for status in [{'used_percent': 90.0, 'free_gib': 20}, {'used_percent': 50, 'free_gib': 14.9}]:
             with self.assertRaises(ValueError):
                 self.pipeline.require_headroom(status)
+
+    def test_owned_cache_marker_precedes_cached_binary_creation(self):
+        source = (ROOT / 'scripts/ci/run-windows-ovh-release.py').read_text()
+        self.assertIn('Signature: 8a477f597d28d172789f06886806bc55', source)
+        self.assertLess(source.index("(target / 'CACHEDIR.TAG')"), source.index('run(command, env=env)'))
 
     def test_failed_producer_never_uploads_or_promotes(self):
         source = (ROOT / 'scripts/ci/run-windows-ovh-release.py').read_text()
