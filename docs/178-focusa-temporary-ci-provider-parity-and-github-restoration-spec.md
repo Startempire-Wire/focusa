@@ -46,6 +46,9 @@ The local producer also supports `desktop_nsis=true`: package-owned Tauri,
 existing cargo-xwin/SDK, isolated pinned NSIS tooling and Minisign verification
 of both architecture updater signatures; it does not substitute for MSI or
 claim native Windows execution or full release acceptance.
+`msi_tools_only=true` prepares a job-owned Wine/Mono prefix and the WiX version
+and SHA-256 pinned by the package-owned Tauri CLI; it uploads no release files
+and claims neither native Windows testing nor successful MSI production.
 It derives packages, targets, release profile override,
 production public roots and surface names from the candidate's `.appveyor.yml`;
 it does not create another build contract or move the candidate tag.

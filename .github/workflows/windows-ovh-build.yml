@@ -12,6 +12,9 @@ on:
       desktop_nsis:
         default: false
         type: boolean
+      msi_tools_only:
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       release_tag:
@@ -26,16 +29,21 @@ on:
         description: Build and verify signed local Windows NSIS installers instead of existing executables
         default: false
         type: boolean
+      msi_tools_only:
+        description: Prepare isolated local Wine and canonical WiX tools without release upload
+        default: false
+        type: boolean
 
 permissions:
   contents: write
 
 concurrency:
-  group: windows-ovh-${{ inputs.release_tag }}
+  group: windows-ovh-${{ inputs.release_tag }}-${{ inputs.msi_tools_only }}
   cancel-in-progress: false
 
 jobs:
   cross-compile:
+    if: ${{ !inputs.msi_tools_only }}
     name: Windows artifacts — OVH local toolchain
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 90
@@ -152,6 +160,24 @@ jobs:
           set -euo pipefail
           target="$RUNNER_TEMP/focusa-windows-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           if [ -d "$target" ]; then cargo clean --target-dir "$target"; fi
+
+  prepare-local-msi-tools:
+    if: ${{ inputs.msi_tools_only }}
+    name: Isolated Wine and canonical WiX — OVH
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require headroom without touching running services
+        run: |
+          set -euo pipefail
+          free_gb=$(df -P / | awk 'NR==2 {print int($4/1024/1024)}')
+          [ "$free_gb" -ge 15 ] || { echo "::error::Insufficient free build space"; exit 1; }
+      - name: Prepare isolated Wine, Mono and canonical Tauri WiX tools
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/prepare-windows-msi-wine.py \
+            --tools-directory "$RUNNER_TEMP/focusa-windows-msi-tools-${GITHUB_RUN_ID}"
 
 # The local NSIS mode emits verified updater signatures and honest generation
 # evidence; MSI, native execution, installed acceptance and full signing remain
