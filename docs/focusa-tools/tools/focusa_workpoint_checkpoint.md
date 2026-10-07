@@ -1,6 +1,6 @@
 # `focusa_workpoint_checkpoint`
 
-Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. Use it when Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. Use it when Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -67,7 +67,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `checkpoint`, `checkpoint`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -87,7 +87,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_active_object_resolve` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workpoint_resume`, `focusa_active_object_resolve`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -98,4 +98,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_active_object_resolve`, `focusa_
 - CLI: `focusa workpoint checkpoint`.
 - REST: `POST /v1/workpoint/checkpoint`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:f9c819190f7f887c5de21889d97ef9ec01452ce9073184cbe29f479e3f956b4d`.
+- Descriptor digest: `sha256:0586fa8c8fc924694f3803e55802c2d4e16658e43413f6b1d6a3270b8ec5d800`.

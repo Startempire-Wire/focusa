@@ -586,9 +586,12 @@ pub fn build_packet(profile_id: &str) -> Result<AgentBootstrapPacket, String> {
         .ok_or_else(|| format!("{FAIL_CODE_PRELOAD}: unknown profile {profile_id:?}"))?;
     let static_rule_lines = vec![
         "Focusa does not bypass install/checksum/license/update rules.".to_string(),
-        "Canonical Workpoint authority requires operator approval.".to_string(),
+        "Canonical action authority requires the existing operator grant, exact Scope/Workstream/continuity/attachment and current operation/frontier; ordinary choices inside that grant do not require renewed permission.".to_string(),
         "Proof is required before declaring completion.".to_string(),
-        "Scope is verified before changing files.".to_string(),
+        "Scope is verified before changing files; preload is advisory context, not an execution grant or evidence that the current process loaded it.".to_string(),
+        "Use the shared project journey: conditional Bootstrap/Genesis, linked goals/spec/tasks and current Workpoint, then Prepare/Act/Reconcile/Advance; capability lists are not mandatory sequences.".to_string(),
+        "A rejected operation calls for exact-cause supported recovery, verified resumption and independent admitted work; preserve actual authority/safety/budget boundaries rather than improvise repair.".to_string(),
+        "Active development follows the approved reload/deploy/consumer-test path; Git push is project-specific and production signed-release safeguards remain.".to_string(),
     ];
     let dynamic_context_lines: Vec<String> = if profile.includes_dynamic_context {
         (0..profile.max_dynamic_items)

@@ -1,6 +1,6 @@
 # `focusa_state_hygiene_doctor`
 
-Diagnose stale or duplicate Focus State signals without mutating state. Use it when Diagnose stale or duplicate Focus State signals without mutating state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Diagnose stale or duplicate Focus State signals without mutating state. Use it when Diagnose stale or duplicate Focus State signals without mutating state. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tool_doctor` (likely_next)
 - `focusa_scratch` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_state_hygiene_plan`, `focusa_tool_doctor`, `focusa_scratch`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_state_hygiene_plan`, `focusa_tool_doctor`, `focusa_scratch`
 - CLI: none.
 - REST: Pi-local only.
 - Specification: contract registry.
-- Descriptor digest: `sha256:6d8fd0ab7b72505801c308502250425bb6498c50f32b5507a4821360fd0b18ca`.
+- Descriptor digest: `sha256:f4b1edb6f4ce130332d4434b10c009691b3b4fc856a4a196f363415ad8d01bde`.

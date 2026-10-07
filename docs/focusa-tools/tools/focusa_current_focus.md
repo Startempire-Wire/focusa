@@ -1,6 +1,6 @@
 # `focusa_current_focus`
 
-Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). Use it when Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). Use it when Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_state`, `write_state`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workpoint_checkpoint` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_trajectory_view`, `focusa_workpoint_checkpoint`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_checkpoint`, `focusa_ev
 - CLI: `focusa focus update --current-focus`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:234c11e3da4b9105e427d3f7754848cc36447e7f6bfbc94b87c15d60abcb2e5e`.
+- Descriptor digest: `sha256:b2dd77ff1d2b5299e065b373e048253a01090b98fb85988b5b4498f9d2dc9ec7`.

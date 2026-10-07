@@ -1,6 +1,6 @@
 # `focusa_bg_run`
 
-Run a terminal-blocking command in the background as a first-class Focusa job. Daemon creation requires exact attachment-backed North Star admission; completion receipts remain writable for already-admitted jobs. The front terminal receives completion with bounded output tail (no polling). Use instead of raw setsid/nohup shells whenever Focusa is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Run a terminal-blocking command in the background as a first-class Focusa job. Daemon creation requires exact attachment-backed North Star admission; completion receipts remain writable for already-admitted jobs. The front terminal receives completion with bounded output tail (no polling). Use instead of raw setsid/nohup shells whenever Focusa is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -51,7 +51,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `durable_dispatch`, `durable_dispatch`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -70,7 +70,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_bg_status` (likely_next)
 - `focusa_workpoint_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +81,4 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - CLI: `focusa bg run --detach`.
 - REST: `/v1/background-jobs `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:11ea121fb477c71f4e883e9f0dec9ee90bf106c9d5b9e153d124cf3197a8d95d`.
+- Descriptor digest: `sha256:6d59cb3f248100948ad990932b1a43411ec270838ab6f02ec471a8cde806949f`.

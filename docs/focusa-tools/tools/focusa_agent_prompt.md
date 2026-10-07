@@ -1,6 +1,6 @@
 # `focusa_agent_prompt`
 
-Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls. Use it when Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls. Use it when Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_view` (likely_next)
 - `focusa_project_identity` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_tool_doctor`, `focusa_trajectory_view`, `focusa_project_identity`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_tool_doctor`, `focusa_trajectory_view`, `focusa_project_ide
 - CLI: none.
 - REST: `GET /v1/agent/prompt`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:4ce9fda964996a969aac619064a9004bc385a220b9491b65da4563642c5fbb8a`.
+- Descriptor digest: `sha256:5491dcf930f04688b07caeebf502fac5298b98c0beecc8b3253e032cfd7fd27c`.

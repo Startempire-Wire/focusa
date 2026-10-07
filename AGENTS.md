@@ -28,18 +28,22 @@ Wirebot/SOVOS may consume Focusa primitives and the trusted generated-UI substra
 
 ## Focusa agent docs entry point
 
-Before broad Focusa code changes or after context loss, read `docs/agent/01-focusa-agent-docs-index.md`. It is the bounded, public-safe architecture/commands/API/Workpoint/Trajectory/private-boundary guide for agents.
+Before broad Focusa code changes or after context loss, read `docs/agent/01-focusa-agent-docs-index.md` and its shared `docs/agent/02-focusa-cohesive-project-flow.md`. The latter connects conditional Bootstrap/Genesis, goal/specification/tasks, current execution and recovery/evidence/advancement; it is guidance over the owning contracts, not a new scheduler or proof that every installed operation exists.
 
 ## Current agent-readiness fast path
 
-1. Verify `project_root + continuity_id` with `focusa_project_identity`/`focusa_project_verify`; a Git worktree is a typed working subpath under that authority.
-2. Resume Trajectory and the canonical Workpoint before acting; transcript tails, cached aliases, and predictions do not grant authority.
+1. Resolve the exact ScopeRef/ProjectRootKey, WorkstreamId, ContinuityId and applicable AttachmentKey through the installed adapter. `project_root + continuity_id` are lookup/lineage inputs, not the complete authority boundary; a worktree is a verified working subpath, not a new project by default.
+2. Inspect Bootstrap/Genesis only when initialization is missing or interrupted; reuse valid existing state. Resume current Trajectory/Workpoint and verify the operation/frontier before effects. Transcript tails, old readiness, cached aliases and predictions do not grant authority.
 3. Discover capabilities progressively: `focusa_agent_card` → `focusa_tool_search` → `focusa_tool_describe`/`focusa_tool_graph`.
 4. All Focusa Pi tools must remain one-to-one across runtime registration, `docs/contracts/spec141/generated-capability-v2/pi-tools.json`, capability descriptors, and `docs/focusa-tools/tools/`.
 5. Load the matching `.pi/skills/<name>/SKILL.md`, then its numbered runbook only when the workflow requires detail. Packaged copies live under `apps/pi-extension/skills/` and must be byte-identical.
-6. For durable background execution, use daemon-native Silent Sessions with exact session/run/generation and approval/idempotency fields—never raw tmux or shell aliases.
+6. Use `focusa bg` for bounded terminal-blocking commands and daemon-native Silent Sessions for delegated agent runs, with their actual scope/approval/idempotency requirements. Do not substitute raw background shells.
 7. For context pressure, preserve canonical Workpoint/Trajectory state and governed auto-rollover; do not treat transcript compaction as authority.
 8. Customer lifecycle changes must prove install or repair/rerun, trusted OTA/update rollback, and uninstall with user data preserved unless purge is explicit.
+
+A failed request starts diagnosis of that operation, not automatic abandonment of the outcome. Separate input/provenance mismatch, pending observation, reporting failure, missing dependency and authority denial; use supported recovery, reconcile possible effects, verify and resume. A missing mandatory dependency pauses its dependents; independently admitted work continues. Ask only for a genuine unresolved choice/grant, and never invent a repair, capability or green gate.
+
+Source contracts, installed capabilities and current action admission are different facts. Catalog registration, doctor success or a documented target-state flow is not operation execution proof. Use current installed discovery for exact arguments and classify a wrong-path probe separately from a consumer failure.
 
 Current surfaces: Mission Canvas/Work Rail and generated UI (`docs/135-series-current-manifest.md`), Silent Sessions (`docs/133-silent-sessions-final-release-proof.md`), all-tool/skill machine contracts (`docs/contracts/spec141/generated-capability-v2/`), and public onboarding (`README.md`, `docs/current/FOCUSA_FRIENDLY_ONBOARDING.md`).
 
@@ -108,17 +112,16 @@ boilerplate (error envelopes, tool results) through the canonical
 constructors (focusa_core::error_envelope, tool_result_v1) instead of
 re-typing them. The duplication ceiling lives in `.deslop.toml`.
 
-## Pre-work rule: always check remote first (mandatory)
+## Pre-work rule: inspect the applicable source and delivery state
 
-Before any durable state change (commit, push, branch switch, merge, rebase, tag), or before resuming work after a session reload, agent context drift, or gap in continuity:
+Before edits or after reload, context drift or a continuity gap:
 
-1. `git fetch origin` to discover remote commits you do not yet have locally.
-2. `git status` to see local uncommitted work and any rebase-incompatibility risk.
-3. If you have unstaged changes and the remote has moved, **stash first**, then `git pull --rebase`, then `git stash pop`. Resolve any conflicts before continuing.
-4. Only then proceed to the canonical build/deploy chain below.
+1. Inspect `git status` and the scoped diff when the project uses Git; preserve other agents' changes.
+2. When an approved remote is relevant to integration/publication, fetch it and compare the intended branch before committing or delivering. A local-only project does not require an invented remote or push.
+3. Reconcile remote movement without overwriting or automatically stashing/rebasing unrecognized work. Branch changes, force-push and history rewriting retain their separate authority requirements.
+4. Establish the approved test/development destination and its existing reload/deployment mechanism. Do not invent an environment, service or release requirement.
 
-Why: shipping from a stale local head duplicates or reverts remote work, and creates
-phantom commits in the operator's log. The discipline is: **see the world before you change it.**
+The discipline is **see the relevant current state before changing it**; Git operations are not substitutes for testing the active consumer.
 
 ## Release vocabulary (mandatory, plain language)
 
@@ -126,17 +129,29 @@ phantom commits in the operator's log. The discipline is: **see the world before
 - **Dev release** = nightly/development channel. Same full surfaces and operating systems, but marked prerelease. Early adopters can opt in. It is still full — no missing OS, no missing surface.
 - **No partial releases.** Do not ship an OS or a surface by itself. If you think you need one, write a one-line reason and get explicit approval. Default is no.
 
-## Canonical build/deploy rule (mandatory)
+## Fast development and active-environment verification
 
-**Build and deploy ONLY through the full live GitHub release pipeline.**
+Git push is **not a universal project requirement**. For active development, prefer the shortest authorized loop:
+
+**Change → approved hot reload or development deployment → test the exact active environment → reconcile evidence → next ready change.**
+
+- Resolve the actual project, environment, owning user/host and supported mechanism first. Reuse current verified routing; do not repeatedly ask for ordinary choices inside the grant.
+- If the requested outcome includes active-environment testing and its destination is approved, perform the reload/deployment and verify it before calling the slice done. Source, commit, push or successful build alone does not prove active behavior.
+- Hot reload applies only where the actual development runtime supports it. Compiled code may require an approved build/restart; instruction/resource changes require the owning harness's native refresh. Changed files alone do not prove refresh.
+- Push only when the project's approved mechanism consumes the remote, publication is requested, or its delivery contract explicitly requires it. Local/private projects may finish without a push; sensitive material must not be published merely to satisfy a checklist.
+- Existing scope, ownership, infrastructure, authentication, resource-placement and demo-service boundaries remain. This development loop does not authorize a new service, package, destination, paid run, release tag or manual production-binary replacement.
+
+## Canonical full-release build/deploy rule (mandatory)
+
+**Full/stable Focusa releases use the canonical GitHub release pipeline.** This rule is separate from authorized development hot reload; an ordinary edit is not automatically a release. Production Focusa installation still uses the published, verified artifact and approved installer/update path.
 
 - Canonical command: `scripts/create-dev-release-tag.sh --push` (for stable) or `scripts/create-dev-release-tag.sh --base 0.9 --push` (auto-picks next patch). For an exact stable: `scripts/create-dev-release-tag.sh --tag v0.9.177 --push`.
-- Required chain: `CI` → `Release` → `Deploy Live Daemon` → audit/self-heal/watchdog. The release is not done until `gh release view vX.Y.Z` exists and CI is green.
+- Required chain: `CI` → `Release` → `Deploy Live Daemon` → applicable audit/recovery/settlement. A release entry and green CI are prerequisites, not full completion: verify the canonical artifact/signature matrix, channel promotion and requested installed consumer/update/rollback outcomes.
 - Do **not** build release artifacts locally with `cargo build --release`.
 - Do **not** deploy from `target/release` or call `install-daemon.sh --binary target/release/...`.
 - Do **not** run only a partial deploy workflow as a shortcut.
 - Do **not** hand-edit `distribution-manifest.json` or version files. Use the stamp script — it is the single source of truth.
-- If the pipeline fails, fix the pipeline/system and push; Auto Heal + Watchdog must recover future failures.
+- If the pipeline fails, diagnose and perform permitted recovery for the approved candidate. Observe uncertain effects before replay; preserve immutable tags. Auto Heal/Watchdog capability is not unlimited retry, deployment or paid-resource authority.
 
 See `docs/canonical-live-release-pipeline.md` before any build/deploy work.
 
@@ -203,34 +218,19 @@ Agents must read `.focusa-private/INDEX.md` before touching SaaS strategy, Signa
 
 Agents must never commit `.focusa-private/`, raw transcripts, runtime objects, local host paths, admin URLs, customer data, or license data.
 
-## Landing the Plane (Session Completion)
+## Landing the Plane (Outcome Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+Completion follows the **project's requested outcome and approved delivery contract**, not a universal Git checklist. Do not stop between ready authorized actions merely because a source edit, commit or push completed.
 
-**MANDATORY WORKFLOW:**
+1. Verify the requested result and remaining dependency-valid work; unreadable work is not an empty queue.
+2. Run applicable quality/consumer checks through the required execution mechanism; keep producer proof distinct from active-environment proof.
+3. For an active development outcome, apply the approved reload/deployment promptly and test that exact consumer. For a full release, satisfy the canonical release/install/acceptance chain above. Label source-only work explicitly when that is the requested ceiling.
+4. Record evidence and reconcile the owning task/issue. Close only when its actual acceptance is met; retain precise unresolved obligations.
+5. When Git publication is required, integrate safely and push the already-approved branch, then verify remote state. When it is not required, preserve the appropriate local commit/checkpoint and do not invent a push requirement. A failed required push calls for bounded supported recovery, not endless unchanged retries.
+6. Clean only verified safe, owned temporary artifacts; never clear another agent's stash or prune shared work as routine cleanup.
+7. Hand off current result, proof, precise remaining action and any genuine blocker. Report Source, Development runtime, Release, Installed runtime and consumer verification separately where relevant.
 
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+For repository delivery that actually requires publication, the applicable commands may include `git fetch`, safe integration, task-provider sync, `git push` and `git status`; discover the configured provider and contract rather than assume every project has a remote or uses the same sync command.
 
 ## RELEASE STRATEGY & VERSIONING
 

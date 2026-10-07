@@ -1,6 +1,6 @@
 # `focusa_predict_recent`
 
-List recent predictions from one typed project/workstream scope. Use it when List recent bounded Focusa prediction records. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+List recent predictions from one typed project/workstream scope. Use it when List recent bounded Focusa prediction records. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_predict_evaluate` (likely_next)
 - `focusa_metacog_retrieve` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_predict_stats`, `focusa_predict_evaluate`, `focusa_metacog_retrieve`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_predict_stats`, `focusa_predict_evaluate`, `focusa_metacog_
 - CLI: `focusa predict recent`.
 - REST: `GET /v1/predictions/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a494b1daf846fe5b54045c5835122d2eabfc636c6d15e48074863258a6765eee`.
+- Descriptor digest: `sha256:bedb70233cac7c435c12fa17ff39bb8e1345fe2292f8744aa30a7cc9374dd8b8`.

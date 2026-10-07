@@ -1,6 +1,6 @@
 # `focusa_bloatgaurd_report`
 
-Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8. Use it when Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8. Use it when Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_context_cognition_render` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_bloatgaurd_domain`, `focusa_context_cognition_render`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_bloatgaurd_domain`, `focusa_context_cognition_render`, `foc
 - CLI: `focusa bloatgaurd report`.
 - REST: `GET /v1/bloatgaurd/report`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:6ec2f94b63332debfe040a59f49cf88dba93d7f3ef1e696d140a077670757635`.
+- Descriptor digest: `sha256:f4f3d890783d826bca81f1a24790aaa07baa886db17962a8841ec39a4e823df7`.

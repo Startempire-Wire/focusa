@@ -1,6 +1,6 @@
 # `focusa_preload_doctor`
 
-Doctor Preload Scope through the scoped Spec 111 preload API. Use it when Diagnose bootstrap delivery readiness and recovery steps. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Doctor Preload Scope through the scoped Spec 111 preload API. Use it when Diagnose bootstrap delivery readiness and recovery steps. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -68,7 +68,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_preload_profiles` (likely_next)
 - `focusa_preload_build` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_preload_profiles`, `focusa_preload_build`.
 
 ## Skills, protocols, and source authority
@@ -79,4 +79,4 @@ Likely next: `focusa_preload_profiles`, `focusa_preload_build`.
 - CLI: `focusa preload doctor`.
 - REST: `POST /v1/preload/doctor`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:bc5c56b9a8bbf3c1de2d4cd1402dbf3fa8e42e98c3fbcebb88ec33ca3241c4c6`.
+- Descriptor digest: `sha256:be9899c45b0fa63d87618cf0394c36311bd948e243bdcf395c15272d83bf77e2`.

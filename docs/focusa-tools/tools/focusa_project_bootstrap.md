@@ -1,6 +1,6 @@
 # `focusa_project_bootstrap`
 
-Preview, apply, inspect, or repair the idempotent local project-discipline baseline before Project Genesis. Use it when Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Preview, apply, inspect, or repair the idempotent local project-discipline baseline before Project Genesis. Use it when Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -67,7 +67,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"daemon:/v1/project/bootstrap/apply"}`
 - Side effects: `preview_read_or_confirmed_local_bootstrap_repair`, `preview_read_or_confirmed_local_bootstrap_repair`
 - Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -87,7 +87,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_project_verify` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_genesis`, `focusa_project_verify`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
@@ -98,4 +98,4 @@ Likely next: `focusa_project_genesis`, `focusa_project_verify`, `focusa_workpoin
 - CLI: `focusa project bootstrap preview|apply|status|repair`.
 - REST: `POST /v1/project/bootstrap/preview`, `POST /v1/project/bootstrap/apply`, `GET /v1/project/bootstrap/status`, `POST /v1/project/bootstrap/repair`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:a35ccf2e393d5ebd0fbb3292e03a9bb75b94a861dd9541366182b1b136872452`.
+- Descriptor digest: `sha256:09635241cf58aedab820ed469ce85a999e289183d98c1ff195590b075c3c5882`.

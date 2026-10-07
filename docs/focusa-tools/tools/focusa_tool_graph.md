@@ -1,6 +1,6 @@
 # `focusa_tool_graph`
 
-Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies. Use it when Traverse bounded capability dependencies and likely-next workflow edges. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies. Use it when Traverse bounded capability dependencies and likely-next workflow edges. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -51,7 +51,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -71,7 +71,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tool_bundle` (likely_next)
 - `focusa_tool_search` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_tool_describe`, `focusa_tool_bundle`, `focusa_tool_search`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +82,4 @@ Likely next: `focusa_tool_describe`, `focusa_tool_bundle`, `focusa_tool_search`.
 - CLI: `focusa help all --json`.
 - REST: `GET /v1/agent/tool-graph`.
 - Specification: `docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`.
-- Descriptor digest: `sha256:59d259a751069c0cc1ab084b6e6b73c9e7081a780f5c7f1166f8c91c55992420`.
+- Descriptor digest: `sha256:a828f6ea52c08f69bd89dbae1bd568a65ca8ba4019e457816b23a705c6de4c69`.

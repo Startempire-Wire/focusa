@@ -1,6 +1,6 @@
 # `focusa_metacog_doctor`
 
-Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. Use it when Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. Use it when Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -51,7 +51,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -71,7 +71,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_metacog_recent_reflections` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_metacog_retrieve`, `focusa_metacog_recent_reflections`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +82,4 @@ Likely next: `focusa_metacog_retrieve`, `focusa_metacog_recent_reflections`, `fo
 - CLI: `focusa metacognition doctor`.
 - REST: `POST /v1/metacognition/retrieve`, `GET /v1/metacognition/reflections/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:11e7e658ab5a41b21483219934c9458eb97a066286b9fff717c85705aab2c085`.
+- Descriptor digest: `sha256:cd0994edcebf71780165a700ca573cef5923de9b3c9e0cf1c092d6cf9af20397`.

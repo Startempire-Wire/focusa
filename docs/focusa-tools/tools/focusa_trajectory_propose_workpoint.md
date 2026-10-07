@@ -1,6 +1,6 @@
 # `focusa_trajectory_propose_workpoint`
 
-Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. Use it when Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. Use it when Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,7 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `advisory_projection`, `advisory_projection`
 - Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -72,7 +72,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_active_object_resolve` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workpoint_checkpoint`, `focusa_active_object_resolve`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -83,4 +83,4 @@ Likely next: `focusa_workpoint_checkpoint`, `focusa_active_object_resolve`, `foc
 - CLI: `focusa trajectory propose-workpoint`.
 - REST: `POST /v1/trajectory/propose-workpoint`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:2e8eaebdd12b5046bd89d485599e1f29d637bb3fc0c55fe16e5bcfc8eee916d0`.
+- Descriptor digest: `sha256:ff1d44f63d2cdc0f8d32e4ee481108b2a3149c2122dde0fc6152e622d93561f7`.

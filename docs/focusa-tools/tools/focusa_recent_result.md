@@ -1,6 +1,6 @@
 # `focusa_recent_result`
 
-Record a completed result, output, or reference (max 180 chars). Use it when Record a completed result, output, or reference (max 180 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Record a completed result, output, or reference (max 180 chars). Use it when Record a completed result, output, or reference (max 180 chars). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_state`, `write_state`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_assess` (likely_next)
 - `focusa_workpoint_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_evidence_capture`, `focusa_trajectory_assess`, `focusa_workpoint_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_evidence_capture`, `focusa_trajectory_assess`, `focusa_work
 - CLI: `focusa focus update --recent-result`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:556de9c7cef3c162e0ecff5c893a4d699e641a0b6c487e15c76ba64995b33355`.
+- Descriptor digest: `sha256:45c1447fc5c6b6de619a912a413119462b6e88c8c0ba7c952da19df8d1724a16`.

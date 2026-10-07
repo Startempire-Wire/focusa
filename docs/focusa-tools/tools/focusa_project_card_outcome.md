@@ -1,6 +1,6 @@
 # `focusa_project_card_outcome`
 
-Attach a final outcome/result to a specific project-card algorithm_run_id and update learned project-card weights. Use it when Attach a verified result to a project-card algorithm_run_id so project-card learning weights and future bootstrap/sequence planning can improve. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Attach a final outcome/result to a specific project-card algorithm_run_id and update learned project-card weights. Use it when Attach a verified result to a project-card algorithm_run_id so project-card learning weights and future bootstrap/sequence planning can improve. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -57,7 +57,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_project_card_outcome`, `write_project_card_outcome`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -77,7 +77,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_predict_record` (likely_next)
 - `focusa_metacog_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_card`, `focusa_predict_record`, `focusa_metacog_capture`.
 
 ## Skills, protocols, and source authority
@@ -88,4 +88,4 @@ Likely next: `focusa_project_card`, `focusa_predict_record`, `focusa_metacog_cap
 - CLI: `focusa project card-outcome`.
 - REST: `POST /v1/project/card/outcome`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:5120fc2b9c24f233996481c1743228b4e55a1e3ebd89845a324aabbaea0b3e02`.
+- Descriptor digest: `sha256:ea9d2b1774b2c9657b64e1421b49bbf865859d5ecc305bded8cac4ec9bbbb508`.

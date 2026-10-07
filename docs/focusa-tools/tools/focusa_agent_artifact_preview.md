@@ -1,6 +1,6 @@
 # `focusa_agent_artifact_preview`
 
-Preview a Spec 140 artifact delivery manifest; never writes files. Use it when Operate the Spec 140 agent artifact preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Preview a Spec 140 artifact delivery manifest; never writes files. Use it when Operate the Spec 140 agent artifact preview surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_or_preview_only`, `read_or_preview_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_agent_artifact_delivery` (likely_next)
 - `focusa_agent_artifact_verify` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_agent_artifact_delivery`, `focusa_agent_artifact_verify`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_agent_artifact_delivery`, `focusa_agent_artifact_verify`.
 - CLI: `focusa agent-runtime artifacts preview`.
 - REST: `POST /v1/agent-runtime/delivery/preview`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:d360dcd5268e8c5632c8f46ceab25d00ea1bc8301ed4b7979772c185d8cba648`.
+- Descriptor digest: `sha256:2475825a9f924acfbe383caff0798784de1a9103c4c72b73b531cf870d91847e`.

@@ -1,6 +1,6 @@
 # `focusa_workpoint_resume`
 
-Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. Use it when Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. Use it when Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -54,7 +54,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -74,7 +74,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_active_object_resolve` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_trajectory_view`, `focusa_active_object_resolve`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -85,4 +85,4 @@ Likely next: `focusa_trajectory_view`, `focusa_active_object_resolve`, `focusa_e
 - CLI: `focusa workpoint resume`.
 - REST: `POST /v1/workpoint/resume`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:80b8810fb75d2f10e62a98afc184d94eb0f5f3b8c44e314f243be1f9dbc4220f`.
+- Descriptor digest: `sha256:8a8033d8a9aa551694cec2e2ed30fc032dbf80ea19ffe46cf20a7032b3d2b69d`.

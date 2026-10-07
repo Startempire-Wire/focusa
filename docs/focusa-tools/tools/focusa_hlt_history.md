@@ -1,6 +1,6 @@
 # `focusa_hlt_history`
 
-Read append-only HLT ledger entries with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. Use it when Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read append-only HLT ledger entries with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. Use it when Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,7 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -72,7 +72,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_define_goal` (likely_next)
 - `focusa_project_verify` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_trajectory_view`, `focusa_trajectory_define_goal`, `focusa_project_verify`.
 
 ## Skills, protocols, and source authority
@@ -83,4 +83,4 @@ Likely next: `focusa_trajectory_view`, `focusa_trajectory_define_goal`, `focusa_
 - CLI: `focusa hlt history`, `focusa hlt sessions`, `focusa hlt fallback`.
 - REST: `GET /v1/hlt/history`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:19ec12f728fd64769c4801c1273925e3a47504ca30695ebd8409359f3658e0d3`.
+- Descriptor digest: `sha256:9b054c6cde6c1bf5e232ad830692078c77a41371ad382d417b31baeaa5fe05a3`.

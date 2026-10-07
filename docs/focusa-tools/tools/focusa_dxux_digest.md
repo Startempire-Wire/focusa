@@ -1,6 +1,6 @@
 # `focusa_dxux_digest`
 
-Spec105 — read compact continuation/doability digest. Use it when Spec105 — read compact continuation/doability digest. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec105 — read compact continuation/doability digest. Use it when Spec105 — read compact continuation/doability digest. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_dxux_report` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workpoint_resume`, `focusa_dxux_report`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_dxux_report`, `focusa_evidence_c
 - CLI: `focusa dxux digest`.
 - REST: `GET /v1/dxux/digest`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:75aceb78db53e051d53070ad348a6ae723c100bc34441b4c994ae86265a65a89`.
+- Descriptor digest: `sha256:3a28461dd8ad7d8cf257252d0f0b0c7b1fe3e4b66d12abdec9f386df7aa98cac`.

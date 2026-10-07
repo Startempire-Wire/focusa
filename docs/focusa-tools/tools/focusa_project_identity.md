@@ -1,6 +1,6 @@
 # `focusa_project_identity`
 
-Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -56,7 +56,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -77,7 +77,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_view` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_card`, `focusa_project_verify`, `focusa_trajectory_view`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
@@ -88,4 +88,4 @@ Likely next: `focusa_project_card`, `focusa_project_verify`, `focusa_trajectory_
 - CLI: `focusa project identity`.
 - REST: `GET /v1/project/identity`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9b9e418aa491bfdaf48b241d9c5dcaf05b301a5342d2753583c42fff6fd1baf8`.
+- Descriptor digest: `sha256:788a7c09a69013f9de7402e57daf420c9971d5b406c4908aa354f6642f3eac7e`.

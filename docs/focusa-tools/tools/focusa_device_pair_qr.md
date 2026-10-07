@@ -1,6 +1,6 @@
 # `focusa_device_pair_qr`
 
-Mac menubar OAuth-like device pairing with QR handoff (Spec focusa-ui0y, Mode B). Calls /v1/device/pair/start and returns pair_url + pair_url_qr_payload prominently so the Mac menubar can render a QR the operator's phone can scan. Use it when Mac menubar OAuth-like device pairing with QR handoff (focusa-ui0y, Mode B). Same as pair_start but surfaces pair_url for QR rendering (Telegram/Discord-style). It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Mac menubar OAuth-like device pairing with QR handoff (Spec focusa-ui0y, Mode B). Calls /v1/device/pair/start and returns pair_url + pair_url_qr_payload prominently so the Mac menubar can render a QR the operator's phone can scan. Use it when Mac menubar OAuth-like device pairing with QR handoff (focusa-ui0y, Mode B). Same as pair_start but surfaces pair_url for QR rendering (Telegram/Discord-style). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_device_pair`, `write_device_pair`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_device_pair_status` (likely_next)
 - `focusa_device_pair_list` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`.
 - CLI: `focusa device pair-qr`.
 - REST: `POST /v1/device/pair/start`.
 - Specification: `docs/53-focusa-device-pairing-spec.md`.
-- Descriptor digest: `sha256:3aeeeeb595f31ae06070bdee2beb08ca69d7cea07c49b03289cba661d2f2b410`.
+- Descriptor digest: `sha256:bf92344ac751319d1f6c6552c66792300aca171e45ee6bc79ee02b6590fba544`.

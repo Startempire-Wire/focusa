@@ -1,6 +1,6 @@
 # `focusa_work_loop_status`
 
-Get current continuous work-loop state and budgets. Use it when Get current continuous work-loop state and budgets. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Get current continuous work-loop state and budgets. Use it when Get current continuous work-loop state and budgets. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_work_loop_context` (likely_next)
 - `focusa_work_loop_select_next` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_work_loop_writer_status`, `focusa_work_loop_context`, `focusa_work_loop_select_next`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_work_loop_writer_status`, `focusa_work_loop_context`, `focu
 - CLI: none.
 - REST: `GET /v1/work-loop/status?summary_only=true`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:1df7cf9131df9a59b350deebc91d7533f6922515b14b54815323736d155f4f36`.
+- Descriptor digest: `sha256:c1e0e2c67afde892d320517fa43429a08b7f05d615596cf6f4538737ed78f802`.

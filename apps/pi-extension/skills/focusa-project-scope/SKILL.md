@@ -69,6 +69,6 @@ A rejected operation is not a stopped mission. Diagnose its exact cause, select 
 
 ## Done condition
 
-project_root plus continuity_id authority is verified and target objects resolve in that scope.
+Exact Workstream/continuity/attachment binding is verified through the installed adapter, and current targets resolve in that scope.
 
 Stable evidence or receipt refs must support any completion claim.

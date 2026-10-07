@@ -1,6 +1,6 @@
 # `focusa_dxux_report`
 
-Spec105 — read implementation report for DXUX-001..012. Use it when Spec105 — read implementation report for DXUX-001..012. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec105 — read implementation report for DXUX-001..012. Use it when Spec105 — read implementation report for DXUX-001..012. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_dxux_digest` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_dxux_requirement`, `focusa_dxux_digest`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_dxux_requirement`, `focusa_dxux_digest`, `focusa_evidence_c
 - CLI: `focusa dxux report`.
 - REST: `GET /v1/dxux/report`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:1af11ec34c2ca2bf3ff2d65d514f3c938366e50ed729e725341f7e33e2b2f155`.
+- Descriptor digest: `sha256:0d343641304f78ee03ae78f478a8a2aec9438db0668a980d991b2c348094ee1c`.

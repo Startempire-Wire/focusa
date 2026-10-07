@@ -8,7 +8,7 @@
 - Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
 - Treat cwd and missing markers as weak evidence; inspect legacy project signals before suggesting creation or binding.
 - Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
-- Use targeted local gates during development; CI requires explicit release authorization.
+- Use the approved active-development reload/deploy/test loop and execution host; Git push is project-specific, and development verification is not a release by default. CI/paid runs and release actions retain their actual grant/resource requirements.
 
 ## Complete journey and conditional routing
 
@@ -30,7 +30,7 @@ For resume, normally omit `current_ask` so the adapter forwards the exact latest
 1. Audit AGENTS, public docs, onboarding, every Pi tool projection/doc, complete skill/runbook parity, and recent architecture before release.
 2. Run generated drift, Spec141 conformance, version-surface, Markdown, lifecycle, Mission Canvas, and final release gap gates.
 3. Publish only after one green final CI; verify release assets, checksums, deployment health, updater rollback, and customer lifecycle evidence.
-4. Confirm 135-tool/29-skill parity, generated public/machine docs freshness, and cross-platform terminal proof before tag creation.
+4. Discover current registry/tool/skill counts and validate generated public/machine freshness plus relevant consumer proof; neither inventory parity nor a tag proves activation or release acceptance.
 
 ## Branches
 

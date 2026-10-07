@@ -1,6 +1,6 @@
 # `focusa_sms_checkpoint`
 
-Create and verify an encrypted atomic connector checkpoint. Returns value-free receipt metadata only. Use it when Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Create and verify an encrypted atomic connector checkpoint. Returns value-free receipt metadata only. Use it when Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -53,7 +53,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/sms/checkpoint"}`
 - Side effects: `confirmed_encrypted_checkpoint`, `confirmed_encrypted_checkpoint`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -73,7 +73,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_sms_events` (likely_next)
 - `focusa_sms_enrollment` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_health`, `focusa_sms_events`, `focusa_sms_enrollment`.
 
 ## Skills, protocols, and source authority
@@ -84,4 +84,4 @@ Likely next: `focusa_sms_health`, `focusa_sms_events`, `focusa_sms_enrollment`.
 - CLI: `focusa sms checkpoint`.
 - REST: `POST /v1/sms/checkpoint`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:dfca8726677388b7a770e6e62db2841aae522944b97c67bf5f342f7a834aeead`.
+- Descriptor digest: `sha256:1204c73ec79f34c0e8658d0c8244918039cd26f449b513edca773406306a7fcc`.

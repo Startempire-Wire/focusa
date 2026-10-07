@@ -1,6 +1,6 @@
 # `focusa_epistemic_operation`
 
-Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -53,7 +53,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical_write"}`
 - Side effects: `typed_read_or_canonical_epistemic_mutation`, `typed_read_or_canonical_epistemic_mutation`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -73,7 +73,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_metacog_retrieve` (likely_next)
 - `focusa_trajectory_view` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_prediction_authority`, `focusa_metacog_retrieve`, `focusa_trajectory_view`.
 
 ## Skills, protocols, and source authority
@@ -84,4 +84,4 @@ Likely next: `focusa_prediction_authority`, `focusa_metacog_retrieve`, `focusa_t
 - CLI: `focusa predict operation --operation <operation-id>`.
 - REST: `POST /v1/prediction-questions`, `POST /v1/information-sets`, `POST /v1/predictions/commit`, `POST /v1/predictions/{id}/supersede`, `GET /v1/predictions/{id}`, `GET /v1/predictions/recent`, `POST /v1/outcomes/claim`, `POST /v1/outcomes/{id}/dispute`, `POST /v1/outcomes/resolve`, `POST /v1/outcomes/{id}/correct`, `POST /v1/evaluations/predictions`, `GET /v1/calibration/reports`, `POST /v1/metacognition/signals`, `POST /v1/metacognition/reflections`, `POST /v1/metacognition/adjustments`, `POST /v1/metacognition/evaluations`, `POST /v1/learning/candidates/{id}/decide`, `POST /v1/learning/{id}/apply`, `POST /v1/learning/transfers/resolve`, `GET /v1/learning/retrieve`, `GET /v1/learning/conflicts`, `POST /v1/learning/{id}/expire`, `POST /v1/learning/{id}/supersede`, `POST /v1/learning/{id}/revoke`, `POST /v1/learning/{id}/rollback`, `POST /v1/learning/consolidate`, `GET /v1/self-model`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:f71ac153c87380821e3d5709db8b213b56c00dd0232a5738a4639ad23ccd5ea2`.
+- Descriptor digest: `sha256:b61adb9bf0987e8b74fcb131fe03b504a20dae1f2aa46c603f9fd15384b1b8de`.

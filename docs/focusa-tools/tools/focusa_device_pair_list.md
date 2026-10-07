@@ -1,6 +1,6 @@
 # `focusa_device_pair_list`
 
-List paired devices for a host (append-only JSONL ledger, scope-bounded). Returns the recent device list with name, scopes, paired_at, last_seen_at, revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger). It returns a typed Focusa result with bounded recovery and likely next capabilities.
+List paired devices for a host (append-only JSONL ledger, scope-bounded). Returns the recent device list with name, scopes, paired_at, last_seen_at, revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,7 +48,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_device_pair_revoke` (likely_next)
 - `focusa_session_transfer` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_device_pair_revoke`, `focusa_session_transfer`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_device_pair_revoke`, `focusa_session_transfer`.
 - CLI: `focusa device pair-list`.
 - REST: `GET /v1/device/pair/list`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:46f2888c34c1bdf694a88ffceaa7895a41fcfda267825c8ac9f539a234e00239`.
+- Descriptor digest: `sha256:b943a4e8ea8addae77c816c83e3cc2acc2b1d130d4eadb72a4f7c93ac8a95d73`.

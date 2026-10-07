@@ -1,6 +1,6 @@
 # `focusa_device_pair_revoke`
 
-Revoke a paired device. Appends a new entry with revoked=true to the append-only JSONL ledger and removes the in-memory token. The next call from the device will be rejected with status=revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Revoke a paired device. Appends a new entry with revoked=true to the append-only JSONL ledger and removes the in-memory token. The next call from the device will be rejected with status=revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -51,7 +51,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_device_pair_revoke`, `write_device_pair_revoke`
 - Read-only: `false`; destructive: `true`; idempotent: `false`; open-world: `true`.
-- Confirmation required: `true`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 
 - `focusa_device_pair_list` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_device_pair_list`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_device_pair_list`.
 - CLI: `focusa device pair-revoke`.
 - REST: `POST /v1/device/pair/revoke`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:8ee3d104665a68ef9693d6bcae664271c07794d68662ede99f774a4e2d15e36f`.
+- Descriptor digest: `sha256:bba52fd97b4fd46614aee8db141b90b833b49b3b39d185087d680dd27c0c8a0e`.

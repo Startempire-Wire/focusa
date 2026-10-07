@@ -1,6 +1,6 @@
 # `focusa_sms_otp_challenge`
 
-Register an exact provider/target challenge before requesting OTP delivery. Returns a handle, never an OTP. Use it when Register an exact provider and target challenge before OTP delivery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Register an exact provider/target challenge before requesting OTP delivery. Returns a handle, never an OTP. Use it when Register an exact provider and target challenge before OTP delivery. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -56,7 +56,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/sms/otp/challenges"}`
 - Side effects: `bounded_challenge_registration`, `bounded_challenge_registration`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -76,7 +76,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_sms_events` (likely_next)
 - `focusa_sms_health` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_otp_inject`, `focusa_sms_events`, `focusa_sms_health`.
 
 ## Skills, protocols, and source authority
@@ -87,4 +87,4 @@ Likely next: `focusa_sms_otp_inject`, `focusa_sms_events`, `focusa_sms_health`.
 - CLI: `focusa sms otp-challenge`.
 - REST: `POST /v1/sms/otp/challenges`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:98d64356a5183ce2eb7f24cbdc4ce40e41224da62bfb3ca7ff747f80fbbe6ddd`.
+- Descriptor digest: `sha256:906669b12ed88789762635c305ee44b42aa179b2bb08dadcc81d67d18de24e41`.

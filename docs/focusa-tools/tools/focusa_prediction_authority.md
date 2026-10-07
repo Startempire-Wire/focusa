@@ -1,6 +1,6 @@
 # `focusa_prediction_authority`
 
-Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope. Use it when Append or project immutable Spec 138 authority in typed scope. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope. Use it when Append or project immutable Spec 138 authority in typed scope. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,7 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_or_read_prediction_authority`, `write_or_read_prediction_authority`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -72,7 +72,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_evidence_capture` (likely_next)
 - `focusa_metacog_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_predict_recent`, `focusa_evidence_capture`, `focusa_metacog_capture`.
 
 ## Skills, protocols, and source authority
@@ -83,4 +83,4 @@ Likely next: `focusa_predict_recent`, `focusa_evidence_capture`, `focusa_metacog
 - CLI: `focusa predict authority-append`, `focusa predict authority-projection`.
 - REST: `POST /v1/prediction-authority/events`, `POST /v1/prediction-authority/projection`, `GET /v1/prediction-authority/projection`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3038d61f7efa8257c5f38f1e94bbef3763d162fa746969f86ee7be4b204f10db`.
+- Descriptor digest: `sha256:2ea077f07cdd5b618910700407301d0211255414b3fe62c5c5362fcc4e74ef9e`.

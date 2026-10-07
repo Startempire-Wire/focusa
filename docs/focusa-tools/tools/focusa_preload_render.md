@@ -1,6 +1,6 @@
 # `focusa_preload_render`
 
-Render Preload Packet through the scoped Spec 111 preload API. Use it when Render a scoped agent bootstrap packet. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Render Preload Packet through the scoped Spec 111 preload API. Use it when Render a scoped agent bootstrap packet. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -68,7 +68,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_preload_verify` (likely_next)
 - `focusa_preload_write` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_preload_verify`, `focusa_preload_write`.
 
 ## Skills, protocols, and source authority
@@ -79,4 +79,4 @@ Likely next: `focusa_preload_verify`, `focusa_preload_write`.
 - CLI: `focusa preload render`.
 - REST: `POST /v1/preload/render`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:59dc040c2e87bac21a8b7ba3dcbc8125574ee393bdbb533e410b435c289a67ba`.
+- Descriptor digest: `sha256:bb7671813b94e535e9d7e0e6d4fc189467aac9812487b90f638e69f884f8debb`.

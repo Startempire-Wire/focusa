@@ -108,7 +108,7 @@ def runbook_body(skill: dict) -> str:
 - Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
 - Treat cwd and missing markers as weak evidence; inspect legacy project signals before suggesting creation or binding.
 - Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
-- Use targeted local gates during development; CI requires explicit release authorization.
+- Use the approved active-development reload/deploy/test loop and execution host; Git push is project-specific, and development verification is not a release by default. CI/paid runs and release actions retain their actual grant/resource requirements.
 
 ## Complete journey and conditional routing
 

@@ -1,6 +1,6 @@
 # `focusa_trajectory_resume`
 
-Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume. Use it when Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume, including prediction/metacog review prompts. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume. Use it when Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume, including prediction/metacog review prompts. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -70,7 +70,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_view` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +81,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_tool_d
 - CLI: `focusa trajectory resume`.
 - REST: `POST /v1/trajectory/resume`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:226e711a6be840a9f014a9ca88bd2e7fda5ff296a029f336d19d15ef61577daa`.
+- Descriptor digest: `sha256:7f07978f0fb3a59be7cf43b0d3bfc3b6639069d7ea84944531631e3d056e0dbe`.

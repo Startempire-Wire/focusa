@@ -1,6 +1,6 @@
 # `focusa_metacog_recent_adjustments`
 
-Best safe helper for finding recent adjustment ids before evaluation or promotion decisions. Use it when Best safe helper for finding recent adjustment ids before evaluation or promotion decisions. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Best safe helper for finding recent adjustment ids before evaluation or promotion decisions. Use it when Best safe helper for finding recent adjustment ids before evaluation or promotion decisions. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_metacog_doctor` (likely_next)
 - `focusa_metacog_reflect` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_metacog_evaluate_outcome`, `focusa_metacog_doctor`, `focusa_metacog_reflect`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_metacog_evaluate_outcome`, `focusa_metacog_doctor`, `focusa
 - CLI: `focusa metacognition recent-adjustments`.
 - REST: `GET /v1/metacognition/adjustments/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:568090067d42b9d6e3de1ae948887b6dbd05348d210acd418ba080033459177b`.
+- Descriptor digest: `sha256:5243fd92a4dca81c2adfd7c0e9b7a96656cec95d9726357d5239d29483a8e845`.

@@ -1,6 +1,6 @@
 # `focusa_state_hygiene_plan`
 
-Create a proposal-style hygiene plan; does not mutate Focus State. Use it when Create a proposal-style hygiene plan; does not mutate Focus State. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Create a proposal-style hygiene plan; does not mutate Focus State. Use it when Create a proposal-style hygiene plan; does not mutate Focus State. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_state_hygiene_doctor` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_state_hygiene_apply`, `focusa_state_hygiene_doctor`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_state_hygiene_apply`, `focusa_state_hygiene_doctor`, `focus
 - CLI: none.
 - REST: Pi-local only.
 - Specification: contract registry.
-- Descriptor digest: `sha256:bca060ddbdf5136bf3f8bdf110b9e3562f15fca8eefcd406eb9d5bee03de7167`.
+- Descriptor digest: `sha256:f130be17f81c1099751e561464c566a3ba3340d045d9b1183fc676f1ce7bb29a`.

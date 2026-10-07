@@ -28,7 +28,7 @@ focusa call-stack verify --project-root <project-root> --continuity-id <continui
 ## Public-safe story beats
 
 - Operator steering wins.
-- `project_root + continuity_id` is authority boundary.
+- Resolve exact Scope/Workstream/continuity/attachment and current operation/frontier; root/continuity lookup inputs alone are not complete authority.
 - Workpoint is immediate continuation authority.
 - Trajectory is north-star route context.
 - Context Cognition is advisory.

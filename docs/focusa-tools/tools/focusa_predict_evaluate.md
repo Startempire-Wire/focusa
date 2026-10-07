@@ -1,6 +1,6 @@
 # `focusa_predict_evaluate`
 
-Evaluate a prediction inside its exact typed project/workstream scope. Use it when Evaluate a Focusa prediction against an actual outcome and optional score; required before final task completion when relevant predictions exist. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Evaluate a prediction inside its exact typed project/workstream scope. Use it when Evaluate a Focusa prediction against an actual outcome and optional score; required before final task completion when relevant predictions exist. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -55,7 +55,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_prediction_evaluation`, `write_prediction_evaluation`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -75,7 +75,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_metacog_reflect` (likely_next)
 - `focusa_predict_stats` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_predict_stats`.
 
 ## Skills, protocols, and source authority
@@ -86,4 +86,4 @@ Likely next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_predict
 - CLI: `focusa predict evaluate`.
 - REST: `POST /v1/predictions/{prediction_id}/evaluate`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:bd5578fd13fe726b6825216275cf1097f3237226c1372cce0e28b19c1386cb33`.
+- Descriptor digest: `sha256:ee58c9dbb09a126ebc7d605ac5c0ffb3cf51b68fc3330f17ca995ac21729ed72`.

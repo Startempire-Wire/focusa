@@ -1,6 +1,6 @@
 # `focusa_traverse`
 
-Read-only surgical traversal across large Focusa surfaces. Use for bounded lineage, ontology, evidence, telemetry, Workpoint, and registry slices instead of full payloads. Use it when Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read-only surgical traversal across large Focusa surfaces. Use for bounded lineage, ontology, evidence, telemetry, Workpoint, and registry slices instead of full payloads. Use it when Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -65,7 +65,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -85,7 +85,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_evidence_capture` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
@@ -96,4 +96,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_
 - CLI: none.
 - REST: `POST /v1/traverse`, `POST /v1/traverse/verify-tags`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:cd7132926507e5eaed7dc20843d4a9f713a2d318c281995fb453422fc3b88c61`.
+- Descriptor digest: `sha256:e68e9202ec48e074ae1c4c777087bf9364cf3b5ad9b16da31661d34d5853631a`.

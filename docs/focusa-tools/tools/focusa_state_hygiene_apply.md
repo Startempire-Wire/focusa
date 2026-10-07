@@ -1,6 +1,6 @@
 # `focusa_state_hygiene_apply`
 
-Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. Use it when Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. Use it when Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_focus_state_note`, `write_focus_state_note`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -70,7 +70,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_state_hygiene_doctor`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +81,4 @@ Likely next: `focusa_state_hygiene_doctor`, `focusa_workpoint_resume`, `focusa_t
 - CLI: none.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:ea38e320aa3fe4d3c7f31cd7359034dec7340dbf9bc9b34396c7e080ec138e89`.
+- Descriptor digest: `sha256:67d72e725abdcbd39de7829a66b9e0d67c871aca16261b68e953dfcedc67cd4d`.

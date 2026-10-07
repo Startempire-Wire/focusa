@@ -1,6 +1,6 @@
 # `focusa_dxux_requirement`
 
-Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DXUX requirement by id. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DXUX requirement by id. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_dxux_digest` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_dxux_report`, `focusa_dxux_digest`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_dxux_report`, `focusa_dxux_digest`, `focusa_evidence_captur
 - CLI: `focusa dxux requirement <id>`.
 - REST: `GET /v1/dxux/requirement/{id}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:13809abfbc9471e45b56752b89df559e5ea4ef01b66a8c17aa3696a225bb3841`.
+- Descriptor digest: `sha256:98fd620553a8038c7ee55b0b3de1f1864473f5cde2495d62650087add1fd7fdc`.

@@ -92,7 +92,7 @@
         "focusa_workpoint_checkpoint",
         "focusa_tool_doctor"
       ],
-      "done": "project_root plus continuity_id authority is verified and target objects resolve in that scope.",
+      "done": "Exact Workstream/continuity/attachment binding is verified through the installed adapter, and current targets resolve in that scope.",
       "runbook_notes": [
         "Resolve ScopeRef/ProjectRootKey, WorkstreamId, ContinuityId and applicable AttachmentKey using installed contracts; project selection is not attachment.",
         "Compare requested, resolved and saved scope before adoption; do not choose the newest unrelated packet or perform global migration to repair one binding.",
@@ -324,7 +324,7 @@
         "Audit AGENTS, public docs, onboarding, every Pi tool projection/doc, complete skill/runbook parity, and recent architecture before release.",
         "Run generated drift, Spec141 conformance, version-surface, Markdown, lifecycle, Mission Canvas, and final release gap gates.",
         "Publish only after one green final CI; verify release assets, checksums, deployment health, updater rollback, and customer lifecycle evidence.",
-        "Confirm 135-tool/29-skill parity, generated public/machine docs freshness, and cross-platform terminal proof before tag creation."
+        "Discover current registry/tool/skill counts and validate generated public/machine freshness plus relevant consumer proof; neither inventory parity nor a tag proves activation or release acceptance."
       ],
       "done": "Every acceptance criterion, issue, changelog entry, platform boundary, and evidence ref is verified before authorized release action."
     },

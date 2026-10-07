@@ -1,6 +1,6 @@
 # `focusa_work_loop_writer_status`
 
-Read current work-loop writer ownership and mutation preflight guidance without mutating state. Use it when Read current work-loop writer ownership and mutation preflight guidance without mutating state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read current work-loop writer ownership and mutation preflight guidance without mutating state. Use it when Read current work-loop writer ownership and mutation preflight guidance without mutating state. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_work_loop_context` (likely_next)
 - `focusa_work_loop_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_work_loop_status`, `focusa_work_loop_context`, `focusa_work_loop_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_work_loop_status`, `focusa_work_loop_context`, `focusa_work
 - CLI: none.
 - REST: `GET /v1/work-loop/status?summary_only=true`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:7da59e44275c6160e4ccf1dba89e7a2608764eaf322062330a01b264c25e31f4`.
+- Descriptor digest: `sha256:562ea843cd34191759467f7aee90790315e7d0d81e0af74e580f79bf65237cb0`.

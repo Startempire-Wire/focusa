@@ -1,6 +1,6 @@
 # `focusa_tree_head`
 
-Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work. Use it when Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work. Use it when Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tree_snapshot_state` (likely_next)
 - `focusa_lineage_tree` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_tree_path`, `focusa_tree_snapshot_state`, `focusa_lineage_tree`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_tree_path`, `focusa_tree_snapshot_state`, `focusa_lineage_t
 - CLI: `focusa lineage head`.
 - REST: `GET /v1/lineage/head`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:0fe63f9797320722156a74f938b16ffcd88d06855bdee5860d3cc1c2a656fd1e`.
+- Descriptor digest: `sha256:5dae285b2eed7783fbe4a46b1ccf522e25c7f3d13b8f73c09750016f23dd8505`.

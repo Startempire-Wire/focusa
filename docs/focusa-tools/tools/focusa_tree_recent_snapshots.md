@@ -1,6 +1,6 @@
 # `focusa_tree_recent_snapshots`
 
-Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id. Use it when Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id. Use it when Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tree_snapshot_compare_latest` (likely_next)
 - `focusa_tree_snapshot_state` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_tree_diff_context`, `focusa_tree_snapshot_compare_latest`, `focusa_tree_snapshot_state`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_tree_diff_context`, `focusa_tree_snapshot_compare_latest`, 
 - CLI: `focusa state snapshot recent`.
 - REST: `GET /v1/focus/snapshots/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e089a60fa0b98c90f98582b3b3e0642c32519a5348fb73c0b4e037f2c3772e31`.
+- Descriptor digest: `sha256:94f0012bb9e4b4592d9142e390d19830b43936008e55e6baf25b7e3603276ae2`.

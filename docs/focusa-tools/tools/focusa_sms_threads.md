@@ -1,6 +1,6 @@
 # `focusa_sms_threads`
 
-List customer-authorized thread summaries under a separately granted list_threads capability. Use it when List customer-authorized thread summaries under the separate list_threads grant. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+List customer-authorized thread summaries under a separately granted list_threads capability. Use it when List customer-authorized thread summaries under the separate list_threads grant. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,7 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/sms/threads"}`
 - Side effects: `authorized_customer_data_read`, `authorized_customer_data_read`
 - Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -72,7 +72,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_sms_search` (likely_next)
 - `focusa_sms_send` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_read_thread`, `focusa_sms_search`, `focusa_sms_send`.
 
 ## Skills, protocols, and source authority
@@ -83,4 +83,4 @@ Likely next: `focusa_sms_read_thread`, `focusa_sms_search`, `focusa_sms_send`.
 - CLI: `focusa sms threads`.
 - REST: `GET /v1/sms/threads`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:36e9795dfe70fe68b780f64d7c2106437fa185192c0c30783e189af3975a5901`.
+- Descriptor digest: `sha256:a0db319f0ad55719e2192ba11d807ecdbaded1bec3d1c700badb572f15efa84c`.

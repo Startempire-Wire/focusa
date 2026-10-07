@@ -1,6 +1,6 @@
 # `focusa_trajectory_assess`
 
-Assess current project state against the desired Trajectory end state and return gaps/recommended action. Use it when Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Assess current project state against the desired Trajectory end state and return gaps/recommended action. Use it when Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -51,7 +51,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -71,7 +71,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workpoint_checkpoint` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_trajectory_propose_workpoint`, `focusa_workpoint_checkpoint`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +82,4 @@ Likely next: `focusa_trajectory_propose_workpoint`, `focusa_workpoint_checkpoint
 - CLI: `focusa trajectory assess`.
 - REST: `POST /v1/trajectory/assess`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:2b38a8f28611bed9845f8d49461accef5d83de727e1c76abacbdf1d99813165d`.
+- Descriptor digest: `sha256:4b7029246a60b13ad07b04a331c52ae84ac3c0bc99a1573d13b05f83a23257d0`.

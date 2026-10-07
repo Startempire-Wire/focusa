@@ -1,6 +1,6 @@
 # `focusa_sms_otp_inject`
 
-Inject one eligible OTP into its exact bound target. The OTP value never enters model context or tool output. Use it when Inject one eligible OTP into its exact bound target without exposing the value to model context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Inject one eligible OTP into its exact bound target. The OTP value never enters model context or tool output. Use it when Inject one eligible OTP into its exact bound target without exposing the value to model context. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -55,7 +55,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/sms/otp/inject"}`
 - Side effects: `single_use_secret_injection`, `single_use_secret_injection`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -75,7 +75,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_sms_health` (likely_next)
 - `focusa_sms_revoke` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_events`, `focusa_sms_health`, `focusa_sms_revoke`.
 
 ## Skills, protocols, and source authority
@@ -86,4 +86,4 @@ Likely next: `focusa_sms_events`, `focusa_sms_health`, `focusa_sms_revoke`.
 - CLI: `focusa sms otp-inject`.
 - REST: `POST /v1/sms/otp/inject`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:14b378351e7b5a21ad9628f18cdc00570559a5db2e0b38b673b27f585be7f59f`.
+- Descriptor digest: `sha256:17932bce868b9a4076130d5a0f34e03d76c541caf4951f136c754db1490816bc`.

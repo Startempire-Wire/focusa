@@ -1,6 +1,6 @@
 # `focusa_tool_doctor`
 
-Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `diagnostic`, `diagnostic`
 - Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_project_identity` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_resource_mode`, `focusa_project_identity`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_resource_mode`, `focusa_project_identity`, `focusa_workpoin
 - CLI: none.
 - REST: `GET /v1/health`, `GET /v1/workpoint/current`, `GET /v1/work-loop/status?summary_only=true`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:ec85797901ca2009ee484b1991ad3d2eb813ba89714caa1c49fd4b93de743246`.
+- Descriptor digest: `sha256:90ef2b1605140604c3f165bfc35b0fdfc715709ad472fbec39bf36cc86486167`.

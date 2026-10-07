@@ -38,21 +38,6 @@ pub const HEADER_USER_AGENT: &str = "user-agent";
 pub const DETECTED_CLIENT: &str = "pi";
 pub const PROMPT_HINT: &str = "focusa_*";
 
-/// Tool families registered in the focusa_* tool surface (Spec 90).
-/// Keep in sync with apps/pi-extension/src/tool-contracts.ts FocusaToolFamily.
-const TOOL_FAMILIES: &[&str] = &[
-    "focus_state",
-    "workpoint",
-    "work_loop",
-    "metacognition",
-    "tree_lineage",
-    "diagnostics_hygiene",
-    "trajectory",
-    "project_identity",
-    "traversal",
-    "session_transfer",
-];
-
 const TOOL_CONTRACTS_JSON: &str =
     include_str!("../../../../docs/current/focusa-tool-contracts.json");
 
@@ -66,6 +51,19 @@ fn tool_contract_count() -> usize {
                 .map(|arr| arr.len())
         })
         .unwrap_or(0)
+}
+
+/// Derive discovery families from the same compiled contract registry as the count.
+fn tool_families() -> Vec<String> {
+    serde_json::from_str::<Value>(TOOL_CONTRACTS_JSON)
+        .ok()
+        .and_then(|registry| registry.get("contracts").and_then(Value::as_array).cloned())
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|contract| contract.get("family").and_then(Value::as_str).map(str::to_owned))
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 /// True iff the request looks like it's from a Pi agent client.
@@ -103,8 +101,8 @@ fn build_prompt() -> Value {
         "preferred_layer": "focusa_* tools",
         "tool_registry_path": "/v1/ontology/tool-contracts",
         "tool_count": tool_contract_count(),
-        "tool_families": TOOL_FAMILIES,
-        "reason": "Direct curl/fetch bypasses the tool_result_v1 envelope, evidence linking, failure_class recovery, next_tools choreography, and metacog loop. The focusa_* tool layer is canonical for daemon interactions in Pi (and any Focusa-aware editor).",
+        "tool_families": tool_families(),
+        "reason": "Prefer the current supported adapter for scoped request binding, result normalization and recovery. Equivalent CLI/MCP/REST operations retain their installed contracts; raw diagnostics are not a substitute for missing action authority or verified consumer evidence.",
         "next_tools": [
             "focusa_agent_prompt",
             "focusa_tool_doctor",
@@ -115,8 +113,8 @@ fn build_prompt() -> Value {
             "focusa_metacog_capture",
             "focusa_metacog_retrieve"
         ],
-        "operator_reminder": "Decide MVP UI scope (menubar / PWA / TUI in-MVP or v0.2) so the next workpoint can lock it in.",
-        "active_trajectory_hint": "HLT = Build Focusa and go to market soon with an MVP; menubar is an MLG subordinate, not the HLT.",
+        "operator_reminder": "Retain the current operator outcome, requested activity and permission ceiling; ask only for an unresolved consequential choice outside existing authority.",
+        "active_trajectory_hint": "Read the current scope-bound Trajectory and Workpoint, not a default product goal or an old next-slice; orientation and successful resume are not effect admission.",
         "shell_tool_reminder": {
             "enabled_by_default": true,
             "surface": "pi_extension.tool_execution_end",
@@ -130,7 +128,7 @@ fn build_prompt() -> Value {
             "non_goal": "Does not block shell use; it nudges Focusa daemon/state interactions toward canonical Pi tools."
         },
         "utility_card": utility_card,
-        "rule": "every daemon interaction -> focusa_* tool. UIAI pretest is a separate verification surface and remains raw."
+        "rule": "Prefer active native Focusa tools in Pi; use supported equivalent adapters in other harnesses. Discover exact installed schemas and scoped recovery before action. UIAI owns browser evidence through its supported tools. Tool lists are conditional discovery hints, not a mandatory execution sequence."
     })
 }
 
@@ -390,6 +388,17 @@ mod tests {
             .unwrap();
         assert!(fams.iter().any(|v| v.as_str() == Some("workpoint")));
         assert!(fams.iter().any(|v| v.as_str() == Some("trajectory")));
+    }
+
+    #[test]
+    fn prompt_does_not_supply_a_default_mission_or_fixed_family_inventory() {
+        let body = build_prompt();
+        let text = body.to_string();
+        assert!(!text.contains("Decide MVP UI scope"));
+        assert!(!text.contains("menubar is an MLG subordinate"));
+        assert!(body["active_trajectory_hint"].as_str().unwrap().contains("scope-bound"));
+        assert_eq!(body["tool_families"], json!(tool_families()));
+        assert!(body["rule"].as_str().unwrap().contains("conditional discovery"));
     }
 
     #[test]

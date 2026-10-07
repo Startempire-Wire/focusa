@@ -1,6 +1,6 @@
 # `focusa_trajectory_define_goal`
 
-Create an advisory per-project Trajectory goal candidate without changing task/execution authority. Use it when Create an advisory per-project Trajectory goal candidate, including HLT/MLG/STG/Waypoints, without changing task or execution authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Create an advisory per-project Trajectory goal candidate without changing task/execution authority. Use it when Create an advisory per-project Trajectory goal candidate, including HLT/MLG/STG/Waypoints, without changing task or execution authority. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -68,7 +68,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `advisory_projection`, `advisory_projection`
 - Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -88,7 +88,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_propose_workpoint` (likely_next)
 - `focusa_trajectory_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_trajectory_assess`, `focusa_trajectory_propose_workpoint`, `focusa_trajectory_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -99,4 +99,4 @@ Likely next: `focusa_trajectory_assess`, `focusa_trajectory_propose_workpoint`, 
 - CLI: `focusa trajectory define-goal`.
 - REST: `POST /v1/trajectory/define-goal`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:2d41e9556a317136f143599bfd3b1df2ccb889018d775f0ad05516007d3a3d4a`.
+- Descriptor digest: `sha256:af94d79a29f08db5ab6b78ce57b7cffe256cceadcfa6b65d05bc24c065c42fc7`.

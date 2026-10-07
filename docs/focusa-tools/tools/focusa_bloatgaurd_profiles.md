@@ -1,6 +1,6 @@
 # `focusa_bloatgaurd_profiles`
 
-Spec 101 — read profile presets and operator switches. Use it when Spec 101 — read profile presets and operator switches. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec 101 — read profile presets and operator switches. Use it when Spec 101 — read profile presets and operator switches. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_bloatgaurd_routines` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_bloatgaurd_profile`, `focusa_bloatgaurd_routines`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_bloatgaurd_profile`, `focusa_bloatgaurd_routines`, `focusa_
 - CLI: `focusa bloatgaurd profiles`.
 - REST: `GET /v1/bloatgaurd/profiles/report`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a25fd77d64c709261e493eebdcce2c591a5a5d0ca7e747388622d74e1c00eee0`.
+- Descriptor digest: `sha256:7cc6749954d7aedad8b5a3eb1b42d70971e0ee897c96adc4d2be7d77780dc0d4`.

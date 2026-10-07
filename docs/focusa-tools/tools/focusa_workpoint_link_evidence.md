@@ -1,6 +1,6 @@
 # `focusa_workpoint_link_evidence`
 
-Attach stable proof to the active canonical Workpoint; daemon mutation admission requires its exact Trajectory binding, lifecycle stage, active operation, and current frontier. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Attach stable proof to the active canonical Workpoint; daemon mutation admission requires its exact Trajectory binding, lifecycle stage, active operation, and current frontier. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -57,7 +57,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `evidence_link`, `evidence_link`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -77,7 +77,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_trajectory_assess`, `focusa_workpoint_resume`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -88,4 +88,4 @@ Likely next: `focusa_trajectory_assess`, `focusa_workpoint_resume`, `focusa_evid
 - CLI: `focusa workpoint evidence-link`.
 - REST: `POST /v1/workpoint/evidence/link`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:bb15d1a94fd339dedfe05880d77af5252e3319c4344f54a803891614dcb6c233`.
+- Descriptor digest: `sha256:b9e5e3e0a41df454e7a3e404cddfa86ff4ed0f0e47953680f7e24056999f1d03`.

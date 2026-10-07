@@ -48,7 +48,7 @@
         "focusa_workpoint_resume"
       ],
       "runbook": ".pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md",
-      "sha256": "eeb0f79f5f7381b69c2d9f413b14ed6b58342d21775bf465c4df1669a6372828"
+      "sha256": "dfc898e138873f72496383e35fbc894e0d79ba3f328767df897fe02edc91637e"
     },
     {
       "name": "focusa-session-recovery",

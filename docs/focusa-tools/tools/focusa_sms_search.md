@@ -1,6 +1,6 @@
 # `focusa_sms_search`
 
-Search customer-authorized message scope with bounded results. Use it when Search separately authorized message scope with bounded results. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Search customer-authorized message scope with bounded results. Use it when Search separately authorized message scope with bounded results. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -54,7 +54,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/sms/search"}`
 - Side effects: `authorized_customer_data_read`, `authorized_customer_data_read`
 - Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -74,7 +74,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_sms_threads` (likely_next)
 - `focusa_sms_send` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_read_thread`, `focusa_sms_threads`, `focusa_sms_send`.
 
 ## Skills, protocols, and source authority
@@ -85,4 +85,4 @@ Likely next: `focusa_sms_read_thread`, `focusa_sms_threads`, `focusa_sms_send`.
 - CLI: `focusa sms search <query>`.
 - REST: `GET /v1/sms/search`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:2da452985267f59454dd005c1f6318cb3d4bcf58e62f241316a8a9f9a80002a6`.
+- Descriptor digest: `sha256:ba2278d62b37c60a2435706185766b05e4590523be87fd7d89b69034f89a4dc7`.

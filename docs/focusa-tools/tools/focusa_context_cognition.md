@@ -1,6 +1,6 @@
 # `focusa_context_cognition`
 
-Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state. Use it when Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state. Use it when Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -70,7 +70,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workpoint_checkpoint` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_active_object_resolve`, `focusa_workpoint_checkpoint`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +81,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_workpoint_checkpoint`, `foc
 - CLI: `focusa context-cognition view`.
 - REST: `GET /v1/context-cognition`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:225fa8ff0b87165fe8f91868e808af7ca397fbb1cee160edb1abe86e507f5222`.
+- Descriptor digest: `sha256:56e87745b265dc89bb85ac9a6fa5d76c4ff0b68fec52f6fa047d98fec5580511`.

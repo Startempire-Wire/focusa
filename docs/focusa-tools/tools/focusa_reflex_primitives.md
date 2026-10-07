@@ -1,6 +1,6 @@
 # `focusa_reflex_primitives`
 
-List bounded Spec97 Reflex Primitive summaries by family/query; read-only routing metadata, never mutation authority. Use it when Read bounded Spec97 Reflex Primitive summaries by family/query from the read-only registry; advisory routing metadata only, never mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+List bounded Spec97 Reflex Primitive summaries by family/query; read-only routing metadata, never mutation authority. Use it when Read bounded Spec97 Reflex Primitive summaries by family/query from the read-only registry; advisory routing metadata only, never mutation authority. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -70,7 +70,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tool_doctor` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_traverse`, `focusa_tool_doctor`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +81,4 @@ Likely next: `focusa_traverse`, `focusa_tool_doctor`, `focusa_workpoint_resume`.
 - CLI: none.
 - REST: `GET /v1/reflex/primitives`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:d6fe251e1a6f38694be66655f6c7c568ede7033a057a879324f2ef8ee17ea845`.
+- Descriptor digest: `sha256:f295fd6d328cb521e722e2fcd52631c2a728b2b12afaa03ddfd6765a7ec8d896`.

@@ -1,6 +1,6 @@
 # `focusa_instruction_explain`
 
-Explain one instruction claim from the current bounded source inventory. Use it when Operate the Spec 140 instruction explain surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Explain one instruction claim from the current bounded source inventory. Use it when Operate the Spec 140 instruction explain surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -53,7 +53,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_or_preview_only`, `read_or_preview_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -72,7 +72,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_instruction_simulate` (likely_next)
 - `focusa_agent_runtime_effective` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_instruction_simulate`, `focusa_agent_runtime_effective`.
 
 ## Skills, protocols, and source authority
@@ -83,4 +83,4 @@ Likely next: `focusa_instruction_simulate`, `focusa_agent_runtime_effective`.
 - CLI: `focusa agent-runtime claims`.
 - REST: `GET /v1/agent-runtime/instructions/claims`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:3e6fd572be14b350890f571446dea5b32d856ac3ae7f3d4d7413f040960fef1b`.
+- Descriptor digest: `sha256:d0fd0649ad6c16088dd8dc66ea4bd758f6f1d080a0515519a185e928a0e26f14`.

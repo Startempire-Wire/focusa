@@ -1,6 +1,6 @@
 # `focusa_tree_restore_state`
 
-Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. Use it when Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. Use it when Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `true`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `true`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -70,7 +70,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tree_path` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_tree_head`, `focusa_tree_path`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +81,4 @@ Likely next: `focusa_tree_head`, `focusa_tree_path`, `focusa_evidence_capture`.
 - CLI: `focusa state snapshot restore`.
 - REST: `POST /v1/focus/snapshots/restore`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:879d0a73e565d00338d11476d99d7c1e54562dabcb1992cc891888ff7df34bb9`.
+- Descriptor digest: `sha256:5e2e0a65448f736e928beaffa0519cf32c8262c8a204b24cbfb645fbc9e1da7e`.

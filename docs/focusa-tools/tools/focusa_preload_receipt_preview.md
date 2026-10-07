@@ -1,6 +1,6 @@
 # `focusa_preload_receipt_preview`
 
-Preview a Spec 111 bootstrap delivery receipt without committing it. Use it when Preview a bootstrap delivery receipt without committing it. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Preview a Spec 111 bootstrap delivery receipt without committing it. Use it when Preview a bootstrap delivery receipt without committing it. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -66,7 +66,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_preload_receipt_commit` (likely_next)
 - `focusa_preload_verify` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_preload_receipt_commit`, `focusa_preload_verify`.
 
 ## Skills, protocols, and source authority
@@ -77,4 +77,4 @@ Likely next: `focusa_preload_receipt_commit`, `focusa_preload_verify`.
 - CLI: `focusa preload receipt-preview`.
 - REST: `POST /v1/preload/receipt-preview`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:c7a40c3c7dca00711ca07e5985c06c6f11635511df233e43ad87bc30385e9240`.
+- Descriptor digest: `sha256:0bdd2b16882f963f6b81c932bb57a7ac03d4daedefdc33cbe95f2fd69ea35045`.

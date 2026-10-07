@@ -1,6 +1,6 @@
 # `focusa_metacog_retrieve`
 
-Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection. Use it when Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection. Use it when Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -51,7 +51,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -71,7 +71,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_metacog_reflect` (likely_next)
 - `focusa_predict_record` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_predict_record`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +82,4 @@ Likely next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_predict
 - CLI: `focusa metacognition retrieve`.
 - REST: `POST /v1/metacognition/retrieve`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a95b8db508c67aab9fad5e88018dce94e966603d6b7d2b8a3ff6d7f112d03bf2`.
+- Descriptor digest: `sha256:b6d584a4b4a295a114f223b1943b799157f440013b425973ddae0319987ee9a8`.

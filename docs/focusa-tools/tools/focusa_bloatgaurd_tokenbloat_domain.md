@@ -1,6 +1,6 @@
 # `focusa_bloatgaurd_tokenbloat_domain`
 
-Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries. Use it when Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries. Use it when Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_traverse` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_bloatgaurd_tokenbloat_report`, `focusa_traverse`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_bloatgaurd_tokenbloat_report`, `focusa_traverse`, `focusa_e
 - CLI: `focusa bloatgaurd token-domain <name>`.
 - REST: `GET /v1/bloatgaurd/tokenbloat/domain/{name}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:01478b4fd9440ac16c87c265f60b63827b680f68af68b2d9e4146797e892ae2b`.
+- Descriptor digest: `sha256:6d910f46ff19ecf07f884feb526307d06e4dff31924c1ca87573af36d4d1c5d6`.

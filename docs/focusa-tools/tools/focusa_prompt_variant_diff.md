@@ -1,6 +1,6 @@
 # `focusa_prompt_variant_diff`
 
-Compare two caller-supplied prompt variant projections without mutating Focusa state. Use it when Operate the Spec 140 prompt variant diff surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Compare two caller-supplied prompt variant projections without mutating Focusa state. Use it when Operate the Spec 140 prompt variant diff surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,7 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_or_preview_only`, `read_or_preview_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -71,7 +71,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_prompt_variant_preview` (likely_next)
 - `focusa_agent_runtime_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_prompt_variant_preview`, `focusa_agent_runtime_doctor`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +82,4 @@ Likely next: `focusa_prompt_variant_preview`, `focusa_agent_runtime_doctor`.
 - CLI: `focusa agent-runtime prompt diff`.
 - REST: Pi-local only.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:d7e74b63ab478954af036d8f8cf2281a0851390c31c91a4e2e679f6fbd89d8df`.
+- Descriptor digest: `sha256:415f90c3a758f56f11fcbd87d68b36e1b352c992adac374b88e7a5279964ae02`.

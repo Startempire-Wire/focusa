@@ -1,6 +1,6 @@
 # `focusa_sms_events`
 
-Read bounded value-free broker audit events. Use it when Read bounded value-free communications audit events. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read bounded value-free broker audit events. Use it when Read bounded value-free communications audit events. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -53,7 +53,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/sms/events"}`
 - Side effects: `read_value_free_audit_events`, `read_value_free_audit_events`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -73,7 +73,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_sms_checkpoint` (likely_next)
 - `focusa_sms_revoke` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_health`, `focusa_sms_checkpoint`, `focusa_sms_revoke`.
 
 ## Skills, protocols, and source authority
@@ -84,4 +84,4 @@ Likely next: `focusa_sms_health`, `focusa_sms_checkpoint`, `focusa_sms_revoke`.
 - CLI: `focusa sms events`.
 - REST: `GET /v1/sms/events`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:7f3809c27906e4a722f00bbd982180d1f7517ba260e40cf7076a426a1b7ca159`.
+- Descriptor digest: `sha256:50a19002bbd14a375b265b18d1c6e24fd3772aefbd640ff9f5712dbcb4185424`.

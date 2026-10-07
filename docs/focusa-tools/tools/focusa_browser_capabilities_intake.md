@@ -1,6 +1,6 @@
 # `focusa_browser_capabilities_intake`
 
-Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability descriptors without executing them. Use it when Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability descriptors without executing them. Use it when Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -58,7 +58,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_browser_capability_evidence`, `write_browser_capability_evidence`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -78,7 +78,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_browser_diagnostics_intake` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_browser_workflow_plan`, `focusa_browser_diagnostics_intake`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -89,4 +89,4 @@ Likely next: `focusa_browser_workflow_plan`, `focusa_browser_diagnostics_intake`
 - CLI: `focusa help all --json`.
 - REST: `POST /v1/browser/capabilities/intake`.
 - Specification: `docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`.
-- Descriptor digest: `sha256:b04bed5b575e5da17e7c82be6c2e843f9dab901cba44e1128a5ea92fede6bbea`.
+- Descriptor digest: `sha256:3434b8ff867834b56955bca75dc797bd0075ecd1db8c179c203482700e44e0da`.

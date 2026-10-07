@@ -1,6 +1,6 @@
 # `focusa_lineage_tree`
 
-Fetch a bounded Focusa lineage window for /tree-aware reasoning. Full tree requires explicit cold opt-in. Use it when Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Fetch a bounded Focusa lineage window for /tree-aware reasoning. Full tree requires explicit cold opt-in. Use it when Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tree_path` (likely_next)
 - `focusa_traverse` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_li_tree_extract`, `focusa_tree_path`, `focusa_traverse`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_li_tree_extract`, `focusa_tree_path`, `focusa_traverse`.
 - CLI: `focusa lineage tree`.
 - REST: `GET /v1/lineage/tree`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:95228461e6b0b6f1f402f8ad25dcbfaa086dc287272b677d74a227f7b2b89cb2`.
+- Descriptor digest: `sha256:dbc1e1e75b52983d301b6b3f57c8a37bfd29743a342c74609cccc5a55c11b2b6`.

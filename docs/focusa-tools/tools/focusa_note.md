@@ -1,6 +1,6 @@
 # `focusa_note`
 
-Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. Use it when Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. Use it when Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_state`, `write_state`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_view` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - CLI: `focusa focus update --note`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:55b98de64f83c35257bd5cdd9207782e384c473e472fa9094b9bea0d4716c0a9`.
+- Descriptor digest: `sha256:5e48d8722850046b9f962d5956e35959a7d0155906e2504a806da2ac2eec0493`.

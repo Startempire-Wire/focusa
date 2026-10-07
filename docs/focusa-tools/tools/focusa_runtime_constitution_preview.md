@@ -1,6 +1,6 @@
 # `focusa_runtime_constitution_preview`
 
-Preview a compiled Runtime Constitution without activation or artifact delivery. Use it when Operate the Spec 140 runtime constitution preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Preview a compiled Runtime Constitution without activation or artifact delivery. Use it when Operate the Spec 140 runtime constitution preview surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,7 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_or_preview_only`, `read_or_preview_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -71,7 +71,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_prompt_variant_preview` (likely_next)
 - `focusa_agent_artifact_preview` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_prompt_variant_preview`, `focusa_agent_artifact_preview`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +82,4 @@ Likely next: `focusa_prompt_variant_preview`, `focusa_agent_artifact_preview`.
 - CLI: `focusa agent-runtime constitution preview`.
 - REST: `POST /v1/agent-runtime/constitutions/{id}/preview`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:32f6e82ae4375408ae593f2f012182cf107b94f513d18c56fdf0a580de0c7316`.
+- Descriptor digest: `sha256:0b57606c04649e3e7320fde12a8e64ed86eefc31f383feeb9dc9a03d36bbd046`.

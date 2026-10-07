@@ -1,6 +1,6 @@
 # `focusa_north_star_gate`
 
-Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,7 +48,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/project/north-star-gate"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -68,7 +68,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_view` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
@@ -79,4 +79,4 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - CLI: `focusa project north-star`.
 - REST: `GET /v1/project/north-star-gate`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:32afb81521ad0ca75c362817669bce9407ab0661d6014b8d651dcff139bb2f39`.
+- Descriptor digest: `sha256:e8cb5dafa438085a12965e09f0501fd3d6ba0db7054c31485c9088cf80fdb006`.

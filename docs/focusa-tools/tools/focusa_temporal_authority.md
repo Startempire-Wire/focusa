@@ -1,6 +1,6 @@
 # `focusa_temporal_authority`
 
-Read, commit, revise, observe, forecast, or preflight project-scoped temporal claims without fabricating deadlines or urgency. Use it when Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read, commit, revise, observe, forecast, or preflight project-scoped temporal claims without fabricating deadlines or urgency. Use it when Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -75,7 +75,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"daemon:/v1/temporal/commit"}`
 - Side effects: `status_preflight_read_or_confirmed_claim_write_or_observation`, `status_preflight_read_or_confirmed_claim_write_or_observation`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -95,7 +95,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_project_verify` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_project_verify`.
 
 ## Skills, protocols, and source authority
@@ -106,4 +106,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_projec
 - CLI: `focusa temporal status|commit|revise|observe|forecast|preflight`, `focusa time|deadline|estimate|progress|no-progress|lost-time|opportunity|cancellation`.
 - REST: `GET /v1/temporal/status`, `POST /v1/temporal/commit`, `POST /v1/temporal/revise`, `POST /v1/temporal/observe`, `POST /v1/temporal/forecast`, `POST /v1/temporal/preflight`, `GET /v1/time/now`, `GET /v1/time/awareness`, `GET /v1/time/status`, `GET /v1/time/trust`, `GET /v1/time/samples`, `GET /v1/time/capabilities`, `GET /v1/time/stream`, `POST /v1/deadline/set`, `POST /v1/deadline/revise`, `POST /v1/deadline/clear`, `GET /v1/deadlines`, `GET /v1/deadline/{id}`, `POST /v1/deadline/resolve-civil`, `GET /v1/deadline/conflicts`, `POST /v1/deadline/propagate`, `POST /v1/temporal/guard/issue`, `POST /v1/temporal/guard/validate`, `POST /v1/temporal/guard/revoke`, `POST /v1/cancellation/request`, `GET /v1/cancellation/{id}`, `POST /v1/estimate/request`, `POST /v1/estimate/validate`, `POST /v1/estimate/evaluate`, `GET /v1/estimate/{id}`, `GET /v1/estimate/history`, `POST /v1/response/temporal-claims/validate`, `POST /v1/progress/record`, `GET /v1/progress/status`, `GET /v1/no-progress/incidents`, `GET /v1/lost-time/incidents`, `GET /v1/opportunities`, `POST /v1/temporal/preflight`.
 - Specification: `docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md`.
-- Descriptor digest: `sha256:588673c8be3e6c217fea9f3557d51ed742131ff06d30330beb9b9f5aaa7bf8ee`.
+- Descriptor digest: `sha256:0c050413f6c43561c5739539e61cd5d6a340e4fe9585f56aeb98b212f10a2249`.

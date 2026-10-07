@@ -1,6 +1,6 @@
 # `focusa_instruction_integrity_evaluate`
 
-Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision. Use it when Operate the Spec 140 instruction integrity evaluate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision. Use it when Operate the Spec 140 instruction integrity evaluate surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/agent-runtime/delivery/commit"}`
 - Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_instruction_integrity_status` (likely_next)
 - `focusa_agent_runtime_headless_verify` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_instruction_integrity_status`, `focusa_agent_runtime_headless_verify`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_instruction_integrity_status`, `focusa_agent_runtime_headle
 - CLI: `focusa agent-runtime integrity-evaluate`.
 - REST: `POST /v1/agent-runtime/instruction-integrity/evaluate`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:f5c9e12cd1bc505d10faea71f83178c0c9306b568bc03b8b3e964100231d0f4c`.
+- Descriptor digest: `sha256:d4c13cc246b2b11c58918228e1f44b4c6feccb75f6acd6f6c813a804a30f6be3`.

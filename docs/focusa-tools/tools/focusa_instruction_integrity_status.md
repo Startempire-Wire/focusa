@@ -1,6 +1,6 @@
 # `focusa_instruction_integrity_status`
 
-Read foundational guard availability, amendment authority, and outage posture. Use it when Operate the Spec 140 instruction integrity status surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read foundational guard availability, amendment authority, and outage posture. Use it when Operate the Spec 140 instruction integrity status surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,7 +48,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_or_preview_only`, `read_or_preview_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_instruction_integrity_evaluate` (likely_next)
 - `focusa_agent_runtime_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_instruction_integrity_evaluate`, `focusa_agent_runtime_doctor`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_instruction_integrity_evaluate`, `focusa_agent_runtime_doct
 - CLI: `focusa agent-runtime integrity-status`.
 - REST: `GET /v1/agent-runtime/instruction-integrity/status`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:7f8d3f2518fb351dd3db34b4b8393ca817880a8dea7695546f7893067b20efed`.
+- Descriptor digest: `sha256:d35ec61d0862cf67ac5003c25a29b143fd181aaa2b6b2ca91cd1c21a74234513`.

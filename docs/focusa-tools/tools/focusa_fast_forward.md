@@ -1,6 +1,6 @@
 # `focusa_fast_forward`
 
-Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -51,7 +51,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `durable_dispatch`, `durable_dispatch`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -70,7 +70,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_bg_status` (likely_next)
 - `focusa_workpoint_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +81,4 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - CLI: none.
 - REST: `/v1/silent-sessions/fanout `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3c17fd2d18ce4a8779a92934d150c810df1768695d5fffd51c271ef75b222265`.
+- Descriptor digest: `sha256:cacaea1ede24648c6c4fb47ad3105c3a615fbace33c98c3b82d6fb24bb96574c`.

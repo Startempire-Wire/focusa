@@ -1,6 +1,6 @@
 # `focusa_predict_stats`
 
-Report prediction calibration for one typed project/workstream scope. Use it when Report Focusa prediction accuracy/calibration stats for compaction cards, trajectory reviews, and work reports. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Report prediction calibration for one typed project/workstream scope. Use it when Report Focusa prediction accuracy/calibration stats for compaction cards, trajectory reviews, and work reports. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,7 +48,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -68,7 +68,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_metacog_doctor` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_predict_recent`, `focusa_metacog_doctor`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
@@ -79,4 +79,4 @@ Likely next: `focusa_predict_recent`, `focusa_metacog_doctor`, `focusa_tool_doct
 - CLI: `focusa predict stats`.
 - REST: `GET /v1/predictions/stats`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a710e31e72a8413f252e7112c674a57f967cb0028c63e6a169cd395867fe6ccc`.
+- Descriptor digest: `sha256:d096baa911d28f7f67d03443082af3ff01a655ad5f66d5451b3684ff930d4869`.

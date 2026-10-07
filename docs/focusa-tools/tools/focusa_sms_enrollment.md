@@ -1,6 +1,6 @@
 # `focusa_sms_enrollment`
 
-Read value-free customer-owned connector enrollment status. Use it when Read value-free customer-owned connector enrollment status. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read value-free customer-owned connector enrollment status. Use it when Read value-free customer-owned connector enrollment status. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/sms/enrollment"}`
 - Side effects: `read_value_free_enrollment`, `read_value_free_enrollment`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_sms_threads` (likely_next)
 - `focusa_sms_events` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_health`, `focusa_sms_threads`, `focusa_sms_events`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_sms_health`, `focusa_sms_threads`, `focusa_sms_events`.
 - CLI: `focusa sms enrollment`.
 - REST: `GET /v1/sms/enrollment`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:9eb11001e22713cfae9bce4eb3b4eb719138a10bc729c0fe0b6bfedd88f191c0`.
+- Descriptor digest: `sha256:08db1970541335d6dbc358901de0f2cf16843826b723a7345d04f303caf10587`.

@@ -1,6 +1,6 @@
 # `focusa_project_card`
 
-Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals. Use it when Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals. Use it when Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -55,7 +55,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -76,7 +76,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_view` (likely_next)
 - `focusa_metacog_retrieve` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_card_outcome`, `focusa_traverse`, `focusa_trajectory_view`, `focusa_metacog_retrieve`.
 
 ## Skills, protocols, and source authority
@@ -87,4 +87,4 @@ Likely next: `focusa_project_card_outcome`, `focusa_traverse`, `focusa_trajector
 - CLI: `focusa project card`.
 - REST: `GET /v1/project/card`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:39996708124631ae8666678db737a26d835d7177130d54a960c7160044b3f760`.
+- Descriptor digest: `sha256:cc6e594132304af1f4d1439a4e62c41ed01e0dc47b371e1e0737b6a302e4e227`.

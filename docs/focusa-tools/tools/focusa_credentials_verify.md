@@ -1,6 +1,6 @@
 # `focusa_credentials_verify`
 
-Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -65,7 +65,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_verdict`, `read_verdict`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -84,7 +84,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_credentials_verify` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_credentials_verify`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
@@ -95,4 +95,4 @@ Likely next: `focusa_credentials_verify`, `focusa_tool_doctor`.
 - CLI: none.
 - REST: `/v1/credentials/verify-requirement `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:ed58030e45a67954d3d9d5357927c25246120647b453a941877fd5b7d0c9a5e7`.
+- Descriptor digest: `sha256:74f5c1e12c58f13e7c94df2e7939d005ff8813f1b8926f21402ce206498fa662`.

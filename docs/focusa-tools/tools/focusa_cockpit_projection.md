@@ -1,6 +1,6 @@
 # `focusa_cockpit_projection`
 
-Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation. Use it when Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation. Use it when Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -46,7 +46,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_projection`, `read_projection`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -65,7 +65,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workset_projection` (likely_next)
 - `focusa_bg_status` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workset_projection`, `focusa_bg_status`.
 
 ## Skills, protocols, and source authority
@@ -76,4 +76,4 @@ Likely next: `focusa_workset_projection`, `focusa_bg_status`.
 - CLI: none.
 - REST: `/v1/cockpit/projection `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:663ce5df7ad8df63cf382078f0100f463ae62876a589222b0df019e578b280cd`.
+- Descriptor digest: `sha256:02c3274a46a2831050a3a0f9f84818c2ac592218ce2277698904c48efbf5df4a`.

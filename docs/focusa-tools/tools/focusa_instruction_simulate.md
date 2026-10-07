@@ -1,6 +1,6 @@
 # `focusa_instruction_simulate`
 
-Preview path/profile/target-specific instruction behavior without committing changes. Use it when Operate the Spec 140 instruction simulate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Preview path/profile/target-specific instruction behavior without committing changes. Use it when Operate the Spec 140 instruction simulate surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -54,7 +54,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_or_preview_only`, `read_or_preview_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -73,7 +73,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_runtime_constitution_preview` (likely_next)
 - `focusa_instruction_integrity_evaluate` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_runtime_constitution_preview`, `focusa_instruction_integrity_evaluate`.
 
 ## Skills, protocols, and source authority
@@ -84,4 +84,4 @@ Likely next: `focusa_runtime_constitution_preview`, `focusa_instruction_integrit
 - CLI: `focusa agent-runtime simulate`.
 - REST: `POST /v1/agent-runtime/instructions/simulate`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:a5a5b841ed536f9e3c79ebb10064dcca8889f7a80c1f29605e7ddff4226dc0c0`.
+- Descriptor digest: `sha256:aefb033fb6eaaccc10328595fcb7adce5bb3935d93f9c42b3a156ff6f4ab36df`.

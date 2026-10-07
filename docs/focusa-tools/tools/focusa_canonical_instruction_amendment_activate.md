@@ -1,6 +1,6 @@
 # `focusa_canonical_instruction_amendment_activate`
 
-Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,7 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/agent-runtime/delivery/commit"}`
 - Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -71,7 +71,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_instruction_integrity_evaluate` (likely_next)
 - `focusa_agent_runtime_effective` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_instruction_integrity_evaluate`, `focusa_agent_runtime_effective`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +82,4 @@ Likely next: `focusa_instruction_integrity_evaluate`, `focusa_agent_runtime_effe
 - CLI: `focusa agent-runtime amendment-activate`.
 - REST: `POST /v1/agent-runtime/amendments/activate`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:fd4c4f0bedf0ec2e340e82b865586dc98ea5f6c9e454f763a09cea3501ebb03a`.
+- Descriptor digest: `sha256:a51db572a0578e27196fd30a38e4fc8d8d749e2e12868a9d7475d06a15fd64fc`.

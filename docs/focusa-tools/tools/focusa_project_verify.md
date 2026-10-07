@@ -1,6 +1,6 @@
 # `focusa_project_verify`
 
-Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -59,7 +59,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -81,7 +81,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_bootstrap`, `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
@@ -92,4 +92,4 @@ Likely next: `focusa_project_bootstrap`, `focusa_project_genesis`, `focusa_traje
 - CLI: `focusa project verify`.
 - REST: `POST /v1/project/verify`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:dc04f2f9187cfd61c5c08ad830f1203778e99c369e6516181a31ab81df6fdd95`.
+- Descriptor digest: `sha256:740e38224abb316b406da2233f168bf4d8993dc68ea9f2cf972b71c29d68d726`.

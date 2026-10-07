@@ -1,6 +1,6 @@
 # `focusa_intent`
 
-Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). Use it when Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). Use it when Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_state`, `write_state`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_view` (likely_next)
 - `focusa_workpoint_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 - CLI: `focusa focus update --intent`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:8d345ceabd4f74a0892df738e0fe389272f650f3840061e17ed554ab3c631ef7`.
+- Descriptor digest: `sha256:1fe02086adbd65cc1ffcf012d3e70f5ca4022ac8ca90dd2c6bd7b636f75e821b`.

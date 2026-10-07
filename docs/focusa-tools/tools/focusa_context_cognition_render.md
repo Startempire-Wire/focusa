@@ -1,6 +1,6 @@
 # `focusa_context_cognition_render`
 
-Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). Returns bounded lines + the packet's workpoint_id, trajectory_id, and rehydrate_id. Advisory only. Use it when Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). Returns bounded lines + the packet's workpoint_id, trajectory_id, and rehydrate_id. Advisory only. Use it when Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,7 +48,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_context_cognition` (likely_next)
 - `focusa_context_cognition_proof` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_context_cognition`, `focusa_context_cognition_proof`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_context_cognition`, `focusa_context_cognition_proof`.
 - CLI: `focusa context-cognition render`.
 - REST: `GET /v1/context-cognition/render`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e7d670c5685496e7f9e28a8fdcde25235ca6664e2539bd2f1e444971a7d44e8d`.
+- Descriptor digest: `sha256:a895402bc2c49bb561c034ed0bbad303280740e25a17698849f1fab232e3dff2`.

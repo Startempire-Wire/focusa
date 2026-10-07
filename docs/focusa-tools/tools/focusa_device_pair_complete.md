@@ -1,6 +1,6 @@
 # `focusa_device_pair_complete`
 
-Complete a pending pairing (run on the VPS side; returns the long-lived token). Idempotent: re-running with the same code returns the original token. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Complete a pending pairing (run on the VPS side; returns the long-lived token). Idempotent: re-running with the same code returns the original token. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,7 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_device_pair_complete`, `write_device_pair_complete`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -71,7 +71,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_device_pair_status` (likely_next)
 - `focusa_device_pair_list` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +82,4 @@ Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`.
 - CLI: `focusa device pair-complete`.
 - REST: `POST /v1/device/pair/complete`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:aea9abebe1097b1f5eb82751da559ff8f5dd9b34728f7ca636939bf4f25d6983`.
+- Descriptor digest: `sha256:056e02cb6c8c36bcb7a29d6a8f4323ba5aaef82043a47b1d9ff6da77dcf12229`.

@@ -1,6 +1,6 @@
 # `focusa_metacog_plan_adjust`
 
-Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement. Use it when Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement. Use it when Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_state`, `write_state`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -70,7 +70,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_predict_record` (likely_next)
 - `focusa_workpoint_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_metacog_evaluate_outcome`, `focusa_predict_record`, `focusa_workpoint_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +81,4 @@ Likely next: `focusa_metacog_evaluate_outcome`, `focusa_predict_record`, `focusa
 - CLI: `focusa metacognition adjust`.
 - REST: `POST /v1/metacognition/adjust`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9f9cd3740a2f66df45b7da95d91fd5b9ad3dc7a4f26a055d191e7a0f2eb141c3`.
+- Descriptor digest: `sha256:70530346875cbd35521976374d2f35255578d79cfbac8a6319dc8f661bd07187`.

@@ -28,24 +28,25 @@ pub fn utility_card() -> UtilityCard {
         status: "completed".to_string(),
         purpose: "Compact but decision-useful startup, bootstrap, post-compaction, recovery, and tool-brevity guidance for Focusa-aware agents.".to_string(),
         preferred_layer: "focusa_* tools before raw daemon calls".to_string(),
-        authority_boundary: "Action authority requires matching canonical parent, working-subpath, and continuity_id; project Trajectory is parent-scoped north-star context only.".to_string(),
+        authority_boundary: "Resolve ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey; the verified working-subpath is not a separate cognitive owner. Current instruction, stage, operation/frontier and required grants govern effects; orientation is not admission.".to_string(),
         usefulness_bar: vec![
             "A card is useful only if it states status, authority, why, exact next action, evidence refs, and recovery path.".to_string(),
             "Brevity removes filler, not decision-critical context.".to_string(),
             "Every card must let the next agent act without transcript-tail authority.".to_string(),
         ],
         scope_gate: vec![
-            "If the current repository is unbound, run focusa init --quickstart --project-root <repo> --json and verify .focusa-project.json before HLT or Workpoint guidance.".to_string(),
+            "For an authorized, verified safe unbound repository, inspect Bootstrap/Genesis; focusa init --quickstart is a scoped entry, not automatic permission or mandatory recovery. Verify .focusa-project.json before HLT or Workpoint admission; reuse valid existing projects.".to_string(),
             "Resolve project identity before trusting Workpoint or Trajectory authority.".to_string(),
-            "Compare canonical parent, working-subpath, and continuity_id before durable writes.".to_string(),
-            "If scope conflicts, verify project then checkpoint before durable writes.".to_string(),
+            "Compare requested, resolved and saved Workstream/lineage/attachment plus working-subpath before durable writes.".to_string(),
+            "If scope conflicts, diagnose and verify supported binding repair before checkpointing; do not infer a global migration or repeat an unchanged denial.".to_string(),
         ],
         bootstrap_card: vec![
             "Read focusa_utility_card or focusa_agent_prompt at session start.".to_string(),
-            "Resume Workpoint and verify canonical=true plus matching parent/subpath/continuity authority.".to_string(),
+            "Verify scope and resume the current Workpoint; canonical=true is necessary where required but does not itself establish current instruction match or effect admission.".to_string(),
             "Read Trajectory as north-star context, not mutation authority.".to_string(),
             "Run git status and bd ready from the verified project root.".to_string(),
-            "If changing code: inspect diff, implement smallest useful slice, run gates, capture evidence, commit, push.".to_string(),
+            "Select only capabilities needed by the current verified action: conditional Bootstrap/Genesis, linked Ladder/spec/tasks, then Prepare/Act/Reconcile/Advance through existing owners.".to_string(),
+            "For active development, apply the approved reload/deployment and verify the exact consumer promptly; commit/push only where the project delivery contract requires them, not as universal completion gates.".to_string(),
         ],
         post_compaction_card: vec![
             "Treat transcript tail as non-authoritative; use WorkpointResumePacket first.".to_string(),
@@ -75,6 +76,8 @@ pub fn utility_card() -> UtilityCard {
         brevity_rules: vec![
             "One-line summaries must preserve status + authority + next action.".to_string(),
             "Tool descriptions should say when to use the tool and what it returns.".to_string(),
+            "Next-tool, recovery_order and proof-command lists are conditional hints, not required chains or permission to run locally.".to_string(),
+            "A failed operation pauses only affected dependents: diagnose input, observation, reporting, binding, authority or missing proof; recover with installed support, verify and resume without inventing admission.".to_string(),
             "Prompt snippets should be one actionable sentence.".to_string(),
             "Docs should link canonical contracts instead of duplicating long payloads.".to_string(),
         ],
@@ -118,6 +121,15 @@ mod tests {
             card.next_tools
                 .contains(&"focusa_workpoint_resume".to_string())
         );
+    }
+
+    #[test]
+    fn utility_guidance_preserves_current_scope_and_project_specific_delivery() {
+        let card = utility_card();
+        assert!(card.authority_boundary.contains("WorkstreamId"));
+        assert!(card.authority_boundary.contains("AttachmentKey"));
+        assert!(card.bootstrap_card.iter().any(|line| line.contains("not as universal completion gates")));
+        assert!(card.brevity_rules.iter().any(|line| line.contains("conditional hints")));
     }
 
     #[test]

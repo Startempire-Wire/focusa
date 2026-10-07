@@ -1,6 +1,6 @@
 # `focusa_agent_runtime_doctor`
 
-Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness. Use it when Operate the Spec 140 agent runtime doctor surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness. Use it when Operate the Spec 140 agent runtime doctor surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,7 +48,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_or_preview_only`, `read_or_preview_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_agent_runtime_effective` (likely_next)
 - `focusa_instruction_integrity_status` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_agent_runtime_effective`, `focusa_instruction_integrity_status`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_agent_runtime_effective`, `focusa_instruction_integrity_sta
 - CLI: `focusa agent-runtime doctor`.
 - REST: `GET /v1/agent-runtime/doctor`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:540ec8b189295711089fd2663b10df02dfccf1ddc7c377b02d48fa1e9b42a214`.
+- Descriptor digest: `sha256:9eb39fc3fd80ef4289ab7982ca5177bed5c27077e71f192ba6c285a4155804db`.

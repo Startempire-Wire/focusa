@@ -1,6 +1,6 @@
 # `focusa_sms_send`
 
-Send one customer-authorized message. Requires separate send grant, idempotency key, consumer attribution, and confirm=true. Use it when Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Send one customer-authorized message. Requires separate send grant, idempotency key, consumer attribution, and confirm=true. Use it when Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -59,7 +59,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/sms/send"}`
 - Side effects: `confirmed_idempotent_message_delivery`, `confirmed_idempotent_message_delivery`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -79,7 +79,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_sms_threads` (likely_next)
 - `focusa_sms_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_events`, `focusa_sms_threads`, `focusa_sms_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -90,4 +90,4 @@ Likely next: `focusa_sms_events`, `focusa_sms_threads`, `focusa_sms_checkpoint`.
 - CLI: `focusa sms send <recipient-handle> --confirm`.
 - REST: `POST /v1/sms/send`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:e3ff62528b411644053c4f55155ad9577174c238dab24b290e847e68fbc89f6f`.
+- Descriptor digest: `sha256:0be3ee2b583af2f97f8d9db80e60bd69202dd62826c49e579abddcfd0dcab484`.

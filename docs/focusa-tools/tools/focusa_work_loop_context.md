@@ -1,6 +1,6 @@
 # `focusa_work_loop_context`
 
-Update continuation decision context (current ask/scope/steering). Use it when Update continuation decision context (current ask/scope/steering). It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Update continuation decision context (current ask/scope/steering). Use it when Update continuation decision context (current ask/scope/steering). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -56,7 +56,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_context`, `write_context`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -76,7 +76,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_work_loop_status` (likely_next)
 - `focusa_workpoint_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_work_loop_checkpoint`, `focusa_work_loop_status`, `focusa_workpoint_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -87,4 +87,4 @@ Likely next: `focusa_work_loop_checkpoint`, `focusa_work_loop_status`, `focusa_w
 - CLI: none.
 - REST: `POST /v1/work-loop/context`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:da1eec042a1ba9b28642dd886558bc723296b679e54e51eeab56ea2e31f4c882`.
+- Descriptor digest: `sha256:913c27b369ea079e925ab2f0ffc7d6c9c9c81b59acda6e8715a48fe41ada0fa2`.

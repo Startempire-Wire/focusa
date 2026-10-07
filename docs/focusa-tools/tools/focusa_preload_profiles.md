@@ -1,6 +1,6 @@
 # `focusa_preload_profiles`
 
-List bounded Spec 111 agent bootstrap profiles. Use it when List bounded agent bootstrap profiles. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+List bounded Spec 111 agent bootstrap profiles. Use it when List bounded agent bootstrap profiles. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -66,7 +66,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_preload_build` (likely_next)
 - `focusa_preload_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_preload_build`, `focusa_preload_doctor`.
 
 ## Skills, protocols, and source authority
@@ -77,4 +77,4 @@ Likely next: `focusa_preload_build`, `focusa_preload_doctor`.
 - CLI: `focusa preload profiles`.
 - REST: `GET /v1/preload/profiles`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:6da68e50a4fae72bf5650e42894150bf65045d4312c939c7b16baf8f381b3f9f`.
+- Descriptor digest: `sha256:bd2ffbbbaba87f5f0500990b9fc628f1ae92d125b4dda2ecdc06646a19689147`.

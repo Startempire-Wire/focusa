@@ -1,6 +1,6 @@
 # `focusa_active_object_resolve`
 
-Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. Use it when Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. Use it when Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_evidence_capture` (likely_next)
 - `focusa_traverse` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workpoint_checkpoint`, `focusa_evidence_capture`, `focusa_traverse`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_workpoint_checkpoint`, `focusa_evidence_capture`, `focusa_t
 - CLI: `focusa workpoint resolve-object`.
 - REST: `POST /v1/workpoint/active-object/resolve`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:ba6de8f51caa8fd46935f4baf15284aa7b39da1e46a3e757c6dbd3bbb1b2cb1b`.
+- Descriptor digest: `sha256:27cea131cfe5b8b089416bf1409377ce805bf72429e7e941c6eaf0b1852c5c3e`.

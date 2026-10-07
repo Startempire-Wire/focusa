@@ -1,6 +1,6 @@
 # `focusa_evidence_capture`
 
-Capture a bounded evidence ref/result and optionally link it to the active Workpoint. Use it when Capture a bounded evidence ref/result and optionally link it to the active Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Capture a bounded evidence ref/result and optionally link it to the active Workpoint. Use it when Capture a bounded evidence ref/result and optionally link it to the active Workpoint. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -59,7 +59,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `evidence_link`, `evidence_link`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -79,7 +79,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_trajectory_assess` (likely_next)
 - `focusa_recent_result` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`, `focusa_recent_result`.
 
 ## Skills, protocols, and source authority
@@ -90,4 +90,4 @@ Likely next: `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`, `focu
 - CLI: `focusa workpoint evidence-link`.
 - REST: `POST /v1/workpoint/evidence/link`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e9924f32c929f27710bc64cc38fb49b15979b0c379d1aa4dd56124c78912676e`.
+- Descriptor digest: `sha256:3a8c6960e49c9f7019f9795904583993f2fe7a9b1004b52d7805a03c4f8258be`.

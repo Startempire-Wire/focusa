@@ -1,10 +1,10 @@
 # Pi Extension and Skills Guide
 
-## v0.9.142 runtime surface
+## Source inventory and installed activation
 
-The release surface is a 135-tool, scope-bound runtime. New/expanded routes include Context Cognition curation/proof/optimization, Project Card and Genesis/bootstrap, Temporal Authority, session transfer/rollover, UIAI/WebMCP capability intake, preload packets, Silent Sessions, device pairing, prediction authority, and progressive Tool Discovery. Every route preserves `project_root + continuity_id`, Workpoint authority, evidence refs, and operator steering precedence.
+Use [the shared project journey](../agent/02-focusa-cohesive-project-flow.md). Discover tool and skill counts from the current registry and actual loaded harness; neither this guide nor generated parity proves installed support. New/expanded routes include Context Cognition curation/proof/optimization, Project Card and Genesis/bootstrap, Temporal Authority, session transfer/rollover, UIAI/WebMCP capability intake, preload packets, Silent Sessions, device pairing, prediction authority, and progressive Tool Discovery. Required canonical binding is exact Scope/Workstream/continuity/attachment, with current instruction/operation/frontier admission; root/continuity input fields alone do not establish it.
 
-The generated skill copies below are the same 29 manifests in `.pi/skills/`, `apps/pi-extension/skills/`, and `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`. Regenerate and validate before release:
+The canonical registry/generator produces project and packaged skill/runbook mirrors. Installed roots are configured by the actual owning harness; source mirrors are not evidence that installed copies or a running process refreshed. Regenerate, install through the approved mechanism and verify native reload separately. Counts come from the registry, not this prose:
 
 ```bash
 python3 scripts/generate-agent-skills.py --check
@@ -31,7 +31,7 @@ python3 scripts/audit-agent-first-tool-surfaces.py --json /tmp/focusa-agent-firs
 - `predictive-power` — bounded prediction record/evaluate/stats workflow.
 - `focusa-agent-bootstrap` — bounded startup/resume orientation.
 - `focusa-tool-discovery` — progressive search/describe/graph/bundle loading.
-- `focusa-project-scope` — project-root and continuity authority.
+- `focusa-project-scope` — verified Project/Workstream/continuity/attachment and operation scope.
 - `focusa-session-recovery` — compaction, rollover, transfer, and lineage recovery.
 - `focusa-browser-uiai` — UIAI/WebMCP session, diagnostics, evidence, and cleanup.
 - `focusa-install-lifecycle` — install, repair, OTA, rollback, and uninstall proof.
@@ -61,11 +61,13 @@ Validate skill hygiene:
 node scripts/validate-skill-hygiene.mjs
 ```
 
-## Install dependencies for local validation
+## Approved dependency setup and validation
+
+Use the declared locked dependency setup only when its installation/execution is authorized, under the owning user and approved host. Existing compatible cached dependencies may be reused; do not substitute an incompatible compiler or auto-install new dependencies. Builds/tests use the required job executor. The commands below are examples, not permission or proof they ran.
 
 ```bash
 cd ${FOCUSA_PROJECT_ROOT:-<focusa-repo>}/apps/pi-extension
-npm install
+npm ci
 ./node_modules/.bin/tsc --noEmit
 ```
 

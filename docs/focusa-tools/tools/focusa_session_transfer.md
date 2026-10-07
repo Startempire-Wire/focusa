@@ -1,6 +1,6 @@
 # `focusa_session_transfer`
 
-Typed save/continue/rollover wrapper for moving long work between Pi sessions without forking or continuity-id fingerprint fallback. Use it when Save, continue, or Spec130-roll over a long Focusa/Pi work session with explicit source_scope/target_scope or target_continuity_id, source/target session ids, checkpoint/packet refs, and rollover action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Typed save/continue/rollover wrapper for moving long work between Pi sessions without forking or continuity-id fingerprint fallback. Use it when Save, continue, or Spec130-roll over a long Focusa/Pi work session with explicit source_scope/target_scope or target_continuity_id, source/target session ids, checkpoint/packet refs, and rollover action. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -70,7 +70,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `save_may_checkpoint_workpoint`, `save_may_checkpoint_workpoint`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -90,7 +90,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_project_card` (likely_next)
 - `focusa_trajectory_view` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workpoint_resume`, `focusa_project_card`, `focusa_trajectory_view`.
 
 ## Skills, protocols, and source authority
@@ -101,4 +101,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_project_card`, `focusa_trajector
 - CLI: `focusa project session-transfer`.
 - REST: `POST /v1/project/session-transfer`, `GET /v1/project/card`, `POST /v1/workpoint/checkpoint`, `POST /v1/workpoint/resume`, `GET /v1/trajectory/view`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:ccdc3e7ba8a69b9c252e1379f84d020afec9fde70750f9944ee509cd8dc6d3e6`.
+- Descriptor digest: `sha256:a9b5629f23b772e8bd5778adbf4c78055e2602138e4c5ad4fe46dce87dc642fb`.

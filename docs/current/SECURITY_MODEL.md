@@ -6,7 +6,7 @@ Focusa is local-first cognitive runtime software. The default threat posture is 
 
 - Local-first daemon and data paths by default.
 - API auth token support for exposed/non-local deployments.
-- `project_root + continuity_id` authority boundary for project/workstream state.
+- Exact Scope/Project, Workstream, continuity and applicable attachment through installed bindings; `project_root + continuity_id` alone are not the complete authority boundary.
 - Context Authority preflight before risky mutation.
 - Append-only ledgers for auditable records.
 - `tool_result_v1` failure envelopes with recovery hints.
@@ -27,6 +27,10 @@ Focusa is local-first cognitive runtime software. The default threat posture is 
 - Configure API auth before public/network exposure.
 - Revoke lost paired devices.
 - Use release proof and security docs before publishing builds.
+
+## Contextual recovery and delivery
+
+Use [the cohesive project journey](../agent/02-focusa-cohesive-project-flow.md). Discovery/health does not grant execution, and a failed reporting or input step does not automatically revoke independently verified authority. Required safety/consent/entitlement/binding dependencies pause their affected actions; supported recovery must be verified before resumption. Active development uses its approved reload/deploy/test path. Git push is project-specific; production release/install and public redaction controls remain.
 
 ## Related docs
 

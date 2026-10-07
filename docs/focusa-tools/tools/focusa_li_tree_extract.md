@@ -1,6 +1,6 @@
 # `focusa_li_tree_extract`
 
-Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding. Use it when Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding. Use it when Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,7 +48,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -68,7 +68,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_metacog_reflect` (likely_next)
 - `focusa_tree_snapshot_state` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_tree_snapshot_state`.
 
 ## Skills, protocols, and source authority
@@ -79,4 +79,4 @@ Likely next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_tree_sn
 - CLI: `focusa lineage extract`.
 - REST: `GET /v1/lineage/tree`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e5c931d48d0b9f56905ac3e743d1af346b86d0552aa0b579c0095b45afcd539d`.
+- Descriptor digest: `sha256:72c89e51fd0683055d2bb5a79abb58e6758600a4cc755ec7776dea8e3d26300f`.

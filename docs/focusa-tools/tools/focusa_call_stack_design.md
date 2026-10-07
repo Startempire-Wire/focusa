@@ -1,6 +1,6 @@
 # `focusa_call_stack_design`
 
-Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold (entry → handlers → services → adapters → storage → output) that the operator/agent fills in for the specific feature. Per Spec 103. Use it when Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold (entry → handlers → services → adapters → storage → output) that the operator/agent fills in for the specific feature. Per Spec 103. Use it when Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -59,7 +59,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_call_stack_design`, `write_call_stack_design`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -79,7 +79,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workpoint_link_evidence` (likely_next)
 - `focusa_trajectory_assess` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_call_stack_verify`, `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`.
 
 ## Skills, protocols, and source authority
@@ -90,4 +90,4 @@ Likely next: `focusa_call_stack_verify`, `focusa_workpoint_link_evidence`, `focu
 - CLI: `focusa call-stack design`.
 - REST: `POST /v1/call-stack/design`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:02f063f99aff210c43326e5deb2534f0701d997d1931d1058ca0399320b30628`.
+- Descriptor digest: `sha256:abc7d690fb9a84cd2f5c5cf0c89a97467a27845490f73c3da17c7e1e3a2c5283`.

@@ -1,6 +1,6 @@
 # `focusa_context_cognition_curate_eval`
 
-Spec 100 Phase 4 — run a curator eval case. Computes precision/recall/F1 vs. expected_selected_paths. Appends to curator-eval-ledger/{hash}/eval-runs.jsonl. Returns run_id, eval_ref, scores, and promoted flag (F1 > baseline_f1 AND F1 >= score_threshold). Use it when Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec 100 Phase 4 — run a curator eval case. Computes precision/recall/F1 vs. expected_selected_paths. Appends to curator-eval-ledger/{hash}/eval-runs.jsonl. Returns run_id, eval_ref, scores, and promoted flag (F1 > baseline_f1 AND F1 >= score_threshold). Use it when Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -56,7 +56,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_curator_eval`, `write_curator_eval`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -76,7 +76,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_metacog_capture` (likely_next)
 - `focusa_predict_record` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_context_cognition_curate_optimize`, `focusa_metacog_capture`, `focusa_predict_record`.
 
 ## Skills, protocols, and source authority
@@ -87,4 +87,4 @@ Likely next: `focusa_context_cognition_curate_optimize`, `focusa_metacog_capture
 - CLI: `focusa context-cognition curate-eval`, `focusa context-cognition curate-eval-runs`.
 - REST: `POST /v1/context-cognition/curate/eval`, `GET /v1/context-cognition/curate/eval/runs`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:d1f0f0fba3e29fd87b94f6c3ccf26debaab6d1b2d7846bcd2092060a1e563ee3`.
+- Descriptor digest: `sha256:8decb21d8e6dab322d7326fcfd1f0c72a7b3e7cf6cb4c973569c499a236ad343`.

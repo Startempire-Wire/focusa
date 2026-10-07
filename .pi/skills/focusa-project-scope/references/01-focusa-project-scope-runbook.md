@@ -8,7 +8,7 @@
 - Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
 - Treat cwd and missing markers as weak evidence; inspect legacy project signals before suggesting creation or binding.
 - Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
-- Use targeted local gates during development; CI requires explicit release authorization.
+- Use the approved active-development reload/deploy/test loop and execution host; Git push is project-specific, and development verification is not a release by default. CI/paid runs and release actions retain their actual grant/resource requirements.
 
 ## Complete journey and conditional routing
 
@@ -41,7 +41,7 @@ For resume, normally omit `current_ask` so the adapter forwards the exact latest
 - Capture stable file/test/API/browser/receipt refs.
 - Link proof to the active Workpoint.
 - Evaluate relevant predictions and reusable learning only after outcome is known.
-- Done: project_root plus continuity_id authority is verified and target objects resolve in that scope.
+- Done: Exact Workstream/continuity/attachment binding is verified through the installed adapter, and current targets resolve in that scope.
 
 ## Cross-harness mapping
 

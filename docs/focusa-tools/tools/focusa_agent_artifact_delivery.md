@@ -1,6 +1,6 @@
 # `focusa_agent_artifact_delivery`
 
-Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference. Use it when Operate the Spec 140 agent artifact delivery surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference. Use it when Operate the Spec 140 agent artifact delivery surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,7 +52,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/agent-runtime/delivery/commit"}`
 - Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -71,7 +71,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_agent_artifact_verify` (likely_next)
 - `focusa_instruction_integrity_status` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_agent_artifact_verify`, `focusa_instruction_integrity_status`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +82,4 @@ Likely next: `focusa_agent_artifact_verify`, `focusa_instruction_integrity_statu
 - CLI: `focusa agent-runtime artifacts apply`.
 - REST: `POST /v1/agent-runtime/delivery/commit`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:4114b8389bc2de46a667d734a3a626b655c995bee0971cd6d9dc239581dd5813`.
+- Descriptor digest: `sha256:4b5a892e985803c49cca5ee5954e09e0557a1657cb5bf72a349f2d1759e5ae9b`.

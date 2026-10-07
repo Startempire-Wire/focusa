@@ -1,6 +1,6 @@
 # `focusa_preload_build`
 
-Build Preload Packet through the scoped Spec 111 preload API. Use it when Build a scoped agent bootstrap packet without writing it. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Build Preload Packet through the scoped Spec 111 preload API. Use it when Build a scoped agent bootstrap packet without writing it. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -68,7 +68,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_preload_render` (likely_next)
 - `focusa_preload_verify` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_preload_render`, `focusa_preload_verify`.
 
 ## Skills, protocols, and source authority
@@ -79,4 +79,4 @@ Likely next: `focusa_preload_render`, `focusa_preload_verify`.
 - CLI: `focusa preload build`.
 - REST: `POST /v1/preload/build`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:0168d2b1c57a106e27af44bf5966673150b1a20a5f7505baeab84f08c5790caa`.
+- Descriptor digest: `sha256:33aeedaeefa4ef3a706cef79a8c87a6a840f9a5103de7de749bbc6910b145e33`.

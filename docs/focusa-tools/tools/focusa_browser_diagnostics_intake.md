@@ -1,6 +1,6 @@
 # `focusa_browser_diagnostics_intake`
 
-Turn UIAI/browser diagnostics JSON into bounded Focusa evidence, active-object hints, a prediction candidate, and a metacog candidate. Use it when Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Turn UIAI/browser diagnostics JSON into bounded Focusa evidence, active-object hints, a prediction candidate, and a metacog candidate. Use it when Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -57,7 +57,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `composite_evidence_prediction_optional_metacog`, `composite_evidence_prediction_optional_metacog`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -78,7 +78,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_predict_record` (likely_next)
 - `focusa_metacog_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_predict_record`, `focusa_metacog_capture`.
 
 ## Skills, protocols, and source authority
@@ -89,4 +89,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_
 - CLI: `focusa workpoint evidence-link`, `focusa predict record`, `focusa metacognition capture`.
 - REST: `POST /v1/workpoint/evidence/link`, `POST /v1/predictions`, `POST /v1/metacognition/capture`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:b364af20cf7f85aaf78720935e457cf86e8532e4fa1c72b8883476cbb5c446ab`.
+- Descriptor digest: `sha256:2622d1e738373785323dfc1bc9b1a4d41f8d5101c7666349cf38733572503935`.

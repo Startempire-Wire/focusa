@@ -1,6 +1,6 @@
 # `focusa_dxux_explain`
 
-Spec105 — explain a failure and return recovery commands. Use it when Spec105 — explain a failure and return recovery commands. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec105 — explain a failure and return recovery commands. Use it when Spec105 — explain a failure and return recovery commands. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tool_doctor` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_dxux_report`, `focusa_tool_doctor`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_dxux_report`, `focusa_tool_doctor`, `focusa_evidence_captur
 - CLI: `focusa explain <failure>`.
 - REST: `GET /v1/dxux/explain/{failure}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:6a422cd64309a59995609df1916793ff757edda4136fce775095b60eb67dd672`.
+- Descriptor digest: `sha256:8ede70f4e9e1f3971d03e4a13b024b94807bafe9a8b9534eb9fb57efc9098e77`.

@@ -1,6 +1,6 @@
 # `focusa_tree_path`
 
-Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Use it when Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Use it when Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,7 +49,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tree_diff_context` (likely_next)
 - `focusa_traverse` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_tree_snapshot_state`, `focusa_tree_diff_context`, `focusa_traverse`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_tree_snapshot_state`, `focusa_tree_diff_context`, `focusa_t
 - CLI: `focusa lineage path`.
 - REST: `GET /v1/lineage/path/{clt_node_id}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:80ff02b7a9e6526f623ec84971c3a3fbcc29272138ed0b07c8b238b9e8112436`.
+- Descriptor digest: `sha256:93a361aa47e7a87346d0254a274ebeb4cfd762b49afc9095358ea471f258c273`.

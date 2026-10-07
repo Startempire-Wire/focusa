@@ -1,6 +1,6 @@
 # `focusa_sms_revoke`
 
-Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -55,7 +55,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/sms/revoke"}`
 - Side effects: `confirmed_connector_and_grant_revocation`, `confirmed_connector_and_grant_revocation`
 - Read-only: `false`; destructive: `true`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `true`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -75,7 +75,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_sms_health` (likely_next)
 - `focusa_sms_events` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_enrollment`, `focusa_sms_health`, `focusa_sms_events`.
 
 ## Skills, protocols, and source authority
@@ -86,4 +86,4 @@ Likely next: `focusa_sms_enrollment`, `focusa_sms_health`, `focusa_sms_events`.
 - CLI: `focusa sms revoke --confirm`.
 - REST: `POST /v1/sms/revoke`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:a451c8257426244237809de3dea8e586dce6b8bedd22dcd948ad6da737613df9`.
+- Descriptor digest: `sha256:f8a5b7b95ff05506dc05443dfe30ea93dbbd3a8bf606ff0b360dcc636267a23a`.

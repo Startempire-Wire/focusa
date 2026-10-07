@@ -1,6 +1,6 @@
 # `focusa_work_loop_checkpoint`
 
-Create a manual continuous-loop checkpoint. Use it when Create a manual continuous-loop checkpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Create a manual continuous-loop checkpoint. Use it when Create a manual continuous-loop checkpoint. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `checkpoint`, `checkpoint`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_workpoint_checkpoint` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_work_loop_select_next`, `focusa_workpoint_checkpoint`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_work_loop_select_next`, `focusa_workpoint_checkpoint`, `foc
 - CLI: none.
 - REST: `POST /v1/work-loop/checkpoint`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:54f7c71bf8f3ad9cc0c89b3c975a79ab366863ab43c7ad0e3d1335ef3d889eef`.
+- Descriptor digest: `sha256:41769ef0a72794f6b818b77c38c89689d5b3c302c25cd7f3b7022de4d59fb812`.

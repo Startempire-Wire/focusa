@@ -1,6 +1,6 @@
 # `focusa_bg_run_many`
 
-Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each creation requires exact attachment-backed North Star admission; admitted jobs complete independently and deliver bounded output through SSE. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each creation requires exact attachment-backed North Star admission; admitted jobs complete independently and deliver bounded output through SSE. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -53,7 +53,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `durable_dispatch`, `durable_dispatch`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -72,7 +72,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_bg_status` (likely_next)
 - `focusa_workpoint_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -83,4 +83,4 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - CLI: `focusa bg run --detach`.
 - REST: `/v1/background-jobs `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:b726a031acbcba08b61f5ed7f109950786e2d7e01a07c964ddaf20c225618dc1`.
+- Descriptor digest: `sha256:ed9590dd7221ca812070aff5d6aa8e62a5382a399fa5c245ac11d37ad4b79bce`.

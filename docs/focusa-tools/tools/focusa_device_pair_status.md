@@ -1,6 +1,6 @@
 # `focusa_device_pair_status`
 
-Check the status of a pending or completed pairing by code OR by device_id. Returns the token (when completed) + status + scopes + expires_at. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Check the status of a pending or completed pairing by code OR by device_id. Returns the token (when completed) + status + scopes + expires_at. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,7 +48,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_device_pair_list` (likely_next)
 - `focusa_device_pair_revoke` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_device_pair_list`, `focusa_device_pair_revoke`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_device_pair_list`, `focusa_device_pair_revoke`.
 - CLI: `focusa device pair-status`.
 - REST: `GET /v1/device/pair/status`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3240ccc27b7dc76f4067d5a86b9be692f45aec657dc32f5cb6d4b56a6b68cd11`.
+- Descriptor digest: `sha256:aaa80f4249e1e2bf07e6aae41ffe80fd802aaa8c9feec23bde6556464c9c9d84`.

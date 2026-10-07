@@ -1,6 +1,6 @@
 # `focusa_bloatgaurd_gate_modes`
 
-Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. Use it when Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. Use it when Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,7 +47,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -67,7 +67,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_bloatgaurd_report` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_bloatgaurd_gate_mode`, `focusa_bloatgaurd_report`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +78,4 @@ Likely next: `focusa_bloatgaurd_gate_mode`, `focusa_bloatgaurd_report`, `focusa_
 - CLI: `focusa bloatgaurd gate-modes`.
 - REST: `GET /v1/bloatgaurd/gate-modes/report`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:70584a284fe2867af3a4225f525508fe792717edbc46fb1e7c1e4e6070a78ad0`.
+- Descriptor digest: `sha256:245c8c9047221574d8f57878789bdca856c75f737e11de0cd6d82245c0b690ff`.

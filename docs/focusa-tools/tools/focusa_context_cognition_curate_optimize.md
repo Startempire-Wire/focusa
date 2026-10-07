@@ -1,6 +1,6 @@
 # `focusa_context_cognition_curate_optimize`
 
-Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision. Returns the decision per the §15 promotion rule (eval_score > baseline_score AND eval_score >= score_threshold). Appends to cognition-optimizer-artifacts/{hash}/artifacts.jsonl. Use it when Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision per §15 promotion rule. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision. Returns the decision per the §15 promotion rule (eval_score > baseline_score AND eval_score >= score_threshold). Appends to cognition-optimizer-artifacts/{hash}/artifacts.jsonl. Use it when Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision per §15 promotion rule. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -58,7 +58,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_cognition_optimizer_artifact`, `write_cognition_optimizer_artifact`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -78,7 +78,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_predict_record` (likely_next)
 - `focusa_metacog_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_context_cognition_optimizer_artifacts`, `focusa_predict_record`, `focusa_metacog_capture`.
 
 ## Skills, protocols, and source authority
@@ -89,4 +89,4 @@ Likely next: `focusa_context_cognition_optimizer_artifacts`, `focusa_predict_rec
 - CLI: `focusa context-cognition curate-optimize`.
 - REST: `POST /v1/context-cognition/curate/optimize`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:864a1dc5d18e21fc3d8a222f11dfe5df33f0125a4f1d5f4ea68865dc49d6a38c`.
+- Descriptor digest: `sha256:1ea0acf4d6609e12d6935477633779acfb3c64320b0b5b034a22b8a2056cff2b`.

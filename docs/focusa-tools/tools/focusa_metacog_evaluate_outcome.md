@@ -1,6 +1,6 @@
 # `focusa_metacog_evaluate_outcome`
 
-Judge whether an adjustment improved results and whether the learning should be promoted. Use it when Judge whether an adjustment improved results and whether the learning should be promoted. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Judge whether an adjustment improved results and whether the learning should be promoted. Use it when Judge whether an adjustment improved results and whether the learning should be promoted. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_state`, `write_state`
 - Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -70,7 +70,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_predict_stats` (likely_next)
 - `focusa_decide` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_metacog_capture`, `focusa_predict_stats`, `focusa_decide`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +81,4 @@ Likely next: `focusa_metacog_capture`, `focusa_predict_stats`, `focusa_decide`.
 - CLI: `focusa metacognition evaluate`.
 - REST: `POST /v1/metacognition/evaluate`, `GET /v1/metacognition/evaluations/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:53326c5bcaac06f5022e084bf48404bb22fc40da27e5706cf3a4d9495af4a3ec`.
+- Descriptor digest: `sha256:d5c1000c2502201da19c279ef9f3cbfa6c4fb80df16fccdd9a52be3400e9ef4a`.

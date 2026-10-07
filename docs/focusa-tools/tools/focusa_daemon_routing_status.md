@@ -1,6 +1,6 @@
 # `focusa_daemon_routing_status`
 
-Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Use it when Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Use it when Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -57,7 +57,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/daemon-routing/resolve"}`
 - Side effects: `read_state`, `read_state`
 - Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `true`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -77,7 +77,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_tool_doctor` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_identity`, `focusa_tool_doctor`, `focusa_workpoint_resume`.
 
 ## Skills, protocols, and source authority
@@ -88,4 +88,4 @@ Likely next: `focusa_project_identity`, `focusa_tool_doctor`, `focusa_workpoint_
 - CLI: `focusa daemon-routing status`.
 - REST: `POST /v1/daemon-routing/resolve`.
 - Specification: `docs/158-focusa-daemon-routing-surface-parity-spec.md`.
-- Descriptor digest: `sha256:55f1f8b07b0ddb0134e0fb3229686e7eedfd31e312bb4c20ba9d697965eca965`.
+- Descriptor digest: `sha256:2295ec2515f13e8a79facfee33c23a32e38e83c744ff7021170713b816b60e61`.

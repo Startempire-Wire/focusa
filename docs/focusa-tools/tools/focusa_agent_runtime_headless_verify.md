@@ -1,6 +1,6 @@
 # `focusa_agent_runtime_headless_verify`
 
-Verify foundational runtime capability parity without Mission Canvas or generated UI availability. Use it when Operate the Spec 140 agent runtime headless verify surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Verify foundational runtime capability parity without Mission Canvas or generated UI availability. Use it when Operate the Spec 140 agent runtime headless verify surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,7 +50,7 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Authority: `{"kind":"canonical","path":"/v1/agent-runtime/delivery/commit"}`
 - Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
 - Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Confirmation required: `null`; preview supported: `null`.
 
 ## Failure and recovery
 
@@ -69,7 +69,7 @@ Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/
 - `focusa_instruction_integrity_status` (likely_next)
 - `focusa_agent_runtime_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_instruction_integrity_status`, `focusa_agent_runtime_doctor`.
 
 ## Skills, protocols, and source authority
@@ -80,4 +80,4 @@ Likely next: `focusa_instruction_integrity_status`, `focusa_agent_runtime_doctor
 - CLI: `focusa agent-runtime headless-verify`.
 - REST: `POST /v1/agent-runtime/headless/verify`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:52255a772e312631b2aca1aca39966f7c9d22264de8c0c6293897efd517b5a4e`.
+- Descriptor digest: `sha256:f1b827f7f13d7721c536b41fba96e0c1e81ba01158b86e920d5d635ff467aca1`.
