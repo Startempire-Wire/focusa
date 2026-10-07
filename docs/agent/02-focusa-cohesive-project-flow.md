@@ -53,6 +53,12 @@ After compaction/reload/model or project transitions, read back canonical scoped
 
 For coordination conflicts, preserve the other owner and inspect the explicit options; no automatic takeover. For missing native integration, restore it through the approved path; shell diagnostics do not replace native authority. Pending work is observed, not dispatched again. Snapshot restore, rollback, credential changes and release actions are conditional consequential operations, never mandatory steps in a skill's capability list.
 
+### Legacy lifecycle rejection
+
+For `WORKPOINT_FRONTIER_MISSING`, inspect the expanded daemon response's `workpoint_linkage.admission_gaps`, linkage status and lifecycle stage before accepting a generic scope-mismatch summary as the diagnosis. A linked legacy record with only `lifecycle_stage_missing` differs from a foreign or unknown Workstream binding. Discover the installed, explicitly confirmed append-only lifecycle repair if advertised; preserve the original record and never execute its stale next-slice just because structural repair succeeds. Then reconcile the current instruction and proposed successor.
+
+Generic `--lifecycle-action` help is not proof that a particular command implements repair. If the installed version lacks the required operation, use the approved trusted release/update path; never hand-replace a daemon or invent a stage flag. Keep independently permitted preparation advancing and retain the exact missing capability as an owned resolution requirement.
+
 ## Tool and machine-response clarity
 
 An agent-facing response needs: operation status; exact affected scope/revisions; evidence and uncertainty; permitted recovery; exact next operation with known arguments or the precise missing input; recovery exit check; and interrupted action to resume. It must distinguish proposal/support/activation, readiness/admission/dispatch/completion, and reporting failure/mandatory authority failure. Use the owning versioned schemas and descriptors; this guide defines no independent response envelope.
