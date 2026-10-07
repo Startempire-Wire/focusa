@@ -39,11 +39,9 @@ class WindowsXwinContractTests(unittest.TestCase):
         self.assertEqual(set(job['with']), {'release_tag', 'release_sha'})
         self.assertIn('workflow_call', producer['on'])
         self.assertIn('windows-ovh-executables', release['jobs']['external-rust-binaries']['needs'])
-        desktop = release['jobs']['windows-ovh-desktop']
-        self.assertEqual(desktop['uses'], './.github/workflows/windows-ovh-build.yml')
-        self.assertEqual(desktop['secrets'], 'inherit')
-        self.assertEqual(desktop['with']['desktop_nsis'], 'true')
-        self.assertIn('windows-ovh-desktop', release['jobs']['external-menubar-receipts']['needs'])
+        self.assertEqual(job['secrets'], 'inherit')
+        self.assertNotIn('windows-ovh-desktop', release['jobs'])
+        self.assertIn('windows-ovh-executables', release['jobs']['external-menubar-receipts']['needs'])
         ci = yaml.load((ROOT / '.github/workflows/ci.yml').read_text(), Loader=yaml.BaseLoader)
         self.assertTrue(any('windows_xwin_release_adapter_test.py' in step.get('run', '')
                             for step in ci['jobs']['release-automation-static']['steps']))
@@ -75,7 +73,7 @@ class WindowsXwinContractTests(unittest.TestCase):
             self.assertNotIn('cargo clean', step.get('run', ''))
         self.assertTrue(any('TAURI_SIGNING_PRIVATE_KEY' in step.get('env', {}) for step in steps))
 
-    def run_nsis_fixture(self, reject_signature=False):
+    def run_nsis_fixture(self, reject_signature=False, cached=False):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         source = Path(temporary.name)
@@ -86,7 +84,20 @@ class WindowsXwinContractTests(unittest.TestCase):
         args = SimpleNamespace(target_dir=source / 'target', output=source / 'artifacts',
                                tag='v0.9.202', sha='a' * 40)
         target = 'x86_64-pc-windows-msvc'
+        if cached:
+            import hashlib
+            args.desktop_cache = source / 'cache'
+            folder = args.desktop_cache / 'previous-job'
+            binary = folder / target / 'focusa-menubar.exe'
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b'compiled fixture, not native Windows proof')
+            (folder / 'compilation-receipt.json').write_text(json.dumps({
+                'source_sha': args.sha, 'tag': args.tag,
+                'compiled_desktop_artifacts': [{'target': target, 'path': str(binary),
+                    'sha256': hashlib.sha256(binary.read_bytes()).hexdigest()}]}))
+        commands = []
         def execute(command, **kwargs):
+            commands.append(command)
             if command[0] == 'node':
                 bundle = args.target_dir / target / 'release/bundle/nsis'
                 bundle.mkdir(parents=True)
@@ -112,9 +123,15 @@ class WindowsXwinContractTests(unittest.TestCase):
                 self.assertFalse(receipt['native_windows_proof'])
                 self.assertFalse(receipt['msi_proof'])
                 self.assertFalse(receipt['full_release_acceptance'])
+                if cached:
+                    self.assertTrue(any(command[0] == 'node' and command[2] == 'bundle' for command in commands))
+                    self.assertFalse(any('--runner' in command for command in commands))
 
     def test_nsis_receipt_distinguishes_generation_from_native_and_full_acceptance(self):
         self.run_nsis_fixture()
+
+    def test_same_candidate_compilation_is_reused_without_rust_rebuild(self):
+        self.run_nsis_fixture(cached=True)
 
     def test_nsis_signature_failure_prevents_artifact_staging_and_receipt(self):
         self.run_nsis_fixture(reject_signature=True)
@@ -162,6 +179,20 @@ class WindowsPipelineTests(unittest.TestCase):
             status = self.pipeline.disk_status()
         self.assertEqual(status['used_percent'], 89.9)
         self.pipeline.require_headroom(status)
+
+    def test_portable_nsis_boundary_restores_its_real_resource_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            tools = Path(directory)
+            executable = tools / 'root/usr/bin/makensis'
+            executable.parent.mkdir(parents=True)
+            executable.write_bytes(b'packager fixture')
+            env = {'PATH': '/usr/bin'}
+            with patch.object(self.pipeline, 'run'), patch.object(self.pipeline.subprocess, 'check_output', return_value=''):
+                self.pipeline.prepare_nsis(tools, env)
+            self.assertEqual(executable.with_name('makensis.real').read_bytes(), b'packager fixture')
+            self.assertIn('export NSISDIR=', executable.read_text())
+            self.assertIn('exec ', executable.read_text())
+            self.assertTrue(executable.stat().st_mode & 0o111)
 
     def test_actual_disk_threshold_and_minimum_space_remain_enforced(self):
         for status in [{'used_percent': 90.0, 'free_gib': 20}, {'used_percent': 50, 'free_gib': 14.9}]:

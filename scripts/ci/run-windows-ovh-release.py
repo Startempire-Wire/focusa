@@ -122,7 +122,7 @@ def main():
     parser.add_argument('--source', required=True, type=Path)
     parser.add_argument('--tag', required=True)
     parser.add_argument('--sha', required=True)
-    parser.add_argument('--mode', choices=['binaries', 'nsis', 'msi-tools'], default='binaries')
+    parser.add_argument('--mode', choices=['all', 'binaries', 'nsis', 'msi-tools'], default='all')
     parser.add_argument('--sdk-cache', type=Path, default=Path('/home/wirebot/build/focusa/windows-sdk-cache'))
     parser.add_argument('--publish', action='store_true')
     parser.add_argument('--plan', action='store_true')
@@ -168,10 +168,13 @@ def main():
         for executable in ['cargo-xwin', 'node', 'npm', 'cargo']:
             if not shutil.which(executable):
                 raise ValueError('required pinned worker tool missing: ' + executable)
-        if args.mode == 'nsis':
+        if args.mode in {'all', 'nsis'}:
             prepare_nsis(work / 'nsis-tools', env)
         require_headroom(disk_status())
         run(command, env=env)
+        if args.mode == 'all':
+            cache = Path('/home/wirebot/build/focusa') / ('windows-desktop-binaries-' + args.tag)
+            run([*command, '--desktop-nsis', '--desktop-cache', cache], env=env)
         if args.publish:
             publish(output, args.tag)
     finally:

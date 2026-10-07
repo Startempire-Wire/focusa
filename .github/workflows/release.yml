@@ -701,7 +701,7 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     # Producer-before-waiter: do not consume a bounded OVH lane while local
     # support artifacts are still queued on that same runner pool.
-    needs: [create-release, pi-extension-release, windows-ovh-desktop]
+    needs: [create-release, pi-extension-release, windows-ovh-executables]
     runs-on: self-hosted
     timeout-minutes: 150
     steps:
@@ -840,22 +840,13 @@ jobs:
   # built off GitHub and uploaded back to this release. This gate fails closed
   # until all 16 external binaries (8 macOS + 8 Windows) are attached.
   windows-ovh-executables:
-    name: Automatic Windows executable producer
-    needs: create-release
-    uses: ./.github/workflows/windows-ovh-build.yml
-    with:
-      release_tag: ${{ inputs.release_tag || github.ref_name }}
-      release_sha: ${{ inputs.release_sha || github.sha }}
-
-  windows-ovh-desktop:
-    name: Automatic local Windows desktop producer
+    name: Automatic Windows executable and desktop producer
     needs: create-release
     uses: ./.github/workflows/windows-ovh-build.yml
     secrets: inherit
     with:
       release_tag: ${{ inputs.release_tag || github.ref_name }}
       release_sha: ${{ inputs.release_sha || github.sha }}
-      desktop_nsis: true
 
   external-rust-binaries:
     name: External Rust Binary Receipt Gate

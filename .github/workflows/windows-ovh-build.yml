@@ -77,7 +77,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mode=binaries
+          mode=all
           extra=(--publish)
           if [ "$DESKTOP_NSIS" = true ]; then mode=nsis; fi
           if [ "$MSI_TOOLS_ONLY" = true ]; then mode=msi-tools; extra=(); fi
