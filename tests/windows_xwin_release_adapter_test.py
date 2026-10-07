@@ -39,6 +39,11 @@ class WindowsXwinContractTests(unittest.TestCase):
         self.assertEqual(set(job['with']), {'release_tag', 'release_sha'})
         self.assertIn('workflow_call', producer['on'])
         self.assertIn('windows-ovh-executables', release['jobs']['external-rust-binaries']['needs'])
+        desktop = release['jobs']['windows-ovh-desktop']
+        self.assertEqual(desktop['uses'], './.github/workflows/windows-ovh-build.yml')
+        self.assertEqual(desktop['secrets'], 'inherit')
+        self.assertEqual(desktop['with']['desktop_nsis'], 'true')
+        self.assertIn('windows-ovh-desktop', release['jobs']['external-menubar-receipts']['needs'])
         ci = yaml.load((ROOT / '.github/workflows/ci.yml').read_text(), Loader=yaml.BaseLoader)
         self.assertTrue(any('windows_xwin_release_adapter_test.py' in step.get('run', '')
                             for step in ci['jobs']['release-automation-static']['steps']))
