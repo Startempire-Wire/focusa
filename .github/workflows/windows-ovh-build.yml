@@ -73,9 +73,21 @@ jobs:
           mkdir -p "$tools/packages" "$tools/root"
           cd "$tools/packages"
           apt-get download nsis=3.09-4ubuntu1 nsis-common=3.09-4ubuntu1 minisign=0.11-1
+          # Tauri's Linux CLI performs its tray-library check even for Windows
+          # bundling. Resolve real host metadata into this isolated sysroot;
+          # simulation/download/extraction never upgrades host packages/services.
+          python3 - <<'PY'
+          import re, subprocess
+          simulation = subprocess.check_output(['apt-get', '--simulate', '--no-upgrade', '--no-install-recommends', 'install', 'libayatana-appindicator3-dev'], text=True)
+          packages = [name + '=' + version for name, version in re.findall(r'^Inst (\S+) (?:\[[^]]+\] )?\((\S+)', simulation, re.MULTILINE)]
+          if packages:
+              subprocess.run(['apt-get', 'download', *packages], check=True)
+          PY
           for package in *.deb; do dpkg-deb -x "$package" "$tools/root"; done
           echo "$tools/root/usr/bin" >> "$GITHUB_PATH"
           echo "NSISDIR=$tools/root/usr/share/nsis" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_PATH=$tools/root/usr/lib/x86_64-linux-gnu/pkgconfig:$tools/root/usr/share/pkgconfig" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_SYSROOT_DIR=$tools/root" >> "$GITHUB_ENV"
       - name: Reclaim idle rebuildable release targets when disk is above the build threshold
         if: ${{ inputs.desktop_nsis }}
         run: |
@@ -159,7 +171,29 @@ jobs:
         run: |
           set -euo pipefail
           target="$RUNNER_TEMP/focusa-windows-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          if [ -d "$target" ]; then cargo clean --target-dir "$target"; fi
+          if [ -d "$target" ]; then
+            if [ "${{ inputs.desktop_nsis }}" = true ]; then
+              python3 - "$target" <<'PY'
+          import hashlib, json, os, shutil, sys
+          from pathlib import Path
+          target = Path(sys.argv[1])
+          saved = Path('/home/wirebot/build/focusa/windows-desktop-binaries-${{ inputs.release_tag }}') / os.environ['GITHUB_RUN_ID']
+          records = []
+          for triple in ['x86_64-pc-windows-msvc', 'aarch64-pc-windows-msvc']:
+              binary = target / triple / 'release/focusa-menubar.exe'
+              if binary.is_file():
+                  directory = saved / triple
+                  directory.mkdir(parents=True, exist_ok=True)
+                  destination = directory / binary.name
+                  shutil.copy2(binary, destination)
+                  records.append({'target': triple, 'path': str(destination), 'sha256': hashlib.sha256(destination.read_bytes()).hexdigest()})
+          if records:
+              (saved / 'compilation-receipt.json').write_text(json.dumps({'source_sha': '${{ inputs.release_sha }}', 'tag': '${{ inputs.release_tag }}', 'compiled_desktop_artifacts': records, 'installer_proof': False, 'native_windows_proof': False}, indent=2) + '\n')
+              print('preserved compiled desktop inputs and hashes:', saved)
+          PY
+            fi
+            cargo clean --target-dir "$target"
+          fi
 
   prepare-local-msi-tools:
     if: ${{ inputs.msi_tools_only }}

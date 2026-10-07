@@ -56,9 +56,12 @@ def main():
     env['WINEPREFIX'] = str(tools / 'prefix')
     env['WINEARCH'] = 'win64'
     env['WINESERVER'] = str(server)
+    env['WINELOADER'] = str(wine)
+    env['PATH'] = str(wine.parent) + os.pathsep + env['PATH']
     env['WINEDLLPATH'] = ':'.join(str(library / arch) for arch in ['x86_64-windows', 'x86_64-unix'])
     env['LD_LIBRARY_PATH'] = str(library / 'x86_64-unix')
     env['WINEDLLOVERRIDES'] = 'mscoree,mshtml='
+    subprocess.run([str(server), '--version'], env=env, check=True, timeout=30)
     subprocess.run([str(wine), 'wineboot', '-u'], env=env, check=True, timeout=120)
     artifacts = [download(WIX_URL, tools / 'wix.zip', WIX_SHA256),
                  download(MONO_URL, tools / 'wine-mono-9.0.0-x86.msi')]
