@@ -98,7 +98,7 @@ For KH/OVH/operator policy, use `agent-kb-api` first, verify freshness, retrieve
 
 - **Beads** is the authoritative task system
 - **Focusa** governs focus and cognition
-- Agents do not invent work
+- Agents derive only justified in-scope work from accepted outcomes; discoveries become validated resolution nodes, never self-issued scope or authority
 
 ## Public / Private Docs Boundary
 
@@ -115,8 +115,8 @@ Public examples of conversation/audit contracts must use synthetic or redacted f
 ## Required Agent Behaviors
 
 ### Focus Discipline
-- Maintain exactly one active Focus Frame
-- Never switch focus implicitly
+- Maintain one active Focus Frame in the exact bound Workstream; do not create a daemon-global cognitive singleton
+- Preserve operator intent; advance/refine admitted goal-aligned work through canonical state rather than silently switch to unrelated work
 - Always bind work to a Beads issue
 
 ### Focus State Updates
@@ -159,7 +159,7 @@ Public examples of conversation/audit contracts must use synthetic or redacted f
 
 ## Forbidden Agent Actions
 
-- Autonomous task switching
+- Unadmitted or out-of-scope task switching; validated goal-aligned advancement remains required
 - Silent memory mutation
 - Bypassing Focus Gate
 - Editing archived frames
@@ -194,10 +194,13 @@ If work is not tracked in Beads, it does not exist.
 
 ## Failure Handling
 
-On confusion or ambiguity:
-1. Pause
-2. Surface candidate
-3. Await instruction
+On an operational failure or uncertainty, retain the accepted goal and follow [the cohesive project flow](agent/02-focusa-cohesive-project-flow.md):
+1. Identify the failed operation, exact scope, missing fact and any uncertain effects.
+2. Continue permitted investigation; select and execute supported in-scope recovery, reconcile effects before replay, and verify the result.
+3. Resume the interrupted admitted action automatically; keep independent authorized branches advancing.
+4. Ask only for an irreducible consequential choice/consent outside existing authority. A genuinely unavailable mandatory dependency pauses its dependents with an exact resume condition, not every unrelated action.
+
+Input mismatch, reporting failure, pending observation and genuine authority denial are different conditions. Never invent admission, bypass the Focus Gate, take over another writer without authority or self-renew exhausted budgets. A newly discovered necessary correction may be proposed, validated and committed under the existing accepted outcome without a routine permission loop.
 
 For speech ambiguity affecting consequential action, retain the hypothesis/evidence and request exact clarification rather than guessing.
 

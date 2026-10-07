@@ -6,6 +6,10 @@ Focusa adapters are thin integration layers. The Focusa daemon/core remains the 
 
 Adapters stay thin. Focusa daemon/core remains cognitive authority. Adapters must not invent canonical state, merge workstreams, or promote advisory packets to authority.
 
+## One complete journey
+
+Use [the cohesive project-flow guide](../agent/02-focusa-cohesive-project-flow.md) over the owning Specs 143/158/164 and issue #618. New/missing baseline uses conditional Bootstrap; missing/interrupted intent-to-first-action state uses conditional Genesis. Existing projects reuse valid bindings and the linked Ladder/spec/tasks. Prepare → Act → Reconcile → Advance preserves the goal while refining affected work. The capabilities below are not a mandatory sequence, and none grants itself execution authority.
+
 ## Minimal adapter contract
 
 Every agent adapter supports these capabilities, either through Pi tools, Focusa CLI, direct HTTP, or an MCP/tool bridge:
@@ -34,7 +38,7 @@ Every agent adapter supports these capabilities, either through Pi tools, Focusa
 ## Authority boundaries
 
 - Operator steering wins.
-- `project_root + continuity_id` is the authority boundary for project/workstream state.
+- `project_root + continuity_id` are lookup/lineage inputs, not the complete authority boundary: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey under Specs 158/164.
 - `session_id` is temporal metadata, not authority.
 - Context Cognition, Project Card, Prediction, Metacognition, and Call Stack Design are advisory unless explicitly linked through Workpoint/Trajectory/Evidence paths.
 - Transcript tail is never authority after compaction or tool-output flood.
@@ -66,7 +70,10 @@ Adapters must:
 - preserve proof handles rather than raw logs
 - avoid leaking secrets/tokens/private file contents into public cards
 - checkpoint before compaction/model switch/risky continuation
-- recover from stale/degraded state by project identity → trajectory view → Workpoint resume/checkpoint → evidence capture
+- classify the exact failed request, scope and effect uncertainty; discover supported scoped recovery, reconcile effects, verify and resume the interrupted action
+- keep independently admitted work progressing; deterministic unchanged retries, automatic takeover and unmanaged bypass are not recovery
+- preserve the exact captured operator instruction across request/response; a paraphrased override or changed in-flight ask is not a missing-consent verdict
+- expose the known next operation/arguments, missing fact, recovery exit check and interrupted action; do not merely return a circular tool list
 
 ## Verification
 

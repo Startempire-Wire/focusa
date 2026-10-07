@@ -19,6 +19,10 @@ Included explicitly:
 - Letta.
 - Other CLI/HTTP-compatible harnesses.
 
+## Complete project journey
+
+All supported adapters consume [one cohesive project flow](../agent/02-focusa-cohesive-project-flow.md): exact binding → Bootstrap/Genesis only when needed → linked Ladder/spec/tasks → Workpoint/frontier → Prepare/Act/Reconcile/Advance. Preserve the accepted outcome and current permission ceiling; validate necessary in-scope corrections rather than restart onboarding or ask permission for ordinary technical choices. Requested parity is not proof that every installed adapter already implements these transitions.
+
 ## Requirement
 
 Every non-Pi agent entrypoint must receive a compact Focusa Utility Card or equivalent startup instruction before reasoning when Focusa is available.
@@ -37,7 +41,7 @@ Before compaction/model switch/fork/risky continuation: checkpoint a Workpoint w
 On project start/resume: fetch /v1/trajectory/view for high/mid/low goals, active gap, evidence, and drift boundaries.
 After resume/reload: fetch Workpoint resume packet from `/v1/workpoint/resume` or `focusa_workpoint_resume` and follow it unless operator steers otherwise.
 If state/tool readiness is unclear, run `focusa_tool_doctor` before guessing.
-Trajectory similarity is advisory only; same high-level sessions must_not_merge_sessions without project_root+continuity_id match.
+Trajectory similarity is advisory only; must_not_merge_sessions merely because project_root+continuity_id or a goal title matches. Resolve the same exact Workstream/continuity/attachment before adopting canonical state.
 After proof/tests/API/file result: capture/link evidence with `focusa_evidence_capture` or `focusa_workpoint_link_evidence`.
 Before risky/uncertain next action: record prediction with `focusa_predict_record`; after outcome: evaluate it with `focusa_predict_evaluate`.
 Operator steering wins.
@@ -113,7 +117,7 @@ Before acting in this repo, call or paste:
 2. focusa trajectory view --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --mode summary --json
 3. focusa workpoint resume --project-root "$PWD" --continuity-id "$FOCUSA_CONTINUITY_ID" --json
 4. focusa workpoint resume --copy-prompt
-Treat `project_root + continuity_id` as the canonical continuity identity gate. `session_id` is temporal metadata for the producing/calling session and must never replace or demote `continuity_id`; therefore same-continuity/different-session activity remains one Workstream, while same-project/different-continuity activity remains isolated. Never trust transcript tail over a canonical Workpoint/Trajectory packet. Paste the copy-prompt output when the agent cannot call Focusa directly. Capture proof with focusa evidence capture/link after tests or file/API verification.
+Treat `project_root + continuity_id` as lookup/lineage inputs, not complete authority: require exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey. `session_id` is temporal metadata; matching continuity does not itself establish the same Workstream. Preserve isolation and resolve the installed adapter binding before adoption. Never trust transcript tail over a canonical Workpoint/Trajectory packet. Paste the copy-prompt output when the agent cannot call Focusa directly. Capture proof with focusa evidence capture/link after tests or file/API verification.
 ```
 
 ### OpenCode adapter card
@@ -131,7 +135,7 @@ Letta may keep local narrative continuity, but Focusa remains project trajectory
 ### CLI/MCP adapter card
 
 ```text
-Expose these as first-class commands/tools: focusa_project_identity, focusa_trajectory_view, focusa_workpoint_resume, focusa_evidence_capture, focusa_tool_doctor, focusa_traverse, and focusa_reflex_primitives. MCP wrappers should preserve continuity_id and project_root on every call and treat reflex primitives as advisory read-only metadata.
+Expose these as first-class commands/tools: focusa_project_identity, focusa_trajectory_view, focusa_workpoint_resume, focusa_evidence_capture, focusa_tool_doctor, focusa_traverse, and focusa_reflex_primitives. MCP wrappers preserve the exact resolved Workstream/continuity and applicable attachment on every call, using the installed strict schema; project_root/continuity_id alone are not sufficient. Reflex primitives remain advisory read-only metadata.
 ```
 
 ## Wirebot-specific requirements
@@ -140,7 +144,7 @@ Wirebot must treat Focusa as the cognition/governance layer, not as the hidden d
 
 - Durable personal/business knowledge still promotes to Wiki/Mem0/Letta/workspace where appropriate.
 - Focusa stores current bounded focus, Workpoints, evidence refs, predictions, and recovery state.
-- OpenClaw/Wirebot fallback when Focusa is down must clearly mark `cognition_degraded=true` and continue only with direct model + Wiki/Mem0/Letta context.
+- OpenClaw/Wirebot fallback when Focusa is down marks `cognition_degraded=true`; direct model + Wiki/Mem0/Letta context does not replace mandatory execution authority. Continue permitted diagnosis/recovery and independently authorized work only.
 - Every Wirebot turn should be attributable to a Focusa session/workspace id when Focusa is available.
 - Wirebot/non-Pi integration must not introduce a second Focusa ontology, Workpoint, grant, evidence or metacognition authority merely to reach parity with Pi.
 
@@ -154,6 +158,10 @@ Suggested scope identifiers:
   "operator_id": "verious.smith"
 }
 ```
+
+## Recovery and progression
+
+A rejected request does not imply a stopped mission. Inspect exact input/provenance, bindings, revisions, receipts and the supported recovery route; reconcile uncertain effects before replay. Pending work is observed, not duplicated. Verify repair and return to the interrupted action; advance independent admitted work. Preserve genuine consent/scope/budget boundaries and do not fabricate admission. Routine model/session changes do not imply a new HLT or Genesis transaction.
 
 ## Success criteria
 

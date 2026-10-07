@@ -1,15 +1,17 @@
 # Golden Workflow
 
 Status: current canonical happy path
-Source: Spec 106 — Focusa Vision Tightening
+Sources: Spec 106 vocabulary, Specs 143/158/164 project journey, and issue #618 continuous closed-loop requirements
 
-The Golden Workflow is the canonical Focusa happy path for systematic AI execution. It preserves vocabulary while making the sequence easy to follow.
+The Golden Workflow is a projection of [one cohesive agent project journey](../agent/02-focusa-cohesive-project-flow.md), not a separate linear script. Preserve the accepted destination, reuse valid state, and validate evidence-backed route corrections. **Verify binding → Bootstrap/Genesis when needed → linked Ladder/spec/tasks → Workpoint/frontier → Prepare/Act/Reconcile/Advance.**
 
 ## Authority boundary
 
-See [`AUTHORITY_MODEL.md`](AUTHORITY_MODEL.md). Operator steering wins. `project_root + continuity_id` is the authority boundary. Context Cognition, Project Card, Prediction, Metacognition, and Call Stack Design are advisory unless explicitly linked through Workpoint/Trajectory/Evidence paths.
+See [`AUTHORITY_MODEL.md`](AUTHORITY_MODEL.md). Operator steering wins. `project_root + continuity_id` are lookup/lineage inputs; exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey establish the canonical binding. Context Cognition, Project Card, Prediction, Metacognition, and Call Stack Design are advisory unless explicitly linked through Workpoint/Trajectory/Evidence paths.
 
-## Workflow
+## Conditional capability crosswalk
+
+Select only capabilities needed by the current valid frontier, recovery or relevant proof obligation; do not execute every numbered item. Bootstrap/Genesis status is inspected for missing/interrupted initialization, not repeated for every session. Context, design, prediction and transfer remain supporting operations, not compulsory ritual. Admission, applicable proof and authority requirements are unchanged.
 
 1. **Verify ProjectIdentity**
    - Tool/API: `focusa_project_identity`, `focusa_project_verify`
@@ -66,10 +68,12 @@ See [`AUTHORITY_MODEL.md`](AUTHORITY_MODEL.md). Operator steering wins. `project
     - Output: rehydrated scope, trajectory, Workpoint
     - Authority: canonical only after exact-scope verification
 
-12. **Produce final report with proof**
+12. **Reconcile, advance or settle with proof**
     - Tool/API: evidence refs, Workpoint result, trajectory assessment
-    - Output: concise report with changed files, checks, blockers, proof handles
-    - Authority: evidence-backed completion summary
+    - Output: verified observed state/gap, acceptance disposition, and next dependency-valid action; a concise report does not stop unfinished admitted work
+    - Authority: existing Workpoint/Trajectory/task/graph owners; whole-outcome settlement requires all accepted obligations and relevant effects reconciled
+
+New discoveries return only affected work to Prepare/Refine. Missing frontier or stale binding requires supported recovery, not automatic mission surrender or a shell bypass. Snapshot restore/rollback/transfer remain conditional. Preserve real scope, consent, integrity and budget boundaries.
 
 ## Display requirements
 
