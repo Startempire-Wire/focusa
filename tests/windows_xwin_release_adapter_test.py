@@ -59,7 +59,7 @@ class WindowsXwinContractTests(unittest.TestCase):
         producer = yaml.load((ROOT / '.github/workflows/windows-ovh-build.yml').read_text(), Loader=yaml.BaseLoader)
         self.assertEqual(producer['on']['workflow_dispatch']['inputs']['desktop_nsis']['default'], 'false')
         steps = producer['jobs']['cross-compile']['steps']
-        tools = next(step for step in steps if step['name'].startswith('Prepare job-owned'))
+        tools = next(step for step in steps if step.get('name', '').startswith('Prepare job-owned'))
         self.assertIn('apt-get download nsis=3.09-4ubuntu1', tools['run'])
         self.assertNotIn('sudo', tools['run'])
         self.assertIn('dpkg-deb -x', tools['run'])
