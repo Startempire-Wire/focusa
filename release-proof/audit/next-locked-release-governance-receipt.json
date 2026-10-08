@@ -1160,7 +1160,7 @@
       ]
     },
     "closure_set_digest": "sha256:410833c5602317fb7742b3ed52119401963e79f0c73bf280bcea9b62913f5f69",
-    "governance_source_commit": "d48bf0a9f4841e75ce331e360ae28a64e2121756",
+    "governance_source_commit": "f579f24c3a3a02726ac687b64a1fd5564c84396a",
     "input_artifacts": [
       {
         "digest": "sha256:deda390b4067b160bae3110c7ee44cf8bf08ba96c970dce08cf96a53dda7cf27",
@@ -1179,7 +1179,7 @@
         "path": "release-proof/audit/next-locked-release-technical-closure-gate.json"
       },
       {
-        "digest": "sha256:9dd425bb12c6555b5e1fc28ab54ffe71a6c566cb79f53051bc22ea1e7e54aa16",
+        "digest": "sha256:70a574d29f5b5b8bc70c85ff2b93a45541f91e4e39f77b086f2de2d3687bf8d3",
         "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
       },
       {
@@ -1187,7 +1187,7 @@
         "path": "release-proof/audit/next-locked-release-v09143-published-assets.json"
       }
     ],
-    "input_artifacts_digest": "sha256:898c120d882822d21c1fb00d0d2d9eb572b43f186b5858978787c2ca59be50ed",
+    "input_artifacts_digest": "sha256:7e34cc48d7ce000616adf449c611a0acd8d43b96894a0ac249407389703fba5f",
     "linkage": {
       "artifact_refs": [
         "release-proof/audit/next-locked-release-candidate-ancestry.json",
@@ -1338,7 +1338,7 @@
           "path": "docs/142-focusa-release-requirement-trace-matrix.md"
         },
         {
-          "digest": "sha256:10586876cb24ebc1ed8f52fe86ce160bda1779e15391d5f4b440d5aa11b15598",
+          "digest": "sha256:ebf989efeb111d6c88d4410859a9deff4c4e937e68fbc3929306f2b2b1a4755f",
           "path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md"
         },
         {
@@ -1394,7 +1394,7 @@
           "path": "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
         },
         {
-          "digest": "sha256:9dd425bb12c6555b5e1fc28ab54ffe71a6c566cb79f53051bc22ea1e7e54aa16",
+          "digest": "sha256:70a574d29f5b5b8bc70c85ff2b93a45541f91e4e39f77b086f2de2d3687bf8d3",
           "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
         },
         {
@@ -1508,7 +1508,7 @@
         "tests/spec52_onboarding_consolidation_gate.py"
       ]
     },
-    "linkage_digest": "sha256:fb5eb71feedae0b5ef07bd37f9786fda6897ca62421c0c9f92e0c44cf24138b7",
+    "linkage_digest": "sha256:3a4e4efa4c37215780dbe41b17473214913e015402c2408461cd7426e5816236",
     "mutation_policy": {
       "canonical_replay_required": true,
       "detached_signature_required": true,
@@ -1516,10 +1516,10 @@
       "provider_status_is_not_technical_proof": true,
       "rewrite_v0.9.143": false
     },
-    "payload_digest": "sha256:2383afbd0e09af473395f097503cb39fefa9c9e57852dd0c8060863557f6608e",
+    "payload_digest": "sha256:481d7d2629a369699dc8f3d4c23c34d6558f3d660c6274e62cce3475b8e5f37f",
     "release_proof": {
-      "ancestry_digest": "sha256:0e65c78471bf5c48bd14a2bc7a0a12ee6e148074e1c2ab5c13350cf2091c6929",
-      "candidate_source_commit": "d48bf0a9f4841e75ce331e360ae28a64e2121756",
+      "ancestry_digest": "sha256:dd83bf8a9dc485f21cfa5647bf709162265c5281f9e15961fb5622136f9b3fd3",
+      "candidate_source_commit": "f579f24c3a3a02726ac687b64a1fd5564c84396a",
       "immutable_tag": "v0.9.143",
       "immutable_tag_commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
       "missing_required_assets": [
@@ -1551,7 +1551,7 @@
         "pattern:Focusa_*arm64*.msi",
         "pattern:Focusa_*arm64*.msi.sig"
       ],
-      "next_stable_tag": "v0.9.195",
+      "next_stable_tag": "v0.9.203",
       "published_asset_count": 66,
       "release_blockers": [
         "technical_acceptance_pending"
@@ -1567,8 +1567,8 @@
     "authority_boundary": "integrity and replay seal only; not release publication, entitlement, OTA, or production signing authority",
     "key_authority": "one_time_governance_integrity_seal",
     "private_key_persisted": false,
-    "public_key_base64": "ahLfS5Ak16Ud53A4RJjovuE0V3MpJQ0+jk6caq+bMf0=",
-    "public_key_fingerprint": "9f806fd8e3110b73eec5877e22da96f3fe2c2fc52baa6f2cab5dd69625f17d91",
+    "public_key_base64": "KxdMPV87odQauufLFUB40IjSZvAi98KnCSZdf9WeyW4=",
+    "public_key_fingerprint": "8edc9f3f965f4c4e63a509c70224ea282459fb0287ff1bdf98060a6993cb8bba",
     "signed_encoding": "canonical-json-sorted-keys-compact-utf8"
   }
 }
