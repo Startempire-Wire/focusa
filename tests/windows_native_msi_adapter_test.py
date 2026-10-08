@@ -7,6 +7,8 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+import json
+import os
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +20,7 @@ def load(name, file):
 
 NATIVE = load('native_msi', 'prepare-native-windows-tauri.py')
 WINE = load('wine_msi', 'prepare-windows-msi-wine.py')
+CONTROLLER = load('msi_controller', 'run-windows-ovh-release.py')
 
 class NativeMsiInputTests(unittest.TestCase):
     def test_windows_paths_are_explicit_and_absolute(self):
@@ -38,6 +41,20 @@ class NativeMsiInputTests(unittest.TestCase):
             receipt = WINE.download('https://example.invalid', Path(folder) / 'fixture', hashlib.sha512(data).hexdigest(), algorithm='sha512')
             self.assertTrue(receipt['external_checksum_verified'])
             self.assertEqual(receipt['sha256'], hashlib.sha256(data).hexdigest())
+    def test_completed_tool_cleanup_retains_receipt_and_preserves_running_jobs(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            tools = base / 'focusa-windows-pipeline-123-1/msi-tools'
+            tools.mkdir(parents=True)
+            receipt = {'kind': 'ovh_wine_wix_toolchain', 'prefix': str(tools / 'prefix')}
+            (tools / 'toolchain-receipt.json').write_text(json.dumps(receipt))
+            with patch.dict(os.environ, {'GITHUB_REPOSITORY': 'example/focusa'}), patch.object(CONTROLLER.subprocess, 'check_output', return_value='in_progress\n'):
+                CONTROLLER.reclaim_completed_msi_tools(base, base / 'retained', '456')
+                self.assertTrue(tools.exists())
+            with patch.dict(os.environ, {'GITHUB_REPOSITORY': 'example/focusa'}), patch.object(CONTROLLER.subprocess, 'check_output', return_value='completed\n'):
+                CONTROLLER.reclaim_completed_msi_tools(base, base / 'retained', '456')
+                self.assertFalse(tools.exists())
+                self.assertEqual(json.loads((base / 'retained/toolchain-evidence/focusa-windows-pipeline-123-1/toolchain-receipt.json').read_text()), receipt)
     def test_native_tool_tampering_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder, patch.object(WINE.urllib.request, 'urlopen', return_value=io.BytesIO(b'changed')):
             with self.assertRaises(ValueError):

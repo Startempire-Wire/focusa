@@ -35,6 +35,34 @@ def require_headroom(status):
         raise ValueError('build headroom insufficient: ' + json.dumps(status))
 
 
+def reclaim_completed_msi_tools(temporary, archive, current_run):
+    """Reclaim only terminal, receipt-identified job-owned tools; retain evidence."""
+    repository = os.environ['GITHUB_REPOSITORY']
+    for folder in temporary.glob('focusa-windows-pipeline-*'):
+        match = re.fullmatch(r'focusa-windows-pipeline-(\d+)-(\d+)', folder.name)
+        if not match or match[1] == current_run or folder.is_symlink():
+            continue
+        tools = folder / 'msi-tools'
+        handle = tools / 'toolchain-receipt.json'
+        if tools.is_symlink() or not handle.is_file():
+            continue
+        tools.resolve().relative_to(temporary.resolve())
+        receipt = json.loads(handle.read_text())
+        if receipt.get('kind') != 'ovh_wine_wix_toolchain' or receipt.get('prefix') != str(tools / 'prefix'):
+            continue
+        status = subprocess.check_output(['gh', 'api', f'repos/{repository}/actions/runs/{match[1]}', '--jq', '.status'], text=True).strip()
+        if status != 'completed':
+            continue
+        retained = archive / 'toolchain-evidence' / folder.name
+        retained.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(handle, retained / handle.name)
+        native = tools / 'native-cli/native-tool-inputs.json'
+        if native.is_file():
+            shutil.copy2(native, retained / native.name)
+        shutil.rmtree(tools)
+        print('Reclaimed completed isolated tools; receipt retained:', folder.name)
+
+
 def preserve_binaries(target, saved, tag, sha):
     records = []
     for triple in ['x86_64-pc-windows-msvc', 'aarch64-pc-windows-msvc']:
@@ -188,6 +216,7 @@ def main():
     run([*command, '--plan'], env=env)
     archive = Path('/home/wirebot/build/focusa') / ('preserved-release-cache-' + job)
     reclaim_idle_cache(Path('/home/wirebot/.cache/focusa-release-target'), archive)
+    reclaim_completed_msi_tools(temporary, archive, os.environ['GITHUB_RUN_ID'])
     require_headroom(disk_status())
     try:
         if args.mode in {'msi-tools', 'msi'}:
