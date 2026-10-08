@@ -13,7 +13,11 @@ import zipfile
 WIX_URL = 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip'
 # Authoritative tauri-cli-v2.11.2 tauri-bundler/windows/msi constant.
 WIX_SHA256 = '6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31'
-MONO_URL = 'https://github.com/wine-mono/wine-mono/releases/download/wine-mono-9.0.0/wine-mono-9.0.0-x86.msi'
+# Wine 9.0's own addons.c specifies this compatible version and SHA-256.
+MONO_VERSION = '8.1.0'
+MONO_FILE = f'wine-mono-{MONO_VERSION}-x86.msi'
+MONO_URL = f'https://github.com/wine-mono/wine-mono/releases/download/wine-mono-{MONO_VERSION}/{MONO_FILE}'
+MONO_SHA256 = '0ed3ec533aef79b2f312155931cf7b1080009ac0c5b4c2bcfeb678ac948e0810'
 PACKAGES = ['wine64=9.0~repack-4build3', 'libwine=9.0~repack-4build3', 'libz-mingw-w64=1.3.1+dfsg-1']
 
 
@@ -85,7 +89,7 @@ def main():
     subprocess.run([str(server), '--version'], env=env, check=True, timeout=30)
     subprocess.run([str(wine), 'wineboot', '-u'], env=env, check=True, timeout=120)
     artifacts = [download(WIX_URL, tools / 'wix.zip', WIX_SHA256),
-                 download(MONO_URL, tools / 'wine-mono-9.0.0-x86.msi')]
+                 download(MONO_URL, tools / MONO_FILE, MONO_SHA256)]
     wix = tools / 'wix'
     wix.mkdir()
     with zipfile.ZipFile(tools / 'wix.zip') as archive:
@@ -93,7 +97,7 @@ def main():
             (wix / member.filename).resolve().relative_to(wix.resolve())
         archive.extractall(wix)
     env.pop('WINEDLLOVERRIDES')
-    subprocess.run([str(wine), 'msiexec', '/i', str(tools / 'wine-mono-9.0.0-x86.msi'),
+    subprocess.run([str(wine), 'msiexec', '/i', str(tools / MONO_FILE),
                     '/quiet', '/norestart'], env=env, check=True, timeout=180)
     subprocess.run([str(wine), str(wix / 'candle.exe'), '-?'], env=env, check=True, timeout=90)
     subprocess.run([str(wine), str(wix / 'light.exe'), '-?'], env=env, check=True, timeout=90)
