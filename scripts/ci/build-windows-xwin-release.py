@@ -140,9 +140,19 @@ def build_nsis(args, source, targets, env):
             reset_bundle_marker(destination)
             subprocess.run(['npm', 'run', 'build'], cwd=app, env=env, check=True)
             cli_path = native_tauri.windows_path(cli) if package_format == 'msi' else str(cli)
-            subprocess.run([*launcher, cli_path, 'bundle', '--target', target,
-                            '--bundles', package_format, *(['--verbose'] if package_format == 'msi' else [])], cwd=app,
-                           env=native_env if package_format == 'msi' else env, check=True)
+            command = [*launcher, cli_path, 'bundle', '--target', target,
+                       '--bundles', package_format, *(['--verbose'] if package_format == 'msi' else [])]
+            if package_format == 'msi':
+                attempt = subprocess.run(command, cwd=app, env=native_env, text=True,
+                                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
+                print(attempt.stdout, flush=True)
+                if attempt.returncode:
+                    if 'experimental wow64 mode' not in attempt.stdout or 'stack overflow' not in attempt.stdout:
+                        raise subprocess.CalledProcessError(attempt.returncode, command)
+                    native_tauri.finish_generated_msi(app, args.msi_tools.resolve(), args.target_dir,
+                                                      target, env)
+            else:
+                subprocess.run(command, cwd=app, env=env, check=True)
         else:
             if package_format == 'msi':
                 raise ValueError('MSI packaging requires the verified immutable desktop cache')
@@ -159,9 +169,13 @@ def build_nsis(args, source, targets, env):
             inspection.mkdir()
             xml = inspection / 'decompiled.wxs'
             dark = args.msi_tools.resolve() / 'wix/dark.exe'
-            subprocess.run([launcher[0], str(dark), native_tauri.windows_path(installer),
+            inspection_env = {key: value for key, value in native_env.items()
+                              if key in {'PATH', 'HOME', 'TMP', 'TEMP', 'SYSTEMROOT'}}
+            inspection_env.update(json.loads((args.msi_tools / 'toolchain-receipt.json').read_text())['launcher_env'])
+            wine32 = str(args.msi_tools.resolve() / 'root/usr/lib/wine/wine')
+            subprocess.run([wine32, native_tauri.windows_path(dark), native_tauri.windows_path(installer),
                             '-x', native_tauri.windows_path(inspection), '-o', native_tauri.windows_path(xml)],
-                           env=native_env, check=True, timeout=120)
+                           env=inspection_env, check=True, timeout=120)
             tree = ET.parse(xml)
             product = next(element for element in tree.iter() if element.tag.endswith('}Product'))
             if product.get('Version') != args.tag.removeprefix('v'):

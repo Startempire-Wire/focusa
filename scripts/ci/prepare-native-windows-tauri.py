@@ -97,26 +97,46 @@ def prepare(app, tools, env):
         raise ValueError('unambiguous isolated Wine user profile required')
     wix = profiles[0] / 'AppData/Local/tauri/WixTools314'
     shutil.copytree(tools / 'wix', wix, dirs_exist_ok=True)
-    # Upstream WiX/Wine cannot execute Windows ICE validation. The explicit
-    # compatibility adapter retains vendor bytes; publication additionally
-    # requires database decompilation, exact payload identity and signatures.
-    compilers = sorted((Path(env['WINEPREFIX']) / 'drive_c/windows').glob('**/csc.exe'))
-    if not compilers:
-        compilers = sorted((Path(env['WINEPREFIX']) / 'drive_c/windows').glob('**/mcs.exe'))
-    if not compilers:
-        raise ValueError('existing Mono compiler required for the Wine compatibility adapter')
-    adapter = native / 'wix-wine-light.cs'
-    adapter.write_text('''using System; using System.IO; using System.Reflection;
-class WineLight { static int Main(string[] args) {
- try { string path=Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "light.vendor.exe");
- string[] forwarded=new string[args.Length+1]; Array.Copy(args,forwarded,args.Length); forwarded[args.Length]="-sval";
- object result=Assembly.LoadFrom(path).EntryPoint.Invoke(null,new object[]{forwarded}); return result is int ? (int)result : 0;
- } catch(Exception e) {Console.Error.WriteLine(e.GetBaseException()); return 1;}
-} }''')
-    (wix / 'light.exe').rename(wix / 'light.vendor.exe')
-    subprocess.run([receipt['launcher'], str(compilers[0]), '/nologo', '/target:exe', '/platform:x86',
-                    '/out:' + windows_path(wix / 'light.exe'), windows_path(adapter)], env=env, check=True, timeout=90)
-    inputs.append({'kind': 'wix_wine_compatibility_adapter', 'source_sha256': hashlib.sha256(adapter.read_bytes()).hexdigest(),
+    inputs.append({'kind': 'wix_wine_execution_adapter',
                    'windows_ice_validation': 'not_run_wine_unsupported'})
     (native / 'native-tool-inputs.json').write_text(json.dumps({'inputs': inputs, 'tauri_cli_version': cli_version, 'native_windows_proof': False}, indent=2) + '\n')
     return [receipt['launcher'], str(node)], env
+
+
+def finish_generated_msi(app, tools, target_dir, target, env):
+    """Execute Tauri's generated WiX recipe at the owned Unix/Wine boundary."""
+    config = json.loads((app / 'src-tauri/tauri.conf.json').read_text())
+    if config['bundle'].get('windows', {}).get('wix'):
+        raise ValueError('custom WiX recipes require their owning execution adapter')
+    arch = {'x86_64-pc-windows-msvc': 'x64', 'aarch64-pc-windows-msvc': 'arm64'}[target]
+    release = target_dir.resolve() / target / 'release'
+    build = release / 'wix' / arch
+    wxs = build / 'main.wxs'
+    locale = build / 'locale.wxl'
+    if not wxs.is_file() or not locale.is_file():
+        raise ValueError('package-owned Tauri WiX source and locale required')
+    receipt = json.loads((tools / 'toolchain-receipt.json').read_text())
+    runtime = {key: value for key, value in env.items()
+               if key in {'PATH', 'HOME', 'TMP', 'TEMP', 'SYSTEMROOT'}}
+    runtime.update(receipt['launcher_env'])
+    wine = str(tools / 'root/usr/lib/wine/wine')
+    wix = tools / 'wix'
+    binary = release / 'focusa-menubar.exe'
+    subprocess.run([wine, windows_path(wix / 'candle.exe'), '-arch', arch,
+                    windows_path(wxs), '-dSourceDir=' + windows_path(binary)],
+                   cwd=build, env=runtime, check=True, timeout=120)
+    msi = build / 'output.msi'
+    subprocess.run([wine, windows_path(wix / 'light.exe'), '-sval',
+                    '-ext', windows_path(wix / 'WixUIExtension.dll'),
+                    '-ext', windows_path(wix / 'WixUtilExtension.dll'),
+                    '-o', windows_path(msi), '-cultures:en-us',
+                    '-loc', windows_path(locale), '*.wixobj'],
+                   cwd=build, env=runtime, check=True, timeout=180)
+    bundle = release / 'bundle/msi'
+    bundle.mkdir(parents=True, exist_ok=True)
+    installer = bundle / (config['productName'] + '_' + config['version'] + '_' + arch + '_en-US.msi')
+    msi.rename(installer)
+    # The package-owned signer reads approved injected key references from env;
+    # no secret enters arguments, files, inspection subprocesses or receipts.
+    subprocess.run(['node', str(app / 'node_modules/@tauri-apps/cli/tauri.js'),
+                    'signer', 'sign', str(installer)], cwd=app, env=env, check=True, timeout=90)
