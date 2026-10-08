@@ -14,6 +14,11 @@ on:
         description: Exact commit SHA the release tag must resolve to
         required: true
         type: string
+      recover_staged_assets:
+        description: Reverify existing candidate receipts and finish signing/publication without rebuilding artifacts
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: release-${{ inputs.release_tag || github.ref }}
