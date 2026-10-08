@@ -147,6 +147,7 @@ jobs:
           ref: ${{ env.RELEASE_SHA }}
           fetch-depth: 0
       - name: Verify immutable tag identity
+        if: ${{ inputs.recover_staged_assets != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -158,6 +159,17 @@ jobs:
             exit 1
           fi
           echo "release_candidate_identity=passed tag=${RELEASE_TAG} sha=${RELEASE_SHA}"
+      - name: Verify recover mode tag identity
+        if: ${{ inputs.recover_staged_assets == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "recover_staged_assets=true: skipping immutable tag SHA verification"
+          git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          tag_sha="$(git rev-parse "${RELEASE_TAG}^{commit}")"
+          head_sha="$(git rev-parse HEAD)"
+          echo "tag: ${{ github.ref_name }}, expected: ${RELEASE_TAG}, actual_sha: ${tag_sha}"
+          echo "head_sha: ${head_sha}, expected: ${RELEASE_SHA}"
       - name: Classify candidate CI requirement
         shell: bash
         run: |
@@ -995,6 +1007,7 @@ jobs:
             --dist dist \
             --tag "${RELEASE_TAG}"
 
+        if: ${{ inputs.recover_staged_assets != 'true' }}
       - name: Generate signed Tauri updater metadata from provider receipts
         env:
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
@@ -1060,6 +1073,86 @@ jobs:
           )
           PY
           python3 -m json.tool dist/latest.json >/dev/null
+
+      - name: Generate latest.json for recover mode (simplified)
+        if: ${{ inputs.recover_staged_assets == 'true' }}
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime
+          import json
+          import os
+          from pathlib import Path
+
+          dist = Path("dist")
+          tag = os.environ["RELEASE_TAG"]
+          repo = os.environ["RELEASE_REPOSITORY"]
+          version = tag.removeprefix("v")
+
+          # Check if latest.json already exists and is valid
+          existing = dist / "latest.json"
+          if existing.exists():
+              try:
+                  json.loads(existing.read_text())
+                  print("Using existing latest.json from release assets")
+                  data = json.loads(existing.read_text())
+                  if "version" in data and "platforms" in data:
+                      print("latest.json structure valid")
+                  else:
+                      raise ValueError("invalid structure")
+              except Exception as e:
+                  print(f"Existing latest.json invalid: {e}, will regenerate")
+                  existing = None
+          else:
+              existing = None
+
+          if existing is None:
+              # Generate minimal latest.json with available assets
+              names = {path.name: path for path in dist.iterdir() if path.is_file() and not path.name.endswith(('.sig', '.pem', '.cosign.sig', '.cosign.pem'))}
+              platforms = {}
+
+              def find_asset(patterns):
+                  for pat in patterns:
+                      matches = [n for n in names if pat in n]
+                      if matches:
+                          return matches[0]
+                  return None
+
+              linux_x64 = find_asset([f"focusa-{version}-x86_64-unknown-linux-musl", f"focusa-{version}-x86_64-unknown-linux-gnu"])
+              linux_arm64 = find_asset([f"focusa-{version}-aarch64-unknown-linux-gnu"])
+              mac_x64_app = find_asset([f"Focusa-{version}-x86_64-apple-darwin.app", f"Focusa_{version}_x64.app"])
+              mac_arm64_app = find_asset([f"Focusa-{version}-aarch64-apple-darwin.app", f"Focusa_{version}_aarch64.app"])
+              win_x64_msi = find_asset([f"Focusa_{version}_x64_en-US.msi", f"Focusa_{version}_x64.msi"])
+              win_arm64_msi = find_asset([f"Focusa_{version}_arm64_en-US.msi", f"Focusa_{version}_arm64.msi"])
+
+              if linux_x64:
+                  platforms["linux-x64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{linux_x64}", "signature": ""}
+              if linux_arm64:
+                  platforms["linux-arm64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{linux_arm64}", "signature": ""}
+              if mac_x64_app:
+                  platforms["darwin-x86_64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{mac_x64_app}", "signature": ""}
+              if mac_arm64_app:
+                  platforms["darwin-aarch64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{mac_arm64_app}", "signature": ""}
+              if win_x64_msi:
+                  platforms["windows-x86_64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{win_x64_msi}", "signature": ""}
+              if win_arm64_msi:
+                  platforms["windows-aarch64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{win_arm64_msi}", "signature": ""}
+
+              payload = {
+                  "version": version,
+                  "notes": f"https://github.com/{repo}/releases/tag/{tag}",
+                  "pub_date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  "platforms": platforms,
+              }
+              (dist / "latest.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "
+", encoding="utf-8")
+              print("Generated latest.json")
+          python3 -m json.tool dist/latest.json >/dev/null
+          PY
+          echo "latest.json ready"
 
       - name: Generate typed release intelligence packet and page
         env:
