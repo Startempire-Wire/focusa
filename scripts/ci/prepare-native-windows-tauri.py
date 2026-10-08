@@ -82,6 +82,13 @@ def prepare(app, tools, env):
         raise ValueError('unambiguous isolated Wine user profile required')
     wix_cache = profiles[0] / 'AppData/Local/tauri/WixTools314'
     shutil.copytree(tools / 'wix', wix_cache, dirs_exist_ok=True)
+    # Mono's P/Invoke search does not apply WiX's Windows x64 PATH mutation.
+    # Bind unchanged vendor x64 native DLLs beside their managed assemblies.
+    native_dlls = sorted((tools / 'wix/x64').glob('*.dll'))
+    if not native_dlls:
+        raise ValueError('verified WiX x64 native DLL directory missing')
+    for dll in native_dlls:
+        shutil.copy2(dll, wix_cache / dll.name)
     # A Windows child process otherwise chooses the PE32 managed-image loader,
     # unlike direct wine64 execution used by the verified toolchain probe.
     # Keep vendor assemblies unchanged and host their entrypoints in CLR64.

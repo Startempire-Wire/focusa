@@ -44,6 +44,47 @@ def git(source, *args):
     return subprocess.check_output(['git', '-C', str(source), *args], text=True).strip()
 
 
+def reset_bundle_marker(binary):
+    """Reset only the PE64 mutable fat-string referenced by pinned tauri-utils."""
+    import struct
+    data = bytearray(binary.read_bytes())
+    unknown = b'__TAURI_BUNDLE_TYPE_VAR_UNK'
+    if unknown in data or data[:2] != b'MZ':
+        return
+    pe = struct.unpack_from('<I', data, 0x3c)[0]
+    count = struct.unpack_from('<H', data, pe + 6)[0]
+    optional_size = struct.unpack_from('<H', data, pe + 20)[0]
+    if data[pe:pe+4] != b'PE\0\0' or struct.unpack_from('<H', data, pe+24)[0] != 0x20b:
+        raise ValueError('supported PE64 cached desktop required')
+    base = struct.unpack_from('<Q', data, pe+48)[0]
+    sections = []
+    for i in range(count):
+        at = pe + 24 + optional_size + 40*i
+        name = bytes(data[at:at+8]).rstrip(b'\0')
+        size, address, raw_size, raw = struct.unpack_from('<IIII', data, at+8)
+        sections.append((name, address, raw_size, raw))
+    found = []
+    for name, _, raw_size, raw in sections:
+        if name != b'.data':
+            continue
+        for at in range(raw, raw + raw_size - 15, 8):
+            pointer, length = struct.unpack_from('<QQ', data, at)
+            if length != len(unknown):
+                continue
+            for _, address, size, offset in sections:
+                rva = pointer - base
+                if address <= rva < address + size:
+                    location = offset + rva - address
+                    marker = bytes(data[location:location+len(unknown)])
+                    if marker in {b'__TAURI_BUNDLE_TYPE_VAR_NSS', b'__TAURI_BUNDLE_TYPE_VAR_MSI'}:
+                        found.append(location)
+    if len(set(found)) != 1:
+        raise ValueError('unambiguous cached Tauri bundle marker required')
+    location = found[0]
+    data[location:location+len(unknown)] = unknown
+    binary.write_bytes(data)
+
+
 def build_nsis(args, source, targets, env):
     """Use the package-owned Tauri bundler; verify updater signatures, not native runtime."""
     import base64
@@ -96,6 +137,7 @@ def build_nsis(args, source, targets, env):
             destination = args.target_dir.resolve() / target / 'release/focusa-menubar.exe'
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(cached, destination)
+            reset_bundle_marker(destination)
             subprocess.run(['npm', 'run', 'build'], cwd=app, env=env, check=True)
             cli_path = native_tauri.windows_path(cli) if package_format == 'msi' else str(cli)
             subprocess.run([*launcher, cli_path, 'bundle', '--target', target,
