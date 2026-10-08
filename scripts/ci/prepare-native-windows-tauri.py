@@ -81,7 +81,7 @@ def prepare(app, tools, env):
         real = loader.with_name(name + '.real')
         loader.rename(real)
         exports = '\n'.join('export ' + key + '=' + shlex.quote(env[key]) for key in receipt['launcher_env'])
-        loader.write_text('#!/bin/sh\n' + exports + '\nexport WINELOADER=' + shlex.quote(str(loader))
+        loader.write_text('#!/bin/sh\n' + exports + '\nexport WINELOADER=' + shlex.quote(str(tools / 'root/usr/lib/wine/wine'))
                           + '\nexec ' + shlex.quote(str(real)) + ' "$@"\n')
         loader.chmod(0o755)
     env['WINEPATH'] = windows_path(cargo.parent) + ';' + windows_path(node.parent)
