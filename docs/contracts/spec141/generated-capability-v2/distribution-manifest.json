@@ -1,22 +1,22 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.202",
-  "source_commit": "829f7e020",
-  "generated_at": "2026-10-07T02:48:13.951339Z",
+  "source_commit": "8065237f60c",
+  "generated_at": "2026-10-08T02:10:20.814190Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:0256e6d78dd1b604b08f0cccfe5859df4845d9d4e2d047416684adfd30e5fe56",
     "apps/pi-extension/package.json": "sha256:781b26d15490fcd8b27b4704d44601322f94a2292bfac1f7d282d6fd96f8532a",
     "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:2155f36bc42db7be22d2a2895e3cfa8e9fafcaa1744ffb5e84be669bfe175ba8",
     "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59",
-    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:2f177b79ec6118f9de57110cbfa73aa7b86adaad77e76d1c2931532200f3f96b",
-    "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:9df46da4cc0bd29e881475b84628d7a18e57f18336081d9c8730f3cd37f5b2a9",
-    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:2b15dbff0d11e7d05efe14b5edbf3812cc80f9e68106463545d04a8d315e465c"
+    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:f1064cf4384d052c432da9fcb73228c4646811905ebeca5496874298e5aa27f7",
+    "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:9be5a68bbfc1289d13b12d03eab307749018b08b5070a564cbdb1cbca004c914",
+    "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:52da7e713c7601d9748330db8060dde345740c9d17677dcd6dd5c110503386fc"
   },
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:2eb9acd2892ba4649ddd4941172877abbd0de38a68f7fd57aa2a5b3e39041ab2",
+      "sha256": "sha256:77183278e0f4145342f35799cb494963ac3f2ac2334ab07194e53a3f0b7c6cba",
       "file_count": 846,
       "source_paths": [
         "Cargo.toml",
@@ -26,7 +26,7 @@
     },
     "pi_extension": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:1f5d73b315c35dd5b9b5284333145040538c67dcb82b4b8d87be7ac5859156dd",
+      "sha256": "sha256:50b069c2e025af99a20f0e02d2db75b744ac3a3283fd73ff10ed2580a928d663",
       "file_count": 209,
       "source_paths": [
         "apps/pi-extension"
@@ -34,7 +34,7 @@
     },
     "agent_skills": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:ccf0f74840e72e80b3f977458aebf2b77cfed86bea594246c6a5da10597bde21",
+      "sha256": "sha256:5cc7a3f118904dbcd8f2585b2d107452a0e10814fe1b14b5a34ce915dbb5aa73",
       "file_count": 66,
       "source_paths": [
         ".pi/skills",
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:cf91862544fdb814d23abcc32d26eb164ab9283fa9731238ead7da38dde171da",
+      "sha256": "sha256:9f7cb3c8ca9a5f93b65dbadeaeaf1635268857c44078b7e91ff021e34593a6f8",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -126,10 +126,10 @@
     "capability_surfaces": {
       "contract_count": 157,
       "registry_sha256": "sha256:56249f287999e94e47bb0c717650ddc138657e69c9bb74319dc554e95dee3255",
-      "agent_card_sha256": "sha256:2f177b79ec6118f9de57110cbfa73aa7b86adaad77e76d1c2931532200f3f96b",
-      "pi_tools_sha256": "sha256:2b15dbff0d11e7d05efe14b5edbf3812cc80f9e68106463545d04a8d315e465c",
-      "mcp_tools_sha256": "sha256:9df46da4cc0bd29e881475b84628d7a18e57f18336081d9c8730f3cd37f5b2a9",
-      "openai_tools_sha256": "sha256:6177608fb6eef443177ac212a45d91d3ac411920d586f474883febe11ea5c29f",
+      "agent_card_sha256": "sha256:f1064cf4384d052c432da9fcb73228c4646811905ebeca5496874298e5aa27f7",
+      "pi_tools_sha256": "sha256:52da7e713c7601d9748330db8060dde345740c9d17677dcd6dd5c110503386fc",
+      "mcp_tools_sha256": "sha256:9be5a68bbfc1289d13b12d03eab307749018b08b5070a564cbdb1cbca004c914",
+      "openai_tools_sha256": "sha256:64c2d1d0af46a73305f54b69986725aeb8e35405d78ad55424879e43afa080cf",
       "openapi_sha256": "sha256:32f0db3c47ca2cd1817d62c103a60439cd0dfe88e6f3507e978c113b0a7aaab7"
     },
     "runtime_contract": {
