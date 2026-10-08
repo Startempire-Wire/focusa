@@ -99,7 +99,7 @@ def build_nsis(args, source, targets, env):
             subprocess.run(['npm', 'run', 'build'], cwd=app, env=env, check=True)
             cli_path = native_tauri.windows_path(cli) if package_format == 'msi' else str(cli)
             subprocess.run([*launcher, cli_path, 'bundle', '--target', target,
-                            '--bundles', package_format], cwd=app,
+                            '--bundles', package_format, *(['--verbose'] if package_format == 'msi' else [])], cwd=app,
                            env=native_env if package_format == 'msi' else env, check=True)
         else:
             if package_format == 'msi':
