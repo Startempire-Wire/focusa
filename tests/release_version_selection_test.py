@@ -23,7 +23,8 @@ class ReleaseVersionSelectionTests(unittest.TestCase):
             None,
             ["v0.9.136-dev", "v0.9.142", "v0.9.140-rc.2", "v0.8.999"],
         )
-        self.assertEqual(result["selected_tag"], "v0.9.143-dev")
+        self.assertEqual(result["selected_tag"], "v0.9.143")
+        self.assertEqual(result["selected_channel"], "stable")
         self.assertEqual(result["highest_patch"], 142)
         self.assertEqual(
             result["channel_maxima"],
@@ -35,6 +36,11 @@ class ReleaseVersionSelectionTests(unittest.TestCase):
         result = select_version("0.9", "v0.9.143", ["v0.9.142", "v0.9.136-dev"])
         self.assertEqual(result["selected_channel"], "stable")
         self.assertEqual(result["selected_version"], "0.9.143")
+
+    def test_explicit_dev_release_remains_available(self) -> None:
+        result = select_version("0.9", "v0.9.143-dev", ["v0.9.142"])
+        self.assertEqual(result["selected_channel"], "dev")
+        self.assertEqual(result["selected_tag"], "v0.9.143-dev")
 
     def test_explicit_lower_or_equal_patch_fails_closed(self) -> None:
         for tag in ("v0.9.141", "v0.9.142", "v0.9.142-rc.1"):
@@ -51,7 +57,7 @@ class ReleaseVersionSelectionTests(unittest.TestCase):
         result = select_version(
             "0.9", None, ["v0.9.x-dev", "v0.9.0143", "release-v0.9.999", "v0.9.142"]
         )
-        self.assertEqual(result["selected_tag"], "v0.9.143-dev")
+        self.assertEqual(result["selected_tag"], "v0.9.143")
         self.assertEqual(
             result["ignored_malformed_tags"],
             ["release-v0.9.999", "v0.9.0143", "v0.9.x-dev"],
@@ -59,7 +65,7 @@ class ReleaseVersionSelectionTests(unittest.TestCase):
 
     def test_empty_lane_preserves_documented_initial_behavior(self) -> None:
         result = select_version("0.9", None, [])
-        self.assertEqual(result["selected_tag"], "v0.9.1-dev")
+        self.assertEqual(result["selected_tag"], "v0.9.1")
         self.assertEqual(result["highest_patch"], 0)
 
 
