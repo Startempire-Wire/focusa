@@ -907,6 +907,12 @@ jobs:
           cp AGENTS.md README.md bundle/focusa-agent-context/
           cp -R .pi/skills/. bundle/focusa-agent-context/skills/
           cp -R docs/current bundle/focusa-agent-context/docs/current
+          mkdir -p bundle/focusa-agent-context/docs/agent
+          cp docs/agent/01-focusa-agent-docs-index.md \
+            docs/agent/02-focusa-cohesive-project-flow.md \
+            bundle/focusa-agent-context/docs/agent/
+          test -s bundle/focusa-agent-context/docs/agent/01-focusa-agent-docs-index.md
+          test -s bundle/focusa-agent-context/docs/agent/02-focusa-cohesive-project-flow.md
           cp -R docs/contracts/spec141/generated-capability-v2 \
             bundle/focusa-agent-context/docs/contracts/spec141/
           cp -R docs/contracts/spec135/generated-contract-v1 \
