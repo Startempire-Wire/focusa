@@ -72,6 +72,18 @@ def prepare(app, tools, env):
     if not node.is_file() or not cargo.is_file():
         raise ValueError('pinned native packaging tools missing')
     env.update(receipt['launcher_env'])
+    # Tauri intentionally clears non-TAURI environment for WiX. Relocated
+    # Unix Wine loaders still need their owned prefix and ELF search paths.
+    # Bind them at the executable boundary, not by weakening that secret filter.
+    import shlex
+    for name in ['wine', 'wine64']:
+        loader = tools / 'root/usr/lib/wine' / name
+        real = loader.with_name(name + '.real')
+        loader.rename(real)
+        exports = '\n'.join('export ' + key + '=' + shlex.quote(env[key]) for key in receipt['launcher_env'])
+        loader.write_text('#!/bin/sh\n' + exports + '\nexport WINELOADER=' + shlex.quote(str(loader))
+                          + '\nexec ' + shlex.quote(str(real)) + ' "$@"\n')
+        loader.chmod(0o755)
     env['WINEPATH'] = windows_path(cargo.parent) + ';' + windows_path(node.parent)
     # MSI structured storage is authored on the prefix's local Windows drive,
     # not Wine's Unix-root Z: mapping; the link still targets the owned job tree.
