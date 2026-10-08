@@ -141,7 +141,7 @@ def main():
     parser.add_argument('--source', required=True, type=Path)
     parser.add_argument('--tag', required=True)
     parser.add_argument('--sha', required=True)
-    parser.add_argument('--mode', choices=['all', 'binaries', 'nsis', 'msi-tools'], default='all')
+    parser.add_argument('--mode', choices=['all', 'binaries', 'nsis', 'msi', 'msi-tools'], default='all')
     parser.add_argument('--sdk-cache', type=Path, default=Path('/home/wirebot/build/focusa/windows-sdk-cache'))
     parser.add_argument('--publish', action='store_true')
     parser.add_argument('--plan', action='store_true')
@@ -179,8 +179,10 @@ def main():
     command = [sys.executable, controller / 'build-windows-xwin-release.py',
                '--source', args.source.resolve(), '--tag', args.tag, '--sha', args.sha,
                '--sdk-cache', args.sdk_cache, '--target-dir', target, '--output', output]
-    if args.mode == 'nsis':
-        command.append('--desktop-nsis')
+    if args.mode in {'nsis', 'msi'}:
+        command.append('--desktop-' + args.mode)
+        if args.mode == 'msi':
+            command += ['--msi-tools', work / 'msi-tools']
         cache = Path('/home/wirebot/build/focusa') / ('windows-desktop-binaries-' + args.tag)
         command += ['--desktop-cache', cache]
     run([*command, '--plan'], env=env)
@@ -188,10 +190,11 @@ def main():
     reclaim_idle_cache(Path('/home/wirebot/.cache/focusa-release-target'), archive)
     require_headroom(disk_status())
     try:
-        if args.mode == 'msi-tools':
+        if args.mode in {'msi-tools', 'msi'}:
             run([sys.executable, controller / 'prepare-windows-msi-wine.py',
                  '--tools-directory', work / 'msi-tools'], env=env)
-            return
+            if args.mode == 'msi-tools':
+                return
         for executable in ['cargo-xwin', 'node', 'npm', 'cargo']:
             if not shutil.which(executable):
                 raise ValueError('required pinned worker tool missing: ' + executable)
@@ -202,6 +205,11 @@ def main():
         if args.mode == 'all':
             cache = Path('/home/wirebot/build/focusa') / ('windows-desktop-binaries-' + args.tag)
             run([*command, '--desktop-nsis', '--desktop-cache', cache], env=env)
+            preserve_binaries(target, cache / job, args.tag, args.sha)
+            run([sys.executable, controller / 'prepare-windows-msi-wine.py',
+                 '--tools-directory', work / 'msi-tools'], env=env)
+            run([*command, '--desktop-msi', '--msi-tools', work / 'msi-tools',
+                 '--desktop-cache', cache], env=env)
         if args.publish:
             publish(output, args.tag)
     finally:

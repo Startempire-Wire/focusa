@@ -21,14 +21,16 @@ MONO_SHA256 = '0ed3ec533aef79b2f312155931cf7b1080009ac0c5b4c2bcfeb678ac948e0810'
 PACKAGES = ['wine64=9.0~repack-4build3', 'libwine=9.0~repack-4build3', 'libz-mingw-w64=1.3.1+dfsg-1']
 
 
-def download(url, destination, expected=None):
+def download(url, destination, expected=None, *, algorithm='sha256'):
     with urllib.request.urlopen(url, timeout=60) as response, destination.open('wb') as out:
         while chunk := response.read(1024 * 1024):
             out.write(chunk)
-    digest = hashlib.sha256(destination.read_bytes()).hexdigest()
-    if expected and digest != expected:
+    data = destination.read_bytes()
+    if algorithm not in {'sha256', 'sha512'}:
+        raise ValueError('unsupported tool digest algorithm')
+    if expected and hashlib.new(algorithm, data).hexdigest() != expected:
         raise ValueError('upstream tool checksum mismatch: ' + destination.name)
-    return {'url': url, 'name': destination.name, 'sha256': digest,
+    return {'url': url, 'name': destination.name, 'sha256': hashlib.sha256(data).hexdigest(),
             'external_checksum_verified': expected is not None}
 
 
@@ -103,7 +105,10 @@ def main():
     subprocess.run([str(wine), str(wix / 'light.exe'), '-?'], env=env, check=True, timeout=90)
     receipt = {'kind': 'ovh_wine_wix_toolchain', 'artifacts': artifacts,
                'wine_api_execution': 'passed', 'native_windows_proof': False,
-               'installer_proof': False, 'prefix': env['WINEPREFIX']}
+               'installer_proof': False, 'prefix': env['WINEPREFIX'],
+               'launcher': str(wine),
+               'launcher_env': {key: env[key] for key in ['WINEPREFIX', 'WINEARCH',
+                   'WINESERVER', 'WINELOADER', 'WINEDLLPATH', 'LD_LIBRARY_PATH']}}
     (tools / 'toolchain-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt))
 

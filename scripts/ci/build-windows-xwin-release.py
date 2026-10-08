@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """OVH cross-compile adapter for the immutable AppVeyor Rust build contract.
 
-Produces executables or verified NSIS staging evidence: no upload, publication,
-native-runtime claim, MSI claim, credential change, or release promotion.
+Produces executables or verified signed installer staging evidence: no upload,
+publication, native-runtime claim, credential change, or release promotion.
 """
 import argparse
 import hashlib
@@ -65,6 +65,14 @@ def build_nsis(args, source, targets, env):
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     records = []
+    package_format = 'msi' if getattr(args, 'desktop_msi', False) else 'nsis'
+    launcher = ['node']
+    if package_format == 'msi':
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('native_tauri', Path(__file__).with_name('prepare-native-windows-tauri.py'))
+        native_tauri = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(native_tauri)
+        launcher, native_env = native_tauri.prepare(app, args.msi_tools.resolve(), env.copy())
     for target in targets:
         env['XWIN_ARCH'] = target.split('-', 1)[0]
         cached = None
@@ -89,15 +97,19 @@ def build_nsis(args, source, targets, env):
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(cached, destination)
             subprocess.run(['npm', 'run', 'build'], cwd=app, env=env, check=True)
-            subprocess.run(['node', str(cli), 'bundle', '--target', target,
-                            '--bundles', 'nsis'], cwd=app, env=env, check=True)
+            cli_path = native_tauri.windows_path(cli) if package_format == 'msi' else str(cli)
+            subprocess.run([*launcher, cli_path, 'bundle', '--target', target,
+                            '--bundles', package_format], cwd=app,
+                           env=native_env if package_format == 'msi' else env, check=True)
         else:
+            if package_format == 'msi':
+                raise ValueError('MSI packaging requires the verified immutable desktop cache')
             subprocess.run(['node', str(cli), 'build', '--runner', 'cargo-xwin',
                             '--target', target, '--bundles', 'nsis'], cwd=app, env=env, check=True)
-        bundle = args.target_dir.resolve() / target / 'release/bundle/nsis'
-        installers = list(bundle.glob('*setup.exe'))
+        bundle = args.target_dir.resolve() / target / ('release/bundle/' + package_format)
+        installers = list(bundle.glob('*.msi' if package_format == 'msi' else '*setup.exe'))
         if len(installers) != 1:
-            raise ValueError(f'exactly one canonical NSIS installer required for {target}')
+            raise ValueError(f'exactly one canonical {package_format.upper()} installer required for {target}')
         installer = installers[0]
         signature = Path(str(installer) + '.sig')
         if not signature.is_file():
@@ -112,11 +124,11 @@ def build_nsis(args, source, targets, env):
             records.append({'name': destination.name, 'target': target,
                             'sha256': hashlib.sha256(destination.read_bytes()).hexdigest()})
         # Pipeline owner preserves compiled inputs before its final Cargo cleanup.
-    receipt = {'kind': 'ovh_windows_nsis', 'tag': args.tag, 'source_sha': args.sha,
+    receipt = {'kind': 'ovh_windows_' + package_format, 'tag': args.tag, 'source_sha': args.sha,
                'artifacts': records, 'updater_signature_verification': 'passed',
-               'native_windows_proof': False, 'msi_proof': False,
+               'native_windows_proof': False, 'msi_proof': package_format == 'msi',
                'full_release_acceptance': False}
-    (output / 'windows-nsis-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    (output / ('windows-' + package_format + '-receipt.json')).write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt))
 
 
@@ -131,6 +143,8 @@ def main():
     parser.add_argument('--clang-shim', default='/opt/xwin-shim', type=Path)
     parser.add_argument('--plan', action='store_true')
     parser.add_argument('--desktop-nsis', action='store_true')
+    parser.add_argument('--desktop-msi', action='store_true')
+    parser.add_argument('--msi-tools', type=Path)
     parser.add_argument('--desktop-cache', type=Path)
     args = parser.parse_args()
     source = args.source.resolve()
@@ -150,10 +164,13 @@ def main():
                  *[value for package in packages for value in ('-p', package)]]
                 for target in targets]
     if args.plan:
-        if args.desktop_nsis:
+        if args.desktop_nsis or args.desktop_msi:
             commands = [['node', 'node_modules/@tauri-apps/cli/tauri.js', 'build',
                          '--runner', 'cargo-xwin', '--target', target, '--bundles', 'nsis']
                         for target in targets]
+            if args.desktop_msi:
+                commands = [['wine', 'node.exe', 'node_modules/@tauri-apps/cli/tauri.js',
+                             'bundle', '--target', target, '--bundles', 'msi'] for target in targets]
         print(json.dumps({'kind': 'cross_compile_plan', 'tag': args.tag,
                           'source_sha': args.sha, 'commands': commands,
                           'surfaces': surfaces, 'native_windows_proof': False}))
@@ -167,7 +184,11 @@ def main():
     env['PATH'] = str(args.clang_shim.resolve()) + os.pathsep + env['PATH']
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    if args.desktop_nsis:
+    if args.desktop_nsis or args.desktop_msi:
+        if args.desktop_nsis and args.desktop_msi:
+            raise ValueError('one packaging mode per invocation required')
+        if args.desktop_msi and not args.msi_tools:
+            raise ValueError('verified MSI tool directory required')
         build_nsis(args, source, targets, env)
         return
     records = []
