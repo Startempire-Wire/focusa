@@ -50,7 +50,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: windows-ovh-${{ inputs.release_tag }}-${{ inputs.msi_tools_only }}
+  group: windows-ovh-${{ inputs.release_tag }}-${{ inputs.msi_tools_only }}-${{ inputs.desktop_msi }}
   cancel-in-progress: false
 
 jobs:
