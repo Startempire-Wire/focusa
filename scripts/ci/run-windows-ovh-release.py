@@ -229,6 +229,9 @@ def main():
                 raise ValueError('required pinned worker tool missing: ' + executable)
         if args.mode in {'all', 'nsis'}:
             prepare_nsis(work / 'nsis-tools', env)
+        # Tool extraction can cross the reserve after the initial idle-cache
+        # pass. Reuse its compiler-safe, binary-preserving Cargo owner now.
+        reclaim_idle_cache(Path('/home/wirebot/.cache/focusa-nightly-target'), archive / 'nightly')
         require_headroom(disk_status())
         run(command, env=env)
         if args.mode == 'all':
