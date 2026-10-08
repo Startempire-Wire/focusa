@@ -23,6 +23,14 @@ WINE = load('wine_msi', 'prepare-windows-msi-wine.py')
 CONTROLLER = load('msi_controller', 'run-windows-ovh-release.py')
 
 class NativeMsiInputTests(unittest.TestCase):
+    def test_packaging_budget_does_not_relax_full_build_budget(self):
+        measured = {'used_percent': 90.66, 'free_gib': 17.97}
+        with self.assertRaises(ValueError):
+            CONTROLLER.require_headroom(measured)
+        CONTROLLER.require_headroom(measured, packaging_only=True)
+        for insufficient in [{'used_percent': 95, 'free_gib': 12}, {'used_percent': 90, 'free_gib': 9.99}]:
+            with self.assertRaises(ValueError):
+                CONTROLLER.require_headroom(insufficient, packaging_only=True)
     def test_windows_paths_are_explicit_and_absolute(self):
         self.assertEqual(NATIVE.windows_path('/tmp/example'), 'Z:\\tmp\\example')
     def test_archive_escape_is_rejected(self):

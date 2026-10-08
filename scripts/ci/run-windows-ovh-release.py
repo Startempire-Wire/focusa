@@ -29,9 +29,12 @@ def disk_status(path=Path('/')):
             'free_gib': usage.free / 1024**3}
 
 
-def require_headroom(status):
-    # df displays a rounded integer; 89.x% must not be misclassified as >=90%.
-    if status['used_percent'] >= 90.0 or status['free_gib'] < 15:
+def require_headroom(status, *, packaging_only=False):
+    # Cached MSI/tool-only stages cannot invoke a Rust build. Retain a
+    # 10 GiB tool-only reserve and the 95% emergency ceiling.
+    # Binary/combined builds keep their original 15 GiB / 90% reserve.
+    used_limit, free_minimum = (95.0, 10) if packaging_only else (90.0, 15)
+    if status['used_percent'] >= used_limit or status['free_gib'] < free_minimum:
         raise ValueError('build headroom insufficient: ' + json.dumps(status))
 
 
@@ -217,7 +220,8 @@ def main():
     archive = Path('/home/wirebot/build/focusa') / ('preserved-release-cache-' + job)
     reclaim_idle_cache(Path('/home/wirebot/.cache/focusa-release-target'), archive)
     reclaim_completed_msi_tools(temporary, archive, os.environ['GITHUB_RUN_ID'])
-    require_headroom(disk_status())
+    packaging_only = args.mode in {'msi', 'msi-tools'}
+    require_headroom(disk_status(), packaging_only=packaging_only)
     try:
         if args.mode in {'msi-tools', 'msi'}:
             run([sys.executable, controller / 'prepare-windows-msi-wine.py',
@@ -232,7 +236,7 @@ def main():
         # Tool extraction can cross the reserve after the initial idle-cache
         # pass. Reuse its compiler-safe, binary-preserving Cargo owner now.
         reclaim_idle_cache(Path('/home/wirebot/.cache/focusa-nightly-target'), archive / 'nightly')
-        require_headroom(disk_status())
+        require_headroom(disk_status(), packaging_only=packaging_only)
         run(command, env=env)
         if args.mode == 'all':
             cache = Path('/home/wirebot/build/focusa') / ('windows-desktop-binaries-' + args.tag)
