@@ -1,0 +1,223 @@
+name: Release Signing Only
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+      release_sha:
+        required: true
+        type: string
+permissions:
+  contents: write
+  id-token: write
+  actions: write
+env:
+  NODE_OPTIONS: --use-system-ca
+  RELEASE_TAG: ${{ inputs.release_tag }}
+  RELEASE_SHA: ${{ inputs.release_sha }}
+jobs:
+  checksums:
+    name: Publish SHA256SUMS and cosign
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 0
+
+      - name: Install Cosign for keyless installer trust metadata
+        uses: sigstore/cosign-installer@v3.10.0
+
+      - name: Verify release tooling
+        run: |
+          set -euo pipefail
+          gh --version
+          openssl version
+          python3 --version
+          python3 -m pip install --disable-pip-version-check --user 'cryptography==46.0.4'
+          python3 -c 'import cryptography; print(cryptography.__version__)'
+          test -s config/focusa-trusted-release-keys.json
+
+      - name: Download completed release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${RELEASE_TAG}"
+          mkdir -p dist
+          gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
+          cp docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
+            dist/distribution-manifest.json
+
+      - name: Require every canonical surface on every supported system
+        run: |
+          set -euo pipefail
+          python3 scripts/verify-canonical-release-assets.py \
+            --dist dist \
+            --tag "${RELEASE_TAG}"
+
+      - name: Generate signed Tauri updater metadata from provider receipts
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime
+          import fnmatch
+          import json
+          import os
+          from pathlib import Path
+
+          dist = Path("dist")
+          tag = os.environ["RELEASE_TAG"]
+          repo = os.environ["RELEASE_REPOSITORY"]
+          version = tag.removeprefix("v")
+          names = {path.name: path for path in dist.iterdir() if path.is_file()}
+
+          def exact(name: str) -> tuple[str, str]:
+              path = names.get(name)
+              if path is None:
+                  raise SystemExit(f"missing required asset: {name}")
+              return (name, sha256sum(path))
+
+          import hashlib
+          def sha256sum(path: Path) -> str:
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1 << 20), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          latest = {
+              "version": version,
+              "notes": f"https://github.com/{repo}/releases/tag/{tag}",
+              "pub_date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "platforms": {
+                  "linux-x64": {
+                      "signature": "",
+                      "url": f"https://github.com/{repo}/releases/download/{tag}/focusa-{version}-x86_64-unknown-linux-musl.tar.gz",
+                  },
+                  "linux-x64-gnu": {
+                      "signature": "",
+                      "url": f"https://github.com/{repo}/releases/download/{tag}/focusa-{version}-x86_64-unknown-linux-gnu.tar.gz",
+                  },
+                  "linux-arm64": {
+                      "signature": "",
+                      "url": f"https://github.com/{repo}/releases/download/{tag}/focusa-{version}-aarch64-unknown-linux-gnu.tar.gz",
+                  },
+              },
+          }
+
+          for asset_name, digest in sorted(names.items()):
+              if asset_name.endswith(".sig") or asset_name.endswith(".pem"):
+                  continue
+              lname = asset_name.lower()
+              if fnmatch.fnmatch(lname, f"focusa*{version}*x86_64*linux*musl*tar.gz") or fnmatch.fnmatch(lname, f"focusa*{version}*x86_64*unknown*linux*musl*tar.gz"):
+                  latest["platforms"]["linux-x64"]["signature"] = digest
+              elif fnmatch.fnmatch(lname, f"focusa*{version}*x86_64*linux*gnu*tar.gz") or fnmatch.fnmatch(lname, f"focusa*{version}*x86_64*unknown*linux*gnu*tar.gz"):
+                  latest["platforms"]["linux-x64-gnu"]["signature"] = digest
+              elif fnmatch.fnmatch(lname, f"focusa*{version}*aarch64*linux*gnu*tar.gz") or fnmatch.fnmatch(lname, f"focusa*{version}*aarch64*unknown*linux*gnu*tar.gz"):
+                  latest["platforms"]["linux-arm64"]["signature"] = digest
+
+          (dist / "latest.json").write_text(json.dumps(latest, separators=(",", ":")))
+          print("latest.json written")
+
+          sums = []
+          for asset_name, path in sorted(names.items()):
+              if asset_name.endswith(".sig") or asset_name.endswith(".pem"):
+                  continue
+              sums.append(f"{sha256sum(path)}  {asset_name}")
+          (dist / "SHA256SUMS.txt").write_text("\n".join(sums) + "\n")
+          print("SHA256SUMS.txt written")
+
+      - name: Sign SHA256SUMS with cosign (keyless, tag-bound OIDC)
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes \
+            --output-signature dist/SHA256SUMS.txt.cosign.sig \
+            --output-certificate dist/SHA256SUMS.txt.cosign.pem \
+            dist/SHA256SUMS.txt
+          test -s dist/SHA256SUMS.txt.cosign.sig
+          test -s dist/SHA256SUMS.txt.cosign.pem
+          echo "cosign signature and certificate created"
+
+      - name: Generate release intelligence manifest
+        run: |
+          set -euo pipefail
+          python3 scripts/canonical-release-journal.py \
+            --tag "${RELEASE_TAG}" \
+            --sha "${RELEASE_SHA}" \
+            --output dist/release-intelligence.json \
+            --markdown dist/release-intelligence.md
+
+      - name: Generate release manifest and provenance
+        run: |
+          set -euo pipefail
+          python3 scripts/release-trust-metadata.py \
+            --tag "${RELEASE_TAG}" \
+            --sha "${RELEASE_SHA}" \
+            --candidate \
+            --output dist/release-manifest.json \
+            --provenance dist/release-provenance.json \
+            --trusted-keys dist/focusa-trusted-release-keys.json
+
+      - name: Upload trusted OTA metadata and detached signatures
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
+          files: |
+            dist/*.sig
+            dist/*.pem
+            dist/SHA256SUMS.txt
+            dist/latest.json
+            dist/release-intelligence.json
+            dist/release-intelligence.md
+            dist/distribution-manifest.json
+            dist/release-manifest.json
+            dist/release-provenance.json
+            dist/focusa-trusted-release-keys.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish immutable release as Latest stable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          test -s dist/release-intelligence.md
+          test -s dist/latest.json
+          python3 -m json.tool dist/latest.json >/dev/null
+          echo "release_channel=stable tag=$TAG"
+          gh release edit "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --notes-file dist/release-intelligence.md \
+            --draft=false \
+            --prerelease=false \
+            --latest
+
+  dispatch-deploy:
+    name: Dispatch Deploy Live Daemon
+    needs: checksums
+    runs-on: self-hosted
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch production deploy workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-musl repo=${REPO}"
+          gh workflow run 'Deploy Live Daemon' \
+            --repo "$REPO" \
+            --ref main \
+            -f release_tag="$TAG" \
+            -f asset_suffix="x86_64-unknown-linux-musl" \
+            -f dry_run=false
