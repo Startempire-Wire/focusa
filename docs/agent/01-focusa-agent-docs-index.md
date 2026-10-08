@@ -40,6 +40,7 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 ### 2.1 Current authority and recovery model
 
 - Canonical cognition is scoped by ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey (Spec158/164); project root, cwd, selected project or continuity alone cannot select it.
+- Scope and worktrees: verified worktrees are working subpaths of the same project, not new authority roots; switching them requires current attachment verification.
 - Workstream Root (Spec 164) is the durable project runtime root; state does not become daemon-global merely for convenience.
 - Workpoint is immediate action authority; Trajectory supplies destination, current state, gap, and waypoints.
 - Focus State is the bounded decision/constraint/failure journal, not a transcript replacement.

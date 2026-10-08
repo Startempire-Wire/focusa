@@ -66,7 +66,7 @@ for required in \
 done
 
 for required in \
-  'All 146 Focusa Pi tools' \
+  'All Focusa Pi tools' \
   'Daemon-native Silent Sessions' \
   'Mission Canvas and Work Rail' \
   'adaptive generated UI' \
