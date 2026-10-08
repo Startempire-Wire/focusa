@@ -103,6 +103,47 @@ def prepare(app, tools, env):
     return [receipt['launcher'], str(node)], env
 
 
+def verify_control_references(tools, installer, env):
+    """Check actual MSI rows, independently of Dark's reconstructed UI tree."""
+    source = tools / 'verify-msi-controls.cs'
+    source.write_text('''using System; using System.Text; using System.Collections.Generic; using System.Runtime.InteropServices;
+class MsiControls {
+ [DllImport("msi.dll",CharSet=CharSet.Unicode)] static extern uint MsiOpenDatabaseW(string path,IntPtr mode,out uint db);
+ [DllImport("msi.dll",CharSet=CharSet.Unicode)] static extern uint MsiDatabaseOpenViewW(uint db,string sql,out uint view);
+ [DllImport("msi.dll")] static extern uint MsiViewExecute(uint view,uint record);
+ [DllImport("msi.dll")] static extern uint MsiViewFetch(uint view,out uint record);
+ [DllImport("msi.dll",CharSet=CharSet.Unicode)] static extern uint MsiRecordGetStringW(uint record,uint field,StringBuilder text,ref uint length);
+ [DllImport("msi.dll")] static extern uint MsiCloseHandle(uint handle);
+ static void Require(uint result){if(result!=0)throw new Exception("MSI API status "+result);}
+ static HashSet<string> Rows(uint db,string query){uint view;Require(MsiDatabaseOpenViewW(db,query,out view));
+  try{Require(MsiViewExecute(view,0));var rows=new HashSet<string>();uint row;uint rc;
+   while((rc=MsiViewFetch(view,out row))==0){try{string key="";for(uint field=1;field<=2;field++){
+    uint length=4095;var text=new StringBuilder(4096);Require(MsiRecordGetStringW(row,field,text,ref length));key+=text.ToString()+"\\u001f";
+   }rows.Add(key);}finally{MsiCloseHandle(row);}}if(rc!=259)Require(rc);return rows;
+  }finally{MsiCloseHandle(view);}}
+ static int Main(string[] args){uint db=0;try{Require(MsiOpenDatabaseW(args[0],IntPtr.Zero,out db));
+  var controls=Rows(db,"SELECT `Dialog_`, `Control` FROM `Control`");
+  var events=Rows(db,"SELECT `Dialog_`, `Control_` FROM `ControlEvent`");
+  if(controls.Count==0||events.Count==0)throw new Exception("Missing installer UI tables");
+  foreach(string row in events)if(!controls.Contains(row))throw new Exception("Missing MSI Control foreign row: "+row);
+  Console.WriteLine("MSI control references passed: controls="+controls.Count+" event controls="+events.Count);return 0;
+ }catch(Exception e){Console.Error.WriteLine(e.Message);return 1;}finally{if(db!=0)MsiCloseHandle(db);}}
+}''')
+    receipt = json.loads((tools / 'toolchain-receipt.json').read_text())
+    runtime = {key: value for key, value in env.items() if key in {'PATH', 'HOME', 'TMP', 'TEMP', 'SYSTEMROOT'}}
+    runtime.update(receipt['launcher_env'])
+    compilers = sorted((Path(runtime['WINEPREFIX']) / 'drive_c/windows').glob('**/csc.exe'))
+    if not compilers:
+        compilers = sorted((Path(runtime['WINEPREFIX']) / 'drive_c/windows').glob('**/mcs.exe'))
+    if not compilers:
+        raise ValueError('existing Mono compiler required for MSI table integrity proof')
+    wine = str(tools / 'root/usr/lib/wine/wine')
+    executable = tools / 'verify-msi-controls.exe'
+    subprocess.run([wine, windows_path(compilers[0]), '/nologo', '/target:exe', '/platform:x86',
+                    '/out:' + windows_path(executable), windows_path(source)], env=runtime, check=True, timeout=90)
+    subprocess.run([wine, windows_path(executable), windows_path(installer)], env=runtime, check=True, timeout=90)
+
+
 def finish_generated_msi(app, tools, target_dir, target, env):
     """Execute Tauri's generated WiX recipe at the owned Unix/Wine boundary."""
     config = json.loads((app / 'src-tauri/tauri.conf.json').read_text())

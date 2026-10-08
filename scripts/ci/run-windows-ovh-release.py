@@ -231,7 +231,9 @@ def main():
         for executable in ['cargo-xwin', 'node', 'npm', 'cargo']:
             if not shutil.which(executable):
                 raise ValueError('required pinned worker tool missing: ' + executable)
-        if args.mode in {'all', 'nsis'}:
+        if args.mode in {'all', 'nsis', 'msi'}:
+            # The same pinned tool owner supplies minisign for both installer
+            # formats; MSI never substitutes signing for verification.
             prepare_nsis(work / 'nsis-tools', env)
         # Tool extraction can cross the reserve after the initial idle-cache
         # pass. Reuse its compiler-safe, binary-preserving Cargo owner now.

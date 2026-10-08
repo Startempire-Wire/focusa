@@ -164,6 +164,7 @@ def build_nsis(args, source, targets, env):
             raise ValueError(f'exactly one canonical {package_format.upper()} installer required for {target}')
         installer = installers[0]
         if package_format == 'msi':
+            native_tauri.verify_control_references(args.msi_tools.resolve(), installer, native_env)
             import xml.etree.ElementTree as ET
             inspection = args.target_dir.resolve() / target / 'release/msi-inspection'
             inspection.mkdir()
@@ -203,6 +204,7 @@ def build_nsis(args, source, targets, env):
                'native_windows_proof': False, 'msi_proof': package_format == 'msi',
                'full_release_acceptance': False,
                'msi_database_and_payload_verification': 'passed' if package_format == 'msi' else 'not_applicable',
+               'msi_control_reference_verification': 'passed' if package_format == 'msi' else 'not_applicable',
                'windows_ice_validation': 'not_run_wine_unsupported' if package_format == 'msi' else 'not_applicable'}
     (output / ('windows-' + package_format + '-receipt.json')).write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt))
