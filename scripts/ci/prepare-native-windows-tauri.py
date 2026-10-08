@@ -139,7 +139,9 @@ class MsiControls {
         raise ValueError('existing Mono compiler required for MSI table integrity proof')
     wine = str(tools / 'root/usr/lib/wine/wine')
     executable = tools / 'verify-msi-controls.exe'
-    subprocess.run([wine, windows_path(compilers[0]), '/nologo', '/target:exe', '/platform:x86',
+    # Reuse the proven Mono compiler entry: the legacy Framework compiler
+    # shim is hosted by Wine64; its output is explicitly a 32-bit verifier.
+    subprocess.run([receipt['launcher'], str(compilers[0]), '/nologo', '/target:exe', '/platform:x86',
                     '/out:' + windows_path(executable), windows_path(source)], env=runtime, check=True, timeout=90)
     subprocess.run([wine, windows_path(executable), windows_path(installer)], env=runtime, check=True, timeout=90)
 
