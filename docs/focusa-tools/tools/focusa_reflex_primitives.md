@@ -49,8 +49,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -81,4 +81,4 @@ Likely next: `focusa_traverse`, `focusa_tool_doctor`, `focusa_workpoint_resume`.
 - CLI: none.
 - REST: `GET /v1/reflex/primitives`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:f295fd6d328cb521e722e2fcd52631c2a728b2b12afaa03ddfd6765a7ec8d896`.
+- Descriptor digest: `sha256:110a7de5c130c4c6ccaded1425414bd199e41aecfc34e5f5d53c101ab152f00c`.

@@ -50,8 +50,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"agent"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -82,4 +82,4 @@ Likely next: `focusa_tool_describe`, `focusa_tool_bundle`, `focusa_tool_graph`.
 - CLI: `focusa help all --json`.
 - REST: `GET /v1/agent/tools`.
 - Specification: `docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`.
-- Descriptor digest: `sha256:7f476a655bf49d982132b6797b5fcf7323dc71690b86552bc84a3977098818ed`.
+- Descriptor digest: `sha256:42219826c0cf3a113fa569296da327642a92d1dae643e13b6b59c3135e19c4a8`.

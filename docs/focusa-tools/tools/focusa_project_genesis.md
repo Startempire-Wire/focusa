@@ -63,8 +63,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"explicit_project_continuity"}`
 - Authority: `{"kind":"canonical","path":"daemon:/v1/project/genesis/commit"}`
 - Side effects: `start_resume_read_or_confirmed_atomic_commit`, `start_resume_read_or_confirmed_atomic_commit`
-- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `true`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -95,4 +95,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_projec
 - CLI: `focusa project genesis start|resume|status|commit`.
 - REST: `POST /v1/project/genesis/start`, `POST /v1/project/genesis/resume`, `GET /v1/project/genesis/status`, `POST /v1/project/genesis/commit`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:dc0f2d33d7a48a1374781d02d23e10e58cb8f554d22ccb915ed2d9d730239ec6`.
+- Descriptor digest: `sha256:061887fdfd7368ec562fa1d65f113407bbb203773288ee0454c34bfd2bb62a72`.

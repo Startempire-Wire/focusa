@@ -51,8 +51,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_or_read_prediction_authority`, `write_or_read_prediction_authority`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -83,4 +83,4 @@ Likely next: `focusa_predict_recent`, `focusa_evidence_capture`, `focusa_metacog
 - CLI: `focusa predict authority-append`, `focusa predict authority-projection`.
 - REST: `POST /v1/prediction-authority/events`, `POST /v1/prediction-authority/projection`, `GET /v1/prediction-authority/projection`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:2ea077f07cdd5b618910700407301d0211255414b3fe62c5c5362fcc4e74ef9e`.
+- Descriptor digest: `sha256:40c2e9c701e861560258356306f69a5aee94e13ea07d95ea0e3aef495eaca39f`.

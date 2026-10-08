@@ -51,8 +51,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"sms:list_threads"}`
 - Authority: `{"kind":"canonical","path":"/v1/sms/threads"}`
 - Side effects: `authorized_customer_data_read`, `authorized_customer_data_read`
-- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -83,4 +83,4 @@ Likely next: `focusa_sms_read_thread`, `focusa_sms_search`, `focusa_sms_send`.
 - CLI: `focusa sms threads`.
 - REST: `GET /v1/sms/threads`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:a0db319f0ad55719e2192ba11d807ecdbaded1bec3d1c700badb572f15efa84c`.
+- Descriptor digest: `sha256:2f03c11a12865faceec1979c8359501c453dcd6c4003dfde79bcc3d00ba3dee3`.

@@ -49,8 +49,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -81,4 +81,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_workpoint_checkpoint`, `foc
 - CLI: `focusa context-cognition view`.
 - REST: `GET /v1/context-cognition`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:56e87745b265dc89bb85ac9a6fa5d76c4ff0b68fec52f6fa047d98fec5580511`.
+- Descriptor digest: `sha256:edb62376bcc35d9a21c38b1bc9f53e37f711822f9a0feb37145b5730e00064bc`.

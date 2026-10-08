@@ -46,8 +46,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `checkpoint`, `checkpoint`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -78,4 +78,4 @@ Likely next: `focusa_work_loop_select_next`, `focusa_workpoint_checkpoint`, `foc
 - CLI: none.
 - REST: `POST /v1/work-loop/checkpoint`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:41769ef0a72794f6b818b77c38c89689d5b3c302c25cd7f3b7022de4d59fb812`.
+- Descriptor digest: `sha256:5a8fc7138030bc2efb9b4e9c89a2023004c910bce4d72017382eb540024ccf2d`.

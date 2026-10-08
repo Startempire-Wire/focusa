@@ -64,8 +64,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -96,4 +96,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_
 - CLI: none.
 - REST: `POST /v1/traverse`, `POST /v1/traverse/verify-tags`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e68e9202ec48e074ae1c4c777087bf9364cf3b5ad9b16da31661d34d5853631a`.
+- Descriptor digest: `sha256:2aff9593a290dbd9a59bf7043b7c531a84628398566a48974ce11f2de40cf35a`.

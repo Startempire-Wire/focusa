@@ -51,8 +51,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -83,4 +83,4 @@ Likely next: `focusa_context_cognition`, `focusa_context_cognition_render`, `foc
 - CLI: `focusa context-cognition curate`.
 - REST: `POST /v1/context-cognition/curate`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:444d77141db15e565b17bccf1055d2097c5aac032ef6cc285bd0cb15d45950c7`.
+- Descriptor digest: `sha256:02fa5ae159702cb97fd9ab81c5e61387aa345d74b884237f8e6e2c847052340a`.

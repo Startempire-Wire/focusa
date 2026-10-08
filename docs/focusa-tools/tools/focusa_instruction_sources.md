@@ -50,8 +50,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"agent-runtime"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_or_preview_only`, `read_or_preview_only`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -82,4 +82,4 @@ Likely next: `focusa_instruction_conflicts`, `focusa_instruction_explain`, `focu
 - CLI: `focusa agent-runtime sources`.
 - REST: `GET /v1/agent-runtime/instructions/sources`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:f894037225e1c800c48fac2ca9f4094aac465ff9d21abfd974a403fdb0e3fbca`.
+- Descriptor digest: `sha256:d7ee2f7b8b62713efcca0611d91165c8406b00c0f3e5ba3e9ce4260a38288030`.

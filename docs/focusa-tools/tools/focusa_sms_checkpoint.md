@@ -52,8 +52,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"control","route_family":"sms:checkpoint"}`
 - Authority: `{"kind":"canonical","path":"/v1/sms/checkpoint"}`
 - Side effects: `confirmed_encrypted_checkpoint`, `confirmed_encrypted_checkpoint`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -84,4 +84,4 @@ Likely next: `focusa_sms_health`, `focusa_sms_events`, `focusa_sms_enrollment`.
 - CLI: `focusa sms checkpoint`.
 - REST: `POST /v1/sms/checkpoint`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:1204c73ec79f34c0e8658d0c8244918039cd26f449b513edca773406306a7fcc`.
+- Descriptor digest: `sha256:c1dad8f0b078fef098e48d341971f615fb4864fecee80863d9c7bf34b0fe1e58`.

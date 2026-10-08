@@ -10,6 +10,10 @@ Preferred Pi route remains `focusa_browser_diagnostics_intake`. Headless API/CLI
 scripts/focusa-headless-diagnostics-intake packet.json --json
 ```
 
+## Source behavior and runtime verification
+
+This describes the source adapter; verify installed invocation/schema and exact binding through [the shared journey](../agent/02-focusa-cohesive-project-flow.md). Capture/link can record scoped evidence, but does not establish the truth of an untrusted browser payload or settle the requested outcome.
+
 ## Guarantees
 
 - No modal/select/input UI.
@@ -26,4 +30,4 @@ scripts/focusa-headless-diagnostics-intake packet.json --json
 
 ## Rule
 
-A UIAI packet is proposal-only browser evidence, not Focusa project truth, until Focusa capture/link succeeds under verified project_root + continuity_id.
+A UIAI packet remains source-attributed browser evidence. Focusa capture/link requires exact Scope/Workstream/continuity/attachment and applicable operation admission; root/continuity inputs alone are insufficient. Successful capture records evidence, not independent verification or whole-outcome acceptance.

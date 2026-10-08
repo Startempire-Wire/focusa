@@ -47,8 +47,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -79,4 +79,4 @@ Likely next: `focusa_tree_recent_snapshots`, `focusa_tree_diff_context`, `focusa
 - CLI: `focusa state snapshot create`.
 - REST: `POST /v1/focus/snapshots`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:056ce78f0927f75bb896f33e15fdc6407f82a0ca605b09891f8de2af5191f7fb`.
+- Descriptor digest: `sha256:db024c3acae7d1b8016d9c5d87e558c8f379199bc420d2166fbd55419c5199e5`.

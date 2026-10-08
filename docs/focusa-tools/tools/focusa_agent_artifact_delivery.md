@@ -51,8 +51,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"agent-runtime"}`
 - Authority: `{"kind":"canonical","path":"/v1/agent-runtime/delivery/commit"}`
 - Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -82,4 +82,4 @@ Likely next: `focusa_agent_artifact_verify`, `focusa_instruction_integrity_statu
 - CLI: `focusa agent-runtime artifacts apply`.
 - REST: `POST /v1/agent-runtime/delivery/commit`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:4b5a892e985803c49cca5ee5954e09e0557a1657cb5bf72a349f2d1759e5ae9b`.
+- Descriptor digest: `sha256:f138dc7299c83fe0afd9d9e8a74bdcd8c8ce2e06b48e0364fa371c018531fc42`.

@@ -48,8 +48,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_state`, `write_state`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -80,4 +80,4 @@ Likely next: `focusa_trajectory_assess`, `focusa_traverse`, `focusa_metacog_retr
 - CLI: `focusa focus update --open-question`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:dae0d8ef9f455b3b14c6f545e1a802f203d6558ca753116a50c99fac9e0fdf10`.
+- Descriptor digest: `sha256:9acd9c62a54c22b0671feef1240910cb93839be7f4efffdc05f9721a49915217`.

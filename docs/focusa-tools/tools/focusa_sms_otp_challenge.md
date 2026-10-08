@@ -55,8 +55,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"sms:otp_challenge"}`
 - Authority: `{"kind":"canonical","path":"/v1/sms/otp/challenges"}`
 - Side effects: `bounded_challenge_registration`, `bounded_challenge_registration`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -87,4 +87,4 @@ Likely next: `focusa_sms_otp_inject`, `focusa_sms_events`, `focusa_sms_health`.
 - CLI: `focusa sms otp-challenge`.
 - REST: `POST /v1/sms/otp/challenges`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:906669b12ed88789762635c305ee44b42aa179b2bb08dadcc81d67d18de24e41`.
+- Descriptor digest: `sha256:39ce609127e8ef318deeefc8b20c691be3b46492addd0fc25f4f7d77ab6b6b0e`.

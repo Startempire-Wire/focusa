@@ -1,0 +1,55 @@
+{
+  "schema": "focusa.cohesion_source_validation.v1",
+  "project": "Startempire-Wire/focusa",
+  "source_base_commit": "b79b44b849b81bc1ab43c8cb150a05a43ce80d05",
+  "scope": "agent guidance, discovery metadata, maintained public docs and prompt/preload/awareness consumers",
+  "delivery_status": "unfinished_source_validated_only",
+  "execution": {
+    "authority": "direct owner delivery instruction, continued explicitly",
+    "exception": "bounded owner-owned source checks on approved execution host after canonical job admission rejected the legacy workpoint",
+    "canonical_job_accepted": false,
+    "gate_repaired": false,
+    "new_dependency_installation": false,
+    "dependency_reuse": "existing locked TypeScript 5.9.3 and TypeBox 0.34.52 artifacts",
+    "paid_runs_or_new_services": false
+  },
+  "verified": {
+    "guidance_cases": 13,
+    "request_binding_and_recovery_consumer_cases": 32,
+    "controlled_awareness_consumer_fixtures": 3,
+    "source_registered_tools": 157,
+    "descriptor_examples_checked": 157,
+    "generated_tool_pages": 157,
+    "source_skill_runbook_sets": 31,
+    "interface_projection_files": 8,
+    "adapter_authority_golden_static_gates": "passed",
+    "awareness_and_docs_source_parity": "passed",
+    "public_surface_guard": "passed_with_legacy_dev_mode_fixture_caution",
+    "generator_freshness_and_source_mirror_parity": "passed",
+    "rust_format": "passed_after_owned_formatting"
+  },
+  "corrections_proved_by_checks": [
+    "stale validation-copy preload source was reconciled",
+    "response-injected prompt reuses the explicit builder rather than carrying an invented default goal",
+    "confirmation metadata preserves strict consumer field shape and treats unsupported facts as unknown",
+    "fixed historical tool count removed from presenter proof",
+    "source/fixture reports do not label source skills installed or simulated clients real models"
+  ],
+  "remaining": [
+    "Rust compilation and unit tests",
+    "complete bounded public-surface coverage audit and actual publication",
+    "approved installed package/runtime activation and native current-process refresh",
+    "real supported harness/model behavior and cross-version acceptance",
+    "scoped legacy lifecycle and attachment recovery",
+    "141 distinct HTTP method/path mappings still lack canonical operation IDs",
+    "production signed release/install: complete canonical trust metadata and artifact matrix"
+  ],
+  "not_proved": ["installed", "live", "all_public_docs_current", "models_follow_updated_guidance", "full_release", "whole_outcome_complete"],
+  "evidence_handles": [
+    "local:292-owner-directed-cohesion-checks.log",
+    "local:294-owner-directed-public-doc-gates.log",
+    "local:296-request-recovery-consumer-tests.log",
+    "local:299-cohesion-freshness-format.log",
+    "local:303-final-source-guidance-checks.log"
+  ]
+}

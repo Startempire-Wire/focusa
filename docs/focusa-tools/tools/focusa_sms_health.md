@@ -46,8 +46,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"sms:health"}`
 - Authority: `{"kind":"canonical","path":"/v1/sms/health"}`
 - Side effects: `read_value_free_health`, `read_value_free_health`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -78,4 +78,4 @@ Likely next: `focusa_sms_enrollment`, `focusa_sms_checkpoint`, `focusa_sms_event
 - CLI: `focusa sms health`.
 - REST: `GET /v1/sms/health`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:6827dbed1dae7fe1e028dea2a9ff8d87bb228371abf721af36549ebcb9a5cf94`.
+- Descriptor digest: `sha256:d0f38ed6b83ddc58057f2be0a87d8eb0c90769d75fa45572e02b7249fac0e71d`.

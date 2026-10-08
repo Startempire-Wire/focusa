@@ -66,8 +66,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"explicit_project_continuity"}`
 - Authority: `{"kind":"canonical","path":"daemon:/v1/project/bootstrap/apply"}`
 - Side effects: `preview_read_or_confirmed_local_bootstrap_repair`, `preview_read_or_confirmed_local_bootstrap_repair`
-- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `true`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -98,4 +98,4 @@ Likely next: `focusa_project_genesis`, `focusa_project_verify`, `focusa_workpoin
 - CLI: `focusa project bootstrap preview|apply|status|repair`.
 - REST: `POST /v1/project/bootstrap/preview`, `POST /v1/project/bootstrap/apply`, `GET /v1/project/bootstrap/status`, `POST /v1/project/bootstrap/repair`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:09635241cf58aedab820ed469ce85a999e289183d98c1ff195590b075c3c5882`.
+- Descriptor digest: `sha256:1a49972a3179801fe5aff09856dda3e19b9c24d44fae861329dd0e1b746494a5`.

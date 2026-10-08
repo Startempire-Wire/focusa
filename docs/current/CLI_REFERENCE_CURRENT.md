@@ -1,6 +1,8 @@
 # Current CLI Reference
 
-Generated from current `focusa --help` output for the present build.
+This reference retains a command-help capture, not proof of the calling installation's version, supported commands, binding or execution admission. Verify the intended installed binary with `focusa --version` and command-specific `--help`; wrappers and source commands can differ. Do not execute an unavailable command from this snapshot or infer command-specific repair from generic lifecycle flags.
+
+Use [the cohesive project journey](../agent/02-focusa-cohesive-project-flow.md). Initialize missing state conditionally, preserve current operator intent, recover through supported installed operations, and follow the approved development/release destination. Git push is project-specific; source, publication, activation and consumer verification are distinct.
 
 ```text
 Focusa cognitive governance CLI

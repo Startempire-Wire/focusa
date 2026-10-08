@@ -60,7 +60,12 @@ fn tool_families() -> Vec<String> {
         .and_then(|registry| registry.get("contracts").and_then(Value::as_array).cloned())
         .unwrap_or_default()
         .iter()
-        .filter_map(|contract| contract.get("family").and_then(Value::as_str).map(str::to_owned))
+        .filter_map(|contract| {
+            contract
+                .get("family")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        })
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect()
@@ -274,34 +279,25 @@ async fn inject_agent_prompt_into_body(response: &mut Response) {
     }
 }
 
-/// The injected `_agent_prompt` payload. Compact but impossible to miss:
-/// starts with a literal alarm marker, names the rule in plain English,
-/// and lists the next canonical tools.
+/// Compact response reminder derived from the same owner as the explicit prompt.
+/// Emission is not proof that a calling model loaded or followed it.
 fn build_inject_prompt() -> Value {
+    let prompt = build_prompt();
     json!({
         "marker": "🔔🔔🔔 AGENT PROMPT — READ THIS 🔔🔔🔔",
-        "rule": "You are an agent running in Pi (or another Focusa-aware editor). PREFER the focusa_* tool layer over direct curl/fetch for every daemon interaction.",
-        "why": "Direct curl/fetch bypasses the tool_result_v1 envelope, evidence linking, failure_class recovery, next_tools choreography, and the metacog loop. The focusa_* tool layer is the canonical interaction surface for Focusa-aware agents.",
-        "preferred_layer": "focusa_* tools",
-        "next_tools": [
-            "focusa_agent_prompt",
-            "focusa_tool_doctor",
-            "focusa_trajectory_view",
-            "focusa_workpoint_resume",
-            "focusa_workpoint_checkpoint",
-            "focusa_evidence_capture",
-            "focusa_metacog_capture",
-            "focusa_metacog_retrieve"
-        ],
-        "tool_registry": "/v1/ontology/tool-contracts",
+        "rule": prompt["rule"],
+        "why": prompt["reason"],
+        "preferred_layer": prompt["preferred_layer"],
+        "next_tools": prompt["next_tools"],
+        "tool_registry": prompt["tool_registry_path"],
         "full_prompt_endpoint": "/v1/agent/prompt",
         "do_not_drift": [
-            "do not call curl/fetch directly when a focusa_* tool exists",
-            "do not skip workpoint_checkpoint before long-running slices",
-            "do not skip evidence_capture when proof is available",
-            "do not skip metacog_capture when a reusable lesson is learned"
+            "prefer the current supported scoped adapter; diagnostic shell use is not action authority",
+            "preserve scoped continuation before context-risk transitions",
+            "retain stable evidence and distinguish recording from verification",
+            "capture reusable learning only with evidence and within its actual scope"
         ],
-        "active_trajectory_hint": "HLT=Build Focusa and go to market soon with an MVP. The Mac menubar is an MLG subordinate, not the HLT."
+        "active_trajectory_hint": prompt["active_trajectory_hint"]
     })
 }
 
@@ -396,9 +392,37 @@ mod tests {
         let text = body.to_string();
         assert!(!text.contains("Decide MVP UI scope"));
         assert!(!text.contains("menubar is an MLG subordinate"));
-        assert!(body["active_trajectory_hint"].as_str().unwrap().contains("scope-bound"));
+        assert!(
+            body["active_trajectory_hint"]
+                .as_str()
+                .unwrap()
+                .contains("scope-bound")
+        );
         assert_eq!(body["tool_families"], json!(tool_families()));
-        assert!(body["rule"].as_str().unwrap().contains("conditional discovery"));
+        assert!(
+            body["rule"]
+                .as_str()
+                .unwrap()
+                .contains("conditional discovery")
+        );
+    }
+
+    #[test]
+    fn injected_prompt_reuses_explicit_prompt_boundaries() {
+        let explicit = build_prompt();
+        let injected = build_inject_prompt();
+        assert_eq!(injected["rule"], explicit["rule"]);
+        assert_eq!(injected["why"], explicit["reason"]);
+        assert_eq!(injected["next_tools"], explicit["next_tools"]);
+        assert_eq!(
+            injected["active_trajectory_hint"],
+            explicit["active_trajectory_hint"]
+        );
+        assert!(
+            !injected
+                .to_string()
+                .contains("menubar is an MLG subordinate")
+        );
     }
 
     #[test]

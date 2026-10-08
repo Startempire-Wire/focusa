@@ -46,8 +46,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"preload"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -77,4 +77,4 @@ Likely next: `focusa_preload_receipt_commit`, `focusa_preload_verify`.
 - CLI: `focusa preload receipt-preview`.
 - REST: `POST /v1/preload/receipt-preview`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:0bdd2b16882f963f6b81c932bb57a7ac03d4daedefdc33cbe95f2fd69ea35045`.
+- Descriptor digest: `sha256:21b56c021a29340da35f7c86064daf28b4ffadab70a7562f47167d6f76590eda`.

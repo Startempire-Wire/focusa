@@ -49,8 +49,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"preload"}`
 - Authority: `{"kind":"canonical","path":"/v1/preload/receipt-commit"}`
 - Side effects: `write_receipt`, `write_receipt`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -80,4 +80,4 @@ Likely next: `focusa_preload_verify`, `focusa_preload_doctor`.
 - CLI: `focusa preload receipt-commit`.
 - REST: `POST /v1/preload/receipt-commit`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:17b3b611aa100f1d28740d361ccd80e9b4bfd1909356d52adf9361032e36846d`.
+- Descriptor digest: `sha256:b395beb18e3e916d541d2dcbf3d8796689c2da5c4f071d09396371c3c02ef57d`.

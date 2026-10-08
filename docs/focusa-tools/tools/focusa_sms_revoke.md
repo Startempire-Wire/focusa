@@ -54,8 +54,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"control","route_family":"sms:revoke"}`
 - Authority: `{"kind":"canonical","path":"/v1/sms/revoke"}`
 - Side effects: `confirmed_connector_and_grant_revocation`, `confirmed_connector_and_grant_revocation`
-- Read-only: `false`; destructive: `true`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `true`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -86,4 +86,4 @@ Likely next: `focusa_sms_enrollment`, `focusa_sms_health`, `focusa_sms_events`.
 - CLI: `focusa sms revoke --confirm`.
 - REST: `POST /v1/sms/revoke`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:f8a5b7b95ff05506dc05443dfe30ea93dbbd3a8bf606ff0b360dcc636267a23a`.
+- Descriptor digest: `sha256:0a2cb87c2b509b61dbfb83d350853e1e662d3d5edf4131a248a5265ed8cfac3a`.

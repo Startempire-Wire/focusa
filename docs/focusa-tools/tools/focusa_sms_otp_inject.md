@@ -54,8 +54,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"control","route_family":"sms:inject_otp"}`
 - Authority: `{"kind":"canonical","path":"/v1/sms/otp/inject"}`
 - Side effects: `single_use_secret_injection`, `single_use_secret_injection`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -86,4 +86,4 @@ Likely next: `focusa_sms_events`, `focusa_sms_health`, `focusa_sms_revoke`.
 - CLI: `focusa sms otp-inject`.
 - REST: `POST /v1/sms/otp/inject`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:17932bce868b9a4076130d5a0f34e03d76c541caf4951f136c754db1490816bc`.
+- Descriptor digest: `sha256:19d6acf31a9a99bfab39e3cb71a876ac08068e990f455509476da29f41eb486f`.

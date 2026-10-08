@@ -47,8 +47,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `true`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -78,4 +78,4 @@ Likely next: `focusa_device_pair_list`, `focusa_device_pair_revoke`.
 - CLI: `focusa device pair-status`.
 - REST: `GET /v1/device/pair/status`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:aaa80f4249e1e2bf07e6aae41ffe80fd802aaa8c9feec23bde6556464c9c9d84`.
+- Descriptor digest: `sha256:073b26e0dbbdd95cb427a854ff0443b24abdee9eaac00f70588cdf0a627dd142`.

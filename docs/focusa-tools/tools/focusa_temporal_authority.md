@@ -74,8 +74,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"explicit_project_continuity"}`
 - Authority: `{"kind":"canonical","path":"daemon:/v1/temporal/commit"}`
 - Side effects: `status_preflight_read_or_confirmed_claim_write_or_observation`, `status_preflight_read_or_confirmed_claim_write_or_observation`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -106,4 +106,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_projec
 - CLI: `focusa temporal status|commit|revise|observe|forecast|preflight`, `focusa time|deadline|estimate|progress|no-progress|lost-time|opportunity|cancellation`.
 - REST: `GET /v1/temporal/status`, `POST /v1/temporal/commit`, `POST /v1/temporal/revise`, `POST /v1/temporal/observe`, `POST /v1/temporal/forecast`, `POST /v1/temporal/preflight`, `GET /v1/time/now`, `GET /v1/time/awareness`, `GET /v1/time/status`, `GET /v1/time/trust`, `GET /v1/time/samples`, `GET /v1/time/capabilities`, `GET /v1/time/stream`, `POST /v1/deadline/set`, `POST /v1/deadline/revise`, `POST /v1/deadline/clear`, `GET /v1/deadlines`, `GET /v1/deadline/{id}`, `POST /v1/deadline/resolve-civil`, `GET /v1/deadline/conflicts`, `POST /v1/deadline/propagate`, `POST /v1/temporal/guard/issue`, `POST /v1/temporal/guard/validate`, `POST /v1/temporal/guard/revoke`, `POST /v1/cancellation/request`, `GET /v1/cancellation/{id}`, `POST /v1/estimate/request`, `POST /v1/estimate/validate`, `POST /v1/estimate/evaluate`, `GET /v1/estimate/{id}`, `GET /v1/estimate/history`, `POST /v1/response/temporal-claims/validate`, `POST /v1/progress/record`, `GET /v1/progress/status`, `GET /v1/no-progress/incidents`, `GET /v1/lost-time/incidents`, `GET /v1/opportunities`, `POST /v1/temporal/preflight`.
 - Specification: `docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md`.
-- Descriptor digest: `sha256:0c050413f6c43561c5739539e61cd5d6a340e4fe9585f56aeb98b212f10a2249`.
+- Descriptor digest: `sha256:5d73783ab6c79d0ea8283b289a7b505b5e27411f9876d55d44d2f381e9fe5d26`.

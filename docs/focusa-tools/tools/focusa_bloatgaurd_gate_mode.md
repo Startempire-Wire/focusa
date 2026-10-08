@@ -48,8 +48,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -80,4 +80,4 @@ Likely next: `focusa_bloatgaurd_gate_modes`, `focusa_traverse`, `focusa_evidence
 - CLI: `focusa bloatgaurd gate-mode <name>`.
 - REST: `GET /v1/bloatgaurd/gate-modes/mode/{name}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:053f0973fbde15d824ccac747d684a405063a8a4531162e6c2c56c8e93de89ea`.
+- Descriptor digest: `sha256:701118e8cdbaba3a10b3e8589d1715ba5766c2bad1b7e8ddde9f5804bebd4797`.

@@ -119,22 +119,23 @@ const unknown: any = await execute(describe, { name: "focusa_missing_tool" });
 assert(unknown.details?.tool_result_v1?.failure_class === "not_found" || unknown.details?.failure_class === "not_found", "unknown describe must return structured not_found recovery");
 
 const graphed: any = await execute(graph, { anchor: "workpoint", depth: 2, limit: 30 });
-assert(graphed.details?.nodes?.length > 0 && graphed.details?.edges?.length > 0, "tool graph must return bounded workflow dependencies");
+assert(graphed.details?.nodes?.length > 0 && graphed.details?.edges?.length > 0, "tool graph must return bounded advisory capability relations, not execution dependencies");
 const bundled: any = await execute(bundle, { family: "workpoint", include_schemas: false });
 assert(bundled.details?.tools?.length > 0 && bundled.details?.schema_loading === "metadata_only", "family bundle must defer schemas by default");
 
 console.log(JSON.stringify({
   schema: "focusa.agent_conformance_result.v1",
   status: "passed",
-  runtime_tools: tools.size,
+  source_registered_tools: tools.size,
   strict_examples_valid: tools.size,
   evidence_boundary: "source-registered tools and simulated metadata/discovery clients; not installed, provider-model or cross-harness behavioral acceptance",
   simulated_client_levels: ["metadata_only", "progressive_discovery", "full_descriptor"],
   projection_interfaces_checked: ["pi", "mcp", "openai", "cli", "rest"],
-  weak_agent_cases: cases.length,
+  simulated_discovery_cases: cases.length,
   mcp_tools: mcpProjection.tools.length,
   classified_routes: routes.route_count,
-  installed_skills: skills.installed_root_skill_count,
+  source_skill_manifests: skills.installed_root_skill_count,
+  metric_basis: "controlled source/projection fixtures only; no provider-model, installed-skill or effectful-execution rates measured",
   metrics: {
     tool_selection_accuracy: 1,
     machine_example_validity: 1,

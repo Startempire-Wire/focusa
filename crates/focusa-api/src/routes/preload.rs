@@ -116,9 +116,13 @@ fn packet_response(step: &str, profile: Option<String>) -> Json<Value> {
             "read_only": true,
             "status": "completed",
             "packet": packet,
-            "checks": ["profile", "integrity", "scope"],
+            "canonical": false,
+            "advisory": true,
+            "context_kind": "profile_template",
+            "checks": ["profile"],
+            "unverified_checks": ["scope_binding", "artifact_delivery", "current_process_refresh"],
             "human_readable": format!(
-                "Preload {step} completed with profile {profile}. Next: verify before delivery."
+                "Preload {step} generated a profile template for {profile}; scope binding, artifact delivery and current-process refresh are not established."
             )
         })),
         Err(error) => Json(json!({
@@ -259,7 +263,9 @@ async fn build_post(
             .as_deref()
             .filter(|value| !value.trim().is_empty())
         {
-            selection_target = next.to_string();
+            if selection_target.trim().is_empty() {
+                selection_target = next.to_string();
+            }
             candidates.push(CurateCandidate {
                 kind: "snippet".into(),
                 path: "workpoint:next_action".into(),
@@ -815,6 +821,21 @@ mod tests {
                 .get("human_readable")
                 .and_then(Value::as_str)
                 .is_some_and(|text| text.contains("focusa_preload_profiles"))
+        );
+    }
+
+    #[test]
+    fn profile_template_does_not_claim_scope_or_delivery_verification() {
+        let Json(response) = packet_response("verify", Some(PROFILE_RULES_ONLY.to_string()));
+        assert_eq!(response["canonical"], false);
+        assert_eq!(response["advisory"], true);
+        assert_eq!(response["checks"], json!(["profile"]));
+        assert_eq!(response["context_kind"], "profile_template");
+        assert!(
+            response["unverified_checks"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("current_process_refresh"))
         );
     }
 

@@ -49,8 +49,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -81,4 +81,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_tool_d
 - CLI: `focusa trajectory resume`.
 - REST: `POST /v1/trajectory/resume`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:7f07978f0fb3a59be7cf43b0d3bfc3b6639069d7ea84944531631e3d056e0dbe`.
+- Descriptor digest: `sha256:4c9bfd849b964626a0109a25e1d0119529e44c1a6fc5cec8c8c624ef377baf1e`.

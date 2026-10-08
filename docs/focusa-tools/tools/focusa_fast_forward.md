@@ -50,8 +50,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `durable_dispatch`, `durable_dispatch`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -81,4 +81,4 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - CLI: none.
 - REST: `/v1/silent-sessions/fanout `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:cacaea1ede24648c6c4fb47ad3105c3a615fbace33c98c3b82d6fb24bb96574c`.
+- Descriptor digest: `sha256:881cc8406b413422ced84875de562b2d85240cfd976b7ba28e4880518ded45ae`.

@@ -52,8 +52,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"browser"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `true`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -84,4 +84,4 @@ Likely next: `focusa_browser_capabilities_intake`, `focusa_browser_diagnostics_i
 - CLI: `focusa help all --json`.
 - REST: `POST /v1/browser/workflow/plan`.
 - Specification: `docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`.
-- Descriptor digest: `sha256:a7f6f014aff3ee8244e95805c78995f9fe23a2876c8e0b05a09363bbde10abf3`.
+- Descriptor digest: `sha256:1d4a2d9412ecbd993bc96c0e5563b868fa6a7a057a0a77e743277416fa124ece`.

@@ -55,8 +55,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_state`, `write_state`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -87,4 +87,4 @@ Likely next: `focusa_metacog_retrieve`, `focusa_metacog_reflect`, `focusa_workpo
 - CLI: `focusa metacognition capture`.
 - REST: `POST /v1/metacognition/capture`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9825fd6cac44f852ff91f62e1dae56516938bcb0a94df91bb2a13f82dc912476`.
+- Descriptor digest: `sha256:9817af5e5a473404cc8cd4c4cb9e71779dfd70d7290296f9c320e514b35114a6`.

@@ -56,8 +56,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"daemon-routing"}`
 - Authority: `{"kind":"canonical","path":"/v1/daemon-routing/resolve"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `true`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -88,4 +88,4 @@ Likely next: `focusa_project_identity`, `focusa_tool_doctor`, `focusa_workpoint_
 - CLI: `focusa daemon-routing status`.
 - REST: `POST /v1/daemon-routing/resolve`.
 - Specification: `docs/158-focusa-daemon-routing-surface-parity-spec.md`.
-- Descriptor digest: `sha256:2295ec2515f13e8a79facfee33c23a32e38e83c744ff7021170713b816b60e61`.
+- Descriptor digest: `sha256:4ebc7ea70e82c448ec5e6520ed5796a063028e9866877130fd8fcbb889a04709`.

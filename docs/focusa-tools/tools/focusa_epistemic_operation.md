@@ -52,8 +52,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"prediction-authority:operation"}`
 - Authority: `{"kind":"canonical_write"}`
 - Side effects: `typed_read_or_canonical_epistemic_mutation`, `typed_read_or_canonical_epistemic_mutation`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -84,4 +84,4 @@ Likely next: `focusa_prediction_authority`, `focusa_metacog_retrieve`, `focusa_t
 - CLI: `focusa predict operation --operation <operation-id>`.
 - REST: `POST /v1/prediction-questions`, `POST /v1/information-sets`, `POST /v1/predictions/commit`, `POST /v1/predictions/{id}/supersede`, `GET /v1/predictions/{id}`, `GET /v1/predictions/recent`, `POST /v1/outcomes/claim`, `POST /v1/outcomes/{id}/dispute`, `POST /v1/outcomes/resolve`, `POST /v1/outcomes/{id}/correct`, `POST /v1/evaluations/predictions`, `GET /v1/calibration/reports`, `POST /v1/metacognition/signals`, `POST /v1/metacognition/reflections`, `POST /v1/metacognition/adjustments`, `POST /v1/metacognition/evaluations`, `POST /v1/learning/candidates/{id}/decide`, `POST /v1/learning/{id}/apply`, `POST /v1/learning/transfers/resolve`, `GET /v1/learning/retrieve`, `GET /v1/learning/conflicts`, `POST /v1/learning/{id}/expire`, `POST /v1/learning/{id}/supersede`, `POST /v1/learning/{id}/revoke`, `POST /v1/learning/{id}/rollback`, `POST /v1/learning/consolidate`, `GET /v1/self-model`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:b61adb9bf0987e8b74fcb131fe03b504a20dae1f2aa46c603f9fd15384b1b8de`.
+- Descriptor digest: `sha256:f070eac7be671ab5501ca3d420be71f2293d0240c258bca8411cd92094f70e43`.

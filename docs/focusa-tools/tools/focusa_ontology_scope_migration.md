@@ -53,8 +53,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"ontology"}`
 - Authority: `{"kind":"canonical","path":"reducer event plus append-only receipt"}`
 - Side effects: `confirmed_append_only_scope_migration`, `confirmed_append_only_scope_migration`
-- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -85,4 +85,4 @@ Likely next: `focusa_project_verify`, `focusa_evidence_capture`, `focusa_workpoi
 - CLI: `focusa ontology scope-migration-dry-run`, `focusa ontology scope-migration-status`, `focusa ontology scope-migration-apply`, `focusa ontology scope-migration-rollback`.
 - REST: `POST /v1/ontology/scope-migrations`.
 - Specification: `docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md`.
-- Descriptor digest: `sha256:8748a85fa2f1ede90ef5389daf86aea80eae079e5a6eacfe60936137ae5a192f`.
+- Descriptor digest: `sha256:3db5d85a78d0d84a9a5ba2686ded7837af5b02e71faa3f19bbaa7d92d072b7c2`.

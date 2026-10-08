@@ -128,8 +128,16 @@ mod tests {
         let card = utility_card();
         assert!(card.authority_boundary.contains("WorkstreamId"));
         assert!(card.authority_boundary.contains("AttachmentKey"));
-        assert!(card.bootstrap_card.iter().any(|line| line.contains("not as universal completion gates")));
-        assert!(card.brevity_rules.iter().any(|line| line.contains("conditional hints")));
+        assert!(
+            card.bootstrap_card
+                .iter()
+                .any(|line| line.contains("not as universal completion gates"))
+        );
+        assert!(
+            card.brevity_rules
+                .iter()
+                .any(|line| line.contains("conditional hints"))
+        );
     }
 
     #[test]

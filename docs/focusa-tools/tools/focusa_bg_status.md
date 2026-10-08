@@ -45,8 +45,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_status`, `read_status`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -76,4 +76,4 @@ Likely next: `focusa_bg_run`, `focusa_workpoint_resume`.
 - CLI: `focusa bg status --job`, `focusa bg list`.
 - REST: `/v1/background-jobs `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a04591188bbc289be306a5746e4a95e4b0a5ef989d909c3799fe8a581ec39cdd`.
+- Descriptor digest: `sha256:39c25b388b4b1af4b76b24b15adbf7aff48165cf418f6120c1eae8a4fd4c79aa`.

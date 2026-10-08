@@ -15,7 +15,6 @@ for (const key of ['focusaUrl', 'adapterId', 'workspaceId', 'agentId', 'operator
   must(`manifest config key ${key}`, Boolean(manifest.configSchema.properties?.[key]));
 }
 for (const needle of [
-  'api.on("before_agent_start"',
   '/v1/awareness/card',
   'adapter_id',
   'workspace_id',
@@ -26,6 +25,11 @@ for (const needle of [
   'prependContext',
 ]) {
   must(`source contains ${needle}`, source.includes(needle));
+}
+
+must('native before_agent_start hook', /\bapi\.on\s*\(\s*["']before_agent_start["']/.test(source));
+for (const needle of ['current execution admission unverified', 'Configured lookup inputs (not verified binding)', 'Fallback context is advisory', 'independently admitted work continues']) {
+  must(`degraded authority boundary: ${needle}`, source.includes(needle));
 }
 
 if (failures.length) {

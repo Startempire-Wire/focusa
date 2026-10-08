@@ -39,7 +39,9 @@ POLICY_FIELDS = {
 
 # ── 1. Every Pi tool inherits its canonical operation policy ────────────────
 assert pi_tools["schema"] == "focusa.pi_tool_projection.v2"
-assert len(pi_tools["tools"]) == descriptors["capability_count"] == len(descriptors["descriptors"]) == 146
+assert descriptors["capability_count"] > 0, "registered capability inventory must be nonempty"
+assert len(pi_tools["tools"]) == descriptors["capability_count"] == len(descriptors["descriptors"])
+assert len({tool["name"] for tool in pi_tools["tools"]}) == len(pi_tools["tools"]), "duplicate Pi tool projection"
 
 by_pi_name = {descriptor["capability_id"].replace(".", "_"): descriptor for descriptor in descriptors["descriptors"]}
 for tool in pi_tools["tools"]:

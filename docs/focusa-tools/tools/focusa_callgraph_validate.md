@@ -47,8 +47,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_validation`, `read_validation`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -78,4 +78,4 @@ Likely next: `focusa_callgraph_observe`, `focusa_tool_describe`.
 - CLI: none.
 - REST: `POST /v1/callgraphs/validate`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:543c822f3d3fa9100e6b0689244f85c997b6c63ec008742260c92a456e58ef6d`.
+- Descriptor digest: `sha256:c4f12e6697f37ec662270a742d84f9b2a48e807f405244b22495718a3d1cea79`.

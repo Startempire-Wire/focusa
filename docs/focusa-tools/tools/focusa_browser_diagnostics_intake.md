@@ -56,8 +56,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `composite_evidence_prediction_optional_metacog`, `composite_evidence_prediction_optional_metacog`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `true`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `true`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -89,4 +89,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_
 - CLI: `focusa workpoint evidence-link`, `focusa predict record`, `focusa metacognition capture`.
 - REST: `POST /v1/workpoint/evidence/link`, `POST /v1/predictions`, `POST /v1/metacognition/capture`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:2622d1e738373785323dfc1bc9b1a4d41f8d5101c7666349cf38733572503935`.
+- Descriptor digest: `sha256:4280e21e82ef9e2e5c78bf3928f3f7dc97d28bb2ec453ed322b4bcf1c6990b12`.

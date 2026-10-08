@@ -58,8 +58,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"sms:send"}`
 - Authority: `{"kind":"canonical","path":"/v1/sms/send"}`
 - Side effects: `confirmed_idempotent_message_delivery`, `confirmed_idempotent_message_delivery`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -90,4 +90,4 @@ Likely next: `focusa_sms_events`, `focusa_sms_threads`, `focusa_sms_checkpoint`.
 - CLI: `focusa sms send <recipient-handle> --confirm`.
 - REST: `POST /v1/sms/send`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:0be3ee2b583af2f97f8d9db80e60bd69202dd62826c49e579abddcfd0dcab484`.
+- Descriptor digest: `sha256:f25faf1d5120b4cb0863ad90efcc40beb8349e5f5e9828f3aaa1c29363be9926`.

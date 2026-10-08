@@ -64,8 +64,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_verdict`, `read_verdict`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -95,4 +95,4 @@ Likely next: `focusa_credentials_verify`, `focusa_tool_doctor`.
 - CLI: none.
 - REST: `/v1/credentials/verify-requirement `.
 - Specification: contract registry.
-- Descriptor digest: `sha256:74f5c1e12c58f13e7c94df2e7939d005ff8813f1b8926f21402ce206498fa662`.
+- Descriptor digest: `sha256:59bc25a97f8ea66486567c90630a5a6397025a0826e014379081192dd571f4ad`.

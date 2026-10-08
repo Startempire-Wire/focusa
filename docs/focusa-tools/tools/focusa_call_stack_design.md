@@ -58,8 +58,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_call_stack_design`, `write_call_stack_design`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `null`; preview supported: `null`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -90,4 +90,4 @@ Likely next: `focusa_call_stack_verify`, `focusa_workpoint_link_evidence`, `focu
 - CLI: `focusa call-stack design`.
 - REST: `POST /v1/call-stack/design`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:abc7d690fb9a84cd2f5c5cf0c89a97467a27845490f73c3da17c7e1e3a2c5283`.
+- Descriptor digest: `sha256:25889d0944e6264d0a560d2d0f8f97e6bc785a3334161f43e36d3ad1b1e6896b`.

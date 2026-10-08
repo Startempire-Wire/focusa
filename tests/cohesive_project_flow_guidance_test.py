@@ -115,6 +115,19 @@ class CohesiveProjectFlowTests(unittest.TestCase):
         self.assertIn('unsafe_call_rate: null',conformance)
         self.assertIn('scope_violation_rate: null',conformance)
 
+    def test_preload_and_public_snapshot_boundaries(self):
+        preload=(ROOT/'crates/focusa-api/src/routes/preload.rs').read_text()
+        self.assertIn('not an execution grant',preload)
+        self.assertIn('ordinary choices inside that grant',preload)
+        cli=(ROOT/'docs/current/CLI_REFERENCE_CURRENT.md').read_text()
+        self.assertIn('not proof of the calling installation',cli)
+        runtime=(ROOT/'scripts/generate-current-runtime-status').read_text()
+        self.assertNotIn('Current shipped functionality',runtime)
+        self.assertIn('not installed or shipped proof',runtime)
+        plugin=(ROOT/'apps/focusa-awareness/index.ts').read_text()
+        self.assertIn('Fallback context is advisory',plugin)
+        self.assertIn('not verified binding',plugin)
+
     def test_generated_copies_match_producer_bytes(self):
         for skill in REG['skills']:
             for base in ['.pi/skills','apps/pi-extension/skills']:
