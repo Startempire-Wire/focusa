@@ -18,6 +18,16 @@ on:
         description: Reverify existing candidate receipts and finish signing/publication without rebuilding artifacts
         default: false
         type: boolean
+      recover_tag_trust:
+        description: Replay the original tag-bound signer for legacy installer compatibility
+        default: false
+        type: boolean
+      original_tag_run_id:
+        default: ''
+        type: string
+      original_tag_job_id:
+        default: ''
+        type: string
 
 concurrency:
   group: release-${{ inputs.release_tag || github.ref }}
@@ -954,7 +964,7 @@ jobs:
 
   checksums:
     name: Publish SHA256SUMS
-    if: ${{ always() && needs.tag-ci-proof.result == 'success' && needs.external-menubar-receipts.result == 'success' && needs.external-rust-binaries.result == 'success' && (inputs.recover_staged_assets || (needs.rust-release.result == 'success' && needs.pi-extension-release.result == 'success')) }}
+    if: ${{ always() && !inputs.recover_tag_trust && needs.tag-ci-proof.result == 'success' && needs.external-menubar-receipts.result == 'success' && needs.external-rust-binaries.result == 'success' && (inputs.recover_staged_assets || (needs.rust-release.result == 'success' && needs.pi-extension-release.result == 'success')) }}
     needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 5
@@ -1219,9 +1229,27 @@ jobs:
           done
           echo "release_channel_assets=verified"
 
+  recover-original-tag-signer:
+    name: Recover original tag-bound signing trust
+    if: ${{ always() && inputs.recover_tag_trust && inputs.recover_staged_assets && needs.tag-ci-proof.result == 'success' && needs.external-menubar-receipts.result == 'success' && needs.external-rust-binaries.result == 'success' }}
+    needs: [external-menubar-receipts, external-rust-binaries, tag-ci-proof]
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify original signer and preserve immutable provider bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_RUN_ID: ${{ inputs.original_tag_run_id }}
+          TAG_JOB_ID: ${{ inputs.original_tag_job_id }}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/recover-release-tag-trust.py --tag "$RELEASE_TAG" \
+            --sha "$RELEASE_SHA" --run "$TAG_RUN_ID" --job "$TAG_JOB_ID"
+
   dispatch-deploy-live-daemon:
     name: Dispatch Deploy Live Daemon
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ always() && needs.checksums.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
     needs: checksums
     runs-on: self-hosted
     timeout-minutes: 5
