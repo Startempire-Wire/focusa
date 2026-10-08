@@ -14,6 +14,10 @@ on:
         description: Exact commit SHA the release tag must resolve to
         required: true
         type: string
+      recover_staged_assets:
+        description: Reverify existing candidate receipts and finish signing/publication without rebuilding artifacts
+        default: false
+        type: boolean
 
 concurrency:
   group: release-${{ inputs.release_tag || github.ref }}
@@ -48,7 +52,7 @@ env:
 jobs:
   queue-appveyor-windows:
     name: Queue AppVeyor Windows matrix (GH#656)
-    if: ${{ vars.FOCUSA_WINDOWS_RELEASE_PROVIDER != 'ovh' }}
+    if: ${{ !inputs.recover_staged_assets && vars.FOCUSA_WINDOWS_RELEASE_PROVIDER != 'ovh' }}
     # AppVeyor never builds tag-push events (proven 2026-09-30: pushing branch
     # v0.9.199-dev queued build 429 instantly while tag v0.9.199-dev queued
     # nothing, even with the webhook subscribed to create events). Queue the
@@ -409,7 +413,7 @@ jobs:
     # Disabled by default while Spec 178 owns macOS/Windows via external
     # providers. Restoration is one explicit repository-variable flip after
     # every GitHub-hosted replacement row is proven together.
-    if: ${{ vars.FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX == 'enabled' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    if: ${{ !inputs.recover_staged_assets && vars.FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX == 'enabled' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
     needs: create-release
     strategy:
       fail-fast: true
@@ -698,7 +702,7 @@ jobs:
 
   external-menubar-receipts:
     name: External Menubar Receipt Gate
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ always() && needs.create-release.result == 'success' && (inputs.recover_staged_assets || (needs.pi-extension-release.result == 'success' && needs.windows-ovh-executables.result == 'success')) }}
     # Producer-before-waiter: do not consume a bounded OVH lane while local
     # support artifacts are still queued on that same runner pool.
     needs: [create-release, pi-extension-release, windows-ovh-executables]
@@ -722,7 +726,7 @@ jobs:
 
   rust-release:
     name: Rust Binaries (${{ matrix.target }})
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ !inputs.recover_staged_assets && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
     needs: create-release
     strategy:
       fail-fast: true
@@ -841,6 +845,7 @@ jobs:
   # until all 16 external binaries (8 macOS + 8 Windows) are attached.
   windows-ovh-executables:
     name: Automatic Windows executable and desktop producer
+    if: ${{ !inputs.recover_staged_assets }}
     needs: create-release
     uses: ./.github/workflows/windows-ovh-build.yml
     secrets: inherit
@@ -850,7 +855,7 @@ jobs:
 
   external-rust-binaries:
     name: External Rust Binary Receipt Gate
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ always() && needs.create-release.result == 'success' && (inputs.recover_staged_assets || (needs.rust-release.result == 'success' && needs.windows-ovh-executables.result == 'success')) }}
     # Producer-before-waiter: all Linux matrix rows must release their bounded
     # OVH lanes before a long external-provider receipt wait may begin.
     needs: [create-release, rust-release, windows-ovh-executables]
@@ -874,7 +879,7 @@ jobs:
 
   pi-extension-release:
     name: Package Pi Extension
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ !inputs.recover_staged_assets && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
     needs: create-release
     runs-on: self-hosted
     steps:
@@ -949,9 +954,9 @@ jobs:
 
   checksums:
     name: Publish SHA256SUMS
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ always() && needs.tag-ci-proof.result == 'success' && needs.external-menubar-receipts.result == 'success' && needs.external-rust-binaries.result == 'success' && (inputs.recover_staged_assets || (needs.rust-release.result == 'success' && needs.pi-extension-release.result == 'success')) }}
     needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
@@ -984,9 +989,18 @@ jobs:
             dist/distribution-manifest.json
 
       - name: Require every canonical surface on every supported system
+        env:
+          CONTROLLER_SHA: ${{ github.workflow_sha }}
         run: |
           set -euo pipefail
-          python3 scripts/verify-canonical-release-assets.py \
+          contract_dir="$RUNNER_TEMP/focusa-release-contract-$GITHUB_RUN_ID"
+          mkdir -p "$contract_dir/scripts" "$contract_dir/tests"
+          for script in verify-canonical-release-assets.py wait-for-external-release-assets.py; do
+            git show "$CONTROLLER_SHA:scripts/$script" > "$contract_dir/scripts/$script"
+          done
+          git show "$CONTROLLER_SHA:tests/154_focusa_canonical_release_assets_test.py" > "$contract_dir/tests/154_focusa_canonical_release_assets_test.py"
+          python3 "$contract_dir/tests/154_focusa_canonical_release_assets_test.py"
+          python3 "$contract_dir/scripts/verify-canonical-release-assets.py" \
             --dist dist \
             --tag "${RELEASE_TAG}"
 

@@ -39,6 +39,24 @@ class CanonicalReleaseAssetTests(unittest.TestCase):
             self.populate(directory)
             self.assertEqual(module.verify(directory, self.tag), [])
 
+    def test_real_codemagic_dmg_names_pass_same_receipt_contract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            self.populate(directory)
+            for architecture, target in [('aarch64', 'aarch64-apple-darwin'), ('x64', 'x86_64-apple-darwin')]:
+                (directory / f'Focusa_9.9.9_{architecture}.dmg').rename(
+                    directory / f'Focusa-{self.tag}-{target}.dmg')
+            self.assertEqual(module.verify(directory, self.tag), [])
+            (directory / f'Focusa-{self.tag}-aarch64-apple-darwin.dmg').unlink()
+            self.assertIn('pattern-family:dmg-aarch64', module.verify(directory, self.tag))
+
+    def test_missing_windows_signature_still_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            self.populate(directory)
+            (directory / 'Focusa_9.9.9_arm64_en-US.msi.sig').unlink()
+            self.assertIn('pattern-family:Focusa_*arm64*.msi.sig', module.verify(directory, self.tag))
+
     def test_any_missing_surface_blocks_release(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)

@@ -26,6 +26,7 @@ No variants, shortcuts, `--no-verify`, manual manifest edits or immutable-tag re
   release collection; the draft-blind `/releases/tags/{tag}` endpoint is banned.
   Ordinary branches, pull requests, and Nightlies must not consume this serial
   release lane.
+- **Staged-asset recovery:** dispatch `release.yml` with the same immutable `release_tag`/`release_sha` and `recover_staged_assets=true` when completed producer artifacts already exist. This skips rebuilding, not acceptance: exact-source CI, scoped PR/version/gap gates, both external receipt gates, the shared provider filename contract, checksums, signatures, provenance, deployment and consumer acceptance still apply. The workflow-pinned controller verifier may repair its own naming contract without changing the candidate or copying/renaming published artifacts.
 - **Tag ≠ Release.** `git push --tags` only enqueues CI. `Latest` is valid only after all required packaging, signatures, compatibility, deployment and acceptance receipts settle for the exact candidate. Say "tag pushed, CI queued" vs "Release published as Latest". Never "pushed full release" when only tag exists.
 - **Proof, not ticket closure, gates delivery.** Open issues remain open until their
   actual acceptance criteria are proven. They do not prevent building the signed
