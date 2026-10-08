@@ -80,16 +80,38 @@ def reclaim_idle_cache(cache, saved):
 
 
 def prepare_nsis(tools, env):
-    packages, root = tools / 'packages', tools / 'root'
+    # Retain exact, checksum-verified inputs rather than re-resolving retired
+    # repository versions on every new runner attempt; extraction stays isolated.
+    lock_digest = hashlib.sha256(NSIS_PACKAGE_LOCK.read_bytes()).hexdigest()
+    cache = Path(env.get('FOCUSA_WINDOWS_PACKAGE_CACHE',
+                         '/home/wirebot/build/focusa/windows-packaging-cache'))
+    packages, root = cache / lock_digest, tools / 'root'
     packages.mkdir(parents=True, exist_ok=True)
     root.mkdir(parents=True, exist_ok=True)
-    # No floating APT solver: exact versions come from the successful producer.
     dependencies = [line for line in NSIS_PACKAGE_LOCK.read_text().splitlines()
                     if line and not line.startswith('#')]
     if not dependencies or any(not re.fullmatch(r'[a-z0-9+.-]+=[^\s]+', line) for line in dependencies):
         raise ValueError('invalid pinned Windows packaging tool lock')
-    run(['apt-get', 'download', *dependencies], cwd=packages)
-    for package in sorted(packages.glob('*.deb')):
+    manifest = packages / 'input-sha256.json'
+    if manifest.exists():
+        expected = json.loads(manifest.read_text())
+    else:
+        run(['apt-get', 'download', *dependencies], cwd=packages)
+        expected = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in sorted(packages.glob('*.deb'))}
+        if len(expected) != len(dependencies):
+            raise ValueError('pinned packaging cache incomplete; retain original download diagnostics')
+        pending = manifest.with_suffix('.pending')
+        pending.write_text(json.dumps(expected, sort_keys=True) + '\n')
+        pending.replace(manifest)
+    if len(expected) != len(dependencies):
+        raise ValueError('pinned packaging cache manifest count mismatch')
+    for name, digest in sorted(expected.items()):
+        if Path(name).name != name or not name.endswith('.deb'):
+            raise ValueError('invalid pinned packaging cache path')
+        package = packages / name
+        if not package.is_file() or hashlib.sha256(package.read_bytes()).hexdigest() != digest:
+            raise ValueError('pinned packaging cache checksum mismatch: ' + name)
         run(['dpkg-deb', '-x', package, root])
     # Tauri deliberately removes NSISDIR before spawning makensis. Keep the
     # portable distribution's real resource binding at the executable boundary.

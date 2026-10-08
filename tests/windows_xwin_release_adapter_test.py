@@ -186,9 +186,24 @@ class WindowsPipelineTests(unittest.TestCase):
             executable = tools / 'root/usr/bin/makensis'
             executable.parent.mkdir(parents=True)
             executable.write_bytes(b'packager fixture')
-            env = {'PATH': '/usr/bin'}
-            with patch.object(self.pipeline, 'run'), patch.object(self.pipeline.subprocess, 'check_output', return_value=''):
+            lock = tools / 'package.lock'
+            lock.write_text('nsis=3.09-4ubuntu1\n')
+            env = {'PATH': '/usr/bin', 'FOCUSA_WINDOWS_PACKAGE_CACHE': str(tools / 'cache')}
+            def fixture_run(command, **kwargs):
+                if command[0] == 'apt-get':
+                    (kwargs['cwd'] / 'nsis_fixture.deb').write_bytes(b'package fixture')
+            with patch.object(self.pipeline, 'NSIS_PACKAGE_LOCK', lock), patch.object(self.pipeline, 'run', side_effect=fixture_run) as runner:
                 self.pipeline.prepare_nsis(tools, env)
+                reused = tools / 'second'
+                second_executable = reused / 'root/usr/bin/makensis'
+                second_executable.parent.mkdir(parents=True)
+                second_executable.write_bytes(b'packager fixture')
+                self.pipeline.prepare_nsis(reused, env)
+                self.assertEqual(sum(call.args[0][0] == 'apt-get' for call in runner.call_args_list), 1)
+                package = next((tools / 'cache').glob('*/nsis_fixture.deb'))
+                package.write_bytes(b'tampered package fixture')
+                with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
+                    self.pipeline.prepare_nsis(tools / 'third', env)
             self.assertEqual(executable.with_name('makensis.real').read_bytes(), b'packager fixture')
             self.assertIn('export NSISDIR=', executable.read_text())
             self.assertIn('exec ', executable.read_text())
