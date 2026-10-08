@@ -77,6 +77,11 @@ def main():
     env['WINEDLLPATH'] = ':'.join(str(library / arch) for arch in ['x86_64-windows', 'x86_64-unix'])
     env['LD_LIBRARY_PATH'] = str(library / 'x86_64-unix')
     env['WINEDLLOVERRIDES'] = 'mscoree,mshtml='
+    # MinGW zlib is a native PE dependency, not a Wine builtin; place it on
+    # the actual native DLL search path before user32 is loaded by wineboot.
+    system32 = Path(env['WINEPREFIX']) / 'drive_c/windows/system32'
+    system32.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(zlib, system32 / 'zlib1.dll')
     subprocess.run([str(server), '--version'], env=env, check=True, timeout=30)
     subprocess.run([str(wine), 'wineboot', '-u'], env=env, check=True, timeout=120)
     artifacts = [download(WIX_URL, tools / 'wix.zip', WIX_SHA256),
