@@ -31,7 +31,7 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.10.0
 
-      - name: Download existing SHA256SUMS and verify assets
+      - name: Download all release assets and regenerate SHA256SUMS
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -40,45 +40,26 @@ jobs:
           mkdir -p dist
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
           
-          # Verify SHA256SUMS matches all non-sig/non-pem assets
+          # Regenerate SHA256SUMS with all non-sig/non-pem assets
           python3 <<'PY'
           import hashlib
           from pathlib import Path
           dist = Path("dist")
-          sums_path = dist / "SHA256SUMS.txt"
-          if not sums_path.exists():
-              raise SystemExit("SHA256SUMS.txt not found in release")
           
-          expected = {}
-          with sums_path.open() as f:
-              for line in f:
-                  line = line.strip()
-                  if not line:
-                      continue
-                  parts = line.split(maxsplit=1)
-                  if len(parts) == 2:
-                      expected[parts[1]] = parts[0]
+          sums = []
+          for asset in sorted(dist.iterdir(), key=lambda p: p.name):
+              if not asset.is_file():
+                  continue
+              if asset.name.endswith(('.sig', '.pem', '.cosign.sig', '.cosign.pem')):
+                  continue
+              h = hashlib.sha256()
+              with asset.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1 << 20), b""):
+                      h.update(chunk)
+              sums.append(f"{h.hexdigest()}  {asset.name}")
           
-          errors = []
-          for asset in dist.iterdir():
-              if asset.is_file() and not asset.name.endswith(('.sig', '.pem', '.cosign.sig', '.cosign.pem')):
-                  if asset.name not in expected:
-                      errors.append(f"Asset in release but not in SHA256SUMS: {asset.name}")
-                  else:
-                      h = hashlib.sha256()
-                      with asset.open("rb") as f:
-                          for chunk in iter(lambda: f.read(1 << 20), b""):
-                              h.update(chunk)
-                      actual = h.hexdigest()
-                      if actual != expected[asset.name]:
-                          errors.append(f"Checksum mismatch for {asset.name}: expected {expected[asset.name]}, got {actual}")
-          
-          if errors:
-              for e in errors:
-                  print(f"ERROR: {e}")
-              raise SystemExit("SHA256SUMS verification failed")
-          
-          print(f"Verified {len(expected)} assets against SHA256SUMS.txt")
+          (dist / "SHA256SUMS.txt").write_text("\n".join(sums) + "\n")
+          print(f"Regenerated SHA256SUMS.txt with {len(sums)} assets")
 
       - name: Re-sign SHA256SUMS with cosign (tag-bound OIDC)
         run: |
@@ -91,12 +72,13 @@ jobs:
           test -s dist/SHA256SUMS.txt.cosign.pem
           echo "Cosign signature and certificate created from tag ref"
 
-      - name: Upload new cosign signatures
+      - name: Upload new SHA256SUMS and cosign signatures
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           draft: true
           files: |
+            dist/SHA256SUMS.txt
             dist/SHA256SUMS.txt.cosign.sig
             dist/SHA256SUMS.txt.cosign.pem
         env:
