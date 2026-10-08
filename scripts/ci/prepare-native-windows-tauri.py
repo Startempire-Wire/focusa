@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 import re
 import shutil
-import subprocess
 import tarfile
 import urllib.request
 import zipfile
@@ -59,8 +58,7 @@ def prepare(app, tools, env):
     digest = base64.b64decode(dependency['integrity'].split('-', 1)[1], validate=True).hex()
     inputs.append(owner.download(dependency['resolved'], native / 'tauri-native.tgz', digest, algorithm='sha512'))
     unpack_tar(native / 'tauri-native.tgz', native / 'tauri')
-    destination = app / PACKAGE
-    shutil.copytree(native / 'tauri/package', destination)
+    shutil.copytree(native / 'tauri/package', app / PACKAGE)
     cargo_name = f'cargo-{CARGO_VERSION}-x86_64-pc-windows-msvc.tar.xz'
     cargo_url = 'https://static.rust-lang.org/dist/' + cargo_name
     with urllib.request.urlopen(cargo_url + '.sha256', timeout=60) as response:
@@ -75,53 +73,10 @@ def prepare(app, tools, env):
     env.update(receipt['launcher_env'])
     env['WINEPATH'] = windows_path(cargo.parent) + ';' + windows_path(node.parent)
     env['CARGO_TARGET_DIR'] = windows_path(env['CARGO_TARGET_DIR'])
-    # Use the prefix's actual Windows cache location, not a second WiX download.
     users = Path(env['WINEPREFIX']) / 'drive_c/users'
     profiles = [p for p in users.iterdir() if p.name not in {'Public', 'All Users'} and (p / 'AppData/Local').is_dir()]
     if len(profiles) != 1:
         raise ValueError('unambiguous isolated Wine user profile required')
-    wix_cache = profiles[0] / 'AppData/Local/tauri/WixTools314'
-    shutil.copytree(tools / 'wix', wix_cache, dirs_exist_ok=True)
-    # Mono's P/Invoke search does not apply WiX's Windows x64 PATH mutation.
-    # Bind unchanged vendor x64 native DLLs beside their managed assemblies.
-    native_dlls = sorted((tools / 'wix/x64').glob('*.dll'))
-    if not native_dlls:
-        raise ValueError('verified WiX x64 native DLL directory missing')
-    for dll in native_dlls:
-        shutil.copy2(dll, wix_cache / dll.name)
-    # A Windows child process otherwise chooses the PE32 managed-image loader,
-    # unlike direct wine64 execution used by the verified toolchain probe.
-    # Keep vendor assemblies unchanged and host their entrypoints in CLR64.
-    compilers = sorted((Path(env['WINEPREFIX']) / 'drive_c/windows').glob('**/csc.exe'))
-    if not compilers:
-        compilers = sorted((Path(env['WINEPREFIX']) / 'drive_c/windows').glob('**/mcs.exe'))
-    if not compilers:
-        raise ValueError('Wine Mono C# compiler missing; no unverified launcher fallback')
-    host_source = native / 'wix-clr64-host.cs'
-    host_source.write_text('''using System;
-using System.IO;
-using System.Reflection;
-class WixClr64Host {
-  static int Main(string[] args) {
-    try {
-      string self = Assembly.GetExecutingAssembly().Location;
-      string vendor = Path.Combine(Path.GetDirectoryName(self), Path.GetFileNameWithoutExtension(self) + ".managed.exe");
-      MethodInfo entry = Assembly.LoadFrom(vendor).EntryPoint;
-      object result = entry.Invoke(null, entry.GetParameters().Length == 0 ? null : new object[] { args });
-      return result is int ? (int)result : 0;
-    } catch (Exception e) { Console.Error.WriteLine(e.GetBaseException()); return 1; }
-  }
-}
-''')
-    launcher = native / 'wix-clr64-host.exe'
-    subprocess.run([receipt['launcher'], str(compilers[0]), '/nologo', '/target:exe',
-                    '/platform:x64', '/out:' + windows_path(launcher), windows_path(host_source)],
-                   env=env, check=True, timeout=90)
-    for name in ['candle', 'light']:
-        original = wix_cache / (name + '.exe')
-        original.rename(wix_cache / (name + '.managed.exe'))
-        shutil.copy2(launcher, original)
-    inputs.append({'kind': 'wix_clr64_adapter', 'source_sha256': hashlib.sha256(host_source.read_bytes()).hexdigest(),
-                   'launcher_sha256': hashlib.sha256(launcher.read_bytes()).hexdigest()})
+    shutil.copytree(tools / 'wix', profiles[0] / 'AppData/Local/tauri/WixTools314', dirs_exist_ok=True)
     (native / 'native-tool-inputs.json').write_text(json.dumps({'inputs': inputs, 'tauri_cli_version': cli_version, 'native_windows_proof': False}, indent=2) + '\n')
     return [receipt['launcher'], str(node)], env

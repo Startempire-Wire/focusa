@@ -56,6 +56,11 @@ def main():
     subprocess.run(['apt-get', 'download', *PACKAGES], cwd=packages, check=True)
     for package in packages.glob('*.deb'):
         subprocess.run(['dpkg-deb', '-x', str(package), str(root)], check=True)
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('wine32_inputs', Path(__file__).with_name('prepare-wine32-runtime.py'))
+    wine32_inputs = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wine32_inputs)
+    wine32_inputs.prepare(tools, root)
     wine = root / 'usr/lib/wine/wine64'
     server = root / 'usr/lib/wine/wineserver64'
     library = root / 'usr/lib/x86_64-linux-gnu/wine'
@@ -78,16 +83,29 @@ def main():
     env['WINEPREFIX'] = str(tools / 'prefix')
     env['WINEARCH'] = 'win64'
     env['WINESERVER'] = str(server)
-    env['WINELOADER'] = str(wine)
+    # Both architecture loaders now exist in the canonical sibling layout.
+    # Let Wine select the correct loader for Windows child-process images.
+    env.pop('WINELOADER', None)
     env['PATH'] = str(binary_directory) + os.pathsep + str(wine.parent) + os.pathsep + env['PATH']
-    env['WINEDLLPATH'] = ':'.join(str(library / arch) for arch in ['x86_64-windows', 'x86_64-unix'])
-    env['LD_LIBRARY_PATH'] = str(library / 'x86_64-unix')
+    library32 = root / 'usr/lib/i386-linux-gnu/wine'
+    env['WINEDLLPATH'] = ':'.join([str(library / 'x86_64-windows'), str(library / 'x86_64-unix'),
+                                 str(library32 / 'i386-windows'), str(library32 / 'i386-unix')])
+    env['LD_LIBRARY_PATH'] = ':'.join(str(path) for path in [library / 'x86_64-unix',
+        root / 'usr/lib/x86_64-linux-gnu', root / 'lib/x86_64-linux-gnu',
+        library32 / 'i386-unix', root / 'usr/lib/i386-linux-gnu', root / 'lib/i386-linux-gnu'])
     env['WINEDLLOVERRIDES'] = 'mscoree,mshtml='
     # MinGW zlib is a native PE dependency, not a Wine builtin; place it on
     # the actual native DLL search path before user32 is loaded by wineboot.
     system32 = Path(env['WINEPREFIX']) / 'drive_c/windows/system32'
     system32.mkdir(parents=True, exist_ok=True)
     shutil.copy2(zlib, system32 / 'zlib1.dll')
+    zlib32 = root / 'usr/i686-w64-mingw32/lib/zlib1.dll'
+    if not zlib32.is_file():
+        raise ValueError('pinned Wine32 zlib dependency missing')
+    wow = Path(env['WINEPREFIX']) / 'drive_c/windows/syswow64'
+    wow.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(zlib32, wow / 'zlib1.dll')
+    shutil.copy2(zlib32, library32 / 'i386-windows/zlib1.dll')
     subprocess.run([str(server), '--version'], env=env, check=True, timeout=30)
     subprocess.run([str(wine), 'wineboot', '-u'], env=env, check=True, timeout=120)
     artifacts = [download(WIX_URL, tools / 'wix.zip', WIX_SHA256),
@@ -108,7 +126,7 @@ def main():
                'installer_proof': False, 'prefix': env['WINEPREFIX'],
                'launcher': str(wine),
                'launcher_env': {key: env[key] for key in ['WINEPREFIX', 'WINEARCH',
-                   'WINESERVER', 'WINELOADER', 'WINEDLLPATH', 'LD_LIBRARY_PATH']}}
+                   'WINESERVER', 'WINEDLLPATH', 'LD_LIBRARY_PATH']}}
     (tools / 'toolchain-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt))
 

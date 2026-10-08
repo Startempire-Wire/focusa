@@ -75,7 +75,8 @@ jobs:
           controller="$RUNNER_TEMP/focusa-windows-controller-${GITHUB_RUN_ID}"
           mkdir -p "$controller"
           cp scripts/ci/run-windows-ovh-release.py scripts/ci/build-windows-xwin-release.py \
-            scripts/ci/prepare-windows-msi-wine.py scripts/ci/prepare-native-windows-tauri.py \
+            scripts/ci/prepare-windows-msi-wine.py scripts/ci/prepare-wine32-runtime.py \
+            scripts/ci/prepare-native-windows-tauri.py \
             scripts/ci/windows-nsis-packages.lock "$controller/"
       - uses: actions/checkout@v6
         with:
