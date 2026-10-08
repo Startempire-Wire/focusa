@@ -72,7 +72,12 @@ def prepare(app, tools, env):
         raise ValueError('pinned native packaging tools missing')
     env.update(receipt['launcher_env'])
     env['WINEPATH'] = windows_path(cargo.parent) + ';' + windows_path(node.parent)
-    env['CARGO_TARGET_DIR'] = windows_path(env['CARGO_TARGET_DIR'])
+    # MSI structured storage is authored on the prefix's local Windows drive,
+    # not Wine's Unix-root Z: mapping; the link still targets the owned job tree.
+    target_directory = Path(env['CARGO_TARGET_DIR']).resolve()
+    local_target = Path(env['WINEPREFIX']) / 'drive_c/focusa-build-target'
+    local_target.symlink_to(target_directory, target_is_directory=True)
+    env['CARGO_TARGET_DIR'] = 'C:\\focusa-build-target'
     users = Path(env['WINEPREFIX']) / 'drive_c/users'
     profiles = [p for p in users.iterdir() if p.name not in {'Public', 'All Users'} and (p / 'AppData/Local').is_dir()]
     if len(profiles) != 1:
