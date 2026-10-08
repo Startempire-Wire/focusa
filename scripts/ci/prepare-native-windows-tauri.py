@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import tarfile
 import urllib.request
 import zipfile
@@ -82,6 +83,28 @@ def prepare(app, tools, env):
     profiles = [p for p in users.iterdir() if p.name not in {'Public', 'All Users'} and (p / 'AppData/Local').is_dir()]
     if len(profiles) != 1:
         raise ValueError('unambiguous isolated Wine user profile required')
-    shutil.copytree(tools / 'wix', profiles[0] / 'AppData/Local/tauri/WixTools314', dirs_exist_ok=True)
+    wix = profiles[0] / 'AppData/Local/tauri/WixTools314'
+    shutil.copytree(tools / 'wix', wix, dirs_exist_ok=True)
+    # Upstream WiX/Wine cannot execute Windows ICE validation. The explicit
+    # compatibility adapter retains vendor bytes; publication additionally
+    # requires database decompilation, exact payload identity and signatures.
+    compilers = sorted((Path(env['WINEPREFIX']) / 'drive_c/windows').glob('**/csc.exe'))
+    if not compilers:
+        compilers = sorted((Path(env['WINEPREFIX']) / 'drive_c/windows').glob('**/mcs.exe'))
+    if not compilers:
+        raise ValueError('existing Mono compiler required for the Wine compatibility adapter')
+    adapter = native / 'wix-wine-light.cs'
+    adapter.write_text('''using System; using System.IO; using System.Reflection;
+class WineLight { static int Main(string[] args) {
+ try { string path=Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "light.vendor.exe");
+ string[] forwarded=new string[args.Length+1]; Array.Copy(args,forwarded,args.Length); forwarded[args.Length]="-sval";
+ object result=Assembly.LoadFrom(path).EntryPoint.Invoke(null,new object[]{forwarded}); return result is int ? (int)result : 0;
+ } catch(Exception e) {Console.Error.WriteLine(e.GetBaseException()); return 1;}
+} }''')
+    (wix / 'light.exe').rename(wix / 'light.vendor.exe')
+    subprocess.run([receipt['launcher'], str(compilers[0]), '/nologo', '/target:exe', '/platform:x86',
+                    '/out:' + windows_path(wix / 'light.exe'), windows_path(adapter)], env=env, check=True, timeout=90)
+    inputs.append({'kind': 'wix_wine_compatibility_adapter', 'source_sha256': hashlib.sha256(adapter.read_bytes()).hexdigest(),
+                   'windows_ice_validation': 'not_run_wine_unsupported'})
     (native / 'native-tool-inputs.json').write_text(json.dumps({'inputs': inputs, 'tauri_cli_version': cli_version, 'native_windows_proof': False}, indent=2) + '\n')
     return [receipt['launcher'], str(node)], env

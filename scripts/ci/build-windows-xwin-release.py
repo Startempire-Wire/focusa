@@ -153,6 +153,24 @@ def build_nsis(args, source, targets, env):
         if len(installers) != 1:
             raise ValueError(f'exactly one canonical {package_format.upper()} installer required for {target}')
         installer = installers[0]
+        if package_format == 'msi':
+            import xml.etree.ElementTree as ET
+            inspection = args.target_dir.resolve() / target / 'release/msi-inspection'
+            inspection.mkdir()
+            xml = inspection / 'decompiled.wxs'
+            dark = args.msi_tools.resolve() / 'wix/dark.exe'
+            subprocess.run([launcher[0], str(dark), native_tauri.windows_path(installer),
+                            '-x', native_tauri.windows_path(inspection), '-o', native_tauri.windows_path(xml)],
+                           env=native_env, check=True, timeout=120)
+            tree = ET.parse(xml)
+            product = next(element for element in tree.iter() if element.tag.endswith('}Product'))
+            if product.get('Version') != args.tag.removeprefix('v'):
+                raise ValueError('MSI database product version mismatch')
+            expected_binary = args.target_dir.resolve() / target / 'release/focusa-menubar.exe'
+            expected_hash = hashlib.sha256(expected_binary.read_bytes()).hexdigest()
+            payloads = [file for file in inspection.rglob('*') if file.is_file() and file.stat().st_size == expected_binary.stat().st_size]
+            if not any(hashlib.sha256(file.read_bytes()).hexdigest() == expected_hash for file in payloads):
+                raise ValueError('MSI extracted application does not match the verified bundle input')
         signature = Path(str(installer) + '.sig')
         if not signature.is_file():
             raise ValueError(f'updater signature missing for {target}')
@@ -169,7 +187,9 @@ def build_nsis(args, source, targets, env):
     receipt = {'kind': 'ovh_windows_' + package_format, 'tag': args.tag, 'source_sha': args.sha,
                'artifacts': records, 'updater_signature_verification': 'passed',
                'native_windows_proof': False, 'msi_proof': package_format == 'msi',
-               'full_release_acceptance': False}
+               'full_release_acceptance': False,
+               'msi_database_and_payload_verification': 'passed' if package_format == 'msi' else 'not_applicable',
+               'windows_ice_validation': 'not_run_wine_unsupported' if package_format == 'msi' else 'not_applicable'}
     (output / ('windows-' + package_format + '-receipt.json')).write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt))
 
