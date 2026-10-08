@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import tarfile
 import urllib.request
 import zipfile
@@ -79,6 +80,41 @@ def prepare(app, tools, env):
     profiles = [p for p in users.iterdir() if p.name not in {'Public', 'All Users'} and (p / 'AppData/Local').is_dir()]
     if len(profiles) != 1:
         raise ValueError('unambiguous isolated Wine user profile required')
-    shutil.copytree(tools / 'wix', profiles[0] / 'AppData/Local/tauri/WixTools314', dirs_exist_ok=True)
+    wix_cache = profiles[0] / 'AppData/Local/tauri/WixTools314'
+    shutil.copytree(tools / 'wix', wix_cache, dirs_exist_ok=True)
+    # A Windows child process otherwise chooses the PE32 managed-image loader,
+    # unlike direct wine64 execution used by the verified toolchain probe.
+    # Keep vendor assemblies unchanged and host their entrypoints in CLR64.
+    compilers = sorted((Path(env['WINEPREFIX']) / 'drive_c/windows').glob('**/csc.exe'))
+    if not compilers:
+        compilers = sorted((Path(env['WINEPREFIX']) / 'drive_c/windows').glob('**/mcs.exe'))
+    if not compilers:
+        raise ValueError('Wine Mono C# compiler missing; no unverified launcher fallback')
+    host_source = native / 'wix-clr64-host.cs'
+    host_source.write_text('''using System;
+using System.IO;
+using System.Reflection;
+class WixClr64Host {
+  static int Main(string[] args) {
+    try {
+      string self = Assembly.GetExecutingAssembly().Location;
+      string vendor = Path.Combine(Path.GetDirectoryName(self), Path.GetFileNameWithoutExtension(self) + ".managed.exe");
+      MethodInfo entry = Assembly.LoadFrom(vendor).EntryPoint;
+      object result = entry.Invoke(null, entry.GetParameters().Length == 0 ? null : new object[] { args });
+      return result is int ? (int)result : 0;
+    } catch (Exception e) { Console.Error.WriteLine(e.GetBaseException()); return 1; }
+  }
+}
+''')
+    launcher = native / 'wix-clr64-host.exe'
+    subprocess.run([receipt['launcher'], str(compilers[0]), '/nologo', '/target:exe',
+                    '/platform:x64', '/out:' + windows_path(launcher), windows_path(host_source)],
+                   env=env, check=True, timeout=90)
+    for name in ['candle', 'light']:
+        original = wix_cache / (name + '.exe')
+        original.rename(wix_cache / (name + '.managed.exe'))
+        shutil.copy2(launcher, original)
+    inputs.append({'kind': 'wix_clr64_adapter', 'source_sha256': hashlib.sha256(host_source.read_bytes()).hexdigest(),
+                   'launcher_sha256': hashlib.sha256(launcher.read_bytes()).hexdigest()})
     (native / 'native-tool-inputs.json').write_text(json.dumps({'inputs': inputs, 'tauri_cli_version': cli_version, 'native_windows_proof': False}, indent=2) + '\n')
     return [receipt['launcher'], str(node)], env
