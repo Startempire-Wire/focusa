@@ -718,7 +718,7 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     # Producer-before-waiter: do not consume a bounded OVH lane while local
     # support artifacts are still queued on that same runner pool.
-    needs: [create-release, pi-extension-release, windows-ovh-executables]
+    needs: [create-release, pi-extension-release]
     runs-on: self-hosted
     timeout-minutes: 150
     steps:
