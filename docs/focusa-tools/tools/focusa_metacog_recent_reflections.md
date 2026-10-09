@@ -1,6 +1,6 @@
 # `focusa_metacog_recent_reflections`
 
-Best safe helper for finding recent reflection ids and update sets before adjust or promote work. Use it when Best safe helper for finding recent reflection ids and update sets before adjust or promote work. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Best safe helper for finding recent reflection ids and update sets before adjust or promote work. Use it when Best safe helper for finding recent reflection ids and update sets before adjust or promote work. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -46,8 +46,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -59,11 +59,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_metacog_plan_adjust` (likely_next)
 - `focusa_metacog_doctor` (likely_next)
 - `focusa_metacog_reflect` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_metacog_plan_adjust`, `focusa_metacog_doctor`, `focusa_metacog_reflect`.
 
 ## Skills, protocols, and source authority
@@ -74,4 +78,4 @@ Likely next: `focusa_metacog_plan_adjust`, `focusa_metacog_doctor`, `focusa_meta
 - CLI: `focusa metacognition recent-reflections`.
 - REST: `GET /v1/metacognition/reflections/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9090ae3a91e41dbd5597642d242ce072135f05be3bd19d7e64c368a82c1db0df`.
+- Descriptor digest: `sha256:11b512825d78d0f0b31ec4efdd69a86b32615f0d9e347140016a9fe32511dec5`.

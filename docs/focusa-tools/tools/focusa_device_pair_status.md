@@ -1,6 +1,6 @@
 # `focusa_device_pair_status`
 
-Check the status of a pending or completed pairing by code OR by device_id. Returns the token (when completed) + status + scopes + expires_at. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Check the status of a pending or completed pairing by code OR by device_id. Returns the token (when completed) + status + scopes + expires_at. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -47,8 +47,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `true`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `true`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -60,10 +60,14 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_device_pair_list` (likely_next)
 - `focusa_device_pair_revoke` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_device_pair_list`, `focusa_device_pair_revoke`.
 
 ## Skills, protocols, and source authority
@@ -74,4 +78,4 @@ Likely next: `focusa_device_pair_list`, `focusa_device_pair_revoke`.
 - CLI: `focusa device pair-status`.
 - REST: `GET /v1/device/pair/status`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3240ccc27b7dc76f4067d5a86b9be692f45aec657dc32f5cb6d4b56a6b68cd11`.
+- Descriptor digest: `sha256:073b26e0dbbdd95cb427a854ff0443b24abdee9eaac00f70588cdf0a627dd142`.

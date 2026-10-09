@@ -1,8 +1,8 @@
 # Focusa Tool Choreography Map
 
-Current v0.9.142 contract registry: **135 Focusa tools** across project identity, trajectory, Workpoint, evidence, traversal/reflexes, Focus State, work-loop, diagnostics, lineage, prediction, metacognition, context cognition, browser interoperability, preload, silent sessions, temporal authority, and tool discovery.
+Use [one cohesive project journey](../agent/02-focusa-cohesive-project-flow.md). Discover registry/version/tool/edge counts from current source and installed projections separately. The catalog spans project identity, trajectory, Workpoint, evidence, traversal/reflexes, Focus State, work-loop, diagnostics, lineage, prediction, metacognition, context cognition, browser interoperability, preload, silent sessions, temporal authority, and tool discovery.
 
-Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains 381 weighted per-tool edges and exact `per_tool_next_tools` for all 135 tools. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
+Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains weighted advisory links and `per_tool_next_tools`; these are discovery suggestions, not task execution dependencies or grants. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
 
 ## v0.9.142 capability additions
 
@@ -31,16 +31,20 @@ Common out-of-order fixes:
 
 | Symptom | Likely cause | Safe next move |
 |---|---|---|
-| `scope_mismatch` | Broad cwd, cross-project packet, stale continuity | `focusa_project_identity` / `verify` → `focusa_workpoint_checkpoint` → `resume` |
+| `scope_mismatch` | Inspect requested/resolved/saved scope, attachment, stage and request provenance; the compact message may omit the cause | Verify exact binding and installed supported repair; checkpoint/resume only after required reconciliation |
 | `frame_unavailable` | Focus State slot used before active Pi frame | Stay `Attentive and awaiting operator direction`; checkpoint/resume before durable writes |
 | `validation_rejected` | Verbose/task/debug text in durable slot | Put full text in `focusa_scratch`; retry one compact declarative slot |
 | `read_model_lag` | Just-written packet not visible yet | Wait/read once with same scope; avoid duplicate writes |
 | `hot_path_timeout` | Daemon/resource pressure on bounded route | `focusa_tool_doctor` → `focusa_resource_mode`; avoid full/cold payloads; inspect `resource_mode_fallback` reflex if present |
 | `unknown_ambiguous_completion` | Result does not prove side effect | Check canonical state/side effects before retrying |
 
-Rule: if a tool blocks, do not stop at the error. Follow `next_tools` unless the operator steers otherwise; use `reflex_suggestions`/`focusa_reflex_primitives` only as advisory routing metadata.
+Rule: classify the failed operation, reconcile possible effects and choose supported scoped recovery. `next_tools` and reflex suggestions are advisory—not automatic execution or proof of safety. Preserve genuine authority/budget boundaries; continue independent admitted work and verify repair before resumption.
 
-## Route graph
+## Conditional capability examples
+
+These examples are not a mandatory graph: select only what the current admitted frontier, actual recovery or relevant proof needs. Worksets, execution CallGraphs and Workpoints retain their own authority. Bootstrap/Genesis initialize or resume missing state; valid existing projects reuse it. Snapshot restore, hygiene apply, loop mutations and transfer require their actual conditional grants. Development reload/deploy/test is separate from Git publication and signed release.
+
+### Discovery crosswalk
 
 ### 1) Orient the project
 
@@ -126,7 +130,7 @@ focusa_work_loop_writer_status
   → focusa_silent_sessions (only for explicit background session management)
 ```
 
-Use when: continuing autonomous work, coordinating writer ownership, selecting next ready work, or managing tmux-backed SilentSessions.
+Use when: continuing autonomous work, coordinating writer ownership, selecting next ready work, or managing daemon-native Silent Sessions through the installed supported process-control contract.
 
 ### 8) Hygiene and recovery
 

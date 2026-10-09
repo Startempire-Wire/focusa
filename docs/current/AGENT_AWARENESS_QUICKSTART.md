@@ -2,13 +2,13 @@
 
 Focusa is an agent utility layer: working memory, continuation contracts, evidence links, prediction records, recovery guidance, Spec97 reflex affordances, and governance for long-running AI sessions.
 
-For v0.9.142, the same utility layer spans 135 typed tools and 29 generated skills: Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, Tool Discovery, Mission Canvas, and the Workpoint/evidence/prediction/metacognition/work-loop route. All durable actions remain bounded by `project_root + continuity_id`; operator steering remains authoritative.
+Use [one cohesive project journey](../agent/02-focusa-cohesive-project-flow.md). Discover counts from the current registered catalog and active harness; source inventory is not installed behavior proof. The utility layer includes: Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, Tool Discovery, Mission Canvas, and the Workpoint/evidence/prediction/metacognition/work-loop route. Canonical binding resolves Scope/Workstream/continuity and applicable attachment; `project_root + continuity_id` alone is insufficient. Current instruction and required admission still govern effects.
 
 ## Friendly Focusa Q
 
 Use this as internal orientation, not a blocker:
 
-1. **Where am I?** `project_root + continuity_id` → `focusa_project_identity` / `focusa_project_verify`.
+1. **Where am I?** exact Scope/Workstream/continuity/attachment → installed identity/binding resolution; `focusa_project_identity` / `focusa_project_verify` provide project evidence.
 2. **What kind of project is this?** canonical name, repo, workspace kind, infra/architecture boundaries → `focusa_project_identity` / `focusa_traverse`.
 3. **Where are we going?** current state, destination, waypoints → `focusa_trajectory_view` / `focusa_trajectory_assess`.
 4. **What is the next useful move?** mission, active object, next anchor → `focusa_workpoint_resume` / `focusa_workpoint_checkpoint`.
@@ -29,10 +29,14 @@ Use this as internal orientation, not a blocker:
 9. **Predictions are measurable and regular.** Before risky, uncertain, or high-leverage next action, call `focusa_predict_record` with bounded ontology context; after proof/test/CI/evidence, call `focusa_predict_evaluate` or capture outcome.
 10. **Metacognition compounds regularly.** Retrieve prior lessons before similar work, and after meaningful outcomes evaluate/promote learning so it can feed the next prediction.
 10. **Compaction must be useful.** Sparse Focusa slots should use related Workpoint/current-ask/frame/local-shadow/session fallbacks, never random filler or bare `none`.
-11. **Identity has axes.** Project scope is `project_root`; logical session/workstream identity is `continuity_id`; Pi `session_id` is temporal metadata; trajectory/goals are corroborating evidence.
+11. **Identity has axes.** Workstream is the durable workspace; continuity is lineage within it; attachment binds the current runtime; Pi session is temporal metadata. A goal title or root/continuity pair alone does not prove action authority.
 12. **Context pressure is Focusa-aware.** Focusa checkpoints and resumes scoped anchors under pressure; warnings say anchors are unconfirmed, not degraded, and `/fork`, `/new`, or handoff are optional UI-isolation paths only when anchors are unconfirmed.
 
-## Minimal runtime loop
+## Conditional capability crosswalk
+
+The entries below describe relevant capabilities, not a mandatory sequence. Missing initialization uses the supported Bootstrap/Genesis branch. A rejected request calls for exact-cause scoped recovery, not a generic repeat/checkpoint or whole-mission stop. Active development uses its approved reload/deploy/test path; Git push is project-specific.
+
+### Example contexts
 
 ```text
 Start/reload:      project_identity → trajectory_view → workpoint_resume if resuming.
@@ -41,7 +45,7 @@ During work:      active_object_resolve → do work → evidence_capture/link.
 Before risk:      focusa_predict_record.
 After outcome:    focusa_predict_evaluate → metacog_capture/retrieve if reusable.
 After proof:      trajectory_assess → recent_result/decision if durable.
-After compaction: focusa_workpoint_resume; continue from canonical packet only when project_root and continuity_id match.
+After compaction: verify exact current binding and resume; saved-scope canonical status is not current-action admission.
 When uncertain:   focusa_tool_doctor → resource_mode/traverse/workpoint_resume.
 Recurring recovery: inspect reflex_suggestions → focusa_reflex_primitives (advisory only).
 ```

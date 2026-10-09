@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:3ab7b43ff99d56cd26f7fbc134ea73ed159f428de3b001a8cf66e500921776eb",
+  "registry_digest": "sha256:f151c1d2e5e10681410e561b5fa844d4013b4a82989753d8d45d2b5f49be1fc0",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -25,7 +25,8 @@
           "description": "Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs.",
           "arguments": {},
           "human_invocation": "focusa workpoint resolve-object",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_active_object_resolve.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_active_object_resolve.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -63,7 +64,8 @@
             "confirmed": false
           },
           "human_invocation": "focusa agent-runtime artifacts apply",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_artifact_delivery.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_artifact_delivery.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -95,7 +97,8 @@
             "request": {}
           },
           "human_invocation": "focusa agent-runtime artifacts preview",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_artifact_preview.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_artifact_preview.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -127,7 +130,8 @@
             "request": {}
           },
           "human_invocation": "focusa agent-runtime artifacts verify",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_artifact_verify.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_artifact_verify.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -155,7 +159,8 @@
           "description": "Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points.",
           "arguments": {},
           "human_invocation": "focusa help all --json",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_card.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_card.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -178,7 +183,8 @@
           "description": "Operate the Spec 140 agent runtime doctor surface with typed scope and evidence.",
           "arguments": {},
           "human_invocation": "focusa agent-runtime doctor",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_doctor.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_doctor.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -215,7 +221,8 @@
             "project_root": "/tmp/focusa-project"
           },
           "human_invocation": "focusa agent-runtime effective",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_effective.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_effective.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -247,7 +254,8 @@
             "request": {}
           },
           "human_invocation": "focusa agent-runtime headless-verify",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -293,7 +301,8 @@
             "command": "example"
           },
           "human_invocation": "focusa bg run --detach",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -356,7 +365,8 @@
             ]
           },
           "human_invocation": "focusa bg run --detach",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run_many.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_run_many.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -385,7 +395,8 @@
           "description": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
           "arguments": {},
           "human_invocation": "focusa bg status --job",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -414,7 +425,8 @@
           "description": "Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors.",
           "arguments": {},
           "human_invocation": "focusa bg status --job",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bg_status.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -449,7 +461,8 @@
             "name": "focusa_workpoint_resume"
           },
           "human_invocation": "focusa bloatgaurd domain <name>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_domain.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_domain.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -484,7 +497,8 @@
             "name": "focusa_workpoint_resume"
           },
           "human_invocation": "focusa bloatgaurd gate-mode <name>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -507,7 +521,8 @@
           "description": "Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema.",
           "arguments": {},
           "human_invocation": "focusa bloatgaurd gate-modes",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -542,7 +557,8 @@
             "name": "focusa_workpoint_resume"
           },
           "human_invocation": "focusa bloatgaurd profile <name>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_profile.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_profile.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -565,7 +581,8 @@
           "description": "Spec 101 — read profile presets and operator switches.",
           "arguments": {},
           "human_invocation": "focusa bloatgaurd profiles",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -588,7 +605,8 @@
           "description": "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8.",
           "arguments": {},
           "human_invocation": "focusa bloatgaurd report",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_report.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_report.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -611,7 +629,8 @@
           "description": "Spec 101 — read rollout phases, acceptance checks, and proof commands.",
           "arguments": {},
           "human_invocation": "focusa bloatgaurd rollout",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -646,7 +665,8 @@
             "name": "focusa_workpoint_resume"
           },
           "human_invocation": "focusa bloatgaurd routine <name>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_routine.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_routine.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -669,7 +689,8 @@
           "description": "Spec 101 — read named routines and automation matrix.",
           "arguments": {},
           "human_invocation": "focusa bloatgaurd routines",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_routines.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_routines.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -704,7 +725,8 @@
             "name": "focusa_workpoint_resume"
           },
           "human_invocation": "focusa bloatgaurd token-domain <name>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -727,7 +749,8 @@
           "description": "Spec 101 — read Tokenbloat Control report for domains 5.9-5.10.",
           "arguments": {},
           "human_invocation": "focusa bloatgaurd tokenbloat",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -828,7 +851,8 @@
             "tools": []
           },
           "human_invocation": "focusa help all --json",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_capabilities_intake.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_capabilities_intake.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -895,7 +919,8 @@
           "description": "Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning.",
           "arguments": {},
           "human_invocation": "focusa workpoint evidence-link",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -962,7 +987,8 @@
           "description": "Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning.",
           "arguments": {},
           "human_invocation": "focusa workpoint evidence-link",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1029,7 +1055,8 @@
           "description": "Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning.",
           "arguments": {},
           "human_invocation": "focusa workpoint evidence-link",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_diagnostics_intake.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1076,7 +1103,8 @@
             "operation": "example"
           },
           "human_invocation": "focusa help all --json",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_workflow_plan.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_workflow_plan.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1169,7 +1197,8 @@
             "entry_name": "focusa_workpoint_resume"
           },
           "human_invocation": "focusa call-stack design",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_design.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_design.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1213,7 +1242,8 @@
           "description": "Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State.",
           "arguments": {},
           "human_invocation": "focusa call-stack verify",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1257,7 +1287,8 @@
           "description": "Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State.",
           "arguments": {},
           "human_invocation": "focusa call-stack verify",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1301,7 +1332,8 @@
           "description": "Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State.",
           "arguments": {},
           "human_invocation": "focusa call-stack verify",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1339,7 +1371,8 @@
             "confirmed": false
           },
           "human_invocation": "focusa agent-runtime amendment-activate",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_canonical_instruction_amendment_activate.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_canonical_instruction_amendment_activate.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1371,7 +1404,8 @@
             "request": {}
           },
           "human_invocation": "focusa agent-runtime amendment-propose",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1408,7 +1442,8 @@
             "constraint": "example"
           },
           "human_invocation": "focusa focus update --constraint",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_constraint.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_constraint.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1451,7 +1486,8 @@
           "description": "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state.",
           "arguments": {},
           "human_invocation": "focusa context-cognition view",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1537,7 +1573,8 @@
           "description": "Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget.",
           "arguments": {},
           "human_invocation": "focusa context-cognition curate",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1638,7 +1675,8 @@
           "description": "Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
           "arguments": {},
           "human_invocation": "focusa context-cognition curate-eval",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1739,7 +1777,8 @@
           "description": "Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL.",
           "arguments": {},
           "human_invocation": "focusa context-cognition curate-eval",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1816,7 +1855,8 @@
             "eval_score": 0
           },
           "human_invocation": "focusa context-cognition curate-optimize",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1855,7 +1895,8 @@
           "description": "Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module.",
           "arguments": {},
           "human_invocation": "focusa context-cognition optimizer artifacts",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1889,7 +1930,8 @@
           "description": "Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits).",
           "arguments": {},
           "human_invocation": "focusa context-cognition proof",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_proof.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_proof.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1923,7 +1965,8 @@
           "description": "Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar).",
           "arguments": {},
           "human_invocation": "focusa context-cognition render",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_render.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_context_cognition_render.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -1956,7 +1999,8 @@
             "focus": "example"
           },
           "human_invocation": "focusa focus update --current-focus",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_current_focus.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_current_focus.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2008,7 +2052,8 @@
             "native_session_id": "example"
           },
           "human_invocation": "focusa daemon-routing status",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_daemon_routing_status.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_daemon_routing_status.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2045,7 +2090,8 @@
             "decision": "example"
           },
           "human_invocation": "focusa focus update --decision",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_decide.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_decide.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2090,7 +2136,8 @@
             "code": "example"
           },
           "human_invocation": "focusa device pair-complete",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_complete.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_complete.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2124,7 +2171,8 @@
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger).",
           "arguments": {},
           "human_invocation": "focusa device pair-list",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_list.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_list.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2168,7 +2216,8 @@
           "description": "Mac menubar OAuth-like device pairing with QR handoff (focusa-ui0y, Mode B). Same as pair_start but surfaces pair_url for QR rendering (Telegram/Discord-style).",
           "arguments": {},
           "human_invocation": "focusa device pair-qr",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_qr.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_qr.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2209,7 +2258,8 @@
             "device_id": "example"
           },
           "human_invocation": "focusa device pair-revoke",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_revoke.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_revoke.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2253,7 +2303,8 @@
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser.",
           "arguments": {},
           "human_invocation": "focusa device pair-start",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_start.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_start.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2297,7 +2348,8 @@
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser.",
           "arguments": {},
           "human_invocation": "focusa device pair-start",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_start.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_start.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2329,7 +2381,8 @@
           "description": "Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id.",
           "arguments": {},
           "human_invocation": "focusa device pair-status",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_status.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_status.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2352,7 +2405,8 @@
           "description": "Spec105 — read compact continuation/doability digest.",
           "arguments": {},
           "human_invocation": "focusa dxux digest",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_digest.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_digest.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2387,7 +2441,8 @@
             "failure": "example"
           },
           "human_invocation": "focusa explain <failure>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_explain.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_explain.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2410,7 +2465,8 @@
           "description": "Spec105 — read implementation report for DXUX-001..012.",
           "arguments": {},
           "human_invocation": "focusa dxux report",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_report.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_report.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2445,7 +2501,8 @@
             "id": "example"
           },
           "human_invocation": "focusa dxux requirement <id>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_requirement.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_dxux_requirement.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2601,7 +2658,8 @@
             "operation_id": "prediction.question.create"
           },
           "human_invocation": "focusa predict operation --operation <operation-id>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_epistemic_operation.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_epistemic_operation.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2666,7 +2724,8 @@
             "evidence_ref": "example"
           },
           "human_invocation": "focusa workpoint evidence-link",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_evidence_capture.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_evidence_capture.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2703,7 +2762,8 @@
             "failure": "example"
           },
           "human_invocation": "focusa focus update --failure",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_failure.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_failure.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2753,7 +2813,8 @@
           "description": "Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
           "arguments": {},
           "human_invocation": "focusa hlt history",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2803,7 +2864,8 @@
           "description": "Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
           "arguments": {},
           "human_invocation": "focusa hlt history",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2853,7 +2915,8 @@
           "description": "Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6.",
           "arguments": {},
           "human_invocation": "focusa hlt history",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2889,7 +2952,8 @@
             "project_root": "/tmp/focusa-project"
           },
           "human_invocation": "focusa agent-runtime conflicts",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_conflicts.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_conflicts.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2930,7 +2994,8 @@
             "claim_id": "example"
           },
           "human_invocation": "focusa agent-runtime claims",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_explain.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_explain.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2962,7 +3027,8 @@
             "request": {}
           },
           "human_invocation": "focusa agent-runtime integrity-evaluate",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -2985,7 +3051,8 @@
           "description": "Operate the Spec 140 instruction integrity status surface with typed scope and evidence.",
           "arguments": {},
           "human_invocation": "focusa agent-runtime integrity-status",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_integrity_status.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_integrity_status.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3030,7 +3097,8 @@
             "project_root": "/tmp/focusa-project"
           },
           "human_invocation": "focusa agent-runtime simulate",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_simulate.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_simulate.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3066,7 +3134,8 @@
             "project_root": "/tmp/focusa-project"
           },
           "human_invocation": "focusa agent-runtime sources",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_sources.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_sources.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3099,7 +3168,8 @@
             "intent": "example"
           },
           "human_invocation": "focusa focus update --intent",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_intent.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_intent.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3131,7 +3201,8 @@
           "description": "Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding.",
           "arguments": {},
           "human_invocation": "focusa lineage extract",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_li_tree_extract.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_li_tree_extract.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3167,7 +3238,8 @@
           "description": "Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows.",
           "arguments": {},
           "human_invocation": "focusa lineage tree",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_lineage_tree.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_lineage_tree.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3233,7 +3305,8 @@
             "content": "example"
           },
           "human_invocation": "focusa metacognition capture",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_capture.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_capture.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3282,7 +3355,8 @@
             "current_ask": "example"
           },
           "human_invocation": "focusa metacognition doctor",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_doctor.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_doctor.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3328,7 +3402,8 @@
             "adjustment_id": "example"
           },
           "human_invocation": "focusa metacognition evaluate",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3436,7 +3511,8 @@
             "turn_range": "example"
           },
           "human_invocation": "focusa metacognition loop run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_loop_run.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_loop_run.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3482,7 +3558,8 @@
             "reflection_id": "example"
           },
           "human_invocation": "focusa metacognition adjust",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_plan_adjust.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_plan_adjust.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3512,7 +3589,8 @@
           "description": "Best safe helper for finding recent adjustment ids before evaluation or promotion decisions.",
           "arguments": {},
           "human_invocation": "focusa metacognition recent-adjustments",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_recent_adjustments.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3542,7 +3620,8 @@
           "description": "Best safe helper for finding recent reflection ids and update sets before adjust or promote work.",
           "arguments": {},
           "human_invocation": "focusa metacognition recent-reflections",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_recent_reflections.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_recent_reflections.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3588,7 +3667,8 @@
             "turn_range": "example"
           },
           "human_invocation": "focusa metacognition reflect",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_reflect.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_reflect.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3639,7 +3719,8 @@
             "current_ask": "example"
           },
           "human_invocation": "focusa metacognition retrieve",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_retrieve.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_retrieve.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3672,7 +3753,8 @@
             "step": "example"
           },
           "human_invocation": "focusa focus update --next-step",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_next_step.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_next_step.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3717,7 +3799,8 @@
           "description": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection.",
           "arguments": {},
           "human_invocation": "focusa project north-star",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_north_star_gate.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_north_star_gate.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3750,7 +3833,8 @@
             "note": "example"
           },
           "human_invocation": "focusa focus update --note",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_note.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_note.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3874,7 +3958,8 @@
             "action": "dry_run"
           },
           "human_invocation": "focusa ontology scope-migration-dry-run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -3998,7 +4083,8 @@
             "action": "dry_run"
           },
           "human_invocation": "focusa ontology scope-migration-dry-run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4122,7 +4208,8 @@
             "action": "dry_run"
           },
           "human_invocation": "focusa ontology scope-migration-dry-run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4246,7 +4333,8 @@
             "action": "dry_run"
           },
           "human_invocation": "focusa ontology scope-migration-dry-run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4279,7 +4367,8 @@
             "question": "example"
           },
           "human_invocation": "focusa focus update --open-question",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_open_question.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_open_question.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4334,7 +4423,8 @@
             "actual_outcome": "example"
           },
           "human_invocation": "focusa predict evaluate",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_evaluate.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_evaluate.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4370,7 +4460,8 @@
           "description": "List recent bounded Focusa prediction records.",
           "arguments": {},
           "human_invocation": "focusa predict recent",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_recent.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_recent.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4445,7 +4536,8 @@
             "why": "example"
           },
           "human_invocation": "focusa predict record",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_record.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_record.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4477,7 +4569,8 @@
           "description": "Report Focusa prediction accuracy/calibration stats for compaction cards, trajectory reviews, and work reports.",
           "arguments": {},
           "human_invocation": "focusa predict stats",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_stats.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_stats.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4529,7 +4622,8 @@
             "action": "append"
           },
           "human_invocation": "focusa predict authority-append",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prediction_authority.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prediction_authority.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4581,7 +4675,8 @@
             "action": "append"
           },
           "human_invocation": "focusa predict authority-append",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prediction_authority.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prediction_authority.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4636,7 +4731,8 @@
           "description": "Build a scoped agent bootstrap packet without writing it.",
           "arguments": {},
           "human_invocation": "focusa preload build",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_build.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_build.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4691,7 +4787,8 @@
           "description": "Diagnose bootstrap delivery readiness and recovery steps.",
           "arguments": {},
           "human_invocation": "focusa preload doctor",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_doctor.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_doctor.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4714,7 +4811,8 @@
           "description": "List bounded agent bootstrap profiles.",
           "arguments": {},
           "human_invocation": "focusa preload profiles",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_profiles.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_profiles.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4769,7 +4867,8 @@
             "idempotency_key": "example"
           },
           "human_invocation": "focusa preload receipt-commit",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_receipt_commit.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_receipt_commit.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4814,7 +4913,8 @@
           "description": "Preview a bootstrap delivery receipt without committing it.",
           "arguments": {},
           "human_invocation": "focusa preload receipt-preview",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_receipt_preview.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_receipt_preview.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4869,7 +4969,8 @@
           "description": "Render a scoped agent bootstrap packet.",
           "arguments": {},
           "human_invocation": "focusa preload render",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_render.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_render.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4924,7 +5025,8 @@
           "description": "Verify bootstrap packet scope and integrity.",
           "arguments": {},
           "human_invocation": "focusa preload verify",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_verify.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_verify.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -4989,7 +5091,8 @@
             "idempotency_key": "example"
           },
           "human_invocation": "focusa preload write",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_write.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_write.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5096,7 +5199,8 @@
             "project_root": "/tmp/focusa-project"
           },
           "human_invocation": "focusa project bootstrap preview|apply|status|repair",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_bootstrap.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_bootstrap.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5158,7 +5262,8 @@
           "description": "Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap.",
           "arguments": {},
           "human_invocation": "focusa project card",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5222,7 +5327,8 @@
             "actual_outcome": "example"
           },
           "human_invocation": "focusa project card-outcome",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card_outcome.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card_outcome.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5327,7 +5433,8 @@
           "description": "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
           "arguments": {},
           "human_invocation": "focusa project genesis start|resume|status|commit",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_genesis.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_genesis.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5389,7 +5496,8 @@
           "description": "Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context.",
           "arguments": {},
           "human_invocation": "focusa project identity",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_identity.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_identity.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5463,7 +5571,8 @@
           "description": "Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state.",
           "arguments": {},
           "human_invocation": "focusa project verify",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_verify.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_verify.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5496,7 +5605,8 @@
             "candidate": {}
           },
           "human_invocation": "focusa agent-runtime prompt diff",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prompt_variant_diff.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prompt_variant_diff.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5528,7 +5638,8 @@
             "request": {}
           },
           "human_invocation": "focusa agent-runtime prompt preview",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prompt_variant_preview.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prompt_variant_preview.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5561,7 +5672,8 @@
             "result": "example"
           },
           "human_invocation": "focusa focus update --recent-result",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_recent_result.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_recent_result.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5651,7 +5763,8 @@
           "description": "Read or control Focusa ResourceMode, including activating or deactivating LowMem mode when resources are constrained.",
           "arguments": {},
           "human_invocation": "focusa resource mode",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_resource_mode.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_resource_mode.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5688,7 +5801,8 @@
             "request": {}
           },
           "human_invocation": "focusa agent-runtime constitution preview",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_runtime_constitution_preview.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_runtime_constitution_preview.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -5956,7 +6070,8 @@
             "action": "example"
           },
           "human_invocation": "focusa project session-transfer",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_session_transfer.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_session_transfer.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6100,7 +6215,8 @@
           "description": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
           "arguments": {},
           "human_invocation": "focusa silent",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6142,7 +6258,8 @@
             "confirm": false
           },
           "human_invocation": "focusa sms checkpoint",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_checkpoint.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_checkpoint.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6165,7 +6282,8 @@
           "description": "Read value-free customer-owned connector enrollment status.",
           "arguments": {},
           "human_invocation": "focusa sms enrollment",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_enrollment.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_enrollment.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6211,7 +6329,8 @@
             "consumer_ref": "example"
           },
           "human_invocation": "focusa sms events",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_events.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_events.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6234,7 +6353,8 @@
           "description": "Read value-free connector and encrypted-checkpoint health.",
           "arguments": {},
           "human_invocation": "focusa sms health",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_health.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_health.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6287,7 +6407,8 @@
             "grant_id": "example"
           },
           "human_invocation": "focusa sms otp-challenge",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_challenge.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_challenge.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6334,7 +6455,8 @@
             "grant_id": "example"
           },
           "human_invocation": "focusa sms otp-inject",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_inject.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_otp_inject.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6382,7 +6504,8 @@
             "consumer_ref": "example"
           },
           "human_invocation": "focusa sms read <thread-handle>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_read_thread.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_read_thread.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6429,7 +6552,8 @@
             "confirm": false
           },
           "human_invocation": "focusa sms revoke --confirm",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_revoke.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_revoke.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6479,7 +6603,8 @@
             "consumer_ref": "example"
           },
           "human_invocation": "focusa sms search <query>",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_search.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_search.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6538,7 +6663,8 @@
             "confirm": false
           },
           "human_invocation": "focusa sms send <recipient-handle> --confirm",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_send.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_send.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6581,7 +6707,8 @@
             "consumer_ref": "example"
           },
           "human_invocation": "focusa sms threads",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_threads.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_sms_threads.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -6969,7 +7096,8 @@
           "description": "Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency.",
           "arguments": {},
           "human_invocation": "focusa temporal status|commit|revise|observe|forecast|preflight",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_temporal_authority.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_temporal_authority.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7357,7 +7485,8 @@
           "description": "Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency.",
           "arguments": {},
           "human_invocation": "focusa temporal status|commit|revise|observe|forecast|preflight",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_temporal_authority.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_temporal_authority.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7400,7 +7529,8 @@
             "family": "example"
           },
           "human_invocation": "focusa help all --json",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_bundle.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_bundle.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7437,7 +7567,8 @@
             "name": "focusa_workpoint_resume"
           },
           "human_invocation": "focusa help all --json",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_describe.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_describe.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7482,7 +7613,8 @@
             "anchor": "example"
           },
           "human_invocation": "focusa help all --json",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_graph.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_graph.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7525,7 +7657,8 @@
             "query": "workpoint resume"
           },
           "human_invocation": "focusa help all --json",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_search.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tool_search.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7572,7 +7705,8 @@
           "description": "Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons.",
           "arguments": {},
           "human_invocation": "focusa trajectory assess",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_assess.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_assess.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7616,7 +7750,8 @@
           "description": "Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation.",
           "arguments": {},
           "human_invocation": "focusa trajectory checkpoint",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_checkpoint.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_checkpoint.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7741,7 +7876,8 @@
             "desired_end_state": "example"
           },
           "human_invocation": "focusa trajectory define-goal",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_define_goal.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_define_goal.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7789,7 +7925,8 @@
           "description": "Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it.",
           "arguments": {},
           "human_invocation": "focusa trajectory propose-workpoint",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_propose_workpoint.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7838,7 +7975,8 @@
           "description": "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume, including prediction/metacog review prompts.",
           "arguments": {},
           "human_invocation": "focusa trajectory resume",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_resume.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_resume.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7891,7 +8029,8 @@
           "description": "Read the per-project Trajectory Intelligence view before acting: project identity, goal/state/gap/evidence/drift, next Workpoint candidate, and learning-loop context for task closure.",
           "arguments": {},
           "human_invocation": "focusa trajectory view",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_view.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_view.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7936,7 +8075,8 @@
             "to_snapshot_id": "example"
           },
           "human_invocation": "focusa state snapshot diff",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_diff_context.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_diff_context.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -7966,7 +8106,8 @@
           "description": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work.",
           "arguments": {},
           "human_invocation": "focusa lineage head",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_head.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_head.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8002,7 +8143,8 @@
             "clt_node_id": "example"
           },
           "human_invocation": "focusa lineage path",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_path.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_path.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8032,7 +8174,8 @@
           "description": "Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id.",
           "arguments": {},
           "human_invocation": "focusa state snapshot recent",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_recent_snapshots.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_recent_snapshots.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8081,7 +8224,8 @@
             "snapshot_id": "example"
           },
           "human_invocation": "focusa state snapshot restore",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_restore_state.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_restore_state.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8116,7 +8260,8 @@
           "description": "Create a fresh snapshot and compare it to the latest prior snapshot in one move. Best tool when you want checkpoint + diff without manual id hunting.",
           "arguments": {},
           "human_invocation": "focusa state snapshot compare-latest",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_compare_latest.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8151,7 +8296,8 @@
           "description": "Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason.",
           "arguments": {},
           "human_invocation": "focusa state snapshot create",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_state.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_snapshot_state.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8174,7 +8320,8 @@
           "description": "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
           "arguments": {},
           "human_invocation": "focusa utility card",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8197,7 +8344,8 @@
           "description": "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
           "arguments": {},
           "human_invocation": "focusa utility card",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8220,7 +8368,8 @@
           "description": "Read compact bootstrap, post-compaction, recovery, and brevity guidance.",
           "arguments": {},
           "human_invocation": "focusa utility card",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_utility_card.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8338,7 +8487,8 @@
             "next_action": "example"
           },
           "human_invocation": "focusa workpoint checkpoint",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_checkpoint.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_checkpoint.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8401,7 +8551,8 @@
             "result": "example"
           },
           "human_invocation": "focusa workpoint evidence-link",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_link_evidence.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_link_evidence.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null
@@ -8449,7 +8600,8 @@
           "description": "Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action.",
           "arguments": {},
           "human_invocation": "focusa workpoint resume",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_resume.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_workpoint_resume.md",
+          "status": "illustrative_schema_example_not_verified_scope_or_execution_grant"
         }
       ],
       "deprecation": null

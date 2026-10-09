@@ -76,7 +76,10 @@ for (const [name, tool] of tools) {
   strictObjects(tool.parameters, `${name}.input`);
   strictObjects(tool.outputSchema, `${name}.output`);
   assert(descriptor.error_schema && descriptor.recovery.length > 0, `${name}: missing error/recovery contract`);
-  assert(descriptor.dependencies.length > 0, `${name}: missing workflow dependencies`);
+  assert(descriptor.dependencies.length > 0, `${name}: missing advisory discovery links`);
+  assert(descriptor.dependencies.every((link: any) => link.relation === "likely_next"), `${name}: discovery links must not imply execution dependencies`);
+  assert(descriptor.availability.evidence_boundary, `${name}: missing source/installed distinction`);
+  assert(descriptor.confirmation.required === null && descriptor.idempotency.supported === null && descriptor.reversibility.reversible === null, `${name}: unsupported safety/replay/undo inference`);
   assert(descriptor.skill_refs.length > 1 && descriptor.docs_ref, `${name}: missing specialized skill/docs refs`);
   assert(existsSync(resolve(root, descriptor.docs_ref)), `${name}: per-tool documentation missing`);
   assert(descriptor.skill_refs.every((skillRef: string) => card.skills.includes(skillRef)), `${name}: skill routing absent from Agent Card`);
@@ -116,27 +119,31 @@ const unknown: any = await execute(describe, { name: "focusa_missing_tool" });
 assert(unknown.details?.tool_result_v1?.failure_class === "not_found" || unknown.details?.failure_class === "not_found", "unknown describe must return structured not_found recovery");
 
 const graphed: any = await execute(graph, { anchor: "workpoint", depth: 2, limit: 30 });
-assert(graphed.details?.nodes?.length > 0 && graphed.details?.edges?.length > 0, "tool graph must return bounded workflow dependencies");
+assert(graphed.details?.nodes?.length > 0 && graphed.details?.edges?.length > 0, "tool graph must return bounded advisory capability relations, not execution dependencies");
 const bundled: any = await execute(bundle, { family: "workpoint", include_schemas: false });
 assert(bundled.details?.tools?.length > 0 && bundled.details?.schema_loading === "metadata_only", "family bundle must defer schemas by default");
 
 console.log(JSON.stringify({
   schema: "focusa.agent_conformance_result.v1",
   status: "passed",
-  runtime_tools: tools.size,
+  source_registered_tools: tools.size,
   strict_examples_valid: tools.size,
-  agent_levels: ["weak_metadata_only", "medium_progressive_discovery", "strong_full_descriptor", "mcp_client", "openai_function_client", "cli_automation", "browser_uiai_workflow"],
-  weak_agent_cases: cases.length,
+  evidence_boundary: "source-registered tools and simulated metadata/discovery clients; not installed, provider-model or cross-harness behavioral acceptance",
+  simulated_client_levels: ["metadata_only", "progressive_discovery", "full_descriptor"],
+  projection_interfaces_checked: ["pi", "mcp", "openai", "cli", "rest"],
+  simulated_discovery_cases: cases.length,
   mcp_tools: mcpProjection.tools.length,
   classified_routes: routes.route_count,
-  installed_skills: skills.installed_root_skill_count,
+  source_skill_manifests: skills.installed_root_skill_count,
+  metric_basis: "controlled source/projection fixtures only; no provider-model, installed-skill or effectful-execution rates measured",
   metrics: {
     tool_selection_accuracy: 1,
     machine_example_validity: 1,
     unknown_property_rejection: 1,
     invalid_tool_recovery: 1,
-    unsafe_call_rate: 0,
-    scope_violation_rate: 0,
+    unsafe_call_rate: null,
+    scope_violation_rate: null,
+    unmeasured_rates_reason: "this check does not exercise representative effectful execution or provider models",
     cross_harness_descriptor_parity: 1,
     evidence_contract_coverage: 1,
     schema_loading: "deferred_by_default",

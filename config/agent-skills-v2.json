@@ -17,8 +17,10 @@
       "tools": [
         "focusa_agent_card",
         "focusa_project_identity",
-        "focusa_workpoint_resume",
+        "focusa_project_bootstrap",
+        "focusa_project_genesis",
         "focusa_trajectory_view",
+        "focusa_workpoint_resume",
         "focusa_tool_search",
         "focusa_preload_build",
         "focusa_context_cognition",
@@ -30,10 +32,11 @@
         "focusa_workpoint_checkpoint"
       ],
       "runbook_notes": [
-        "Call `focusa_agent_card` and verify workspace version, registry digest, all-Pi-tool count, installed skills, and runbooks.",
-        "Use `focusa_tool_search` and `focusa_tool_describe`; never hot-load or invent the complete tool schema set.",
-        "Follow `docs/agent/01-focusa-agent-docs-index.md` for current architecture, lifecycle, and recovery routes.",
-        "For v0.9.142, build the scoped preload packet and Context Cognition view before loading broad schemas; Project Card is advisory orientation."
+        "Discover the actual daemon/adapter, then verify ProjectIdentity plus Workstream/continuity/attachment; selected cwd is not canonical binding.",
+        "Inspect Bootstrap and Genesis status for the exact scope: reuse ready baselines, repair missing anatomy, or resume an interrupted Genesis transaction; never re-onboard a valid existing project.",
+        "Read back the linked Ladder/specification/task graph, current gap and Workpoint/frontier through native tools; readiness labels alone do not admit effects.",
+        "Use current instruction forwarding on resume; omit current_ask unless supplying the exact captured operator ask, never a paraphrase.",
+        "Build scoped preload/context only as needed; advisory Project Card recommendations do not activate a Workpoint."
       ],
       "done": "Agent has verified scope, current Workpoint/Trajectory orientation, and only the schemas needed for the next action."
     },
@@ -89,7 +92,12 @@
         "focusa_workpoint_checkpoint",
         "focusa_tool_doctor"
       ],
-      "done": "project_root plus continuity_id authority is verified and target objects resolve in that scope."
+      "done": "Exact Workstream/continuity/attachment binding is verified through the installed adapter, and current targets resolve in that scope.",
+      "runbook_notes": [
+        "Resolve ScopeRef/ProjectRootKey, WorkstreamId, ContinuityId and applicable AttachmentKey using installed contracts; project selection is not attachment.",
+        "Compare requested, resolved and saved scope before adoption; do not choose the newest unrelated packet or perform global migration to repair one binding.",
+        "Preserve other writers; discover and verify the supported scoped reconciliation before resuming the original work."
+      ]
     },
     {
       "name": "focusa-session-recovery",
@@ -105,8 +113,9 @@
         "routine stateless call"
       ],
       "tools": [
-        "focusa_workpoint_resume",
+        "focusa_project_identity",
         "focusa_trajectory_resume",
+        "focusa_workpoint_resume",
         "focusa_session_transfer",
         "focusa_tree_snapshot_state",
         "focusa_tree_restore_state"
@@ -117,9 +126,11 @@
         "focusa_tool_doctor"
       ],
       "runbook_notes": [
-        "Checkpoint both Workpoint and Trajectory before compaction, context overflow, model switch, or session rollover.",
-        "Preserve cache-safe stable prefix plus newest operator tail; transcript tail is never continuation authority.",
-        "After bounded transport retry exhaustion, use governed automatic rollover and verify the canonical resume packet."
+        "Checkpoint Workpoint and Trajectory before planned compaction/rollover; retain exact Workstream/attachment and current requested activity.",
+        "After transition, verify the actual adapter/daemon and binding, view scoped Trajectory, then resume with the exact automatically forwarded current ask.",
+        "If the request changed in flight or evaluated a paraphrase, reconcile request provenance before blaming saved state; stale ancestry/frontier still requires its own recovery.",
+        "Session transfer and snapshots are conditional; never restore state automatically merely because the tool is listed.",
+        "Verify supported recovery and return to the interrupted dependency-valid action; do not use transcript tail as authority."
       ],
       "done": "A canonical Workpoint packet supplies mission, action, evidence, blockers, and exact next action."
     },
@@ -313,7 +324,7 @@
         "Audit AGENTS, public docs, onboarding, every Pi tool projection/doc, complete skill/runbook parity, and recent architecture before release.",
         "Run generated drift, Spec141 conformance, version-surface, Markdown, lifecycle, Mission Canvas, and final release gap gates.",
         "Publish only after one green final CI; verify release assets, checksums, deployment health, updater rollback, and customer lifecycle evidence.",
-        "Confirm 135-tool/29-skill parity, generated public/machine docs freshness, and cross-platform terminal proof before tag creation."
+        "Discover current registry/tool/skill counts and validate generated public/machine freshness plus relevant consumer proof; neither inventory parity nor a tag proves activation or release acceptance."
       ],
       "done": "Every acceptance criterion, issue, changelog entry, platform boundary, and evidence ref is verified before authorized release action."
     },
@@ -423,8 +434,10 @@
         "focusa_workpoint_resume"
       ],
       "runbook_notes": [
-        "Verify typed project/workstream scope before durable mutation.",
-        "Return bounded evidence and executable recovery."
+        "Read the complete accepted outcome and exact scope before selecting a short slice; Full/Medium/Short project the same canonical records.",
+        "Retain the confirmed HLT; newly discovered in-scope resolution work may refine justified MLG/STG/waypoints and dependencies without re-asking ordinary technical choices.",
+        "Validate and commit affected changes through existing owners before consequential effects; preserve independent valid branches and evidence.",
+        "Assess actual results, expose the remaining gap and select the nearest eligible Workpoint; no-gap prose is not whole-outcome acceptance."
       ],
       "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
     },
@@ -600,8 +613,10 @@
         "focusa_workpoint_resume"
       ],
       "runbook_notes": [
-        "Verify typed project/workstream scope before durable mutation.",
-        "Return bounded evidence and executable recovery."
+        "Classify input/provenance mismatch, pending work, reporting failure, stale scope, missing frontier and genuine denial separately.",
+        "Inspect a bounded expanded response for exact missing facts and supported scoped recovery; do not repeatedly loop through generic next-tool suggestions.",
+        "Reconcile effects and apply the allowed repair/retry policy, verify recovery and resume the parent action; independent admitted work continues.",
+        "Escalate only an irreducible consent/scope/budget boundary after permitted investigation; never manufacture admission or self-renew a budget."
       ],
       "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
     },
@@ -692,9 +707,11 @@
         "focusa_workpoint_resume"
       ],
       "runbook_notes": [
-        "Verify typed project/workstream scope before durable mutation.",
-        "Refresh generated tool/operation/descriptor docs, public README/status surfaces, and all 29 skill copies together.",
-        "Run version, docs-runtime, Agent Card, skill hygiene, and public-surface gates; capture bounded evidence."
+        "Audit the connected Bootstrap/Genesis/Ladder/Workpoint/execution/reconciliation journey, not isolated page completeness.",
+        "Update canonical registry/generator and maintained guidance; regenerate machine/tool/skill consumers through their existing writers, preserving authored files and mirrors.",
+        "Discover the current inventory instead of hard-coding skill counts; check source/generated/runtime parity separately.",
+        "Refresh the actual agent through its native supported path only after authorized delivery; source edits do not prove installed guidance or model refresh.",
+        "Use focused transition regressions plus real supported-agent/daemon consumer evidence; static checks cannot prove proactivity."
       ],
       "done": "All public, machine, generated, and agent-skill surfaces agree with the current registry/version and are evidenced."
     },
@@ -773,8 +790,9 @@
         "focusa_workpoint_resume"
       ],
       "runbook_notes": [
-        "Verify typed project/workstream scope before durable mutation.",
-        "Return bounded evidence and executable recovery."
+        "A failed operation starts bounded diagnosis, not automatic mission abandonment; preserve the accepted outcome and confirmed effects.",
+        "Discover the actual owning contract and inspect exact response/scope/version/receipt evidence before choosing supported recovery.",
+        "Verify the repair and resume the affected action, or advance independently admitted work; report an actual unresolved boundary precisely, not an inferred global blocker."
       ],
       "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
     },
@@ -829,8 +847,10 @@
         "focusa_workpoint_resume"
       ],
       "runbook_notes": [
-        "Verify typed project/workstream scope before durable mutation.",
-        "Return bounded evidence and executable recovery."
+        "Resolve the current target from the exact bound Ladder and current instruction; Workpoint is a bounded action, not the whole outcome.",
+        "Resume normally omits current_ask; an explicit override must match the captured current operator instruction exactly.",
+        "Checkpoint a justified successor only after scope, stage, dependencies and admission are reconciled; do not overwrite history or fabricate a frontier.",
+        "Link verified receipts/outcome evidence, reassess the gap and advance through the existing owner; completing one Workpoint does not settle an unfinished goal."
       ],
       "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
     },

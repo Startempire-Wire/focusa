@@ -1,6 +1,6 @@
 # `focusa_sms_revoke`
 
-Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -54,8 +54,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"control","route_family":"sms:revoke"}`
 - Authority: `{"kind":"canonical","path":"/v1/sms/revoke"}`
 - Side effects: `confirmed_connector_and_grant_revocation`, `confirmed_connector_and_grant_revocation`
-- Read-only: `false`; destructive: `true`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `true`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `true`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -67,11 +67,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_sms_enrollment` (likely_next)
 - `focusa_sms_health` (likely_next)
 - `focusa_sms_events` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_enrollment`, `focusa_sms_health`, `focusa_sms_events`.
 
 ## Skills, protocols, and source authority
@@ -82,4 +86,4 @@ Likely next: `focusa_sms_enrollment`, `focusa_sms_health`, `focusa_sms_events`.
 - CLI: `focusa sms revoke --confirm`.
 - REST: `POST /v1/sms/revoke`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:a451c8257426244237809de3dea8e586dce6b8bedd22dcd948ad6da737613df9`.
+- Descriptor digest: `sha256:0a2cb87c2b509b61dbfb83d350853e1e662d3d5edf4131a248a5265ed8cfac3a`.

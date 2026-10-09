@@ -116,9 +116,13 @@ fn packet_response(step: &str, profile: Option<String>) -> Json<Value> {
             "read_only": true,
             "status": "completed",
             "packet": packet,
-            "checks": ["profile", "integrity", "scope"],
+            "canonical": false,
+            "advisory": true,
+            "context_kind": "profile_template",
+            "checks": ["profile"],
+            "unverified_checks": ["scope_binding", "artifact_delivery", "current_process_refresh"],
             "human_readable": format!(
-                "Preload {step} completed with profile {profile}. Next: verify before delivery."
+                "Preload {step} generated a profile template for {profile}; scope binding, artifact delivery and current-process refresh are not established."
             )
         })),
         Err(error) => Json(json!({
@@ -259,7 +263,9 @@ async fn build_post(
             .as_deref()
             .filter(|value| !value.trim().is_empty())
         {
-            selection_target = next.to_string();
+            if selection_target.trim().is_empty() {
+                selection_target = next.to_string();
+            }
             candidates.push(CurateCandidate {
                 kind: "snippet".into(),
                 path: "workpoint:next_action".into(),
@@ -586,9 +592,12 @@ pub fn build_packet(profile_id: &str) -> Result<AgentBootstrapPacket, String> {
         .ok_or_else(|| format!("{FAIL_CODE_PRELOAD}: unknown profile {profile_id:?}"))?;
     let static_rule_lines = vec![
         "Focusa does not bypass install/checksum/license/update rules.".to_string(),
-        "Canonical Workpoint authority requires operator approval.".to_string(),
+        "Canonical action authority requires the existing operator grant, exact Scope/Workstream/continuity/attachment and current operation/frontier; ordinary choices inside that grant do not require renewed permission.".to_string(),
         "Proof is required before declaring completion.".to_string(),
-        "Scope is verified before changing files.".to_string(),
+        "Scope is verified before changing files; preload is advisory context, not an execution grant or evidence that the current process loaded it.".to_string(),
+        "Use the shared project journey: conditional Bootstrap/Genesis, linked goals/spec/tasks and current Workpoint, then Prepare/Act/Reconcile/Advance; capability lists are not mandatory sequences.".to_string(),
+        "A rejected operation calls for exact-cause supported recovery, verified resumption and independent admitted work; preserve actual authority/safety/budget boundaries rather than improvise repair.".to_string(),
+        "Active development follows the approved reload/deploy/consumer-test path; Git push is project-specific and production signed-release safeguards remain.".to_string(),
     ];
     let dynamic_context_lines: Vec<String> = if profile.includes_dynamic_context {
         (0..profile.max_dynamic_items)
@@ -812,6 +821,21 @@ mod tests {
                 .get("human_readable")
                 .and_then(Value::as_str)
                 .is_some_and(|text| text.contains("focusa_preload_profiles"))
+        );
+    }
+
+    #[test]
+    fn profile_template_does_not_claim_scope_or_delivery_verification() {
+        let Json(response) = packet_response("verify", Some(PROFILE_RULES_ONLY.to_string()));
+        assert_eq!(response["canonical"], false);
+        assert_eq!(response["advisory"], true);
+        assert_eq!(response["checks"], json!(["profile"]));
+        assert_eq!(response["context_kind"], "profile_template");
+        assert!(
+            response["unverified_checks"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("current_process_refresh"))
         );
     }
 

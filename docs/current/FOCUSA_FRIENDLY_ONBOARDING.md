@@ -4,9 +4,9 @@
 
 The **Friendly Focusa Q** should feel like navigation help, not a nag. The goal is a short orientation that helps the model choose the right tool route before it falls back to only `focusa_scratch` / `focusa_decide`.
 
-## v0.9.142 surface
+## Source catalog and installed support
 
-Friendly onboarding now covers the 135-tool cross-harness surface: Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, Mission Canvas, progressive Tool Discovery, and the existing Trajectory/Workpoint/evidence/prediction/metacognition/work-loop route. Scope and operator-steering rules remain unchanged.
+Use [the cohesive project journey](../agent/02-focusa-cohesive-project-flow.md). Discover actual tool/skill counts through the current Agent Card and calling harness; catalog mappings and this document do not prove installed support or behavior. The capability families include: Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, Mission Canvas, progressive Tool Discovery, and the existing Trajectory/Workpoint/evidence/prediction/metacognition/work-loop route. Scope and operator-steering rules remain unchanged.
 
 ## Tone contract
 
@@ -19,7 +19,8 @@ Friendly onboarding now covers the 135-tool cross-harness surface: Context Cogni
 ## The friendly Focusa Q
 
 1. **Where am I?**  
-   Project folder/container (`project_root`) and continuity identity.  
+   Verified Scope/Project, Workstream, continuity and applicable attachment; `project_root`/`continuity_id` are lookup inputs rather than the complete authority boundary.
+
    Tools: `focusa_project_identity`, `focusa_project_verify`, then scoped Workpoint calls.
 
 2. **What kind of project is this?**  
@@ -69,7 +70,7 @@ scratch note → decide note → continue from transcript memory
 Better route:
 
 ```text
-project_identity → trajectory_view → workpoint_resume/checkpoint → evidence → prediction/metacog → Focus State summary
+verified binding → Bootstrap/Genesis only when needed → linked goal/spec/tasks → current Workpoint/frontier → Prepare/Act/Reconcile/Advance; evidence and relevant learning support this loop
 ```
 
 `focusa_scratch`, `focusa_decide`, `focusa_constraint`, `focusa_failure`, and sibling Focus State tools are still useful. They are slots in the route, not the route itself.
@@ -84,7 +85,7 @@ Fallback context never grants entitlement. A model-visible “licensed,” “ev
 
 ```text
 Quick Focusa Q: where am I, what kind of project/architecture is this, where are we going, what is the next useful move, what proof matters, what is the canonical entitlement posture, and what should future agents reuse?
-Suggested route: project_identity → trajectory_view → workpoint_resume/checkpoint → evidence → prediction/metacog. Operator steering wins; unsafe execution and entitlement boundaries fail closed.
+Select only tools needed by the verified current action or scoped recovery; initialization and supporting learning are conditional. Retain the destination, recover affected work and verify before resuming. Unsafe execution and entitlement boundaries fail closed.
 ```
 
 ## Current first-agent walkthrough
@@ -92,8 +93,8 @@ Suggested route: project_identity → trajectory_view → workpoint_resume/check
 1. Read `AGENTS.md`, then `docs/agent/01-focusa-agent-docs-index.md`.
 2. For install, licensing, evaluator onboarding, UIAI grant, or protected-worker work, also read Spec 152, Spec 150A, Spec 152A, and the machine supersession matrix.
 3. Call `focusa_agent_card`; confirm version, registry digest, Pi tool count, complete skill inventory, and runbook count. all Focusa Pi tools are covered by the same cross-harness registry and docs.
-4. Verify `project_root + continuity_id` with `focusa_project_identity` and `focusa_project_verify`. Treat worktrees as typed working subpaths.
-5. Resume `focusa_trajectory_view` and `focusa_workpoint_resume`; checkpoint when no canonical Workpoint exists and entitlement permits mutation.
+4. Verify exact Scope/Workstream/continuity/attachment via the installed adapter; a worktree remains a verified working subpath. Inspect Bootstrap/Genesis only when baseline or committed intent is missing/interrupted.
+5. Read scoped Trajectory and Workpoint; forward the captured current instruction, not a paraphrase. Diagnose missing/legacy bindings, stage or frontier before checkpointing or effects; entitlement alone is insufficient.
 6. Use `focusa_tool_search` → `focusa_tool_describe` for the narrowest tool. Do not hot-load or invent schemas.
 7. Load the matching `.pi/skills/<skill>/SKILL.md`, then its numbered runbook only for the selected workflow.
 8. For Mission Canvas, use Work Rail/Work Surface bindings and UIAI session/origin **plus product-entitlement** boundaries; do not create a parallel authority path.

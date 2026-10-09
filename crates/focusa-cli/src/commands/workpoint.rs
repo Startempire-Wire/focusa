@@ -50,6 +50,27 @@ pub enum WorkpointCmd {
         #[arg(long)]
         idempotency_key: Option<String>,
     },
+    /// Recover only a missing stage on the current otherwise-valid work record.
+    RepairStage {
+        #[arg(long)]
+        project_root: String,
+        #[arg(long)]
+        continuity_id: String,
+        /// Valid lifecycle stage, such as implement or verify_outcome.
+        #[arg(long)]
+        stage: String,
+        /// Why the approved stage represents the current work.
+        #[arg(long)]
+        reason: String,
+        /// Stable evidence reference; repeat for multiple references.
+        #[arg(long, required = true)]
+        evidence_ref: Vec<String>,
+        #[arg(long)]
+        idempotency_key: String,
+        /// Explicit confirmation of this metadata-only recovery.
+        #[arg(long)]
+        confirm_lifecycle_repair: bool,
+    },
     /// Show the active Workpoint packet.
     Current {
         /// Safe project folder/container for scoped lookup.
@@ -245,6 +266,61 @@ fn print_human_summary(resp: &Value, label: &str) {
     }
 }
 
+fn lifecycle_repair_request(
+    current: &Value,
+    stage: &str,
+    reason: &str,
+    evidence_refs: &[String],
+    idempotency_key: &str,
+    confirmed: bool,
+) -> anyhow::Result<Value> {
+    use focusa_core::types::WorkpointLifecycleStage;
+    let stage: WorkpointLifecycleStage = serde_json::from_value(json!(stage))?;
+    if !confirmed
+        || stage == WorkpointLifecycleStage::Unknown
+        || reason.trim().is_empty()
+        || idempotency_key.trim().is_empty()
+        || evidence_refs.is_empty()
+        || evidence_refs
+            .iter()
+            .any(|reference| reference.trim().is_empty())
+    {
+        anyhow::bail!(
+            "Stage recovery requires confirmation, a known stage, a reason, evidence and an idempotency key"
+        );
+    }
+    let record = current
+        .get("workpoint")
+        .filter(|record| record.get("canonical").and_then(Value::as_bool) == Some(true))
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "No active canonical work record was returned; no recovery request sent"
+            )
+        })?;
+    let mut body = record.clone();
+    let intent = body
+        .get_mut("action_intent")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| {
+            anyhow::anyhow!("The existing action is missing; stage-only recovery cannot repair it")
+        })?;
+    intent.insert("lifecycle_stage".into(), json!(stage));
+    intent.insert("lifecycle_transition_reason".into(), json!(reason));
+    intent.insert(
+        "lifecycle_transition_evidence_refs".into(),
+        json!(evidence_refs),
+    );
+    body.as_object_mut()
+        .ok_or_else(|| anyhow::anyhow!("Invalid work record"))?
+        .remove("workpoint_id"); // append a successor, never overwrite the saved record
+    body["checkpoint_reason"] = json!("operator_checkpoint");
+    body["promote"] = json!(true);
+    body["repair_missing_lifecycle_stage"] = json!(true);
+    body["confirm_lifecycle_repair"] = json!(confirmed);
+    body["idempotency_key"] = json!(idempotency_key);
+    Ok(body)
+}
+
 pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
     // Workpoint checkpoint/resume may enqueue reducer events and wait for read-model visibility;
     // keep CLI UX bounded but longer than hot read probes, especially under LowMem backpressure.
@@ -300,6 +376,33 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             }
             (
                 "checkpoint",
+                api.post("/v1/workpoint/checkpoint", &body).await?,
+            )
+        }
+        WorkpointCmd::RepairStage {
+            project_root,
+            continuity_id,
+            stage,
+            reason,
+            evidence_ref,
+            idempotency_key,
+            confirm_lifecycle_repair,
+        } => {
+            ensure_project_root_scope_safe(Some(&project_root), "workpoint stage recovery")?;
+            let (root, subpath) = resolve_workpoint_scope(Some(project_root), None);
+            let current = api
+                .get(&current_path(root, Some(subpath), Some(continuity_id)))
+                .await?;
+            let body = lifecycle_repair_request(
+                &current,
+                &stage,
+                &reason,
+                &evidence_ref,
+                &idempotency_key,
+                confirm_lifecycle_repair,
+            )?;
+            (
+                "stage recovery",
                 api.post("/v1/workpoint/checkpoint", &body).await?,
             )
         }
@@ -414,6 +517,81 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stage_repair_request_preserves_existing_work_and_requires_confirmation() {
+        let current = json!({"workpoint": {
+            "canonical": true, "workpoint_id": "old-record",
+            "project_root": "/tmp/stage-fixture", "continuity_id": "fixture-continuity",
+            "mission": "Repair the current source", "next_slice": "Verify the source repair",
+            "active_object_refs": ["source:fixture"],
+            "action_intent": {"action_type":"patch_source", "target_ref":"source:fixture",
+                "lifecycle_stage":"unknown", "verification_hooks":["source-proof"], "status":"ready"}
+        }});
+        let evidence = vec!["evidence:source-repair".into()];
+        let body = lifecycle_repair_request(
+            &current,
+            "implement",
+            "Approved source recovery",
+            &evidence,
+            "fixture-replay",
+            true,
+        )
+        .unwrap();
+        assert!(body.get("workpoint_id").is_none());
+        assert_eq!(body["mission"], current["workpoint"]["mission"]);
+        assert_eq!(body["next_slice"], current["workpoint"]["next_slice"]);
+        assert_eq!(
+            body["action_intent"]["verification_hooks"],
+            current["workpoint"]["action_intent"]["verification_hooks"]
+        );
+        assert_eq!(body["action_intent"]["lifecycle_stage"], "implement");
+        assert_eq!(body["confirm_lifecycle_repair"], true);
+        assert!(
+            lifecycle_repair_request(
+                &current,
+                "implement",
+                "Approved recovery",
+                &evidence,
+                "fixture-replay",
+                false
+            )
+            .is_err()
+        );
+        assert!(
+            lifecycle_repair_request(
+                &current,
+                "unknown",
+                "Approved recovery",
+                &evidence,
+                "fixture-replay",
+                true
+            )
+            .is_err()
+        );
+        assert!(
+            lifecycle_repair_request(
+                &current,
+                "implement",
+                "Approved recovery",
+                &[],
+                "fixture-replay",
+                true
+            )
+            .is_err()
+        );
+        assert!(
+            lifecycle_repair_request(
+                &json!({"canonical":false}),
+                "implement",
+                "Approved recovery",
+                &evidence,
+                "fixture-replay",
+                true
+            )
+            .is_err()
+        );
+    }
 
     #[test]
     fn reason_aliases_match_api_snake_case() {

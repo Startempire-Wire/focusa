@@ -1,6 +1,6 @@
 # `focusa_bloatgaurd_tokenbloat_report`
 
-Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. Use it when Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. Use it when Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -46,8 +46,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -59,11 +59,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_bloatgaurd_tokenbloat_domain` (likely_next)
 - `focusa_bloatgaurd_report` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_bloatgaurd_tokenbloat_domain`, `focusa_bloatgaurd_report`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -74,4 +78,4 @@ Likely next: `focusa_bloatgaurd_tokenbloat_domain`, `focusa_bloatgaurd_report`, 
 - CLI: `focusa bloatgaurd tokenbloat`.
 - REST: `GET /v1/bloatgaurd/tokenbloat/report`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:152ed3aff463dbb77c5c9476d8bf28888bbb93e8f43f19a6591fbeec9eb6841f`.
+- Descriptor digest: `sha256:121f0ded2589427e9184536958064ee28ef229baf463477f8721e9e526905cbd`.

@@ -2,41 +2,38 @@
 
 ## Preconditions
 
-- Verify project root plus continuity scope when project-bound.
+- Verify project identity, exact Workstream/continuity and applicable runtime attachment; root plus continuity alone does not prove canonical cognition.
 - Resume or checkpoint the canonical Workpoint before long/risky work.
 - Confirm current operator steering and mutation approval boundaries.
 - Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
 - Treat cwd and missing markers as weak evidence; inspect legacy project signals before suggesting creation or binding.
 - Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
-- Use targeted local gates during development; CI requires explicit release authorization.
+- Use the approved active-development reload/deploy/test loop and execution host; Git push is project-specific, and development verification is not a release by default. CI/paid runs and release actions retain their actual grant/resource requirements.
 
-## Dependency graph
+## Complete journey and conditional routing
 
-```text
-focusa_dxux_report -> focusa_dxux_requirement
-focusa_dxux_requirement -> focusa_dxux_explain
-focusa_dxux_explain -> focusa_dxux_digest
-focusa_dxux_digest -> focusa_tool_doctor
-```
+Owning guide: `docs/agent/02-focusa-cohesive-project-flow.md`; contracts: Specs 143/158/164 and issue #618. Verified Workstream/attachment, current intent, accepted outcome and daemon admission determine the next action; the list below does not define execution dependencies.
 
-## Minimal path
+- Discover `focusa_dxux_report` when its condition is relevant; use its current strict contract.
+- Discover `focusa_dxux_requirement` when its condition is relevant; use its current strict contract.
+- Discover `focusa_dxux_explain` when its condition is relevant; use its current strict contract.
+- Discover `focusa_dxux_digest` when its condition is relevant; use its current strict contract.
+- Discover `focusa_tool_doctor` when its condition is relevant; use its current strict contract.
 
-1. Call `focusa_dxux_report` with only required bounded inputs.
-2. Call `focusa_dxux_requirement` with only required bounded inputs.
-3. Call `focusa_dxux_explain` with only required bounded inputs.
-4. Call `focusa_dxux_digest` with only required bounded inputs.
-5. Call `focusa_tool_doctor` with only required bounded inputs.
+For resume, normally omit `current_ask` so the adapter forwards the exact latest instruction. A paraphrase can produce `resume_evaluated_different_ask`; use the exact request-bound ask, not a permission override. Bootstrap/Genesis readiness is not current-frontier admission. No repeated onboarding, new HLT or restore operation is implied by a routine transition.
 
 ## Current domain procedure
 
-1. Verify typed project/workstream scope before durable mutation.
-2. Return bounded evidence and executable recovery.
+1. Classify input/provenance mismatch, pending work, reporting failure, stale scope, missing frontier and genuine denial separately.
+2. Inspect a bounded expanded response for exact missing facts and supported scoped recovery; do not repeatedly loop through generic next-tool suggestions.
+3. Reconcile effects and apply the allowed repair/retry policy, verify recovery and resume the parent action; independent admitted work continues.
+4. Escalate only an irreducible consent/scope/budget boundary after permitted investigation; never manufacture admission or self-renew a budget.
 
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
-- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
-- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Scope conflict: verify the exact Workstream/continuity/attachment and current Workpoint; choose the advertised scoped reconciliation route before any checkpoint mutation. Preserve other writers and scopes.
+- Daemon/degraded state: distinguish reporting failure, request-input mismatch, stale binding and missing execution admission. Discover the supported repair, reconcile effects, verify and resume; an unchanged blind retry is not recovery.
 - Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
 - Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
 - Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.

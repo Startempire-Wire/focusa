@@ -1,6 +1,6 @@
 # `focusa_instruction_conflicts`
 
-Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked. Use it when Operate the Spec 140 instruction conflicts surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked. Use it when Operate the Spec 140 instruction conflicts surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -50,8 +50,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"agent-runtime"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_or_preview_only`, `read_or_preview_only`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -63,11 +63,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_instruction_explain` (likely_next)
 - `focusa_instruction_simulate` (likely_next)
 - `focusa_instruction_integrity_evaluate` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_instruction_explain`, `focusa_instruction_simulate`, `focusa_instruction_integrity_evaluate`.
 
 ## Skills, protocols, and source authority
@@ -78,4 +82,4 @@ Likely next: `focusa_instruction_explain`, `focusa_instruction_simulate`, `focus
 - CLI: `focusa agent-runtime conflicts`.
 - REST: `GET /v1/agent-runtime/instructions/conflicts`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:cd7ce3bd2cbd23d3095e3e767b34f0e09dab4cb633396300d42b0fbd1ceacff2`.
+- Descriptor digest: `sha256:35727e029ae1dfe549ef6a0175e2bc4908f99a167a64dce444734baba164cea5`.

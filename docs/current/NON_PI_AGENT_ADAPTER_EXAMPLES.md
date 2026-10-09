@@ -4,11 +4,11 @@ These examples show how non-Pi agents satisfy `AGENT_ADAPTER_CONTRACT.md` while 
 
 ## Universal startup packet
 
-All examples start with the same authority-safe sequence:
+These are illustrative prompts/lookup examples, not verified invocations for every installed harness or a mandatory sequence. Use [the shared project journey](../agent/02-focusa-cohesive-project-flow.md), inspect installed help/schemas and resolve actual Scope/Workstream/continuity/attachment first. Keep the existing safe approval/sandbox policy; do not infer grants from examples. Initialize only missing state and select relevant capabilities.
 
 ```bash
-export FOCUSA_PROJECT_ROOT=${FOCUSA_PROJECT_ROOT:-$PWD}
-export FOCUSA_CONTINUITY_ID=${FOCUSA_CONTINUITY_ID:-focusa-cont-root-20b6704c-5a49-4d9d-a4b6-a30bf45bfc61}
+: "${FOCUSA_PROJECT_ROOT:?set the verified project root, not an inferred launch directory}"
+: "${FOCUSA_CONTINUITY_ID:?set the resolved continuity within the verified Workstream}"
 focusa awareness card --json
 focusa project verify --project-root "$FOCUSA_PROJECT_ROOT" --json
 focusa workpoint resume --project-root "$FOCUSA_PROJECT_ROOT" --continuity-id "$FOCUSA_CONTINUITY_ID" --json
@@ -18,7 +18,7 @@ focusa context-cognition render --project-root "$FOCUSA_PROJECT_ROOT" --continui
 ## Codex CLI
 
 ```bash
-codex --dangerously-bypass-approvals-and-sandbox=false \
+codex \
   "Read docs/current/AGENT_ADAPTER_CONTRACT.md, run the universal startup packet, then continue only from canonical Workpoint scope."
 ```
 
@@ -51,12 +51,14 @@ OpenCode MCP mode may call the same routes through an MCP bridge instead of shel
 ## OpenClaw / Wirebot
 
 ```bash
-openclaw "Fetch Focusa awareness card and Workpoint resume packet. Treat project_root + continuity_id as scope authority. Render tool_result_v1 status in replies."
+openclaw "Fetch Focusa awareness card and Workpoint resume packet. Resolve exact Workstream/continuity/attachment through the installed adapter; project_root and continuity_id alone are not complete authority. Render tool_result_v1 status in replies."
 ```
 
 OpenClaw/Wirebot should show the compact Utility Card plus current Workpoint next action before taking durable action.
 
 ## Generic shell agent
+
+The following loopback JSON shapes illustrate legacy lookup routes only, not full authority or current admission. Prefer the supported authenticated CLI/adapter; verify endpoint, strict schema and configured transport first. Do not paste example handles or infer that an unscoped awareness response permits effects.
 
 ```bash
 curl -fsS http://127.0.0.1:8787/v1/awareness/card | jq .

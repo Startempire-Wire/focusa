@@ -53,13 +53,18 @@ function fallbackCard(
 ): string {
   return [
     "# Focusa Utility Card",
-    "Status: degraded / awareness endpoint unavailable",
+    "Status: degraded / scoped awareness unavailable; current execution admission unverified",
     `Agent: adapter=${c.adapterId} workspace=${c.workspaceId} agent=${c.agentId} operator=${c.operatorId}`,
     "Mission: use latest operator instruction and OpenClaw/Wirebot workspace context.",
-    "Next anchor: Focusa unavailable; mark cognition_degraded=true and use explicit fallback context.",
-    `Project folder: project_root=${c.projectRoot}; continuity_id=${c.continuityId || "unbound"}`,
+    "Next anchor: preserve explicit operator intent; mark cognition_degraded=true. Fallback context is advisory, not replacement authority for governed effects.",
+    `Configured lookup inputs (not verified binding): project_root=${c.projectRoot || "unbound"}; continuity_id=${c.continuityId || "unbound"}`,
+    "Resolve actual Scope/Workstream/continuity/attachment and current operation/frontier through the supported installed adapter before dependent effects; configuration alone proves none of these.",
     "",
-    "Use Focusa as agent working memory and governance when available:",
+    "Use the cohesive project journey and contextual installed capabilities, not a mandatory tool sequence:",
+    "- Initialize Bootstrap/Genesis only for missing/interrupted state; reuse valid existing intent, specifications, tasks and evidence.",
+    "- Prepare/Act/Reconcile/Advance within existing grants; ordinary choices inside a verified grant do not require renewed permission.",
+    "- Diagnose exact failed dependencies, perform supported recovery and verify resumption; independently admitted work continues.",
+    "- Active development uses approved reload/deploy/consumer testing; Git push is project-specific and production signed-release controls remain.",
     "- First when uncertain/degraded: call /v1/doctor or run `focusa doctor --json`.",
     "- Before compaction/model switch/fork/risky continuation: checkpoint a project-bound Workpoint.",
     "- After compaction/reload/resume: fetch Workpoint resume; do not trust transcript tail over Workpoint.",
@@ -122,7 +127,7 @@ const focusaAwareness = {
         const sessionId = sessionIdFromContext(ctx);
         if (!c.projectRoot || !c.continuityId) {
           const reason =
-            "typed project_root and continuity_id are required; no global scope fallback is allowed";
+            "project_root and continuity_id lookup inputs are missing; no inferred/global fallback. Their presence alone would not establish exact Workstream/attachment or current action admission";
           api.logger.warn(
             `focusa-awareness: blocked injection session=${sessionId.slice(0, 80)} reason=${reason}`,
           );

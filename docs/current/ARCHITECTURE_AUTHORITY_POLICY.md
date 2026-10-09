@@ -28,7 +28,7 @@ External material MAY identify defects, constraints, opportunities, evidence, or
 
 ## 3. Operational authority is not architecture authority
 
-Focusa contains real canonical operational authority: ProjectIdentity, `project_root + continuity_id`, Trajectory orientation, Workpoint continuation, Context Authority mutation gates, capability grants, reducer-backed state, evidence, settlement, verification, and related governance.
+Focusa contains real canonical operational authority: ProjectIdentity and exact Scope/Workstream/continuity/attachment binding (`project_root`/`continuity_id` are lookup inputs), Trajectory orientation, Workpoint continuation, Context Authority mutation gates, capability grants, reducer-backed state, evidence, settlement, verification, and related governance.
 
 Those truths remain authoritative **for their scoped operational domain**. They do not make Focusa itself the owner of product/organizational architecture and they do not supersede Verious Smith III as the architecture root.
 

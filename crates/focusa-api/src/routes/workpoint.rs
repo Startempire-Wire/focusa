@@ -56,6 +56,11 @@ pub struct WorkpointCheckpointRequest {
     pub source_turn_id: Option<String>,
     pub promote: Option<bool>,
     pub idempotency_key: Option<String>,
+    /// Narrow, explicitly confirmed migration of a legacy record's missing stage.
+    #[serde(default)]
+    pub repair_missing_lifecycle_stage: bool,
+    #[serde(default)]
+    pub confirm_lifecycle_repair: bool,
     #[serde(default, alias = "dry_run")]
     pub preview: bool,
 }
@@ -2260,6 +2265,45 @@ fn validate_workpoint_checkpoint_request(
     }
 }
 
+fn legacy_lifecycle_repair_eligible(
+    req: &WorkpointCheckpointRequest,
+    previous: &WorkpointRecord,
+    linkage: &Value,
+) -> bool {
+    let (Some(old), Some(next)) = (previous.action_intent.as_ref(), req.action_intent.as_ref())
+    else {
+        return false;
+    };
+    req.repair_missing_lifecycle_stage
+        && req.canonical.unwrap_or(true)
+        && req.promote.unwrap_or(true)
+        && req.confirm_lifecycle_repair
+        && req.checkpoint_reason.as_deref() == Some("operator_checkpoint")
+        && req.idempotency_key.as_deref().is_some_and(|key| !key.trim().is_empty())
+        && req.workpoint_id.is_none() // append a successor; preserve the original record
+        && previous.canonical
+        && previous.status == WorkpointStatus::Active
+        && req.project_root == previous.project_root
+        && req.continuity_id == previous.continuity_id
+        && req.work_item_id == previous.work_item_id
+        && previous.work_item_id.as_deref().is_some_and(|id| !id.trim().is_empty())
+        && req.mission == previous.mission
+        && req.next_slice == previous.next_slice
+        && req.active_object_refs.as_ref() == Some(&previous.active_object_refs)
+        && old.lifecycle_stage == WorkpointLifecycleStage::Unknown
+        && next.lifecycle_stage != WorkpointLifecycleStage::Unknown
+        && next.action_type == old.action_type
+        && next.target_ref == old.target_ref
+        && next.verification_hooks == old.verification_hooks
+        && next.status == old.status
+        && next.lifecycle_transition_reason.as_deref().is_some_and(|reason| !reason.trim().is_empty())
+        && !next.lifecycle_transition_evidence_refs.is_empty()
+        && next.lifecycle_transition_evidence_refs.iter().all(|reference| !reference.trim().is_empty())
+        && linkage.get("status").and_then(Value::as_str) == Some("linked")
+        && linkage.get("workpoint_id").and_then(Value::as_str) == Some(previous.workpoint_id.to_string().as_str())
+        && linkage.get("admission_gaps") == Some(&json!(["lifecycle_stage_missing"]))
+}
+
 async fn checkpoint(
     scope: ScopeContext,
     State(state): State<Arc<AppState>>,
@@ -2407,22 +2451,62 @@ async fn checkpoint(
             ));
         }
     }
-    if req.promote.unwrap_or(true) && req.canonical.unwrap_or(true) {
-        let (has_active_workpoint, previous_action_intent) = {
+    let previous = if promote && requested_canonical {
+        let focusa = state.focusa.read().await;
+        active_workpoint_for_scope(
+            &focusa,
+            req.project_root.as_deref(),
+            req.continuity_id.as_deref(),
+        )
+        .cloned()
+    } else {
+        None
+    };
+    if promote && requested_canonical {
+        if req.repair_missing_lifecycle_stage {
+            // Verify the existing marker/Trajectory through its canonical owner;
+            // never hold the state read lock across another handler's await.
+            let (guard_status, Json(guard_reply)) = crate::routes::project::trajectory_guard(
+                scope.clone(),
+                State(state.clone()),
+                Json(crate::routes::project::TrajectoryGuardRequest {
+                    action: Some("verify".into()),
+                    project_root: req.project_root.clone(),
+                    continuity_id: req.continuity_id.clone(),
+                    ..Default::default()
+                }),
+            )
+            .await;
+            if !guard_status.is_success()
+                || guard_reply
+                    .pointer("/trajectory_integrity_guard/status")
+                    .and_then(Value::as_str)
+                    != Some("READY")
+            {
+                return Err((StatusCode::CONFLICT, Json(guard_reply)));
+            }
             let focusa = state.focusa.read().await;
-            let previous = active_workpoint_for_scope(
+            let linkage = crate::routes::project::north_star_workpoint_linkage(
                 &focusa,
-                req.project_root.as_deref(),
+                req.project_root.as_deref().unwrap_or_default(),
                 req.continuity_id.as_deref(),
             );
-            (
-                previous.is_some(),
-                previous
-                    .and_then(|record| record.action_intent.as_ref())
-                    .cloned(),
-            )
-        };
-        if has_active_workpoint {
+            if !previous
+                .as_ref()
+                .is_some_and(|record| legacy_lifecycle_repair_eligible(&req, record, &linkage))
+            {
+                return Err((
+                    StatusCode::CONFLICT,
+                    Json(json!({
+                        "status": "rejected",
+                        "canonical": false,
+                        "code": "LIFECYCLE_REPAIR_REJECTED",
+                        "failure_class": "lifecycle_repair_rejected",
+                        "next_step_hint": "confirmed recovery requires an exact unchanged legacy action, one missing stage, transition evidence and an idempotency key"
+                    })),
+                ));
+            }
+        } else if previous.is_some() {
             require_scoped_north_star_mutation_admission(
                 &scope,
                 &state,
@@ -2431,10 +2515,17 @@ async fn checkpoint(
             .await?;
         }
         validate_lifecycle_transition_evidence(
-            previous_action_intent.as_ref(),
+            previous
+                .as_ref()
+                .and_then(|record| record.action_intent.as_ref()),
             req.action_intent.as_ref(),
         )?;
     }
+    let recovery_source = if requested_canonical && promote && req.repair_missing_lifecycle_stage {
+        previous.clone()
+    } else {
+        None
+    };
     let idempotency_key = req.idempotency_key.clone();
     let record = WorkpointRecord {
         workpoint_id,
@@ -2457,14 +2548,29 @@ async fn checkpoint(
         idempotency_key: req.idempotency_key,
         ..WorkpointRecord::default()
     };
+    // Recovery changes only the stage/transition metadata, never proof history
+    // or other fields omitted from the bounded producer projection.
+    let record = if let Some(previous) = recovery_source {
+        WorkpointRecord {
+            workpoint_id,
+            action_intent: record.action_intent,
+            status: WorkpointStatus::Proposed,
+            checkpoint_reason: record.checkpoint_reason,
+            idempotency_key: record.idempotency_key,
+            ..previous
+        }
+    } else {
+        record
+    };
     let canonical = record.canonical;
+    let confidence = record.confidence;
     let checkpoint_summary = checkpoint_summary(&record);
 
     let mut events = vec![FocusaEvent::WorkpointCheckpointProposed { workpoint: record }];
     if promote && canonical {
         events.push(FocusaEvent::WorkpointCheckpointPromoted {
             workpoint_id,
-            confidence: req.confidence.unwrap_or(WorkpointConfidence::High),
+            confidence,
             reason: "checkpoint API promote=true".to_string(),
         });
     }
@@ -3958,6 +4064,106 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn legacy_stage_recovery_is_confirmed_exact_scoped_and_append_only() {
+        let old = WorkpointRecord {
+            canonical: true,
+            status: WorkpointStatus::Active,
+            project_root: Some("/tmp/focusa-stage-fixture".into()),
+            continuity_id: Some("stage-fixture-continuity".into()),
+            work_item_id: Some("stage-fixture-task".into()),
+            mission: Some("Repair the current source".into()),
+            next_slice: Some("Verify the source repair".into()),
+            active_object_refs: vec!["source:fixture".into()],
+            action_intent: Some(WorkpointActionIntentRecord {
+                action_type: "patch_source".into(),
+                target_ref: Some("source:fixture".into()),
+                status: Some("ready".into()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let mut intent = old.action_intent.clone().unwrap();
+        intent.lifecycle_stage = WorkpointLifecycleStage::Implement;
+        intent.lifecycle_transition_reason = Some("Operator-approved source recovery".into());
+        intent.lifecycle_transition_evidence_refs = vec!["evidence:source-repair".into()];
+        let mut req = WorkpointCheckpointRequest {
+            project_root: old.project_root.clone(),
+            continuity_id: old.continuity_id.clone(),
+            work_item_id: old.work_item_id.clone(),
+            mission: old.mission.clone(),
+            next_slice: old.next_slice.clone(),
+            active_object_refs: Some(old.active_object_refs.clone()),
+            action_intent: Some(intent),
+            checkpoint_reason: Some("operator_checkpoint".into()),
+            idempotency_key: Some("stage-fixture-replay".into()),
+            repair_missing_lifecycle_stage: true,
+            confirm_lifecycle_repair: true,
+            ..Default::default()
+        };
+        let linkage = json!({"status":"linked", "workpoint_id":old.workpoint_id,
+            "admission_gaps":["lifecycle_stage_missing"]});
+        assert!(legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.confirm_lifecycle_repair = false;
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.confirm_lifecycle_repair = true;
+        req.workpoint_id = Some(old.workpoint_id);
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.workpoint_id = None;
+        req.continuity_id = Some("foreign-continuity".into());
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.continuity_id = old.continuity_id.clone();
+        req.next_slice = Some("Different work".into());
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.next_slice = old.next_slice.clone();
+        req.project_root = Some("/tmp/foreign-project".into());
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.project_root = old.project_root.clone();
+        req.work_item_id = Some("foreign-task".into());
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.work_item_id = old.work_item_id.clone();
+        req.active_object_refs = Some(vec!["foreign-object".into()]);
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.active_object_refs = Some(old.active_object_refs.clone());
+        req.canonical = Some(false);
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.canonical = Some(true);
+        req.promote = Some(false);
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.promote = Some(true);
+        req.action_intent.as_mut().unwrap().lifecycle_stage = WorkpointLifecycleStage::Unknown;
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+        req.action_intent.as_mut().unwrap().lifecycle_stage = WorkpointLifecycleStage::Implement;
+        let mut already_valid = old.clone();
+        already_valid
+            .action_intent
+            .as_mut()
+            .unwrap()
+            .lifecycle_stage = WorkpointLifecycleStage::Implement;
+        assert!(!legacy_lifecycle_repair_eligible(
+            &req,
+            &already_valid,
+            &linkage
+        ));
+        let mut wrong_link = linkage.clone();
+        wrong_link["workpoint_id"] = json!(Uuid::now_v7());
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &wrong_link));
+        let mut additional_gap = linkage.clone();
+        additional_gap["admission_gaps"] =
+            json!(["lifecycle_stage_missing", "active_operation_missing"]);
+        assert!(!legacy_lifecycle_repair_eligible(
+            &req,
+            &old,
+            &additional_gap
+        ));
+        req.action_intent
+            .as_mut()
+            .unwrap()
+            .lifecycle_transition_evidence_refs
+            .clear();
+        assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
+    }
 
     #[test]
     fn evidence_mutation_requires_ready_north_star_admission() {

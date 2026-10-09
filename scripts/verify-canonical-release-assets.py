@@ -5,7 +5,16 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import importlib.util
 from pathlib import Path
+
+# The receipt gate owns provider naming alternatives; final publication reuses
+# the same families instead of inventing a second Mac filename contract.
+_spec = importlib.util.spec_from_file_location(
+    'external_assets', Path(__file__).with_name('wait-for-external-release-assets.py')
+)
+_external = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_external)
 
 RUST_TARGETS = (
     ("aarch64-apple-darwin", ""),
@@ -45,27 +54,16 @@ def required_exact(tag: str) -> list[str]:
 
 
 def required_patterns() -> list[str]:
-    return [
-        "Focusa_*aarch64*.dmg",
-        "Focusa_*x64*.dmg",
-        "Focusa_*x64*setup.exe",
-        "Focusa_*x64*setup.exe.sig",
-        "Focusa_*arm64*setup.exe",
-        "Focusa_*arm64*setup.exe.sig",
-        "Focusa_*x64*.msi",
-        "Focusa_*x64*.msi.sig",
-        "Focusa_*arm64*.msi",
-        "Focusa_*arm64*.msi.sig",
-    ]
+    return _external.menubar_patterns()
 
 
 def verify(directory: Path, tag: str) -> list[str]:
     names = {path.name for path in directory.iterdir() if path.is_file()}
     missing = [name for name in required_exact(tag) if name not in names]
     missing.extend(
-        f"pattern:{pattern}"
-        for pattern in required_patterns()
-        if not any(fnmatch.fnmatchcase(name, pattern) for name in names)
+        f"pattern-family:{family}"
+        for family, patterns in _external.menubar_pattern_families()
+        if not any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns for name in names)
     )
     return missing
 

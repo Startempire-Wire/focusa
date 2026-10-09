@@ -1,6 +1,6 @@
 # `focusa_work_loop_control`
 
-Control continuous work loop. Daemon North Star admission applies to on/resume progression; pause/stop recovery controls remain available. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Control continuous work loop. Daemon North Star admission applies to on/resume progression; pause/stop recovery controls remain available. Use it when Control continuous work loop: on, pause, resume, stop. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -57,8 +57,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `control_state`, `control_state`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -70,11 +70,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_work_loop_writer_status` (likely_next)
 - `focusa_work_loop_status` (likely_next)
 - `focusa_work_loop_checkpoint` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_work_loop_writer_status`, `focusa_work_loop_status`, `focusa_work_loop_checkpoint`.
 
 ## Skills, protocols, and source authority
@@ -85,4 +89,4 @@ Likely next: `focusa_work_loop_writer_status`, `focusa_work_loop_status`, `focus
 - CLI: none.
 - REST: `POST /v1/work-loop/enable`, `POST /v1/work-loop/pause`, `POST /v1/work-loop/resume`, `POST /v1/work-loop/stop`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:cca7eb858c18b0f505e808568bd81edd7b31f414035bc871cd18c35f9bb9b0db`.
+- Descriptor digest: `sha256:a5618e4de5e7825c1df4487d35be2e088ac5311fff93d50e20065645301fa494`.

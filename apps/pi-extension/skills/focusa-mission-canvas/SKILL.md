@@ -15,7 +15,7 @@ Before Mission Canvas implementation, read:
 4. `docs/transitions/FOCUSA-TRANSITION-001-preview-build-and-release-milestones.md`
 5. `docs/transitions/FOCUSA-TRANSITION-001-task-graph.yaml`
 
-The complete rich Mission Canvas is no longer primarily owned by Pi TUI. Focusa Desktop is the primary rich application. Pi retains Work Rail, tools, exact Attachment binding, embedded/standalone terminal operation and a bounded compatibility Canvas.
+The transition contracts assign the primary rich application to Focusa Desktop rather than Pi TUI. This ownership/target-state statement is not proof that the current installation ships a complete Desktop. Verify installed support and active consumer behavior separately. Pi retains Work Rail, tools, exact Attachment binding, terminal operation and a bounded compatibility Canvas.
 
 Do not discard existing Mission Canvas work. Preserve it, correct it to exact Scope + Workstream identity, extract reusable semantic logic and keep replacement/parity proof before cleanup.
 
@@ -56,20 +56,13 @@ Mission Canvas operations require exact `ScopeRef + WorkstreamId` or an exact At
 - new rich Pi-only pane
 - continuity-only canonical binding
 
-## Required sequence
+## Contextual capability selection
 
-1. verify the transition preservation/checkpoint state when working from old Mission Canvas branches;
-2. resolve exact Workstream and Attachment authority;
-3. `focusa_call_stack_design`;
-4. `focusa_context_cognition`;
-5. `focusa_evidence_capture`;
-6. `focusa_active_object_resolve`.
-
-Operator steering, exact Workstream authority and canonical Workpoint remain higher priority than this default sequence.
+Use `docs/agent/02-focusa-cohesive-project-flow.md`, not a mandatory tool sequence. For old Mission Canvas implementation branches, verify transition preservation/checkpoints first. Resolve exact Workstream/Attachment, current instruction and operation/frontier before effects. Select call-stack design, Context Cognition, evidence capture and active-object resolution only where the current action requires them; reuse adequate existing designs/evidence. Supported recovery pauses only affected dependents and resumes admitted work after verification.
 
 ## Desktop development rule
 
-For the active MacBook transition worktree:
+Only when the current grant actually selects the named MacBook transition worktree and its delivery milestones (not for generic docs maintenance or every Desktop installation):
 
 - commit locally; do not push directly to main/shared Mission Canvas branches;
 - use one pinned Rust toolchain;

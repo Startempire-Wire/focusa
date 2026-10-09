@@ -42,11 +42,16 @@ description: "{skill["description"]}"
 
 {chr(10).join(f"- {item}" for item in skill["non_triggers"])}
 
-## Required sequence
+## Place in the complete project journey
 
-{chr(10).join(f"{index}. `{tool}`" for index, tool in enumerate(tools, 1))}
+Follow `docs/agent/02-focusa-cohesive-project-flow.md`: verified binding → Bootstrap when needed → Genesis when needed → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance.
+Reuse valid state; preserve the accepted goal while refining only affected work. This skill supplies capabilities for that journey, not a separate workflow or authority.
 
-Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
+## Available capabilities — select by current condition
+
+{chr(10).join(f"- `{tool}`" for tool in tools)}
+
+This inventory is not a mandatory sequence. Read, preview, mutation, restore and evidence operations have different preconditions; never execute every listed tool merely to finish a skill.
 
 ## Operator alignment
 
@@ -61,11 +66,11 @@ Current operator steering, verified project scope, and canonical Workpoint autho
 
 {chr(10).join(f"- `{tool}`" for tool in skill["recovery"])}
 
-Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection, and ambiguous side effects as recovery states—not completion.
+A rejected operation is not a stopped mission. Diagnose its exact cause, select supported in-scope recovery, verify and resume the interrupted action; advance independent admitted work when possible. Pending work requires observation, not duplicate dispatch. Reconcile uncertain effects before replay. Real scope, consent, integrity and budget boundaries remain enforced; never fabricate admission or repeatedly retry unchanged input.
 
 ## Routing metadata
 
-- prerequisites: verified project identity and typed continuity when durable scope matters
+- prerequisites: verified ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey; project/cwd selection alone is not attachment
 - use_instead_when: use the narrower owner in `docs/contracts/65-focusa-skill-ownership-manifest.json`
 - next_skills: `focusa-workpoint`, `focusa-evidence-outcomes`, `focusa-metacognition`
 - failure_handoff: `focusa-troubleshooting`
@@ -97,29 +102,27 @@ def runbook_body(skill: dict) -> str:
 
 ## Preconditions
 
-- Verify project root plus continuity scope when project-bound.
+- Verify project identity, exact Workstream/continuity and applicable runtime attachment; root plus continuity alone does not prove canonical cognition.
 - Resume or checkpoint the canonical Workpoint before long/risky work.
 - Confirm current operator steering and mutation approval boundaries.
 - Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
 - Treat cwd and missing markers as weak evidence; inspect legacy project signals before suggesting creation or binding.
 - Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
-- Use targeted local gates during development; CI requires explicit release authorization.
+- Use the approved active-development reload/deploy/test loop and execution host; Git push is project-specific, and development verification is not a release by default. CI/paid runs and release actions retain their actual grant/resource requirements.
 
-## Dependency graph
+## Complete journey and conditional routing
 
-```text
-{chr(10).join(f"{tools[index]} -> {tools[index + 1]}" for index in range(len(tools) - 1))}
-```
+Owning guide: `docs/agent/02-focusa-cohesive-project-flow.md`; contracts: Specs 143/158/164 and issue #618. Verified Workstream/attachment, current intent, accepted outcome and daemon admission determine the next action; the list below does not define execution dependencies.
 
-## Minimal path
+{chr(10).join(f"- Discover `{tool}` when its condition is relevant; use its current strict contract." for tool in tools)}
 
-{chr(10).join(f"{index}. Call `{tool}` with only required bounded inputs." for index, tool in enumerate(tools, 1))}
+For resume, normally omit `current_ask` so the adapter forwards the exact latest instruction. A paraphrase can produce `resume_evaluated_different_ask`; use the exact request-bound ask, not a permission override. Bootstrap/Genesis readiness is not current-frontier admission. No repeated onboarding, new HLT or restore operation is implied by a routine transition.
 
 {domain_procedure}## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
-- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
-- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Scope conflict: verify the exact Workstream/continuity/attachment and current Workpoint; choose the advertised scoped reconciliation route before any checkpoint mutation. Preserve other writers and scopes.
+- Daemon/degraded state: distinguish reporting failure, request-input mismatch, stale binding and missing execution admission. Discover the supported repair, reconcile effects, verify and resume; an unchanged blind retry is not recovery.
 - Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
 - Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
 - Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.

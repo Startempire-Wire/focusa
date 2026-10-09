@@ -1,8 +1,8 @@
 {
   "schema": "focusa.agent_card.v1",
   "name": "Focusa",
-  "description": "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness capability contracts.",
-  "version": "0.9.198",
+  "description": "Source capability catalog for scoped goals, Workpoints, evidence and recovery across declared interfaces; inspect installed support and current action admission separately. Workflow guide: docs/agent/02-focusa-cohesive-project-flow.md. Tool inventories and next-tool links are advisory, not executable task graphs.",
+  "version": "0.9.203",
   "interfaces": [
     "pi",
     "mcp",
@@ -41,7 +41,7 @@
       "guided_orientation_optional": true
     }
   },
-  "registry_digest": "sha256:3ab7b43ff99d56cd26f7fbc134ea73ed159f428de3b001a8cf66e500921776eb",
+  "registry_digest": "sha256:f151c1d2e5e10681410e561b5fa844d4013b4a82989753d8d45d2b5f49be1fc0",
   "pi_tool_count": 157,
   "pi_tool_docs_count": 157,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
@@ -410,5 +410,5 @@
     "workset"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:c4396e51e59bdb24626fbf6aa36790a4a960fdea9d85142b387c620704b23239"
+  "card_digest": "sha256:3d091a354dce3c40cbd8ea22f98f3df0e749ae984ce7bb1482d31c6a6ce5a840"
 }

@@ -1,6 +1,6 @@
 # `focusa_open_question`
 
-Record an open question that needs to be answered (max 180 chars). Use it when Record an open question that needs to be answered (max 180 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Record an open question that needs to be answered (max 180 chars). Use it when Record an open question that needs to be answered (max 180 chars). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,8 +48,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `write_state`, `write_state`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -61,11 +61,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_trajectory_assess` (likely_next)
 - `focusa_traverse` (likely_next)
 - `focusa_metacog_retrieve` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_trajectory_assess`, `focusa_traverse`, `focusa_metacog_retrieve`.
 
 ## Skills, protocols, and source authority
@@ -76,4 +80,4 @@ Likely next: `focusa_trajectory_assess`, `focusa_traverse`, `focusa_metacog_retr
 - CLI: `focusa focus update --open-question`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c4f66d93d08f7f639f81fa56b74dae28feda1059193c7a30f6792b9ff2a92e52`.
+- Descriptor digest: `sha256:9acd9c62a54c22b0671feef1240910cb93839be7f4efffdc05f9721a49915217`.

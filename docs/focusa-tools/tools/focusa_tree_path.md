@@ -1,6 +1,6 @@
 # `focusa_tree_path`
 
-Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Use it when Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Use it when Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,8 +48,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -61,11 +61,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_tree_snapshot_state` (likely_next)
 - `focusa_tree_diff_context` (likely_next)
 - `focusa_traverse` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_tree_snapshot_state`, `focusa_tree_diff_context`, `focusa_traverse`.
 
 ## Skills, protocols, and source authority
@@ -76,4 +80,4 @@ Likely next: `focusa_tree_snapshot_state`, `focusa_tree_diff_context`, `focusa_t
 - CLI: `focusa lineage path`.
 - REST: `GET /v1/lineage/path/{clt_node_id}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:80ff02b7a9e6526f623ec84971c3a3fbcc29272138ed0b07c8b238b9e8112436`.
+- Descriptor digest: `sha256:28907409632e28e24b1cf1b0ebe5ee38b9c5ec12ef70ccd2f7d6d8b84641b7c0`.

@@ -2,6 +2,10 @@
 
 Static/tooling gate for Spec106 Vision Tightening: reevaluate Pi plugin tools, cards, post-compaction recovery, and auto-bootstrap after the implementation beads. This is not native menubar or real browser/product QA final signoff.
 
+## Current interpretation
+
+The results below are the retained Spec106 audit snapshot, not current installed activation or cross-model acceptance. Use [the cohesive project journey](../agent/02-focusa-cohesive-project-flow.md) and actual installed schemas/receipts for present actions; initialization and capability selection are conditional, not a fixed tool sequence.
+
 ## Surfaces reviewed
 
 | Surface | Files | Audit result |
@@ -24,7 +28,7 @@ Static/tooling gate for Spec106 Vision Tightening: reevaluate Pi plugin tools, c
 
 ## Authority compliance
 
-- Authority-bearing cards must carry exact `project_root + continuity_id` scope.
+- Authority-bearing cards must resolve exact Scope/Workstream/continuity/attachment and current operation/frontier; `project_root + continuity_id` lookup fields alone are not complete authority.
 - Session id is temporal metadata only.
 - Workpoint is immediate continuation authority only when canonical and scope-matched.
 - Trajectory is north-star route context.

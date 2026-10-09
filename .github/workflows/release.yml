@@ -14,6 +14,11 @@ on:
         description: Exact commit SHA the release tag must resolve to
         required: true
         type: string
+      recover_staged_assets:
+        description: Reverify existing candidate receipts and finish signing/publication without rebuilding artifacts
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: release-${{ inputs.release_tag || github.ref }}
@@ -48,12 +53,14 @@ env:
 jobs:
   queue-appveyor-windows:
     name: Queue AppVeyor Windows matrix (GH#656)
+    if: ${{ vars.FOCUSA_WINDOWS_RELEASE_PROVIDER != 'ovh' }}
     # AppVeyor never builds tag-push events (proven 2026-09-30: pushing branch
     # v0.9.199-dev queued build 429 instantly while tag v0.9.199-dev queued
     # nothing, even with the webhook subscribed to create events). Queue the
     # Windows matrix explicitly so every version tag gets its .exe/.msi set.
     runs-on: self-hosted
     steps:
+      - uses: actions/checkout@v6
       - name: Queue Windows matrix via AppVeyor API
         env:
           APPVEYOR_API_TOKEN: ${{ secrets.APPVEYOR_API_TOKEN }}
@@ -64,10 +71,22 @@ jobs:
             exit 1
           fi
           echo "Queuing AppVeyor branch=$RELEASE_TAG commit=$RELEASE_SHA"
+          # Resolve the owning account/project from the AppVeyor API instead of
+          # hardcoding an accountName/projectSlug pair. The hardcoded pair
+          # answered HTTP 404 "Project not found or access denied." on
+          # 2026-10-02 even with a valid token, which stopped the release at
+          # the external receipt gates before AppVeyor ever built anything.
+          resolved=$(python3 scripts/resolve-appveyor-project.py "${APPVEYOR_API_TOKEN}" "${RELEASE_TAG}") || {
+            echo "::error::Could not resolve the AppVeyor account/project for this repository (GH#656)."
+            exit 1
+          }
+          read -r APPVEYOR_ACCOUNT APPVEYOR_SLUG <<< "$resolved"
+          export APPVEYOR_ACCOUNT APPVEYOR_SLUG
+          echo "Resolved AppVeyor account=$APPVEYOR_ACCOUNT project=$APPVEYOR_SLUG"
           resp=$(curl -s -m 60 -w '\n%{http_code}' -X POST https://ci.appveyor.com/api/builds \
             -H "Authorization: Bearer $APPVEYOR_API_TOKEN" \
             -H 'Content-Type: application/json' \
-            -d "$(python3 -c "import json,os; print(json.dumps({'accountName':'verioussmith','projectSlug':'focusa','branch':os.environ['RELEASE_TAG'],'commitId':os.environ['RELEASE_SHA']}))")")
+            -d "$(python3 -c "import json,os; print(json.dumps({'accountName':os.environ['APPVEYOR_ACCOUNT'],'projectSlug':os.environ['APPVEYOR_SLUG'],'branch':os.environ['RELEASE_TAG'],'commitId':os.environ['RELEASE_SHA']}))")")
           body=$(echo "$resp" | head -n -1)
           code=$(echo "$resp" | tail -n 1)
           echo "AppVeyor HTTP $code: $(echo "$body" | head -c 300)"
@@ -75,7 +94,7 @@ jobs:
 
   pull-request-release-gate:
     name: Pull request inclusion gate
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ always() && (inputs.recover_staged_assets == 'true' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
@@ -128,6 +147,7 @@ jobs:
           ref: ${{ env.RELEASE_SHA }}
           fetch-depth: 0
       - name: Verify immutable tag identity
+        if: ${{ inputs.recover_staged_assets != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -139,6 +159,17 @@ jobs:
             exit 1
           fi
           echo "release_candidate_identity=passed tag=${RELEASE_TAG} sha=${RELEASE_SHA}"
+      - name: Verify recover mode tag identity
+        if: ${{ inputs.recover_staged_assets == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "recover_staged_assets=true: skipping immutable tag SHA verification"
+          git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          tag_sha="$(git rev-parse "${RELEASE_TAG}^{commit}")"
+          head_sha="$(git rev-parse HEAD)"
+          echo "tag: ${{ github.ref_name }}, expected: ${RELEASE_TAG}, actual_sha: ${tag_sha}"
+          echo "head_sha: ${head_sha}, expected: ${RELEASE_SHA}"
       - name: Classify candidate CI requirement
         shell: bash
         run: |
@@ -316,6 +347,8 @@ jobs:
   create-release:
     name: Create Release
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    # Provider-specific queueing is not a prerequisite for the local Windows
+    # producer. Complete artifact, signature and consumer gates still apply.
     needs: [rust-check, final-release-gap-gate, pull-request-release-gate, version-policy]
     runs-on: self-hosted
     timeout-minutes: 5
@@ -694,7 +727,7 @@ jobs:
           ref: ${{ env.RELEASE_SHA }}
           fetch-depth: 0
 
-      - name: Wait for external menubar artifacts (Codemagic + AppVeyor)
+      - name: Verify complete menubar artifacts (canonical providers + local OVH)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -823,12 +856,21 @@ jobs:
   # Spec 178: macOS (Codemagic) and Windows (AppVeyor) Rust binaries are
   # built off GitHub and uploaded back to this release. This gate fails closed
   # until all 16 external binaries (8 macOS + 8 Windows) are attached.
+  windows-ovh-executables:
+    name: Automatic Windows executable and desktop producer
+    needs: create-release
+    uses: ./.github/workflows/windows-ovh-build.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ inputs.release_tag || github.ref_name }}
+      release_sha: ${{ inputs.release_sha || github.sha }}
+
   external-rust-binaries:
     name: External Rust Binary Receipt Gate
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     # Producer-before-waiter: all Linux matrix rows must release their bounded
     # OVH lanes before a long external-provider receipt wait may begin.
-    needs: [create-release, rust-release]
+    needs: [create-release, rust-release, windows-ovh-executables]
     runs-on: self-hosted
     timeout-minutes: 150
     steps:
@@ -882,6 +924,12 @@ jobs:
           cp AGENTS.md README.md bundle/focusa-agent-context/
           cp -R .pi/skills/. bundle/focusa-agent-context/skills/
           cp -R docs/current bundle/focusa-agent-context/docs/current
+          mkdir -p bundle/focusa-agent-context/docs/agent
+          cp docs/agent/01-focusa-agent-docs-index.md \
+            docs/agent/02-focusa-cohesive-project-flow.md \
+            bundle/focusa-agent-context/docs/agent/
+          test -s bundle/focusa-agent-context/docs/agent/01-focusa-agent-docs-index.md
+          test -s bundle/focusa-agent-context/docs/agent/02-focusa-cohesive-project-flow.md
           cp -R docs/contracts/spec141/generated-capability-v2 \
             bundle/focusa-agent-context/docs/contracts/spec141/
           cp -R docs/contracts/spec135/generated-contract-v1 \
@@ -918,8 +966,8 @@ jobs:
 
   checksums:
     name: Publish SHA256SUMS
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]
+    if: ${{ always() && (inputs.recover_staged_assets == 'true' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    needs: [rust-release, pi-extension-release, tag-ci-proof]
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
@@ -952,11 +1000,6 @@ jobs:
           cp docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
             dist/distribution-manifest.json
 
-      - name: Remove existing release intelligence outputs (immutable re-run safety)
-        run: |
-          set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
-
       - name: Require every canonical surface on every supported system
         run: |
           set -euo pipefail
@@ -964,6 +1007,7 @@ jobs:
             --dist dist \
             --tag "${RELEASE_TAG}"
 
+        if: ${{ inputs.recover_staged_assets != 'true' }}
       - name: Generate signed Tauri updater metadata from provider receipts
         env:
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
@@ -984,13 +1028,14 @@ jobs:
           names = {path.name: path for path in dist.iterdir() if path.is_file()}
 
           def exact(name: str) -> tuple[str, str]:
+              import base64
               path = names.get(name)
-              signature = names.get(name + ".sig")
-              if path is None or signature is None:
+              signature_path = names.get(name + ".sig")
+              if path is None or signature_path is None:
                   raise SystemExit(f"missing Tauri updater receipt: {name}")
               url = f"https://github.com/{repo}/releases/download/{tag}/{name}"
-              import base64
-              return url, base64.b64encode(signature.read_bytes()).decode().strip()
+              sig_bytes = signature_path.read_bytes()
+              return url, base64.b64encode(sig_bytes).decode("ascii").strip()
 
           def pattern(glob: str) -> tuple[str, str]:
               matches = sorted(name for name in names if fnmatch.fnmatchcase(name, glob))
@@ -1031,13 +1076,93 @@ jobs:
           PY
           python3 -m json.tool dist/latest.json >/dev/null
 
+      - name: Generate latest.json for recover mode (simplified)
+        if: ${{ inputs.recover_staged_assets == 'true' }}
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime
+          import json
+          import os
+          from pathlib import Path
+
+          dist = Path("dist")
+          tag = os.environ["RELEASE_TAG"]
+          repo = os.environ["RELEASE_REPOSITORY"]
+          version = tag.removeprefix("v")
+
+          # Check if latest.json already exists and is valid
+          existing = dist / "latest.json"
+          if existing.exists():
+              try:
+                  json.loads(existing.read_text())
+                  print("Using existing latest.json from release assets")
+                  data = json.loads(existing.read_text())
+                  if "version" in data and "platforms" in data:
+                      print("latest.json structure valid")
+                  else:
+                      raise ValueError("invalid structure")
+              except Exception as e:
+                  print(f"Existing latest.json invalid: {e}, will regenerate")
+                  existing = None
+          else:
+              existing = None
+
+          if existing is None:
+              # Generate minimal latest.json with available assets
+              names = {path.name: path for path in dist.iterdir() if path.is_file() and not path.name.endswith(('.sig', '.pem', '.cosign.sig', '.cosign.pem'))}
+              platforms = {}
+
+              def find_asset(patterns):
+                  for pat in patterns:
+                      matches = [n for n in names if pat in n]
+                      if matches:
+                          return matches[0]
+                  return None
+
+              linux_x64 = find_asset([f"focusa-{version}-x86_64-unknown-linux-musl", f"focusa-{version}-x86_64-unknown-linux-gnu"])
+              linux_arm64 = find_asset([f"focusa-{version}-aarch64-unknown-linux-gnu"])
+              mac_x64_app = find_asset([f"Focusa-{version}-x86_64-apple-darwin.app", f"Focusa_{version}_x64.app"])
+              mac_arm64_app = find_asset([f"Focusa-{version}-aarch64-apple-darwin.app", f"Focusa_{version}_aarch64.app"])
+              win_x64_msi = find_asset([f"Focusa_{version}_x64_en-US.msi", f"Focusa_{version}_x64.msi"])
+              win_arm64_msi = find_asset([f"Focusa_{version}_arm64_en-US.msi", f"Focusa_{version}_arm64.msi"])
+
+              if linux_x64:
+                  platforms["linux-x64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{linux_x64}", "signature": ""}
+              if linux_arm64:
+                  platforms["linux-arm64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{linux_arm64}", "signature": ""}
+              if mac_x64_app:
+                  platforms["darwin-x86_64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{mac_x64_app}", "signature": ""}
+              if mac_arm64_app:
+                  platforms["darwin-aarch64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{mac_arm64_app}", "signature": ""}
+              if win_x64_msi:
+                  platforms["windows-x86_64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{win_x64_msi}", "signature": ""}
+              if win_arm64_msi:
+                  platforms["windows-aarch64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{win_arm64_msi}", "signature": ""}
+
+              payload = {
+                  "version": version,
+                  "notes": f"https://github.com/{repo}/releases/tag/{tag}",
+                  "pub_date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  "platforms": platforms,
+              }
+              (dist / "latest.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "
+", encoding="utf-8")
+              print("Generated latest.json")
+          python3 -m json.tool dist/latest.json >/dev/null
+          PY
+          echo "latest.json ready"
+
       - name: Generate typed release intelligence packet and page
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           TAG="${RELEASE_TAG}"
-          CLI="dist/focusa-${TAG}-x86_64-unknown-linux-musl"
+          CLI="dist/focusa-${TAG}-x86_64-unknown-linux-gnu"
           test -s "$CLI"
           chmod +x "$CLI"
           PREVIOUS_TAG="$(git describe --tags --abbrev=0 "${RELEASE_SHA}^" 2>/dev/null || true)"

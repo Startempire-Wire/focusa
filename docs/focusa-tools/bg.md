@@ -44,7 +44,11 @@ detachment.
 ## Recovery
 
 Monitor-lost jobs are detected by `bg status` (pid liveness) and marked
-`monitor_lost`. `focusa rebuild-state` replays newer events onto an explicitly
+`monitor_lost`; their bounded durable log tail is retained, but an unknown child
+exit is never represented as success. The canonical store atomically rejects
+late monitor updates that conflict with any terminal receipt; exact terminal
+replays remain idempotent. This protects completed results from reconciliation
+races without allowing unverified monitor-loss results to become passing proof. `focusa rebuild-state` replays newer events onto an explicitly
 supplied older snapshot. It requires existing input databases and exactly one
 existing `focusa` target snapshot; it does not initialize missing state.
 Use `--dry-run` to inspect replay without database writes. Replacement requires

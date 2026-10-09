@@ -1,6 +1,6 @@
 # `focusa_canonical_instruction_amendment_propose`
 
-Record an operator-originated canonical instruction amendment proposal without activating it. Use it when Operate the Spec 140 canonical instruction amendment propose surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Record an operator-originated canonical instruction amendment proposal without activating it. Use it when Operate the Spec 140 canonical instruction amendment propose surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,8 +49,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"agent-runtime"}`
 - Authority: `{"kind":"canonical","path":"/v1/agent-runtime/delivery/commit"}`
 - Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -62,10 +62,14 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_canonical_instruction_amendment_activate` (likely_next)
 - `focusa_instruction_integrity_evaluate` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_canonical_instruction_amendment_activate`, `focusa_instruction_integrity_evaluate`.
 
 ## Skills, protocols, and source authority
@@ -76,4 +80,4 @@ Likely next: `focusa_canonical_instruction_amendment_activate`, `focusa_instruct
 - CLI: `focusa agent-runtime amendment-propose`.
 - REST: `POST /v1/agent-runtime/amendments/propose`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:99ddfad22c0d8885c977540ebea513cdde61f626b85e62933679df04edfb3d92`.
+- Descriptor digest: `sha256:704c0251677a2a6180b71ee05bd2e07daa825bc54f70d25e7d0bfd8ad8e65b41`.

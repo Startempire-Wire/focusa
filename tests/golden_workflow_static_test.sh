@@ -24,10 +24,14 @@ for step in \
   "Evaluate prediction/metacog outcomes" \
   "Save session transfer" \
   "Resume after compaction/model switch" \
-  "Produce final report with proof"; do
+  "Reconcile, advance or settle with proof"; do
   rg -n "$step" "$DOC" >/dev/null || fail "Golden Workflow missing step: $step"
 done
-pass "Golden Workflow doc contains all 12 canonical steps"
+pass "Golden Workflow preserves its 12 capability/proof obligations"
+rg -n 'Conditional capability crosswalk' "$DOC" >/dev/null || fail "capabilities must be conditional, not a mandatory sequence"
+rg -n 'Bootstrap/Genesis when needed' "$DOC" >/dev/null || fail "workflow must connect conditional project initialization"
+rg -n 'does not stop unfinished admitted work' "$DOC" >/dev/null || fail "reporting must not terminate unfinished work"
+pass "Golden Workflow connects initialization and verified autonomous advancement"
 
 for tool in focusa_project_identity focusa_trajectory_view focusa_workpoint_resume focusa_context_cognition focusa_call_stack_design focusa_evidence_capture focusa_workpoint_link_evidence focusa_session_transfer; do
   rg -n "$tool" "$DOC" >/dev/null || fail "Golden Workflow doc missing tool $tool"

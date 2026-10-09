@@ -1,6 +1,6 @@
 # `focusa_preload_verify`
 
-Verify Preload Packet through the scoped Spec 111 preload API. Use it when Verify bootstrap packet scope and integrity. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Verify Preload Packet through the scoped Spec 111 preload API. Use it when Verify bootstrap packet scope and integrity. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,8 +48,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"preload"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -61,10 +61,14 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_preload_write` (likely_next)
 - `focusa_preload_doctor` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_preload_write`, `focusa_preload_doctor`.
 
 ## Skills, protocols, and source authority
@@ -75,4 +79,4 @@ Likely next: `focusa_preload_write`, `focusa_preload_doctor`.
 - CLI: `focusa preload verify`.
 - REST: `POST /v1/preload/verify`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:fa1d8b94c6e92b4ddb50b350b3a9ac4153f1a5d45911bf6578a909ffeee26a33`.
+- Descriptor digest: `sha256:203f7ef9d98ebdcb0cb384a524d39263486fb356fd64e70b18e0b3b3816cab85`.

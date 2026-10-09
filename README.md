@@ -18,13 +18,13 @@
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
 </p>
 
-Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.198`.
+Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.203`.
 
 When a coding session gets long, context compacts, the mission drifts, proof gets buried, or another agent takes over, Focusa preserves the work as a proof-backed **Workpoint** with linked **Evidence** and a **next safe action**. The next agent should not have to guess from transcript memory.
 
 ### Current release architecture
 
-- **Exact scope and worktrees:** authority is `project_root + continuity_id`; worktrees are verified working subpaths, not accidental new projects.
+- **Exact scope and worktrees:** canonical cognition binds ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey; project root or continuity alone is insufficient. Verified worktrees remain working subpaths, not accidental new projects.
 - **Daemon-native Silent Sessions:** durable background runs support observation, steering, pause/resume/restart, approvals, idempotency, and receipts.
 - **Governed work loop and recovery:** one writer, canonical checkpoints, proactive compaction, cache-safe context, and automatic rollover after bounded transport exhaustion.
 - **Mission Canvas and Work Rail:** scoped Work Surfaces, CRIST interviews, workspace artifacts, UIAI browser context, live refresh, connectors, software/domain projections, and adaptive generated UI.
@@ -39,6 +39,12 @@ When a coding session gets long, context compacts, the mission drifts, proof get
 - **Ambient Operator:** [Spec 184](docs/184-focusa-ambient-operator-mobile-wearable-presence-meeting-and-sync-spec.md) projects the same governed system through phone/earbuds/wearables for bounded presence, wake/conversation, meetings, Radar attention, Foreman/Wirebot routing and private/offline sync without making the device a second brain.
 
 Trajectory ladder: **HLT** (High-Level Trajectory) → **MLG** (Mid-Level Goal) → **STG** (Short-Term Goal) → **Waypoints** (concrete progress markers). Workpoint remains immediate action authority. The operator has authority; agents actively offer HLT-aligned Waypoints, STGs, and MLGs without silently changing the root goal.
+
+## One cohesive agent journey
+
+[The agent project-flow guide](docs/agent/02-focusa-cohesive-project-flow.md) connects verified binding, conditional Bootstrap/Genesis, the linked Ladder/specification/tasks, and exact Workpoint/frontier to **Prepare → Act → Reconcile → Advance**. Preserve the accepted destination; validate small evidence-backed route corrections within authority. Recover a failed operation rather than automatically abandon the mission. Source/readiness/dispatch/completion and installed behavior remain distinct.
+
+Shared cross-harness references: [Authority Model](docs/current/AUTHORITY_MODEL.md), [Golden Workflow](docs/current/GOLDEN_WORKFLOW.md), and [Agent Adapter Contract](docs/current/AGENT_ADAPTER_CONTRACT.md).
 
 ## Install
 
@@ -209,7 +215,7 @@ bash tests/spec_cli_cross_phase_smoke_test.sh
 
 ## Agent-first capability discovery
 
-Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. All 146 Focusa Pi tools are projected one-to-one into strict machine contracts and per-tool docs. Agents start with metadata—not 146 hot schemas—and progressively load only what the next action needs:
+Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. All Focusa Pi tools are projected one-to-one into strict machine contracts and per-tool docs; the current registry supplies the count. Agents start with metadata—not the entire hot schema inventory—and progressively load only what the next action needs:
 
 1. `focusa_agent_card` — interfaces, auth, families, capability count, and discovery entry points.
 2. `focusa_tool_search` — ranked metadata by action, object, failure, or workflow.

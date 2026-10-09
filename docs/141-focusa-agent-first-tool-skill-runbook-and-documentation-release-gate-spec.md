@@ -176,6 +176,16 @@ Required fields:
 }
 ```
 
+### 5.0 Evidence and unknown metadata
+
+The descriptor is a source capability contract, not a receipt for installed support, connected adapters or current effect admission. Resolve actual Scope/Workstream/continuity/attachment, current instruction and operation-specific grants through the installed interface. `dependencies` with relation `likely_next` are advisory discovery links, not an executable CallGraph. Schema examples are illustrative inputs, not real handles or grants.
+
+`confirmation.required`, `confirmation.preview_supported`, `idempotency.supported`, `reversibility.reversible` and `compatibility.minimum_focusa` may be `null` when not established by operation-specific evidence. Null means unknown: neither permission nor proof of irreversibility/unsupported capability. Inspect selected action/schema/policy and verified version/replay/rollback contracts. Name-based or non-destructive safety annotations alone cannot establish these facts; clients must not coerce unknown to permission.
+
+The current producer captures registered TypeScript schemas and canonical tool contracts, then derives descriptor/interface/document projections. Generation does not activate endpoints or prove producer/consumer/installed parity. A null canonical `operation_id` is a visible unresolved operation-registry binding; generation/freshness success does not hide that coverage gap or establish typed execution authority. Required binding gaps block only operations dependent on them.
+
+Source conformance checks must label simulated discovery clients and projection parity separately from real provider-model, connected-harness and installed execution tests. Unmeasured unsafe-call/scope-violation rates remain unknown rather than reported zero. Follow [the shared project journey](agent/02-focusa-cohesive-project-flow.md) and its project-specific development versus release/activation boundaries.
+
 ### 5.1 Generator rule
 
 The descriptor generates:

@@ -4,10 +4,10 @@
 //! is enabled by the current license, and require a feature (returning a structured error
 //! when the feature is gated).
 //!
-//! The local license file lives at `~/.config/focusa/license.json` (Spec §5.1) and is written
-//! with `chmod 600`. The file stores a SHA-256 hash of the raw key (NOT the raw key) and the
-//! license identity received from the registry. The raw key is only persisted when the
-//! operator explicitly passes `--persist-key` to `focusa license activate`.
+//! Runtime permission checks and diagnostics resolve `~/.config/focusa/authority-lease.json`
+//! through the signed authority verifier (production root, signature, product, node and time).
+//! `license.json` and `LocalLicense` are migration/legacy administration shapes only;
+//! their presence or absence never grants permission or selects Evaluation mode.
 //!
 //! # Public API
 //!
@@ -36,6 +36,7 @@ const LICENSE_FILE: &str = "license.json";
 const CONFIG_DIR: &str = ".config";
 const FOCUSA_DIR: &str = "focusa";
 const HASH_PREFIX_LEN: usize = 16; // Spec §5.1: store prefix only, never raw key
+pub const DEFAULT_REGISTRY: &str = "https://wpuiai.com";
 
 /// License mode per spec §5.3 (Evaluation, Operator, FoundersForge, Team, Enterprise).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -217,6 +218,16 @@ pub struct DoctorReport {
     pub registry_reachable: bool,
     pub features_loaded: bool,
     pub eval_mode: bool,
+    #[serde(default)]
+    pub mode: Option<LicenseMode>,
+    #[serde(default)]
+    pub authority_usable: bool,
+    #[serde(default)]
+    pub offline_grace_active: bool,
+    #[serde(default)]
+    pub credential_expires_at: Option<String>,
+    #[serde(default)]
+    pub offline_valid_until: Option<String>,
     pub warnings: Vec<String>,
     pub failures: Vec<String>,
 }
@@ -518,66 +529,83 @@ pub fn deactivate(license_file: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Doctor: self-check of the local license state. Spec §5.2.
+/// Diagnose verified signed state; the legacy filename identifies its directory
+/// only and is never parsed as an entitlement or substituted signed envelope.
 pub async fn doctor(license_file: &Path) -> anyhow::Result<DoctorReport> {
-    let mut report = DoctorReport {
-        license_file: license_file.display().to_string(),
-        ..Default::default()
+    let config_dir = license_file.parent().unwrap_or_else(|| Path::new("."));
+    let authority_file = config_dir.join(focusa_license::authority_store::AUTHORITY_STATE_FILE);
+    let guard = if license_file == license_file_path() {
+        focusa_license::resolve_license_guard()
+    } else {
+        focusa_license::resolve_license_guard_from(
+            config_dir,
+            focusa_license::authority_store::embedded_production_trust_roots(),
+            chrono::Utc::now(),
+        )
     };
-    if !license_file.exists() {
-        report
-            .warnings
-            .push("no license file (running in Evaluation mode)".to_string());
-        report.eval_mode = true;
-        return Ok(report);
-    }
-    report.file_exists = true;
-    let raw = match std::fs::read_to_string(license_file) {
-        Ok(s) => {
-            report.file_readable = true;
-            s
-        }
-        Err(e) => {
-            report.failures.push(format!("unreadable: {e}"));
-            return Ok(report);
-        }
-    };
-    let local: LocalLicense = match serde_json::from_str(&raw) {
-        Ok(l) => l,
-        Err(e) => {
-            report.failures.push(format!("invalid JSON: {e}"));
-            return Ok(report);
-        }
-    };
-    report.features_loaded = !local.features.is_empty();
-    report.eval_mode = local.eval || (!local.commercial_use && local.features.is_empty());
-    if let Some(ref exp) = local.expires_at {
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(exp) {
-            if dt < chrono::Utc::now() {
-                report.not_expired = false;
-                report.failures.push(format!("expired on {exp}"));
-            } else {
-                report.not_expired = true;
+    let mut report = doctor_report_from_guard(&authority_file, &guard)?;
+    // Always probe independently, including missing or invalid local state.
+    // Reachability is not proof that renewal or authorization succeeded.
+    let registry =
+        std::env::var("FOCUSA_LICENSE_REGISTRY").unwrap_or_else(|_| DEFAULT_REGISTRY.to_string());
+    match registry_ping_blocking(&registry).await {
+        Ok(reachable) => {
+            report.registry_reachable = reachable;
+            if !reachable {
+                report.warnings.push(
+                    "registry HTTP probe was unsuccessful; renewal remains unverified".into(),
+                );
             }
         }
-    } else {
-        report.not_expired = true; // no expiry set
-    }
-    if local.status == "revoked" || local.status == "refunded" {
-        report.failures.push(format!("status={}", local.status));
-    }
-    // Try registry reachability (best-effort, non-blocking)
-    if let Ok(ok) = registry_ping_blocking(&local.registry).await {
-        report.registry_reachable = ok;
-        if !ok {
-            report
-                .warnings
-                .push("registry unreachable — using local state".to_string());
-        }
-    } else {
-        report
+        Err(error) => report
             .warnings
-            .push("registry ping failed — using local state".to_string());
+            .push(format!("registry HTTP probe failed: {error}")),
+    }
+    Ok(report)
+}
+
+fn doctor_report_from_guard(
+    authority_file: &Path,
+    guard: &focusa_license::LicenseGuard,
+) -> anyhow::Result<DoctorReport> {
+    let status = license_status_from_guard(guard)?;
+    let mut report = DoctorReport {
+        license_file: authority_file.display().to_string(),
+        file_exists: authority_file.exists(),
+        file_readable: std::fs::File::open(authority_file).is_ok(),
+        not_expired: guard.verified_developer_origin()
+            || guard
+                .entitlement
+                .as_ref()
+                .and_then(|snapshot| snapshot.expires_at)
+                .is_some_and(|expiry| expiry > chrono::Utc::now()),
+        features_loaded: !status.features.is_empty(),
+        eval_mode: status.mode == LicenseMode::Evaluation,
+        mode: Some(status.mode),
+        authority_usable: guard.verified_developer_origin()
+            || guard.entitlement.as_ref().is_some_and(|snapshot| {
+                focusa_license::software_lease_current(snapshot, chrono::Utc::now())
+            }),
+        offline_grace_active: status.mode == LicenseMode::OfflineGrace,
+        credential_expires_at: status.expires_at,
+        offline_valid_until: status.offline_valid_until,
+        ..Default::default()
+    };
+    if !report.authority_usable {
+        let reason = guard
+            .entitlement
+            .as_ref()
+            .and_then(|snapshot| snapshot.recovery_reason.as_deref())
+            .unwrap_or("signed_authority_unavailable");
+        report
+            .failures
+            .push(format!("signed authority unavailable: {reason}"));
+    }
+    if report.offline_grace_active {
+        report.warnings.push("credential is in verified offline grace; renewal is still required before the grace period ends".into());
+    }
+    if report.credential_expires_at.is_some() {
+        report.warnings.push("credential expiration is separate from the commercial license term, including lifetime grants".into());
     }
     Ok(report)
 }
@@ -802,6 +830,64 @@ mod tests {
         assert_eq!(denied.mode, LicenseMode::RecoveryOnly);
         assert!(!denied.commercial_use);
         assert!(denied.features.is_empty());
+    }
+
+    #[test]
+    fn doctor_reports_signed_lifetime_state_without_legacy_file() {
+        use focusa_license::authority::{EntitlementSnapshot, EntitlementState};
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node-doctor-fixture");
+        snapshot.state = EntitlementState::Active;
+        snapshot.product_code = Some("focusa_operator_lifetime_v1".into());
+        snapshot.posture = Some("paid".into());
+        snapshot.lease_id = Some("doctor-fixture".into());
+        snapshot.sequence = Some(1);
+        snapshot.lease_digest = Some("sha256:doctor-fixture".into());
+        snapshot.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
+        let absent = std::env::temp_dir()
+            .join(format!("focusa-doctor-{}", uuid::Uuid::now_v7()))
+            .join("authority-lease.json");
+        let guard = focusa_license::LicenseGuard::from_entitlement(snapshot.clone());
+        let report = doctor_report_from_guard(&absent, &guard).unwrap();
+        assert_eq!(report.mode, Some(LicenseMode::Entitled));
+        assert!(!report.eval_mode);
+        assert!(report.authority_usable);
+        assert!(report.features_loaded);
+        assert!(report.failures.is_empty());
+        assert!(!absent.exists());
+        snapshot.features.insert("ota_auto_update".into(), true);
+        snapshot
+            .features
+            .insert("focusa.update.unattended".into(), false);
+        let status = license_status_from_guard(&focusa_license::LicenseGuard::from_entitlement(
+            snapshot.clone(),
+        ))
+        .unwrap();
+        assert!(
+            !status.features.iter().any(
+                |feature| feature == "ota_auto_update" || feature == "focusa.update.unattended"
+            )
+        );
+        snapshot.state = EntitlementState::OfflineGrace;
+        snapshot.expires_at = Some(chrono::Utc::now() - chrono::Duration::hours(1));
+        snapshot.offline_grace_until = Some(chrono::Utc::now() + chrono::Duration::hours(1));
+        let report = doctor_report_from_guard(
+            &absent,
+            &focusa_license::LicenseGuard::from_entitlement(snapshot.clone()),
+        )
+        .unwrap();
+        assert!(report.authority_usable);
+        assert!(report.offline_grace_active);
+        assert!(!report.not_expired);
+        snapshot.state = EntitlementState::RecoveryOnly;
+        snapshot.recovery_reason = Some("lease_revoked".into());
+        let report = doctor_report_from_guard(
+            &absent,
+            &focusa_license::LicenseGuard::from_entitlement(snapshot),
+        )
+        .unwrap();
+        assert!(!report.authority_usable);
+        assert!(!report.features_loaded);
+        assert!(!report.failures.is_empty());
     }
 
     #[test]

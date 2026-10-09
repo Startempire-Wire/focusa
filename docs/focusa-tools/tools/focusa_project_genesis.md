@@ -1,12 +1,13 @@
 # `focusa_project_genesis`
 
-Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint. Use it when Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint. Use it when Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
 - Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.
 - Capability family: `project_identity`; namespace: `focusa.project_identity`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- Reuse or resume the exact scoped intent-to-first-action transaction; retain confirmed HLT/history and inspect coordination options. Ready Genesis is not proof that an older Workpoint matches the current instruction; takeover needs its own authority.
 
 ## Parameters and strict input schema
 
@@ -62,8 +63,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"explicit_project_continuity"}`
 - Authority: `{"kind":"canonical","path":"daemon:/v1/project/genesis/commit"}`
 - Side effects: `start_resume_read_or_confirmed_atomic_commit`, `start_resume_read_or_confirmed_atomic_commit`
-- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `true`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `true`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -75,11 +76,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_trajectory_view` (likely_next)
 - `focusa_project_verify` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_project_verify`.
 
 ## Skills, protocols, and source authority
@@ -90,4 +95,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_projec
 - CLI: `focusa project genesis start|resume|status|commit`.
 - REST: `POST /v1/project/genesis/start`, `POST /v1/project/genesis/resume`, `GET /v1/project/genesis/status`, `POST /v1/project/genesis/commit`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:1296287658b1ac0d4657d7569ada92c9b9f20111517a451f1aeb9dcce5dcfb57`.
+- Descriptor digest: `sha256:061887fdfd7368ec562fa1d65f113407bbb203773288ee0454c34bfd2bb62a72`.

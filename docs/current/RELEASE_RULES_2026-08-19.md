@@ -2,7 +2,7 @@
 
 ## Authority: ONE canonical path. If you ship, you follow this exactly.
 
-No variants, no shortcuts, no `--no-verify`, no hand-editing `distribution-manifest.json`. The cycle is deterministic; the agent is removed from every check that does not need a brain.
+No variants, shortcuts, `--no-verify`, manual manifest edits or immutable-tag rewrites. Use canonical scripts and actual terminal receipts; a deterministic design is not proof that a run completed. [The cohesive project journey](../agent/02-focusa-cohesive-project-flow.md) distinguishes source, public publication, installed activation and consumer acceptance. Approved development reload/deploy/testing is separate; an ordinary edit does not require a production release.
 
 ### Vocabulary — strict, no drift (enforced in CI)
 
@@ -10,8 +10,8 @@ No variants, no shortcuts, no `--no-verify`, no hand-editing `distribution-manif
   it means **FULL stable Release** — never default to a dev release or a
   tag-only push. The default is the full canonical stable Release unless
   the operator explicitly says **"dev release"** or **"tag release"**.
-- **Release** = **stable canonical**. Every surface (CLI, daemon, TUI, session runner, Pi extension, menubar, updater, docs), every OS (`x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-gnu`, `x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`, `x86_64-apple-darwin`, `aarch64-apple-darwin`), every artifact. Must appear as **Latest** in GitHub sidebar (`isLatest=true`, `isPrerelease=false`), green badge, `gh release view vX.Y.Z` succeeds with 30+ assets + `SHA256SUMS`. Nothing else is "shipped".
-- **Dev release** = **`vX.Y.Z-dev` prerelease**. Also full surfaces + full OS, same 14-job Release matrix, marked `prerelease`. No reduced matrix.
+- **Release** = **stable canonical**. Every surface (CLI, daemon, TUI, session runner, Pi extension, menubar, updater, docs), every OS (`x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-gnu`, `x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`, `x86_64-apple-darwin`, `aarch64-apple-darwin`), every artifact. Must appear as **Latest** in GitHub sidebar (`isLatest=true`, `isPrerelease=false`), green required gates, exact candidate identity, the complete canonical artifact/signature/provenance matrix and verified installed/update/rollback outcomes. Asset count, an unsigned checksum file or `gh release view` success alone is not "shipped".
+- **Dev release** = **`vX.Y.Z-dev` prerelease**. Also full surfaces + full OS and all currently required canonical matrix obligations, marked `prerelease`. Job counts are discovered from the current workflow/receipts, not this dated prose. No reduced matrix.
 - **Temporary macOS proof delegation (until GitHub macOS returns):** GitHub's
   billing-locked `macos-latest` job is not a release veto when the matching
   Codemagic `menubar-macos-package-proof` release-tag build is green. That
@@ -20,13 +20,14 @@ No variants, no shortcuts, no `--no-verify`, no hand-editing `distribution-manif
   full temporary provider map and one-change-set GitHub restoration protocol
   are in `docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md`.
   Remove this exception when GitHub-hosted macOS proves the same contract green.
-- **Temporary Windows build delegation:** AppVeyor's one-job public lane admits
+- **Windows provider selection:** the current canonical workflow selects its approved producer; the owned OVH controller is an implemented source route, not proof every installer/signature is complete. AppVeyor is not a mandatory dependency merely because older receipts used it. When the optional AppVeyor route is selected, its one-job public lane admits
   only exact stable/`-dev` release tags or the explicit immutable recovery
   controller. It locates the gated GitHub draft by enumerating the authenticated
   release collection; the draft-blind `/releases/tags/{tag}` endpoint is banned.
   Ordinary branches, pull requests, and Nightlies must not consume this serial
   release lane.
-- **Tag ≠ Release.** `git push --tags` only enqueues CI. `Latest` flips only after `Release 14/14 green`. Say "tag pushed, CI queued" vs "Release published as Latest". Never "pushed full release" when only tag exists.
+- **Staged-asset recovery:** dispatch `release.yml` with the same immutable `release_tag`/`release_sha` and `recover_staged_assets=true` when completed producer artifacts already exist. This skips rebuilding, not acceptance: exact-source CI, scoped PR/version/gap gates, both external receipt gates, the shared provider filename contract, checksums, signatures, provenance, deployment and consumer acceptance still apply. The workflow-pinned controller verifier may repair its own naming contract without changing the candidate or copying/renaming published artifacts.
+- **Tag ≠ Release.** `git push --tags` only enqueues CI. `Latest` is valid only after all required packaging, signatures, compatibility, deployment and acceptance receipts settle for the exact candidate. Say "tag pushed, CI queued" vs "Release published as Latest". Never "pushed full release" when only tag exists.
 - **Proof, not ticket closure, gates delivery.** Open issues remain open until their
   actual acceptance criteria are proven. They do not prevent building the signed
   candidate needed to collect installed evidence. Exact-source checks, scoped PR
@@ -55,7 +56,7 @@ Every step below is code, not human memory. The agent never manually runs it; `g
 | **Verification** | `scripts/verify-version-surfaces.py` tail in `create-dev-release-tag.sh`; `scripts/verify-embedded-authority-root.py` in every Rust packaging provider | Agent `gh release view` eyes and runtime-root injection | Scripts verify production authority roots inside binaries before upload, then `isLatest true` + asset count before exiting 0. |
 | **Journal** | `journal_client` in `create-dev-release-tag.sh` | Agent forgetting optimization | Every Release failure is cataloged in `docs/current/RELEASE_FAILURE_MODE_CATALOG` H and `release-proof/audit/` — next run's `run-release-learning-guards.py` replays guards. Kept continually for optimizations. |
 
-**What still needs agent (and only this):** fixing a real code `FAIL` (e.g., `cargo clippy -D warnings` 1 warning, `spec104` drift) — code change, then rerun `--strict`. No decision, no polling.
+**Agent responsibility:** diagnose actual failures, preserve candidate/receipt identity, perform authorized supported recovery and verify consumer acceptance. Resolve genuine scope/cost/consent boundaries without inventing them. The canonical controller owns execution and settlement; an unchanged deterministic failure is not an endless retry instruction. No manual promotion or guessed provider/tag repair.
 
 ### The ONE command (agent-removed happy path)
 
@@ -73,9 +74,9 @@ Internally the script does the 7-step checklist deterministically — the agent 
 3. local-release-preflight.sh --strict — must print DONE — PASS (may tag) or script exits non-zero (no tag)
 4. git add + commit "chore: stamp release surfaces X.Y.Z" + push main — waits deterministically for CI 5/5 on that SHA
 5. (if terminal paths) waits deterministically for Spec132 11/11 on same SHA
-6. git tag -f vX.Y.Z HEAD -m "Release vX.Y.Z stable canonical all surfaces and OS" + push tag — enqueues Release
-7. Release workflow waits deterministically for tag CI proof, then publishes Release 14/14 and flips Latest
-8. verify gh release view vX.Y.Z isLatest=true isPrerelease=false assets 30+
+6. canonical controller creates a new immutable candidate tag and pushes only under its current grant — enqueues Release; existing tags are preserved
+7. Release workflow reconciles exact-source proof, full artifact/signature matrix, compatibility, deployment and installed acceptance before promotion
+8. verify exact terminal receipts, valid channel/Latest state and all required consumer outcomes; count/entry presence alone is insufficient
 ```
 
 For **Dev release**: same, but tag is `vX.Y.Z-dev` and Release shows `isPrerelease=true`. No other difference.
@@ -89,7 +90,7 @@ For **Dev release**: same, but tag is `vX.Y.Z-dev` and Release shows `isPrerelea
 
 ### If Release fails (deterministic recovery, no agent guessing)
 
-- `Missing successful Spec 132 terminal matrix candidate gate` → **no longer happens**; Release now waits 20m for it. If it still timeouts, fix Spec132 code, rerun preflight `--strict`, re-push tag (same SHA).
+- `Missing successful Spec 132 terminal matrix candidate gate` → inspect the actual wait/receipt for the exact candidate. The documented wait can still time out or expose missing proof. Recover through the advertised controller; preserve the immutable tag and rerun only when the current contract/grant admits it.
 - `Exact tag CI proof: failure` → CI failed on stamped SHA. Read `gh run view --log-failed`, fix code and rerun preflight `--strict`. Never move an existing release tag: controller-only repairs use the immutable recovery inputs; candidate-code changes require a new release version.
 - `distribution parity drift blocks this release` → stamp was missed. `bash scripts/stamp-menubar-version.py vX.Y.Z` then preflight.
 - Any other job failure → `gh run view <id> --log`, fix, preflight `--strict`, continue at failed step. Never skip preflight.
@@ -97,7 +98,7 @@ For **Dev release**: same, but tag is `vX.Y.Z-dev` and Release shows `isPrerelea
 ### Hotfix / rollback
 
 - Hotfix: `vX.Y.Z-hotfix.1` — same checklist, full matrix, same 14 jobs.
-- Rollback: `git tag -f vX.Y.(Z-1)` + `git push --force origin tag` only with operator explicit written approval; `release-pipeline-watchdog` and `deploy-live-daemon` heal deploys, but Latest flip still requires the 7 steps.
+- Rollback: use the supported verified prior-release install/update rollback transaction and prove preserved customer data/rights. Never rewrite a previous release tag as a rollback mechanism. Watchdog/deploy capabilities do not grant arbitrary retries or production mutation; current recovery and promotion receipts remain required.
 
 ### Evidence — v0.9.177 proven baseline
 
@@ -127,4 +128,4 @@ bash scripts/create-dev-release-tag.sh --dry-run           # 30s — stamps 16 +
 FOCUSA_TEST_MODE=1 bash scripts/ci/run-spec-gates.sh     # full Spec Gates
 ```
 
-`Dry run complete; reverted stamped files.` means `create-dev-release-tag.sh --push` would green.
+A successful dry-run proves only the checks actually performed, not future provider success, full signatures, deployment or installed acceptance. Inspect the current script's dry-run side-effect/reconciliation contract before use; do not infer safe rollback or automatic execution from this historical example.

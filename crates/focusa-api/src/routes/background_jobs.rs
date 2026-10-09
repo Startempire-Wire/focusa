@@ -240,6 +240,8 @@ async fn update_job(
         let became_monitor_lost = record.status == BackgroundJobStatus::MonitorLost;
         if became_monitor_lost && record.completed_at.is_none() {
             record.completed_at = Some(now_iso());
+            record.output_tail =
+                focusa_core::background_jobs::resolved_background_job_output_tail(&record);
         }
         focusa_core::background_job_store::upsert_job(&conn, &record)?;
         // docs/165 v2 §2 — durable first, then broadcast lifecycle

@@ -6,6 +6,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/audit-agent-first-tool-surfaces.py"
 RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
@@ -30,7 +32,13 @@ workflow = RELEASE_WORKFLOW.read_text()
 # Tracking state is not installed evidence: collecting proof must not depend
 # on prematurely closing the issue that requires that proof.
 assert "open-issue-release-gate:" not in workflow
-assert "needs: [rust-check, final-release-gap-gate, pull-request-release-gate, version-policy]" in workflow
+release_jobs = yaml.load(workflow, Loader=yaml.BaseLoader)["jobs"]
+required_creation_gates = {
+    "rust-check", "final-release-gap-gate", "pull-request-release-gate",
+    "version-policy",
+}
+assert required_creation_gates <= set(release_jobs["create-release"]["needs"])
+
 # Live-corrected 2026-09-09: the predeployment compatibility canary gate was
 # removed from the release chain by operator decision 2026-09-08 (commit
 # 02210e9f6 — the canary authority inputs were never enrolled, so the gate

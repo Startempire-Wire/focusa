@@ -10,6 +10,11 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let data_dir = std::path::PathBuf::from(&state.config.data_dir);
+    let retention =
+        tokio::task::spawn_blocking(move || super::events_retention::retention_health(&data_dir))
+            .await
+            .unwrap_or_else(|error| json!({"status":"unavailable", "error":error.to_string()}));
     Json(json!({
         "ok": true,
         "status": "ok",
@@ -17,6 +22,7 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         "daemon": &state.daemon_runtime_identity.process,
         "uptime_ms": state.started_at.elapsed().as_millis() as u64,
         "persistence": state.persistence_actor.as_ref().map(|actor| actor.metrics()),
+        "event_retention": retention,
     }))
 }
 

@@ -2,7 +2,7 @@
 
 **Focusa** is a local-first cognitive continuity and governance runtime for AI agents.
 
-This docs index describes the current development snapshot. Focusa is implemented across Rust core/API/CLI plus the Pi extension, and it remains under active development.
+This index routes to source documentation, target specifications and evidence; it does not certify the installed runtime or every historical claim. Start with [the agent index](agent/01-focusa-agent-docs-index.md) and [one cohesive project journey](agent/02-focusa-cohesive-project-flow.md). Resolve actual installed version/capabilities, current scope and action admission separately. Dated reports remain historical evidence unless superseded by current proof.
 
 ---
 
@@ -19,7 +19,7 @@ This docs index describes the current development snapshot. Focusa is implemente
 ## Current Runtime Concepts
 
 - **Friendly Focusa Q** – project orientation prompts: where am I, where are we going, next useful move, proof, and compounding lesson.
-- **Tool choreography** – linked tool routes so agents use project identity → trajectory → Workpoint → evidence → prediction/metacog instead of only basic notes.
+- **Tool choreography** – advisory capability-selection links; not execution dependencies or permission. Conditional initialization and Prepare/Act/Reconcile/Advance follow the owning project, task and Workpoint contracts.
 - **Focus State** – bounded current cognitive state: intent, focus, decisions, constraints, failures, next steps, open questions, recent results, notes, artifacts.
 - **Workpoint** – typed continuation contract for compaction/model-switch/fork/retry recovery.
 - **Evidence refs** – stable proof handles linked to Workpoints instead of raw transcript blobs.
@@ -32,6 +32,10 @@ This docs index describes the current development snapshot. Focusa is implemente
 - **UXP/UFI, autonomy, constitutions** – governance design surfaces with partial runtime support and ongoing development.
 
 ---
+
+## Development and publication truth
+
+For an approved active environment, use change → supported reload/development deployment → consumer verification promptly. Git push is required only where the project's delivery mechanism or publication request requires it. Generated/source freshness, published documentation, loaded instructions and verified runtime behavior are separate outcomes. Full production Focusa release/install retains canonical signed artifacts and acceptance.
 
 ## Agents & Constitutions
 

@@ -80,7 +80,7 @@ Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection,
 ## Current architecture and lifecycle
 
 - All Focusa Pi tools are one-to-one across runtime registration, contracts, `pi-tools.json`, strict schemas, per-tool docs, and skill routing.
-- Exact authority is `project_root + continuity_id`; worktrees are verified working subpaths, not independent project identities.
+- Exact authority requires ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey, with current operation/frontier admission; root and continuity alone are lookup inputs. Verified worktrees are working subpaths, not independent project identities.
 - Daemon-native Silent Sessions own durable session/run/generation state, observation, steering, approvals, idempotency, and receipts.
 - Governed work-loop recovery uses canonical Workpoint/Trajectory checkpoints, cache-safe context, proactive compaction, and automatic rollover after bounded retry exhaustion.
 - Mission Canvas and Work Rail bind scoped Work Surfaces, workspace artifacts, CRIST interviews, connectors, software/domain projections, UIAI context, and adaptive generated UI to canonical operations.

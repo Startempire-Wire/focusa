@@ -2,42 +2,40 @@
 
 ## Preconditions
 
-- Verify project root plus continuity scope when project-bound.
+- Verify project identity, exact Workstream/continuity and applicable runtime attachment; root plus continuity alone does not prove canonical cognition.
 - Resume or checkpoint the canonical Workpoint before long/risky work.
 - Confirm current operator steering and mutation approval boundaries.
 - Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
 - Treat cwd and missing markers as weak evidence; inspect legacy project signals before suggesting creation or binding.
 - Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
-- Use targeted local gates during development; CI requires explicit release authorization.
+- Use the approved active-development reload/deploy/test loop and execution host; Git push is project-specific, and development verification is not a release by default. CI/paid runs and release actions retain their actual grant/resource requirements.
 
-## Dependency graph
+## Complete journey and conditional routing
 
-```text
-focusa_workpoint_resume -> focusa_trajectory_resume
-focusa_trajectory_resume -> focusa_session_transfer
-focusa_session_transfer -> focusa_tree_snapshot_state
-focusa_tree_snapshot_state -> focusa_tree_restore_state
-```
+Owning guide: `docs/agent/02-focusa-cohesive-project-flow.md`; contracts: Specs 143/158/164 and issue #618. Verified Workstream/attachment, current intent, accepted outcome and daemon admission determine the next action; the list below does not define execution dependencies.
 
-## Minimal path
+- Discover `focusa_project_identity` when its condition is relevant; use its current strict contract.
+- Discover `focusa_trajectory_resume` when its condition is relevant; use its current strict contract.
+- Discover `focusa_workpoint_resume` when its condition is relevant; use its current strict contract.
+- Discover `focusa_session_transfer` when its condition is relevant; use its current strict contract.
+- Discover `focusa_tree_snapshot_state` when its condition is relevant; use its current strict contract.
+- Discover `focusa_tree_restore_state` when its condition is relevant; use its current strict contract.
 
-1. Call `focusa_workpoint_resume` with only required bounded inputs.
-2. Call `focusa_trajectory_resume` with only required bounded inputs.
-3. Call `focusa_session_transfer` with only required bounded inputs.
-4. Call `focusa_tree_snapshot_state` with only required bounded inputs.
-5. Call `focusa_tree_restore_state` with only required bounded inputs.
+For resume, normally omit `current_ask` so the adapter forwards the exact latest instruction. A paraphrase can produce `resume_evaluated_different_ask`; use the exact request-bound ask, not a permission override. Bootstrap/Genesis readiness is not current-frontier admission. No repeated onboarding, new HLT or restore operation is implied by a routine transition.
 
 ## Current domain procedure
 
-1. Checkpoint both Workpoint and Trajectory before compaction, context overflow, model switch, or session rollover.
-2. Preserve cache-safe stable prefix plus newest operator tail; transcript tail is never continuation authority.
-3. After bounded transport retry exhaustion, use governed automatic rollover and verify the canonical resume packet.
+1. Checkpoint Workpoint and Trajectory before planned compaction/rollover; retain exact Workstream/attachment and current requested activity.
+2. After transition, verify the actual adapter/daemon and binding, view scoped Trajectory, then resume with the exact automatically forwarded current ask.
+3. If the request changed in flight or evaluated a paraphrase, reconcile request provenance before blaming saved state; stale ancestry/frontier still requires its own recovery.
+4. Session transfer and snapshots are conditional; never restore state automatically merely because the tool is listed.
+5. Verify supported recovery and return to the interrupted dependency-valid action; do not use transcript tail as authority.
 
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
-- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
-- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Scope conflict: verify the exact Workstream/continuity/attachment and current Workpoint; choose the advertised scoped reconciliation route before any checkpoint mutation. Preserve other writers and scopes.
+- Daemon/degraded state: distinguish reporting failure, request-input mismatch, stale binding and missing execution admission. Discover the supported repair, reconcile effects, verify and resume; an unchanged blind retry is not recovery.
 - Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
 - Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
 - Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.

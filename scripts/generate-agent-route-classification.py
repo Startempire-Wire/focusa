@@ -230,7 +230,7 @@ def main() -> int:
         "",
         "## Release-current architecture",
         "",
-        "Exact authority is `project_root + continuity_id`; worktrees are typed working subpaths. Agent discovery is progressive through the Agent Card, tool search/describe/graph/bundle, and strict schemas. Silent Sessions are daemon-native. Mission Canvas and Work Rail bind scoped Work Surfaces, connectors, domain projections, UIAI context, and adaptive generated UI to canonical operations.",
+        "Resolve exact Scope/Project, Workstream, continuity and applicable attachment through the installed adapter; `project_root + continuity_id` are lookup inputs, not the complete authority boundary. Worktrees remain verified working subpaths. Use the shared guide `docs/agent/02-focusa-cohesive-project-flow.md` and progressive Agent Card/search/describe discovery. This inventory is source-derived, not proof of mounted endpoints, connected harnesses or current action admission.",
         "",
         "Machine authority: [`route-classification.json`](../contracts/spec141/generated-capability-v2/route-classification.json), [`rest-agent-operations.json`](../contracts/spec141/generated-capability-v2/rest-agent-operations.json), and [`pi-tools.json`](../contracts/spec141/generated-capability-v2/pi-tools.json). Human per-tool references: [`docs/focusa-tools/tools/`](../focusa-tools/tools/).",
         "",

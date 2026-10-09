@@ -3475,9 +3475,19 @@ pi.registerTool({
       return `blocked: hot route timed out (limit=${timeoutMs}ms, mode=${mode}); retry after brief backoff or run focusa_resource_mode activate_lowmem to extend budget`;
     }
     if (
+      result.body?.failure_class === "north_star_admission_blocked" ||
+      result.body?.code === "NORTH_STAR_ADMISSION_BLOCKED"
+    ) {
+      const gaps = result.body?.workpoint_linkage?.admission_gaps;
+      if (Array.isArray(gaps) && gaps.length === 1 && gaps[0] === "lifecycle_stage_missing")
+        return "blocked: the saved work record is missing its stage; approved recovery must preserve its task and history";
+      return "blocked: the saved work record is incomplete; repair the reported missing fields before execution";
+    }
+    if (result.body?.failure_class === "lifecycle_repair_rejected")
+      return "blocked: stage-only recovery requires confirmation, unchanged work, evidence and a replay key";
+    if (
       result.body?.failure_class === "scope_mismatch" ||
-      result.body?.status === "rejected_scope_mismatch" ||
-      result.status === 409
+      result.body?.status === "rejected_scope_mismatch"
     ) {
       const field = String(result.body?.field || "workstream_scope");
       const active = formatWorkLoopScope(

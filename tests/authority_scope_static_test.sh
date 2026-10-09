@@ -19,9 +19,12 @@ CLI_PROJECT="$ROOT_DIR/crates/focusa-cli/src/commands/project.rs"
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
 
-rg -n -F 'project_root + continuity_id = authority boundary' "$AUTH" >/dev/null || fail "Authority Model missing exact scope invariant"
-rg -n -F 'No canonical read/write without verified project_root + continuity_id' "$SPEC" >/dev/null || fail "Spec106 missing exact scope invariant"
-pass "authority docs declare exact project_root + continuity_id invariant"
+for dimension in ScopeRef/ProjectRootKey WorkstreamId ContinuityId AttachmentKey; do
+  rg -n -F "$dimension" "$AUTH" >/dev/null || fail "Authority Model missing exact binding dimension: $dimension"
+done
+rg -n -F 'project_root + continuity_id alone are insufficient' "$AUTH" >/dev/null || fail "Authority Model missing incomplete-binding rejection"
+rg -n -F 'No canonical read/write without verified project_root + continuity_id' "$SPEC" >/dev/null || fail "Spec106 missing minimum scope invariant"
+pass "authority docs preserve minimum scope and current multidimensional binding invariant"
 
 for file in "$CTX" "$WORKPOINT" "$TRAJECTORY" "$PROJECT"; do
   rg -n 'project_root' "$file" >/dev/null || fail "$file missing project_root handling"

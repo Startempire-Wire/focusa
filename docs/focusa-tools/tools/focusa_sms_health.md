@@ -1,6 +1,6 @@
 # `focusa_sms_health`
 
-Read value-free connector/checkpoint health. Never returns messages, cookies, pairing state, or OTP values. Use it when Read value-free connector and encrypted-checkpoint health. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read value-free connector/checkpoint health. Never returns messages, cookies, pairing state, or OTP values. Use it when Read value-free connector and encrypted-checkpoint health. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -46,8 +46,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"sms:health"}`
 - Authority: `{"kind":"canonical","path":"/v1/sms/health"}`
 - Side effects: `read_value_free_health`, `read_value_free_health`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -59,11 +59,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_sms_enrollment` (likely_next)
 - `focusa_sms_checkpoint` (likely_next)
 - `focusa_sms_events` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_sms_enrollment`, `focusa_sms_checkpoint`, `focusa_sms_events`.
 
 ## Skills, protocols, and source authority
@@ -74,4 +78,4 @@ Likely next: `focusa_sms_enrollment`, `focusa_sms_checkpoint`, `focusa_sms_event
 - CLI: `focusa sms health`.
 - REST: `GET /v1/sms/health`.
 - Specification: `docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md`.
-- Descriptor digest: `sha256:8ad155432e746082b690c9d0bb81b85accfcbcc29e0a42ee7b0e450a757c1ff3`.
+- Descriptor digest: `sha256:d0f38ed6b83ddc58057f2be0a87d8eb0c90769d75fa45572e02b7249fac0e71d`.

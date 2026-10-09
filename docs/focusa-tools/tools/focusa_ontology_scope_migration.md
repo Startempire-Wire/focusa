@@ -1,6 +1,6 @@
 # `focusa_ontology_scope_migration`
 
-Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred. Use it when Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred. Use it when Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -53,8 +53,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"ontology"}`
 - Authority: `{"kind":"canonical","path":"reducer event plus append-only receipt"}`
 - Side effects: `confirmed_append_only_scope_migration`, `confirmed_append_only_scope_migration`
-- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -66,11 +66,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_project_verify` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 - `focusa_workpoint_link_evidence` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_project_verify`, `focusa_evidence_capture`, `focusa_workpoint_link_evidence`.
 
 ## Skills, protocols, and source authority
@@ -81,4 +85,4 @@ Likely next: `focusa_project_verify`, `focusa_evidence_capture`, `focusa_workpoi
 - CLI: `focusa ontology scope-migration-dry-run`, `focusa ontology scope-migration-status`, `focusa ontology scope-migration-apply`, `focusa ontology scope-migration-rollback`.
 - REST: `POST /v1/ontology/scope-migrations`.
 - Specification: `docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md`.
-- Descriptor digest: `sha256:7b0e4368ff8b756c5998f9fa68a399313181b6de2938c26fa2a10f4ba1003381`.
+- Descriptor digest: `sha256:3db5d85a78d0d84a9a5ba2686ded7837af5b02e71faa3f19bbaa7d92d072b7c2`.

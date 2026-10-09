@@ -24,14 +24,19 @@ Use when project root, continuity, repository, deployment, alias, or cross-proje
 
 - verified same-root read-only action
 
-## Required sequence
+## Place in the complete project journey
 
-1. `focusa_project_identity`
-2. `focusa_project_verify`
-3. `focusa_active_object_resolve`
-4. `focusa_workpoint_resume`
+Follow `docs/agent/02-focusa-cohesive-project-flow.md`: verified binding → Bootstrap when needed → Genesis when needed → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance.
+Reuse valid state; preserve the accepted goal while refining only affected work. This skill supplies capabilities for that journey, not a separate workflow or authority.
 
-Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
+## Available capabilities — select by current condition
+
+- `focusa_project_identity`
+- `focusa_project_verify`
+- `focusa_active_object_resolve`
+- `focusa_workpoint_resume`
+
+This inventory is not a mandatory sequence. Read, preview, mutation, restore and evidence operations have different preconditions; never execute every listed tool merely to finish a skill.
 
 ## Operator alignment
 
@@ -48,11 +53,11 @@ Current operator steering, verified project scope, and canonical Workpoint autho
 - `focusa_workpoint_checkpoint`
 - `focusa_tool_doctor`
 
-Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection, and ambiguous side effects as recovery states—not completion.
+A rejected operation is not a stopped mission. Diagnose its exact cause, select supported in-scope recovery, verify and resume the interrupted action; advance independent admitted work when possible. Pending work requires observation, not duplicate dispatch. Reconcile uncertain effects before replay. Real scope, consent, integrity and budget boundaries remain enforced; never fabricate admission or repeatedly retry unchanged input.
 
 ## Routing metadata
 
-- prerequisites: verified project identity and typed continuity when durable scope matters
+- prerequisites: verified ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey; project/cwd selection alone is not attachment
 - use_instead_when: use the narrower owner in `docs/contracts/65-focusa-skill-ownership-manifest.json`
 - next_skills: `focusa-workpoint`, `focusa-evidence-outcomes`, `focusa-metacognition`
 - failure_handoff: `focusa-troubleshooting`
@@ -64,6 +69,6 @@ Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection,
 
 ## Done condition
 
-project_root plus continuity_id authority is verified and target objects resolve in that scope.
+Exact Workstream/continuity/attachment binding is verified through the installed adapter, and current targets resolve in that scope.
 
 Stable evidence or receipt refs must support any completion claim.

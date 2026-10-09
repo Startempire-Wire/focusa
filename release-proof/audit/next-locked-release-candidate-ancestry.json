@@ -23,12 +23,12 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:0e65c78471bf5c48bd14a2bc7a0a12ee6e148074e1c2ab5c13350cf2091c6929",
+  "ancestry_digest": "sha256:dd83bf8a9dc485f21cfa5647bf709162265c5281f9e15961fb5622136f9b3fd3",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "d48bf0a9f4841e75ce331e360ae28a64e2121756",
+    "audit_head": "f579f24c3a3a02726ac687b64a1fd5564c84396a",
     "changed_after_source_commit": [],
-    "source_commit": "d48bf0a9f4841e75ce331e360ae28a64e2121756",
+    "source_commit": "f579f24c3a3a02726ac687b64a1fd5564c84396a",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -122,17 +122,17 @@
     "publish_release": false,
     "rewrite_v0.9.143": false
   },
-  "next_stable_tag": "v0.9.195",
+  "next_stable_tag": "v0.9.203",
   "next_version_selection": {
     "base": "0.9",
     "channel_maxima": {
       "dev": 194,
-      "preview": 194,
+      "preview": 202,
       "rc": null,
-      "stable": 192
+      "stable": 202
     },
-    "considered_tags": 200,
-    "highest_patch": 194,
+    "considered_tags": 214,
+    "highest_patch": 202,
     "ignored_malformed_tags": [
       "spec-integration-v1",
       "spec-integraton-v1-start"
@@ -140,13 +140,398 @@
     "mode": "automatic",
     "monotonic": true,
     "schema": "focusa.release_version_selection.v1",
-    "selected_channel": "dev",
-    "selected_patch": 195,
-    "selected_tag": "v0.9.195-dev",
-    "selected_version": "0.9.195-dev",
+    "selected_channel": "stable",
+    "selected_patch": 203,
+    "selected_tag": "v0.9.203",
+    "selected_version": "0.9.203",
     "status": "completed"
   },
   "pull_request_ancestry": [
+    {
+      "commit": "36672acadae4e0089582fe42beb355506528390e",
+      "pr": 656,
+      "subject": "fix(release): resolve AppVeyor project at runtime and stamp 0.9.201 (GH#656)"
+    },
+    {
+      "commit": "b41254c974336bcc255aaf0b19a9ef69a4b81575",
+      "pr": 668,
+      "subject": "chore(release): stamp version 0.9.200 (#668)"
+    },
+    {
+      "commit": "5dca7307ede06946c1486ebe1a12feb5f3ef19f0",
+      "pr": 667,
+      "subject": "fix(spec152): restore the bounded-response guard assertion and wire the gate into CI (#667)"
+    },
+    {
+      "commit": "242fd43d93e8f315d1aa3e5606c1fcb2a4c85010",
+      "pr": 666,
+      "subject": "fix(api): serve the canonical generated contract instead of a parallel list (#666)"
+    },
+    {
+      "commit": "76885dc136df0b9df0c40f20192bce188cbbbf58",
+      "pr": 664,
+      "subject": "fix(release): publish the stable channel and ship the OTA update pointer (#664)"
+    },
+    {
+      "commit": "26141b0e4bd1f749e41513b29b5873acc6fc0ead",
+      "pr": 663,
+      "subject": "fix(tests): surface daemon response body when scoped admission is rejected (#663)"
+    },
+    {
+      "commit": "d26c369e7173e86ea722abe1252a8a796f781b13",
+      "pr": 659,
+      "subject": "Merge pull request #659 from Startempire-Wire/fix/flowmesh-authority-drift"
+    },
+    {
+      "commit": "7b9a82ff7136629be2f66a828f8c54f5cbb385b6",
+      "pr": 656,
+      "subject": "ci(release): queue AppVeyor Windows matrix explicitly on tag push (GH#656)"
+    },
+    {
+      "commit": "64e9fe96b4350da2a25cc464102694f99618253e",
+      "pr": 638,
+      "subject": "fix(bootstrap): accept Genesis v2 markers alongside v1 (GH#638)"
+    },
+    {
+      "commit": "6b6520052ff02765e8b2044c5ec240a5f5afb39a",
+      "pr": 592,
+      "subject": "chore: refresh manifest after GH#592 redeem proof"
+    },
+    {
+      "commit": "078b78fce44df4e2d6a3a46035a6536a00135f3d",
+      "pr": 592,
+      "subject": "test(license): pin GH#592 redeem fail-closed without embedded roots"
+    },
+    {
+      "commit": "bcd723bcaee18e17f10a71b62ed4c50980695c3a",
+      "pr": 594,
+      "subject": "chore: refresh manifest after GH#594 device/start proof"
+    },
+    {
+      "commit": "2072b69dd7171045c12069ca5009ccd6bd5925b6",
+      "pr": 594,
+      "subject": "fix(license): accept authority seconds-based device/start contract (GH#594)"
+    },
+    {
+      "commit": "73e50b4ba716aebbdec7b0f0c52dbb7e4137f632",
+      "pr": 646,
+      "subject": "chore: restore 0.9.197 surfaces after GH#646 proof"
+    },
+    {
+      "commit": "99d43d9192858ac89aa561fc0c6434fd12bed4fe",
+      "pr": 646,
+      "subject": "chore: refresh manifest after GH#646 regression proof"
+    },
+    {
+      "commit": "17a6880b49ca29431a540c2f80e775f5d90c8acb",
+      "pr": 646,
+      "subject": "test(entitlement): pin GH#646 approval-route descriptors"
+    },
+    {
+      "commit": "23493603c782a6f9ed9ed31d3eae2ad460991365",
+      "pr": 654,
+      "subject": "Merge pull request #654 from Startempire-Wire/fix/650-provider-budget"
+    },
+    {
+      "commit": "e3b786fe646bd958747c9aaa1b585654beb91418",
+      "pr": 653,
+      "subject": "Merge pull request #653 from Startempire-Wire/fix/650-postmerge-manifest"
+    },
+    {
+      "commit": "78a4253447ff40ac399b41544b2159f879a64ee1",
+      "pr": 651,
+      "subject": "Merge pull request #651 from Startempire-Wire/fix/650-bootstrap-rollback-safety"
+    },
+    {
+      "commit": "d89a702cbe78299208d0f7c9b87324273fa66789",
+      "pr": 652,
+      "subject": "fix(callgraph): derive dispatch eligibility from registered capabilities (#652)"
+    },
+    {
+      "commit": "0d1ae4f90038a13a66f52c7a1681f6e1e7d1d5cd",
+      "pr": 637,
+      "subject": "test: admit ontology and comparative eval fixtures (#637)"
+    },
+    {
+      "commit": "5cc1959f4170acd5e61314371d3cae620b6f1381",
+      "pr": 637,
+      "subject": "test: isolate work-loop fixtures with unique scopes (#637)"
+    },
+    {
+      "commit": "8023215cf4cbc2a550c0ca0c597fe17e4cfb55e9",
+      "pr": 637,
+      "subject": "test: admit isolated policy consumption fixture (#637)"
+    },
+    {
+      "commit": "ddbbe927a25036ef4145a7e224074488ab628f1e",
+      "pr": 637,
+      "subject": "test: admit continuation fixture with exact scope headers (#637)"
+    },
+    {
+      "commit": "56c8e8275ad33ebb8761e154fa585d7a045f3542",
+      "pr": 637,
+      "subject": "test: admit isolated frame-write fixture (#637)"
+    },
+    {
+      "commit": "e2f480e61b1ebe590cc193ca628d7847e0a6ebc1",
+      "pr": 637,
+      "subject": "test: admit isolated fork recovery fixture (#637)"
+    },
+    {
+      "commit": "4882bf1706c9482afb91b87ac325cc68c07f3528",
+      "pr": 637,
+      "subject": "test: isolate and admit restart recovery fixture (#637)"
+    },
+    {
+      "commit": "1fd06b8f7470dfea97710649a7743a5581d0b1c6",
+      "pr": 637,
+      "subject": "test: restore scoped release fixture admission (#637)"
+    },
+    {
+      "commit": "a383a01ae4e427a494bd87141976b933c5d24942",
+      "pr": 637,
+      "subject": "test: admit isolated runtime contract fixtures (#637)"
+    },
+    {
+      "commit": "788aea1d3e1099a0ee5a777c767159d872dcc172",
+      "pr": 636,
+      "subject": "fix(pi): return prompt override for read-only events (#636)"
+    },
+    {
+      "commit": "0e4ec17b1935fbacaa7347ba1d9160d9042f43f5",
+      "pr": 628,
+      "subject": "fix: harden OVH build and cleanup serialization (#628)"
+    },
+    {
+      "commit": "7ad42d25bb3e8d231d9c0279de4c3d804e3cd0f4",
+      "pr": 627,
+      "subject": "fix: harden activation authority HTTP transport (#627)"
+    },
+    {
+      "commit": "a966b6b68936dc3c412e159977f1914a8c20282d",
+      "pr": 618,
+      "subject": "Merge #618 spec workbench final approval admission"
+    },
+    {
+      "commit": "e9d80cdde34f574abe72955bc1b62f21944f4d8f",
+      "pr": 618,
+      "subject": "Merge #618 role profile approval admission"
+    },
+    {
+      "commit": "a13828f172168d5db798d4c3910c4db9b6c3b947",
+      "pr": 618,
+      "subject": "Merge #618 direct thread attachment admission"
+    },
+    {
+      "commit": "9d6590579569486fd868af734a1fc088ccca9e4e",
+      "pr": 618,
+      "subject": "Merge #618 direct instance connection admission"
+    },
+    {
+      "commit": "af87b3886e9f94d3c9372b42f92ec5e67df100ee",
+      "pr": 618,
+      "subject": "Merge #618 Work Loop pause release admission"
+    },
+    {
+      "commit": "05ce27dafe0e8649ee5ee9849c290b3f8bb471ee",
+      "pr": 618,
+      "subject": "Merge #618 Work Loop transport admission"
+    },
+    {
+      "commit": "fa0cbd221c1dd8981051c76217263ce73ac3042e",
+      "pr": 618,
+      "subject": "Merge #618 Work Rail mutation admission"
+    },
+    {
+      "commit": "d3a11908d479b9d03469be25ad1c15a200cb1fd4",
+      "pr": 618,
+      "subject": "Merge #618 scoped ECS artifact admission"
+    },
+    {
+      "commit": "8a27c61be59c3542aa0dfb5118af29057b4b6f3b",
+      "pr": 618,
+      "subject": "Merge #618 generic instance connection admission"
+    },
+    {
+      "commit": "432867c44d2a82cd6ca7a77b054b4e7925ed6aec",
+      "pr": 618,
+      "subject": "Merge #618 generic scoped visual command admission"
+    },
+    {
+      "commit": "eaf3af29393e38406ca10e9948c1c13389b2f10a",
+      "pr": 618,
+      "subject": "Merge #618 generic session command admission"
+    },
+    {
+      "commit": "bf4604ce42e60afecf5374e32f14e99adbc7b38d",
+      "pr": 618,
+      "subject": "Merge #618 scoped visual evidence admission"
+    },
+    {
+      "commit": "e165281ffe66dacd3eae681c780b42bb5a33995d",
+      "pr": 618,
+      "subject": "Merge #618 Work Loop executor session attachment admission"
+    },
+    {
+      "commit": "f42e6af6d652322277cafd364b933aeac4bbf580",
+      "pr": 618,
+      "subject": "Merge #618 Work Loop delegated authorship admission"
+    },
+    {
+      "commit": "702aa8910de841f9e69bc73f20d41d7592da6fff",
+      "pr": 618,
+      "subject": "Merge #618 Work Loop blocked auto-advance admission"
+    },
+    {
+      "commit": "19b0254b987f9cf6b4d76168d7a6c9a460577c74",
+      "pr": 618,
+      "subject": "Merge #618 Work Loop per-cycle admission"
+    },
+    {
+      "commit": "432e7cda9ef2269ef38aaa9a34a22ace42243ef6",
+      "pr": 618,
+      "subject": "Merge #618 Work Loop prompt admission"
+    },
+    {
+      "commit": "b4ceff2759c365370a7f140017204ef9432ba4c7",
+      "pr": 618,
+      "subject": "Merge #618 Workpoint checkpoint admission"
+    },
+    {
+      "commit": "a7c37e886d2c17d2f64202c64c6a600602a93254",
+      "pr": 618,
+      "subject": "Merge #618 Silent Session input admission"
+    },
+    {
+      "commit": "891347f510a2b25c03d66f92e43d3ee25467d139",
+      "pr": 618,
+      "subject": "Merge #618 Workpoint rollover admission"
+    },
+    {
+      "commit": "07b0ea2fc0be1e5c6446ff195507681bbae51ef4",
+      "pr": 618,
+      "subject": "Merge #618 North Star admission regression gate"
+    },
+    {
+      "commit": "e228c32b24e41d5698f7186b3f7b413295b7dc6c",
+      "pr": 618,
+      "subject": "Merge #618 Silent Session approval admission"
+    },
+    {
+      "commit": "176b3407a8e1f4925579c63924fd6573b4da84df",
+      "pr": 618,
+      "subject": "Merge #618 CallGraph definition admission"
+    },
+    {
+      "commit": "0e25a79f452fb3f1f6d7ba3dc8ec614300f6f183",
+      "pr": 618,
+      "subject": "Merge #618 Workset definition admission"
+    },
+    {
+      "commit": "969007b6332119510fa4a3e9e81d1da00bf59bbb",
+      "pr": 618,
+      "subject": "Merge #618 CallGraph persisted dispatch scope"
+    },
+    {
+      "commit": "a29ce6b3a150bf6cadf7085f857e54472cba073d",
+      "pr": 618,
+      "subject": "Merge #618 CallGraph evidence admission"
+    },
+    {
+      "commit": "30c2b72dde5dd9b37cbb82c2cae546ed1de0ee55",
+      "pr": 618,
+      "subject": "Merge #618 CallGraph Flow Mesh admission"
+    },
+    {
+      "commit": "2783319b1a0200ba7a17f1edbacda504fd86527b",
+      "pr": 618,
+      "subject": "Merge #618 CallGraph settlement admission"
+    },
+    {
+      "commit": "6836f4b2cf843e9706d62656e0e280c0399e4006",
+      "pr": 618,
+      "subject": "Merge #618 Workset settlement admission"
+    },
+    {
+      "commit": "78eb2b8e763204bed1fa0e8700c4cfce1c6e73c6",
+      "pr": 618,
+      "subject": "Merge #618 Silent Session config admission"
+    },
+    {
+      "commit": "f9b0a5a40b397b86c87422c1590a35098ce81855",
+      "pr": 618,
+      "subject": "Merge #618 Silent Session adoption admission"
+    },
+    {
+      "commit": "c4d4f227ea8ad6098215ca73fa02c783f25a31a7",
+      "pr": 618,
+      "subject": "Merge #618 Silent Session restart admission"
+    },
+    {
+      "commit": "a275e26709bc3f23ae369c4ae71fbad9410f09ec",
+      "pr": 618,
+      "subject": "Merge #618 generic session North Star admission"
+    },
+    {
+      "commit": "df98220bd550fae2c76999f79f7774ebc5e1a2bb",
+      "pr": 618,
+      "subject": "Merge #618 lifecycle transition evidence"
+    },
+    {
+      "commit": "548492a7f2e0e4a6e3224cda7e55b444ea55dbaa",
+      "pr": 618,
+      "subject": "Merge #618 Work Loop driver admission"
+    },
+    {
+      "commit": "70e933d9da0bc7458d56b686e097fb63cd916179",
+      "pr": 618,
+      "subject": "Merge #618 Silent Session dispatch admission"
+    },
+    {
+      "commit": "1241162ce44e33c7beccfb7f0b45889cb91ebbbd",
+      "pr": 618,
+      "subject": "Merge #618 task plan North Star admission"
+    },
+    {
+      "commit": "c9706fb389196a547415e75bd80201506f321de2",
+      "pr": 618,
+      "subject": "Merge #618 Silent Session North Star admission"
+    },
+    {
+      "commit": "52b8c97d5c5ff4f9e080433c81b065bdb6863319",
+      "pr": 618,
+      "subject": "Merge #618 background job North Star admission"
+    },
+    {
+      "commit": "8c07772176ed7f3059bffd5d1cbfbefc0a457d3b",
+      "pr": 618,
+      "subject": "Merge #618 CallGraph North Star admission"
+    },
+    {
+      "commit": "7c689ab63cb7ec04257f4b1d0a87827c212195b6",
+      "pr": 618,
+      "subject": "Merge #618 Work Loop North Star admission"
+    },
+    {
+      "commit": "800cafd0ad3b5946538f289c40754f4f58a45346",
+      "pr": 618,
+      "subject": "Merge #618 Workpoint mutation admission enforcement"
+    },
+    {
+      "commit": "5b8d723f18a1410ea9017d7bff8f9bad7eed798b",
+      "pr": 618,
+      "subject": "Merge #618 daemon-owned lifecycle stage enforcement"
+    },
+    {
+      "commit": "a1926cb4d56c532b01a3766026952739652ca549",
+      "pr": 618,
+      "subject": "Merge #618 explicit Trajectory-Workpoint binding enforcement"
+    },
+    {
+      "commit": "32e4d3e311cab72f4e1af7fef5c0fd253597cdbc",
+      "pr": 508,
+      "subject": "docs(issues): record #508 pi-extension dependency audit reachability exception"
+    },
     {
       "commit": "eceef304c9e3ef536f0d54f2e82ac174655dd400",
       "pr": 622,
@@ -535,9 +920,9 @@
   "schema": "focusa.locked_release_candidate_ancestry.v1",
   "source_version_agreement": true,
   "source_versions": {
-    "menubar": "0.9.195",
-    "pi_extension": "0.9.195",
-    "workspace": "0.9.195"
+    "menubar": "0.9.203",
+    "pi_extension": "0.9.203",
+    "workspace": "0.9.203"
   },
   "status": "verified",
   "tag_chain": {

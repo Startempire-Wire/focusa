@@ -1,6 +1,6 @@
 # `focusa_tree_restore_state`
 
-Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. Use it when Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. Use it when Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -49,8 +49,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
-- Read-only: `true`; destructive: `true`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `true`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `true`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -62,11 +62,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_tree_head` (likely_next)
 - `focusa_tree_path` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_tree_head`, `focusa_tree_path`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -77,4 +81,4 @@ Likely next: `focusa_tree_head`, `focusa_tree_path`, `focusa_evidence_capture`.
 - CLI: `focusa state snapshot restore`.
 - REST: `POST /v1/focus/snapshots/restore`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:879d0a73e565d00338d11476d99d7c1e54562dabcb1992cc891888ff7df34bb9`.
+- Descriptor digest: `sha256:dec2287fbdeaa7620fe9405e392106ed287f6b2c3c468ca7f4c5ec4512ed104e`.

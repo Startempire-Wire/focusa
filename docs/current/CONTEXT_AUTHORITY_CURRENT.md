@@ -1,11 +1,16 @@
 # Context Authority Current Guide
 
-**Status:** implemented current development slice  
+**Evidence status:** historical implementation/test bundle dated 2026-06-12; current installed support and action admission require separate verification.
+
 **Source incident:** `docs/current/INCIDENT_PHONE_BRIDGE_CONTEXT_AUTHORITY_2026-06-11.md`  
 **Architecture translation:** `docs/current/CONTEXT_AUTHORITY_ARCHITECTURE_WORKORDER_SPEC_2026-06-12.md`  
 **Implementation commits:** `b9d653f`, `a5e1171`, `266b9a4`, `8060cd1`, `5362c19`, `32a453c`, `dc9a335`  
 **Validation bundle:** context-authority tests, 2026-06-12
 **Authority model:** [`AUTHORITY_MODEL.md`](AUTHORITY_MODEL.md)
+
+## Current interpretation
+
+Use [the shared project journey](../agent/02-focusa-cohesive-project-flow.md) and current authority/release contracts. The incident evidence below is retained for provenance; dated examples, versions and `safe_alternative` text are not live permission or a production runbook. Production Focusa binary replacement uses approved signed artifacts; never copy a local build merely because an old example recommends it. Git push is conditional on the project's delivery mechanism, not universal, while any push actually performed retains its applicable preflight.
 
 ## Purpose
 

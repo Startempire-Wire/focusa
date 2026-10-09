@@ -1,6 +1,6 @@
 # `focusa_dxux_requirement`
 
-Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DXUX requirement by id. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DXUX requirement by id. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -48,8 +48,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_state`, `read_state`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -61,11 +61,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_dxux_report` (likely_next)
 - `focusa_dxux_digest` (likely_next)
 - `focusa_evidence_capture` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_dxux_report`, `focusa_dxux_digest`, `focusa_evidence_capture`.
 
 ## Skills, protocols, and source authority
@@ -76,4 +80,4 @@ Likely next: `focusa_dxux_report`, `focusa_dxux_digest`, `focusa_evidence_captur
 - CLI: `focusa dxux requirement <id>`.
 - REST: `GET /v1/dxux/requirement/{id}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:13809abfbc9471e45b56752b89df559e5ea4ef01b66a8c17aa3696a225bb3841`.
+- Descriptor digest: `sha256:0f1dea7273a683fe5a16d304850ffe9754d38b541884fe1956c8b59f5183e6df`.

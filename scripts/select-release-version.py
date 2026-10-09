@@ -76,9 +76,9 @@ def select_version(base: str, exact_tag: str | None, tags: Iterable[str]) -> dic
         selected_channel = channel_for(selected["suffix"])
     else:
         selected_patch = highest_patch + 1
-        selected_tag = f"v{base}.{selected_patch}-dev"
+        selected_tag = f"v{base}.{selected_patch}"
         mode = "automatic"
-        selected_channel = "dev"
+        selected_channel = "stable"
 
     return {
         "schema": "focusa.release_version_selection.v1",

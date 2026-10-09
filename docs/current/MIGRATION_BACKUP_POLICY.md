@@ -36,7 +36,7 @@ Focusa is local-first. Backups and migrations preserve operator-owned local stat
 
 - Export source project identity and continuity ids.
 - Copy local state and append-only ledgers intact.
-- Preserve `project_root + continuity_id` authority boundary.
+- Preserve exact Scope/Workstream/continuity/attachment ownership and original lineage; root/continuity lookup fields alone are not complete authority. A supported migration's scope and evidence must be verified; never apply a global migration to repair one workspace without authority.
 - Re-pair devices instead of copying tokens across trust domains when practical.
 - Regenerate current docs on the target version.
 - Run release/version proof and focused smoke checks.

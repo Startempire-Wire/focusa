@@ -1,6 +1,6 @@
 # `focusa_agent_prompt`
 
-Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls. Use it when Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls. Use it when Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -46,8 +46,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `read_only`, `read_only`
-- Read-only: `true`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `true`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -59,11 +59,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_tool_doctor` (likely_next)
 - `focusa_trajectory_view` (likely_next)
 - `focusa_project_identity` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_tool_doctor`, `focusa_trajectory_view`, `focusa_project_identity`.
 
 ## Skills, protocols, and source authority
@@ -74,4 +78,4 @@ Likely next: `focusa_tool_doctor`, `focusa_trajectory_view`, `focusa_project_ide
 - CLI: none.
 - REST: `GET /v1/agent/prompt`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:4ce9fda964996a969aac619064a9004bc385a220b9491b65da4563642c5fbb8a`.
+- Descriptor digest: `sha256:3751fe516399a7f9b3c9cc64a5a8120b89d914e34061ad3c152cfa4e2c5c2de0`.

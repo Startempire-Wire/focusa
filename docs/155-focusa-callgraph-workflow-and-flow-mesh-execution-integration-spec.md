@@ -699,6 +699,15 @@ Replay never re-executes effects by default.
 
 ### 19.1 Routes
 
+The published validation request schema is owned by
+`agent_capabilities::json_schema_document` and must match the core definition:
+`scope` requires typed `project_root` and `continuity_id`; graph root requires
+`mission_ref`, `title`, and `description`. Defaulted `policies` and
+`required_evidence` remain optional as in the Rust deserializer. Scope publication
+is regression-tested against core serialization and the served OpenAPI component.
+This source contract check does not prove installed API parity, all provisioning
+schemas, or UIAI consumer acceptance; those remain separate release proofs.
+
 - `GET /v1/callgraphs`
 - `POST /v1/callgraphs/validate`
 - `POST /v1/callgraphs/preview`

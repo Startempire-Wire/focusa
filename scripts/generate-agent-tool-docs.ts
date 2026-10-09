@@ -44,6 +44,16 @@ const operationalNotes: Record<string, string[]> = {
   focusa_metacog_capture: [
     "Captures retain HLT/MLG/STG alignment within the active project_root + continuity_id scope for trajectory-context retrieval.",
   ],
+  focusa_workpoint_resume: [
+    "Normally omit current_ask so the native adapter forwards the captured current operator instruction; an explicit override must match it exactly, not paraphrase it. resume_evaluated_different_ask is request-provenance rejection, not proof of missing operator consent.",
+    "A canonical resume is not dispatch admission: verify exact Workstream/attachment, current operation, lifecycle stage and frontier separately.",
+  ],
+  focusa_project_bootstrap: [
+    "Inspect the existing baseline first; preview/apply/repair are conditional, not repeated onboarding. Bootstrap-ready does not prove current Workpoint/frontier admission.",
+  ],
+  focusa_project_genesis: [
+    "Reuse or resume the exact scoped intent-to-first-action transaction; retain confirmed HLT/history and inspect coordination options. Ready Genesis is not proof that an older Workpoint matches the current instruction; takeover needs its own authority.",
+  ],
   focusa_project_identity: [
     "binding_candidates rank active worktree, canonical parent, marker/Beads, resumed-session, and bounded parent-directory evidence; ambiguous_project_binding fails closed.",
   ],
@@ -121,8 +131,8 @@ for (const descriptor of registry.descriptors) {
     `- Scope: \`${inline(descriptor.scope)}\``,
     `- Authority: \`${inline(descriptor.authority)}\``,
     `- Side effects: ${descriptor.side_effects?.length ? descriptor.side_effects.map((item: string) => `\`${item}\``).join(", ") : "none"}`,
-    `- Read-only: \`${descriptor.annotations.readOnlyHint}\`; destructive: \`${descriptor.annotations.destructiveHint}\`; idempotent: \`${descriptor.annotations.idempotentHint}\`; open-world: \`${descriptor.annotations.openWorldHint}\`.`,
-    `- Confirmation required: \`${descriptor.confirmation.required}\`; preview supported: \`${descriptor.confirmation.preview_supported}\`.`,
+    `- Advisory source hints (not dispatch/replay guarantees): read-only \`${descriptor.annotations.readOnlyHint}\`; destructive \`${descriptor.annotations.destructiveHint}\`; idempotent \`${descriptor.annotations.idempotentHint}\`; open-world \`${descriptor.annotations.openWorldHint}\`. Verify selected action/schema/policy separately.`,
+    `- Confirmation required: \`${descriptor.confirmation.required ?? "unknown (null)"}\`; preview supported: \`${descriptor.confirmation.preview_supported ?? "unknown (null)"}\`. Inspect the selected action, strict installed schema and policy; unknown is not permission.`,
     "",
     "## Failure and recovery",
     "",
@@ -131,6 +141,10 @@ for (const descriptor of registry.descriptors) {
     ...recovery,
     "",
     "## Dependencies and workflow position",
+    "",
+    "Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.",
+    "A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.",
+    "Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).",
     "",
     ...dependencies,
     "",

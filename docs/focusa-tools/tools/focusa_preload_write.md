@@ -1,6 +1,6 @@
 # `focusa_preload_write`
 
-Write a Spec 111 preload packet to an allowlisted target with an idempotency key. Use it when Write an agent bootstrap packet to an allowlisted target. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Write a Spec 111 preload packet to an allowlisted target with an idempotency key. Use it when Write an agent bootstrap packet to an allowlisted target. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -52,8 +52,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"write","route_family":"preload"}`
 - Authority: `{"kind":"canonical","path":"/v1/preload/write"}`
 - Side effects: `write_project_files`, `write_project_files`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -65,10 +65,14 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_preload_receipt_preview` (likely_next)
 - `focusa_preload_verify` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_preload_receipt_preview`, `focusa_preload_verify`.
 
 ## Skills, protocols, and source authority
@@ -79,4 +83,4 @@ Likely next: `focusa_preload_receipt_preview`, `focusa_preload_verify`.
 - CLI: `focusa preload write`.
 - REST: `POST /v1/preload/write`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:65394673f3c18b24cc1d994364bf2f02862211e9a0d4bcc96ee6e0a50fd464c5`.
+- Descriptor digest: `sha256:729714ba61a9205bb0ac7ffd2fa8dd17a6a98753d140ab6a30a32a2f907751bd`.

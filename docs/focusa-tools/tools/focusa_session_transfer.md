@@ -1,6 +1,6 @@
 # `focusa_session_transfer`
 
-Typed save/continue/rollover wrapper for moving long work between Pi sessions without forking or continuity-id fingerprint fallback. Use it when Save, continue, or Spec130-roll over a long Focusa/Pi work session with explicit source_scope/target_scope or target_continuity_id, source/target session ids, checkpoint/packet refs, and rollover action. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Typed save/continue/rollover wrapper for moving long work between Pi sessions without forking or continuity-id fingerprint fallback. Use it when Save, continue, or Spec130-roll over a long Focusa/Pi work session with explicit source_scope/target_scope or target_continuity_id, source/target session ids, checkpoint/packet refs, and rollover action. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -69,8 +69,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"explicit_source_target_scope"}`
 - Authority: `{"kind":"advisory_only"}`
 - Side effects: `save_may_checkpoint_workpoint`, `save_may_checkpoint_workpoint`
-- Read-only: `false`; destructive: `false`; idempotent: `false`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -82,11 +82,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_project_card` (likely_next)
 - `focusa_trajectory_view` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_workpoint_resume`, `focusa_project_card`, `focusa_trajectory_view`.
 
 ## Skills, protocols, and source authority
@@ -97,4 +101,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_project_card`, `focusa_trajector
 - CLI: `focusa project session-transfer`.
 - REST: `POST /v1/project/session-transfer`, `GET /v1/project/card`, `POST /v1/workpoint/checkpoint`, `POST /v1/workpoint/resume`, `GET /v1/trajectory/view`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:ccdc3e7ba8a69b9c252e1379f84d020afec9fde70750f9944ee509cd8dc6d3e6`.
+- Descriptor digest: `sha256:1a5411175b789bd62871138ba99d2651befe2003a27db131fac2b81879b394b8`.

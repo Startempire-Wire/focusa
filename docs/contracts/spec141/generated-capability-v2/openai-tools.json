@@ -1,12 +1,12 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:3ab7b43ff99d56cd26f7fbc134ea73ed159f428de3b001a8cf66e500921776eb",
+  "registry_digest": "sha256:f151c1d2e5e10681410e561b5fa844d4013b4a82989753d8d45d2b5f49be1fc0",
   "tools": [
     {
       "type": "function",
       "function": {
         "name": "focusa_active_object_resolve",
-        "description": "Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. Use it when Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. Use it when Resolve likely active object references from the current Workpoint and optional hint without inventing canonical refs. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -24,7 +24,7 @@
       "type": "function",
       "function": {
         "name": "focusa_agent_artifact_delivery",
-        "description": "Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference. Use it when Operate the Spec 140 agent artifact delivery surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference. Use it when Operate the Spec 140 agent artifact delivery surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -49,7 +49,7 @@
       "type": "function",
       "function": {
         "name": "focusa_agent_artifact_preview",
-        "description": "Preview a Spec 140 artifact delivery manifest; never writes files. Use it when Operate the Spec 140 agent artifact preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Preview a Spec 140 artifact delivery manifest; never writes files. Use it when Operate the Spec 140 agent artifact preview surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -69,7 +69,7 @@
       "type": "function",
       "function": {
         "name": "focusa_agent_artifact_verify",
-        "description": "Verify content hashes and evidence for a Runtime Constitution delivery manifest. Use it when Operate the Spec 140 agent artifact verify surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Verify content hashes and evidence for a Runtime Constitution delivery manifest. Use it when Operate the Spec 140 agent artifact verify surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -89,7 +89,7 @@
       "type": "function",
       "function": {
         "name": "focusa_agent_card",
-        "description": "Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full schemas. Use it when Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read a compact, versioned Focusa Agent Card for cross-harness discovery. Returns interfaces, auth methods, progressive-discovery entry points, capability families, registry digest guidance, and extended-card routes without loading full schemas. Use it when Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -107,7 +107,7 @@
       "type": "function",
       "function": {
         "name": "focusa_agent_prompt",
-        "description": "Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls. Use it when Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls. Use it when Retrieve the Pi-aware daemon reminder and canonical tool-layer guidance to prevent raw curl/fetch drift. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -120,7 +120,7 @@
       "type": "function",
       "function": {
         "name": "focusa_agent_runtime_doctor",
-        "description": "Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness. Use it when Operate the Spec 140 agent runtime doctor surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness. Use it when Operate the Spec 140 agent runtime doctor surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -133,7 +133,7 @@
       "type": "function",
       "function": {
         "name": "focusa_agent_runtime_effective",
-        "description": "Read effective project instruction claims and unresolved conflicts under Spec 140. Use it when Operate the Spec 140 agent runtime effective surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read effective project instruction claims and unresolved conflicts under Spec 140. Use it when Operate the Spec 140 agent runtime effective surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -158,7 +158,7 @@
       "type": "function",
       "function": {
         "name": "focusa_agent_runtime_headless_verify",
-        "description": "Verify foundational runtime capability parity without Mission Canvas or generated UI availability. Use it when Operate the Spec 140 agent runtime headless verify surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Verify foundational runtime capability parity without Mission Canvas or generated UI availability. Use it when Operate the Spec 140 agent runtime headless verify surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -178,7 +178,7 @@
       "type": "function",
       "function": {
         "name": "focusa_awareness_packet",
-        "description": "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools, including Spec 111 preload status surfaces. Use it when Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. Use on reload, post-compaction, tool guidance, warning, or UIAI bridge surfaces. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools, including Spec 111 preload status surfaces. Use it when Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools. Use on reload, post-compaction, tool guidance, warning, or UIAI bridge surfaces. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -254,7 +254,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bg_run",
-        "description": "Run a terminal-blocking command in the background as a first-class Focusa job. Daemon creation requires exact attachment-backed North Star admission; completion receipts remain writable for already-admitted jobs. The front terminal receives completion with bounded output tail (no polling). Use instead of raw setsid/nohup shells whenever Focusa is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Run a terminal-blocking command in the background as a first-class Focusa job. Daemon creation requires exact attachment-backed North Star admission; completion receipts remain writable for already-admitted jobs. The front terminal receives completion with bounded output tail (no polling). Use instead of raw setsid/nohup shells whenever Focusa is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -287,7 +287,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bg_run_many",
-        "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each creation requires exact attachment-backed North Star admission; admitted jobs complete independently and deliver bounded output through SSE. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each creation requires exact attachment-backed North Star admission; admitted jobs complete independently and deliver bounded output through SSE. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -333,7 +333,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bg_status",
-        "description": "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -352,7 +352,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_domain",
-        "description": "Spec 101 — read one Bloatgaurd budget domain and its checks/findings. Use it when Spec 101 — read one Bloatgaurd budget domain and its checks/findings. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read one Bloatgaurd budget domain and its checks/findings. Use it when Spec 101 — read one Bloatgaurd budget domain and its checks/findings. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -375,7 +375,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_gate_mode",
-        "description": "Spec 101 — read one Bloatgaurd gate mode by code/name. Use it when Spec 101 — read one Bloatgaurd gate mode by code/name. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read one Bloatgaurd gate mode by code/name. Use it when Spec 101 — read one Bloatgaurd gate mode by code/name. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -398,7 +398,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_gate_modes",
-        "description": "Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. Use it when Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. Use it when Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -411,7 +411,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_profile",
-        "description": "Spec 101 — read one profile preset by name. Use it when Spec 101 — read one profile preset by name. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read one profile preset by name. Use it when Spec 101 — read one profile preset by name. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -434,7 +434,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_profiles",
-        "description": "Spec 101 — read profile presets and operator switches. Use it when Spec 101 — read profile presets and operator switches. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read profile presets and operator switches. Use it when Spec 101 — read profile presets and operator switches. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -447,7 +447,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_report",
-        "description": "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8. Use it when Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8. Use it when Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -460,7 +460,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_rollout",
-        "description": "Spec 101 — read rollout phases, acceptance checks, and proof commands. Use it when Spec 101 — read rollout phases, acceptance checks, and proof commands. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read rollout phases, acceptance checks, and proof commands. Use it when Spec 101 — read rollout phases, acceptance checks, and proof commands. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -473,7 +473,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_routine",
-        "description": "Spec 101 — read one named routine by name. Use it when Spec 101 — read one named routine by name. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read one named routine by name. Use it when Spec 101 — read one named routine by name. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -496,7 +496,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_routines",
-        "description": "Spec 101 — read named routines and automation matrix. Use it when Spec 101 — read named routines and automation matrix. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read named routines and automation matrix. Use it when Spec 101 — read named routines and automation matrix. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -509,7 +509,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_tokenbloat_domain",
-        "description": "Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries. Use it when Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries. Use it when Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/boundaries. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -532,7 +532,7 @@
       "type": "function",
       "function": {
         "name": "focusa_bloatgaurd_tokenbloat_report",
-        "description": "Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. Use it when Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. Use it when Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -545,7 +545,7 @@
       "type": "function",
       "function": {
         "name": "focusa_browser_capabilities_intake",
-        "description": "Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability descriptors without executing them. Use it when Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Validate and govern a UIAI or WebMCP browser capability manifest. Binds page tools to one session and origin, treats page safety annotations as untrusted, requires confirmation/evidence for mutation, and returns Focusa browser capability descriptors without executing them. Use it when Validate and session/origin-bind UIAI or WebMCP page capabilities under Focusa governance. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -632,7 +632,7 @@
       "type": "function",
       "function": {
         "name": "focusa_browser_diagnostics_intake",
-        "description": "Turn UIAI/browser diagnostics JSON into bounded Focusa evidence, active-object hints, a prediction candidate, and a metacog candidate. Use it when Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Turn UIAI/browser diagnostics JSON into bounded Focusa evidence, active-object hints, a prediction candidate, and a metacog candidate. Use it when Turn UIAI/browser diagnostics JSON into bounded Workpoint evidence, active-object hints, prediction context, and optional metacog learning. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -689,7 +689,7 @@
       "type": "function",
       "function": {
         "name": "focusa_browser_workflow_plan",
-        "description": "Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps. Use it when Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Build the governed UIAI/WebMCP sequence for one browser operation before action. Returns health, read/source, diagnostics, snapshot refs, mutation confirmation, bound execution, evidence intake, Workpoint linkage, and session cleanup steps. Use it when Plan a governed UIAI/WebMCP read, action, diagnostics, evidence, and cleanup sequence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -724,7 +724,7 @@
       "type": "function",
       "function": {
         "name": "focusa_call_stack_design",
-        "description": "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold (entry → handlers → services → adapters → storage → output) that the operator/agent fills in for the specific feature. Per Spec 103. Use it when Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold (entry → handlers → services → adapters → storage → output) that the operator/agent fills in for the specific feature. Per Spec 103. Use it when Write a typed, append-only Call Stack Design for a feature before implementation. Returns the standard Focusa call stack scaffold. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -804,7 +804,7 @@
       "type": "function",
       "function": {
         "name": "focusa_call_stack_verify",
-        "description": "Verify a Call Stack Design against bounded implementation surfaces and report drift: entry surface, handlers, services, adapters, storage, output envelope, evidence, and Workpoint/STG alignment. Advisory only. Use it when Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Verify a Call Stack Design against bounded implementation surfaces and report drift: entry surface, handlers, services, adapters, storage, output envelope, evidence, and Workpoint/STG alignment. Advisory only. Use it when Verify a Call Stack Design against bounded implementation surfaces and report drift without mutating Focus State. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -838,7 +838,7 @@
       "type": "function",
       "function": {
         "name": "focusa_callgraph_observe",
-        "description": "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Observe a CallGraph run: ledger row, dispatches, paths, and the deterministic replay frontier. Read-only. Use it when Observe one CallGraph run's ledger row, dispatches, paths, and deterministic replay frontier without mutation. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -859,7 +859,7 @@
       "type": "function",
       "function": {
         "name": "focusa_callgraph_validate",
-        "description": "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when validating a CallGraph definition deterministically before any create or dispatch action. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Validate a CallGraph definition against the Spec 155 structural rules (identity, endpoints, entries, joins, compensation, per-cycle policy). Pure + deterministic. Use it when validating a CallGraph definition deterministically before any create or dispatch action. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -881,7 +881,7 @@
       "type": "function",
       "function": {
         "name": "focusa_canonical_instruction_amendment_activate",
-        "description": "Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -906,7 +906,7 @@
       "type": "function",
       "function": {
         "name": "focusa_canonical_instruction_amendment_propose",
-        "description": "Record an operator-originated canonical instruction amendment proposal without activating it. Use it when Operate the Spec 140 canonical instruction amendment propose surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Record an operator-originated canonical instruction amendment proposal without activating it. Use it when Operate the Spec 140 canonical instruction amendment propose surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -926,7 +926,7 @@
       "type": "function",
       "function": {
         "name": "focusa_cockpit_projection",
-        "description": "Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation. Use it when Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read a bounded cockpit projection of worksets, CallGraph frontiers, steers and background jobs. Failed or incomplete reads never imply empty or settled work; registration alone does not prove installed support or project isolation. Use it when Read a bounded cockpit projection of Worksets, CallGraph frontiers, direction steers, and background jobs; failed or incomplete reads never imply empty or settled work. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -944,7 +944,7 @@
       "type": "function",
       "function": {
         "name": "focusa_constraint",
-        "description": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars. Use it when Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars. Use it when Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries from environment/architecture — NOT self-imposed tasks. Max 200 chars. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -969,7 +969,7 @@
       "type": "function",
       "function": {
         "name": "focusa_context_cognition",
-        "description": "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state. Use it when Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Returns a typed packet describing scope, authority, freshness, selected context, ontology frame, evidence frame, reasoning frame, optimization frame, and route frame. Never mutates state. Use it when Build the bounded, advisory Spec 100 ContextCognitionPacket for the current project. Never mutates state. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1002,7 +1002,7 @@
       "type": "function",
       "function": {
         "name": "focusa_context_cognition_curate",
-        "description": "Spec 100 Phase 3 — token-budgeted context selection. Takes candidates (files/docs/diffs/snippets/codemaps/evidence) and selects the highest-scoring subset under a token budget. Returns selected_context + excluded_context (with reasons). Use it when Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 100 Phase 3 — token-budgeted context selection. Takes candidates (files/docs/diffs/snippets/codemaps/evidence) and selects the highest-scoring subset under a token budget. Returns selected_context + excluded_context (with reasons). Use it when Spec 100 Phase 3 — token-budgeted context selection. Ranks candidates by workpoint target + evidence overlap and selects the highest-scoring subset under a token budget. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1078,7 +1078,7 @@
       "type": "function",
       "function": {
         "name": "focusa_context_cognition_curate_eval",
-        "description": "Spec 100 Phase 4 — run a curator eval case. Computes precision/recall/F1 vs. expected_selected_paths. Appends to curator-eval-ledger/{hash}/eval-runs.jsonl. Returns run_id, eval_ref, scores, and promoted flag (F1 > baseline_f1 AND F1 >= score_threshold). Use it when Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 100 Phase 4 — run a curator eval case. Computes precision/recall/F1 vs. expected_selected_paths. Appends to curator-eval-ledger/{hash}/eval-runs.jsonl. Returns run_id, eval_ref, scores, and promoted flag (F1 > baseline_f1 AND F1 >= score_threshold). Use it when Spec 100 Phase 4 — run a curator eval case, compute precision/recall/F1, append to curator-eval-ledger JSONL. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1169,7 +1169,7 @@
       "type": "function",
       "function": {
         "name": "focusa_context_cognition_curate_optimize",
-        "description": "Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision. Returns the decision per the §15 promotion rule (eval_score > baseline_score AND eval_score >= score_threshold). Appends to cognition-optimizer-artifacts/{hash}/artifacts.jsonl. Use it when Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision per §15 promotion rule. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision. Returns the decision per the §15 promotion rule (eval_score > baseline_score AND eval_score >= score_threshold). Appends to cognition-optimizer-artifacts/{hash}/artifacts.jsonl. Use it when Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/rollback decision per §15 promotion rule. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1233,7 +1233,7 @@
       "type": "function",
       "function": {
         "name": "focusa_context_cognition_optimizer_artifacts",
-        "description": "Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module. Returns the recent artifact list and the latest promoted artifact (if any). Use it when Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module. Returns the recent artifact list and the latest promoted artifact (if any). Use it when Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a project+module. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1262,7 +1262,7 @@
       "type": "function",
       "function": {
         "name": "focusa_context_cognition_proof",
-        "description": "Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits). Returns bounded command list. Read-only. Use it when Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits). Returns bounded command list. Read-only. Use it when Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + audits). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1286,7 +1286,7 @@
       "type": "function",
       "function": {
         "name": "focusa_context_cognition_render",
-        "description": "Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). Returns bounded lines + the packet's workpoint_id, trajectory_id, and rehydrate_id. Advisory only. Use it when Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). Returns bounded lines + the packet's workpoint_id, trajectory_id, and rehydrate_id. Advisory only. Use it when Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menubar). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1310,7 +1310,7 @@
       "type": "function",
       "function": {
         "name": "focusa_credentials_verify",
-        "description": "Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Evaluate supplied grant models against a requirement — advisory and secret-free, never credential-use authorization. Supply exact requirement identity; no scope is inferred. Use it when Credential Authority model check: evaluate supplied grants against one requirement without exposing secret values; advisory only, never credential-use authorization. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1441,7 +1441,7 @@
       "type": "function",
       "function": {
         "name": "focusa_current_focus",
-        "description": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). Use it when Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). Use it when Update current focus — what you are actively working on right now (1-3 sentences, max 300 chars). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1462,7 +1462,7 @@
       "type": "function",
       "function": {
         "name": "focusa_daemon_routing_status",
-        "description": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Use it when Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Use it when Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1498,7 +1498,7 @@
       "type": "function",
       "function": {
         "name": "focusa_decide",
-        "description": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=160 chars) — architectural choices only, not task lists. Use it when Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=160 chars) — architectural choices only, not task lists. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=160 chars) — architectural choices only, not task lists. Use it when Record a crystallized architectural decision in Focus State. Use focusa_scratch for working notes first. Decisions are ONE sentence (<=160 chars) — architectural choices only, not task lists. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1523,7 +1523,7 @@
       "type": "function",
       "function": {
         "name": "focusa_device_pair_complete",
-        "description": "Complete a pending pairing (run on the VPS side; returns the long-lived token). Idempotent: re-running with the same code returns the original token. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Complete a pending pairing (run on the VPS side; returns the long-lived token). Idempotent: re-running with the same code returns the original token. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Run on the VPS side; returns the long-lived token. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1556,7 +1556,7 @@
       "type": "function",
       "function": {
         "name": "focusa_device_pair_list",
-        "description": "List paired devices for a host (append-only JSONL ledger, scope-bounded). Returns the recent device list with name, scopes, paired_at, last_seen_at, revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "List paired devices for a host (append-only JSONL ledger, scope-bounded). Returns the recent device list with name, scopes, paired_at, last_seen_at, revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). List paired devices for a host (append-only JSONL ledger). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1580,7 +1580,7 @@
       "type": "function",
       "function": {
         "name": "focusa_device_pair_qr",
-        "description": "Mac menubar OAuth-like device pairing with QR handoff (Spec focusa-ui0y, Mode B). Calls /v1/device/pair/start and returns pair_url + pair_url_qr_payload prominently so the Mac menubar can render a QR the operator's phone can scan. Use it when Mac menubar OAuth-like device pairing with QR handoff (focusa-ui0y, Mode B). Same as pair_start but surfaces pair_url for QR rendering (Telegram/Discord-style). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Mac menubar OAuth-like device pairing with QR handoff (Spec focusa-ui0y, Mode B). Calls /v1/device/pair/start and returns pair_url + pair_url_qr_payload prominently so the Mac menubar can render a QR the operator's phone can scan. Use it when Mac menubar OAuth-like device pairing with QR handoff (focusa-ui0y, Mode B). Same as pair_start but surfaces pair_url for QR rendering (Telegram/Discord-style). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1614,7 +1614,7 @@
       "type": "function",
       "function": {
         "name": "focusa_device_pair_revoke",
-        "description": "Revoke a paired device. Appends a new entry with revoked=true to the append-only JSONL ledger and removes the in-memory token. The next call from the device will be rejected with status=revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Revoke a paired device. Appends a new entry with revoked=true to the append-only JSONL ledger and removes the in-memory token. The next call from the device will be rejected with status=revoked. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Revoke a paired device; appends revoked=true to ledger. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1643,7 +1643,7 @@
       "type": "function",
       "function": {
         "name": "focusa_device_pair_start",
-        "description": "Mac menubar OAuth-like device pairing (Spec focusa-ui0y). Generate an 8-char pairing code (FOCUS-XXXX-XXXX, 5 min TTL). The operator runs `focusa device pair-complete <code>` on their VPS, then the Mac app polls focusa_device_pair_status to retrieve the long-lived token (30 day TTL). Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Mac menubar OAuth-like device pairing (Spec focusa-ui0y). Generate an 8-char pairing code (FOCUS-XXXX-XXXX, 5 min TTL). The operator runs `focusa device pair-complete <code>` on their VPS, then the Mac app polls focusa_device_pair_status to retrieve the long-lived token (30 day TTL). Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Generate an 8-char code + pair_url for VPS-side completion via CLI, QR+phone, or QR+VPS browser. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1677,7 +1677,7 @@
       "type": "function",
       "function": {
         "name": "focusa_device_pair_status",
-        "description": "Check the status of a pending or completed pairing by code OR by device_id. Returns the token (when completed) + status + scopes + expires_at. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Check the status of a pending or completed pairing by code OR by device_id. Returns the token (when completed) + status + scopes + expires_at. Use it when Mac menubar OAuth-like device pairing (focusa-ui0y). Check pairing status by code or device_id. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1699,7 +1699,7 @@
       "type": "function",
       "function": {
         "name": "focusa_dxux_digest",
-        "description": "Spec105 — read compact continuation/doability digest. Use it when Spec105 — read compact continuation/doability digest. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec105 — read compact continuation/doability digest. Use it when Spec105 — read compact continuation/doability digest. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1712,7 +1712,7 @@
       "type": "function",
       "function": {
         "name": "focusa_dxux_explain",
-        "description": "Spec105 — explain a failure and return recovery commands. Use it when Spec105 — explain a failure and return recovery commands. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec105 — explain a failure and return recovery commands. Use it when Spec105 — explain a failure and return recovery commands. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1735,7 +1735,7 @@
       "type": "function",
       "function": {
         "name": "focusa_dxux_report",
-        "description": "Spec105 — read implementation report for DXUX-001..012. Use it when Spec105 — read implementation report for DXUX-001..012. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec105 — read implementation report for DXUX-001..012. Use it when Spec105 — read implementation report for DXUX-001..012. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1748,7 +1748,7 @@
       "type": "function",
       "function": {
         "name": "focusa_dxux_requirement",
-        "description": "Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DXUX requirement by id. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Spec105 — read one DXUX requirement by id. Use it when Spec105 — read one DXUX requirement by id. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1771,7 +1771,7 @@
       "type": "function",
       "function": {
         "name": "focusa_epistemic_operation",
-        "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons; the client never settles authority locally. Use it when Invoke one exact generated Spec 138/138A operation through durable typed API authority, preserving explicit scope and bounded failure reasons. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1915,7 +1915,7 @@
       "type": "function",
       "function": {
         "name": "focusa_evidence_capture",
-        "description": "Capture a bounded evidence ref/result and optionally link it to the active Workpoint. Use it when Capture a bounded evidence ref/result and optionally link it to the active Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Capture a bounded evidence ref/result and optionally link it to the active Workpoint. Use it when Capture a bounded evidence ref/result and optionally link it to the active Workpoint. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1966,7 +1966,7 @@
       "type": "function",
       "function": {
         "name": "focusa_failure",
-        "description": "Record a specific failure with diagnosis in Focus State. Must identify WHAT failed and WHY (or suspected why). Max 300 chars. Use it when Record a specific failure with diagnosis in Focus State. Must identify WHAT failed and WHY (or suspected why). Max 300 chars. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Record a specific failure with diagnosis in Focus State. Must identify WHAT failed and WHY (or suspected why). Max 300 chars. Use it when Record a specific failure with diagnosis in Focus State. Must identify WHAT failed and WHY (or suspected why). Max 300 chars. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -1991,7 +1991,7 @@
       "type": "function",
       "function": {
         "name": "focusa_fast_forward",
-        "description": "Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Fast-forward session completion by multiplying parallel workloop-bound silent sessions (2x/4x/6x/8x...). Compiles the deterministic FanoutPlan — round-robin task division across lanes with per-lane policy budgets — then returns the plan; each lane executes as one silent session bound to its work items (docs/168, #312). Use it when Compile a deterministic fanout plan that divides work items across bounded workloop-linked silent-session lanes. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2024,7 +2024,7 @@
       "type": "function",
       "function": {
         "name": "focusa_hlt_history",
-        "description": "Read append-only HLT ledger entries with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. Use it when Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read append-only HLT ledger entries with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. Use it when Read append-only HLT change history with session filters, fallback candidates, and generic HLT tracking. Spec 125 §7.2-7.6. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2064,7 +2064,7 @@
       "type": "function",
       "function": {
         "name": "focusa_instruction_conflicts",
-        "description": "Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked. Use it when Operate the Spec 140 instruction conflicts surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked. Use it when Operate the Spec 140 instruction conflicts surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2088,7 +2088,7 @@
       "type": "function",
       "function": {
         "name": "focusa_instruction_explain",
-        "description": "Explain one instruction claim from the current bounded source inventory. Use it when Operate the Spec 140 instruction explain surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Explain one instruction claim from the current bounded source inventory. Use it when Operate the Spec 140 instruction explain surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2116,7 +2116,7 @@
       "type": "function",
       "function": {
         "name": "focusa_instruction_integrity_evaluate",
-        "description": "Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision. Use it when Operate the Spec 140 instruction integrity evaluate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision. Use it when Operate the Spec 140 instruction integrity evaluate surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2136,7 +2136,7 @@
       "type": "function",
       "function": {
         "name": "focusa_instruction_integrity_status",
-        "description": "Read foundational guard availability, amendment authority, and outage posture. Use it when Operate the Spec 140 instruction integrity status surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read foundational guard availability, amendment authority, and outage posture. Use it when Operate the Spec 140 instruction integrity status surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2149,7 +2149,7 @@
       "type": "function",
       "function": {
         "name": "focusa_instruction_simulate",
-        "description": "Preview path/profile/target-specific instruction behavior without committing changes. Use it when Operate the Spec 140 instruction simulate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Preview path/profile/target-specific instruction behavior without committing changes. Use it when Operate the Spec 140 instruction simulate surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2182,7 +2182,7 @@
       "type": "function",
       "function": {
         "name": "focusa_instruction_sources",
-        "description": "Discover bounded, registered project instruction sources with trust and authority metadata. Use it when Operate the Spec 140 instruction sources surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Discover bounded, registered project instruction sources with trust and authority metadata. Use it when Operate the Spec 140 instruction sources surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2206,7 +2206,7 @@
       "type": "function",
       "function": {
         "name": "focusa_intent",
-        "description": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). Use it when Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). Use it when Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2227,7 +2227,7 @@
       "type": "function",
       "function": {
         "name": "focusa_li_tree_extract",
-        "description": "Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding. Use it when Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding. Use it when Extract decision/constraint/risk signals and reflection trigger from lineage tree for metacognitive compounding. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2249,7 +2249,7 @@
       "type": "function",
       "function": {
         "name": "focusa_lineage_tree",
-        "description": "Fetch a bounded Focusa lineage window for /tree-aware reasoning. Full tree requires explicit cold opt-in. Use it when Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Fetch a bounded Focusa lineage window for /tree-aware reasoning. Full tree requires explicit cold opt-in. Use it when Fetch Focusa lineage tree for /tree-aware reasoning and LI addon workflows. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2275,7 +2275,7 @@
       "type": "function",
       "function": {
         "name": "focusa_metacog_capture",
-        "description": "Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson. Use it when Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson. Use it when Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2328,7 +2328,7 @@
       "type": "function",
       "function": {
         "name": "focusa_metacog_doctor",
-        "description": "Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. Use it when Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. Use it when Diagnose signal quality and retrieval usefulness in one move. Best safe diagnostic tool when deciding whether more capture or reflection work is needed. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2365,7 +2365,7 @@
       "type": "function",
       "function": {
         "name": "focusa_metacog_evaluate_outcome",
-        "description": "Judge whether an adjustment improved results and whether the learning should be promoted. Use it when Judge whether an adjustment improved results and whether the learning should be promoted. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Judge whether an adjustment improved results and whether the learning should be promoted. Use it when Judge whether an adjustment improved results and whether the learning should be promoted. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2399,7 +2399,7 @@
       "type": "function",
       "function": {
         "name": "focusa_metacog_loop_run",
-        "description": "Run capture -> retrieve -> reflect -> adjust -> evaluate in one move. Best composite tool when you want learning workflow compression instead of manual chaining. Use it when Run capture -> retrieve -> reflect -> adjust -> evaluate in one move. Best composite tool when you want learning workflow compression instead of manual chaining. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Run capture -> retrieve -> reflect -> adjust -> evaluate in one move. Best composite tool when you want learning workflow compression instead of manual chaining. Use it when Run capture -> retrieve -> reflect -> adjust -> evaluate in one move. Best composite tool when you want learning workflow compression instead of manual chaining. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2494,7 +2494,7 @@
       "type": "function",
       "function": {
         "name": "focusa_metacog_plan_adjust",
-        "description": "Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement. Use it when Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement. Use it when Turn a reflection into a tracked adjustment artifact that can later be evaluated for real improvement. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2528,7 +2528,7 @@
       "type": "function",
       "function": {
         "name": "focusa_metacog_recent_adjustments",
-        "description": "Best safe helper for finding recent adjustment ids before evaluation or promotion decisions. Use it when Best safe helper for finding recent adjustment ids before evaluation or promotion decisions. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Best safe helper for finding recent adjustment ids before evaluation or promotion decisions. Use it when Best safe helper for finding recent adjustment ids before evaluation or promotion decisions. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2548,7 +2548,7 @@
       "type": "function",
       "function": {
         "name": "focusa_metacog_recent_reflections",
-        "description": "Best safe helper for finding recent reflection ids and update sets before adjust or promote work. Use it when Best safe helper for finding recent reflection ids and update sets before adjust or promote work. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Best safe helper for finding recent reflection ids and update sets before adjust or promote work. Use it when Best safe helper for finding recent reflection ids and update sets before adjust or promote work. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2568,7 +2568,7 @@
       "type": "function",
       "function": {
         "name": "focusa_metacog_reflect",
-        "description": "Generate reusable hypotheses and strategy updates from recent turns when you need learning from past outcomes. Use it when Generate reusable hypotheses and strategy updates from recent turns when you need learning from past outcomes. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Generate reusable hypotheses and strategy updates from recent turns when you need learning from past outcomes. Use it when Generate reusable hypotheses and strategy updates from recent turns when you need learning from past outcomes. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2602,7 +2602,7 @@
       "type": "function",
       "function": {
         "name": "focusa_metacog_retrieve",
-        "description": "Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection. Use it when Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection. Use it when Best safe search tool for past learning signals relevant to the current ask. Use this before planning or reflection. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2641,7 +2641,7 @@
       "type": "function",
       "function": {
         "name": "focusa_next_step",
-        "description": "Record what you plan to do next (max 160 chars). Use it when Record what you plan to do next (max 160 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Record what you plan to do next (max 160 chars). Use it when Record what you plan to do next (max 160 chars). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2662,7 +2662,7 @@
       "type": "function",
       "function": {
         "name": "focusa_north_star_gate",
-        "description": "Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2697,7 +2697,7 @@
       "type": "function",
       "function": {
         "name": "focusa_note",
-        "description": "Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. Use it when Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. Use it when Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2718,7 +2718,7 @@
       "type": "function",
       "function": {
         "name": "focusa_ontology_scope_migration",
-        "description": "Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred. Use it when Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred. Use it when Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2830,7 +2830,7 @@
       "type": "function",
       "function": {
         "name": "focusa_open_question",
-        "description": "Record an open question that needs to be answered (max 180 chars). Use it when Record an open question that needs to be answered (max 180 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Record an open question that needs to be answered (max 180 chars). Use it when Record an open question that needs to be answered (max 180 chars). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2851,7 +2851,7 @@
       "type": "function",
       "function": {
         "name": "focusa_predict_evaluate",
-        "description": "Evaluate a prediction inside its exact typed project/workstream scope. Use it when Evaluate a Focusa prediction against an actual outcome and optional score; required before final task completion when relevant predictions exist. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Evaluate a prediction inside its exact typed project/workstream scope. Use it when Evaluate a Focusa prediction against an actual outcome and optional score; required before final task completion when relevant predictions exist. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2893,7 +2893,7 @@
       "type": "function",
       "function": {
         "name": "focusa_predict_recent",
-        "description": "List recent predictions from one typed project/workstream scope. Use it when List recent bounded Focusa prediction records. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "List recent predictions from one typed project/workstream scope. Use it when List recent bounded Focusa prediction records. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2919,7 +2919,7 @@
       "type": "function",
       "function": {
         "name": "focusa_predict_record",
-        "description": "Record a bounded, inspectable Focusa prediction. Predictions guide decisions; they never override operator steering. Use it when Record a bounded, inspectable Focusa prediction; core at task start, trajectory review, compaction review, and end-of-task reports. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Record a bounded, inspectable Focusa prediction. Predictions guide decisions; they never override operator steering. Use it when Record a bounded, inspectable Focusa prediction; core at task start, trajectory review, compaction review, and end-of-task reports. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2978,7 +2978,7 @@
       "type": "function",
       "function": {
         "name": "focusa_predict_stats",
-        "description": "Report prediction calibration for one typed project/workstream scope. Use it when Report Focusa prediction accuracy/calibration stats for compaction cards, trajectory reviews, and work reports. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Report prediction calibration for one typed project/workstream scope. Use it when Report Focusa prediction accuracy/calibration stats for compaction cards, trajectory reviews, and work reports. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3000,7 +3000,7 @@
       "type": "function",
       "function": {
         "name": "focusa_prediction_authority",
-        "description": "Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope. Use it when Append or project immutable Spec 138 authority in typed scope. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope. Use it when Append or project immutable Spec 138 authority in typed scope. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3040,7 +3040,7 @@
       "type": "function",
       "function": {
         "name": "focusa_preload_build",
-        "description": "Build Preload Packet through the scoped Spec 111 preload API. Use it when Build a scoped agent bootstrap packet without writing it. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Build Preload Packet through the scoped Spec 111 preload API. Use it when Build a scoped agent bootstrap packet without writing it. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3085,7 +3085,7 @@
       "type": "function",
       "function": {
         "name": "focusa_preload_doctor",
-        "description": "Doctor Preload Scope through the scoped Spec 111 preload API. Use it when Diagnose bootstrap delivery readiness and recovery steps. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Doctor Preload Scope through the scoped Spec 111 preload API. Use it when Diagnose bootstrap delivery readiness and recovery steps. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3130,7 +3130,7 @@
       "type": "function",
       "function": {
         "name": "focusa_preload_profiles",
-        "description": "List bounded Spec 111 agent bootstrap profiles. Use it when List bounded agent bootstrap profiles. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "List bounded Spec 111 agent bootstrap profiles. Use it when List bounded agent bootstrap profiles. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3143,7 +3143,7 @@
       "type": "function",
       "function": {
         "name": "focusa_preload_receipt_commit",
-        "description": "Commit an idempotent Spec 111 bootstrap delivery receipt. Use it when Commit an idempotent bootstrap delivery receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Commit an idempotent Spec 111 bootstrap delivery receipt. Use it when Commit an idempotent bootstrap delivery receipt. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3186,7 +3186,7 @@
       "type": "function",
       "function": {
         "name": "focusa_preload_receipt_preview",
-        "description": "Preview a Spec 111 bootstrap delivery receipt without committing it. Use it when Preview a bootstrap delivery receipt without committing it. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Preview a Spec 111 bootstrap delivery receipt without committing it. Use it when Preview a bootstrap delivery receipt without committing it. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3221,7 +3221,7 @@
       "type": "function",
       "function": {
         "name": "focusa_preload_render",
-        "description": "Render Preload Packet through the scoped Spec 111 preload API. Use it when Render a scoped agent bootstrap packet. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Render Preload Packet through the scoped Spec 111 preload API. Use it when Render a scoped agent bootstrap packet. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3266,7 +3266,7 @@
       "type": "function",
       "function": {
         "name": "focusa_preload_verify",
-        "description": "Verify Preload Packet through the scoped Spec 111 preload API. Use it when Verify bootstrap packet scope and integrity. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Verify Preload Packet through the scoped Spec 111 preload API. Use it when Verify bootstrap packet scope and integrity. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3311,7 +3311,7 @@
       "type": "function",
       "function": {
         "name": "focusa_preload_write",
-        "description": "Write a Spec 111 preload packet to an allowlisted target with an idempotency key. Use it when Write an agent bootstrap packet to an allowlisted target. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Write a Spec 111 preload packet to an allowlisted target with an idempotency key. Use it when Write an agent bootstrap packet to an allowlisted target. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3363,7 +3363,7 @@
       "type": "function",
       "function": {
         "name": "focusa_project_bootstrap",
-        "description": "Preview, apply, inspect, or repair the idempotent local project-discipline baseline before Project Genesis. Use it when Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Preview, apply, inspect, or repair the idempotent local project-discipline baseline before Project Genesis. Use it when Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3458,7 +3458,7 @@
       "type": "function",
       "function": {
         "name": "focusa_project_card",
-        "description": "Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals. Use it when Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals. Use it when Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3510,7 +3510,7 @@
       "type": "function",
       "function": {
         "name": "focusa_project_card_outcome",
-        "description": "Attach a final outcome/result to a specific project-card algorithm_run_id and update learned project-card weights. Use it when Attach a verified result to a project-card algorithm_run_id so project-card learning weights and future bootstrap/sequence planning can improve. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Attach a final outcome/result to a specific project-card algorithm_run_id and update learned project-card weights. Use it when Attach a verified result to a project-card algorithm_run_id so project-card learning weights and future bootstrap/sequence planning can improve. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3561,7 +3561,7 @@
       "type": "function",
       "function": {
         "name": "focusa_project_genesis",
-        "description": "Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint. Use it when Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint. Use it when Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3656,7 +3656,7 @@
       "type": "function",
       "function": {
         "name": "focusa_project_identity",
-        "description": "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3708,7 +3708,7 @@
       "type": "function",
       "function": {
         "name": "focusa_project_verify",
-        "description": "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3772,7 +3772,7 @@
       "type": "function",
       "function": {
         "name": "focusa_prompt_variant_preview",
-        "description": "Compile and preview a target prompt variant without activation. Use it when Operate the Spec 140 prompt variant preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Compile and preview a target prompt variant without activation. Use it when Operate the Spec 140 prompt variant preview surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3792,7 +3792,7 @@
       "type": "function",
       "function": {
         "name": "focusa_recent_result",
-        "description": "Record a completed result, output, or reference (max 180 chars). Use it when Record a completed result, output, or reference (max 180 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Record a completed result, output, or reference (max 180 chars). Use it when Record a completed result, output, or reference (max 180 chars). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3813,7 +3813,7 @@
       "type": "function",
       "function": {
         "name": "focusa_reflex_primitives",
-        "description": "List bounded Spec97 Reflex Primitive summaries by family/query; read-only routing metadata, never mutation authority. Use it when Read bounded Spec97 Reflex Primitive summaries by family/query from the read-only registry; advisory routing metadata only, never mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "List bounded Spec97 Reflex Primitive summaries by family/query; read-only routing metadata, never mutation authority. Use it when Read bounded Spec97 Reflex Primitive summaries by family/query from the read-only registry; advisory routing metadata only, never mutation authority. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3845,7 +3845,7 @@
       "type": "function",
       "function": {
         "name": "focusa_resource_mode",
-        "description": "Read or control Focusa resource mode, including activating/deactivating LowMem mode when resources are constrained. Use it when Read or control Focusa ResourceMode, including activating or deactivating LowMem mode when resources are constrained. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read or control Focusa resource mode, including activating/deactivating LowMem mode when resources are constrained. Use it when Read or control Focusa ResourceMode, including activating or deactivating LowMem mode when resources are constrained. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3925,7 +3925,7 @@
       "type": "function",
       "function": {
         "name": "focusa_runtime_constitution_preview",
-        "description": "Preview a compiled Runtime Constitution without activation or artifact delivery. Use it when Operate the Spec 140 runtime constitution preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Preview a compiled Runtime Constitution without activation or artifact delivery. Use it when Operate the Spec 140 runtime constitution preview surface with typed scope and evidence. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3949,7 +3949,7 @@
       "type": "function",
       "function": {
         "name": "focusa_session_transfer",
-        "description": "Typed save/continue/rollover wrapper for moving long work between Pi sessions without forking or continuity-id fingerprint fallback. Use it when Save, continue, or Spec130-roll over a long Focusa/Pi work session with explicit source_scope/target_scope or target_continuity_id, source/target session ids, checkpoint/packet refs, and rollover action. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Typed save/continue/rollover wrapper for moving long work between Pi sessions without forking or continuity-id fingerprint fallback. Use it when Save, continue, or Spec130-roll over a long Focusa/Pi work session with explicit source_scope/target_scope or target_continuity_id, source/target session ids, checkpoint/packet refs, and rollover action. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4205,7 +4205,7 @@
       "type": "function",
       "function": {
         "name": "focusa_silent_sessions",
-        "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Creation, start, and resume require exact daemon North Star admission; pause, interrupt, cancel, and observation remain available for recovery. Process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Creation, start, and resume require exact daemon North Star admission; pause, interrupt, cancel, and observation remain available for recovery. Process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4339,7 +4339,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_checkpoint",
-        "description": "Create and verify an encrypted atomic connector checkpoint. Returns value-free receipt metadata only. Use it when Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Create and verify an encrypted atomic connector checkpoint. Returns value-free receipt metadata only. Use it when Create and verify an encrypted atomic connector checkpoint with value-free receipt metadata. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4367,7 +4367,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_enrollment",
-        "description": "Read value-free customer-owned connector enrollment status. Use it when Read value-free customer-owned connector enrollment status. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read value-free customer-owned connector enrollment status. Use it when Read value-free customer-owned connector enrollment status. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4380,7 +4380,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_events",
-        "description": "Read bounded value-free broker audit events. Use it when Read bounded value-free communications audit events. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read bounded value-free broker audit events. Use it when Read bounded value-free communications audit events. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4413,7 +4413,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_health",
-        "description": "Read value-free connector/checkpoint health. Never returns messages, cookies, pairing state, or OTP values. Use it when Read value-free connector and encrypted-checkpoint health. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read value-free connector/checkpoint health. Never returns messages, cookies, pairing state, or OTP values. Use it when Read value-free connector and encrypted-checkpoint health. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4426,7 +4426,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_otp_challenge",
-        "description": "Register an exact provider/target challenge before requesting OTP delivery. Returns a handle, never an OTP. Use it when Register an exact provider and target challenge before OTP delivery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Register an exact provider/target challenge before requesting OTP delivery. Returns a handle, never an OTP. Use it when Register an exact provider and target challenge before OTP delivery. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4464,7 +4464,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_otp_inject",
-        "description": "Inject one eligible OTP into its exact bound target. The OTP value never enters model context or tool output. Use it when Inject one eligible OTP into its exact bound target without exposing the value to model context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Inject one eligible OTP into its exact bound target. The OTP value never enters model context or tool output. Use it when Inject one eligible OTP into its exact bound target without exposing the value to model context. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4496,7 +4496,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_read_thread",
-        "description": "Read a bounded customer-authorized thread. OTP grants do not authorize this tool. Use it when Read one bounded customer-authorized thread; OTP authority never implies message-read authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read a bounded customer-authorized thread. OTP grants do not authorize this tool. Use it when Read one bounded customer-authorized thread; OTP authority never implies message-read authority. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4530,7 +4530,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_revoke",
-        "description": "Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Revoke one customer-owned connector and its grants. Destructive; requires confirm=true. Use it when Revoke one customer-owned connector and all associated grants with explicit confirmation. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4562,7 +4562,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_search",
-        "description": "Search customer-authorized message scope with bounded results. Use it when Search separately authorized message scope with bounded results. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Search customer-authorized message scope with bounded results. Use it when Search separately authorized message scope with bounded results. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4598,7 +4598,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_send",
-        "description": "Send one customer-authorized message. Requires separate send grant, idempotency key, consumer attribution, and confirm=true. Use it when Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Send one customer-authorized message. Requires separate send grant, idempotency key, consumer attribution, and confirm=true. Use it when Send one customer-authorized message with confirmation, idempotency, grant, and consumer attribution. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4640,7 +4640,7 @@
       "type": "function",
       "function": {
         "name": "focusa_sms_threads",
-        "description": "List customer-authorized thread summaries under a separately granted list_threads capability. Use it when List customer-authorized thread summaries under the separate list_threads grant. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "List customer-authorized thread summaries under a separately granted list_threads capability. Use it when List customer-authorized thread summaries under the separate list_threads grant. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4670,7 +4670,7 @@
       "type": "function",
       "function": {
         "name": "focusa_state_hygiene_apply",
-        "description": "Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. Use it when Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. Use it when Approval-gated, non-destructive hygiene apply; records an auditable Focus State note via reducer-backed /focus/update. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -4694,7 +4694,7 @@
       "type": "function",
       "function": {
         "name": "focusa_temporal_authority",
-        "description": "Read, commit, revise, observe, forecast, or preflight project-scoped temporal claims without fabricating deadlines or urgency. Use it when Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read, commit, revise, observe, forecast, or preflight project-scoped temporal claims without fabricating deadlines or urgency. Use it when Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5072,7 +5072,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tool_bundle",
-        "description": "Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection. Use it when Load one bounded capability family with schemas deferred by default. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection. Use it when Load one bounded capability family with schemas deferred by default. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5103,7 +5103,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tool_describe",
-        "description": "Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading unrelated tools. Use it when Cold-load one complete capability contract including strict schemas and recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Cold-load one complete runtime Focusa tool definition after search. Returns strict input/output schemas, operational guidance, authority, side effects, failures, recovery, dependencies, skills, docs, and protocol bindings without loading unrelated tools. Use it when Cold-load one complete capability contract including strict schemas and recovery. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5128,7 +5128,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tool_doctor",
-        "description": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Use it when Diagnose registry parity, Workpoint continuity and daemon health; diagnostic success is not operation execution proof or runtime mutation authority. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5146,7 +5146,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tool_graph",
-        "description": "Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies. Use it when Traverse bounded capability dependencies and likely-next workflow edges. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Traverse the bounded capability dependency and likely-next graph from one tool or family. Use it to plan a valid workflow sequence without loading the complete registry or inventing dependencies. Use it when Traverse bounded capability dependencies and likely-next workflow edges. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5179,7 +5179,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tool_search",
-        "description": "Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget. Use it when Search bounded capability metadata before cold-loading full schemas. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Search the bounded Focusa capability catalog before loading full schemas. Returns ranked metadata, scope, side-effect, skill, documentation, and discovery refs so agents can select the narrowest tool under token budget. Use it when Search bounded capability metadata before cold-loading full schemas. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5210,7 +5210,7 @@
       "type": "function",
       "function": {
         "name": "focusa_trajectory_assess",
-        "description": "Assess current project state against the desired Trajectory end state and return gaps/recommended action. Use it when Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Assess current project state against the desired Trajectory end state and return gaps/recommended action. Use it when Assess project current state against desired Trajectory end state and return gaps/recommended action; task-boundary reviews should cross-check predictions and metacog lessons. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5247,7 +5247,7 @@
       "type": "function",
       "function": {
         "name": "focusa_trajectory_checkpoint",
-        "description": "Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation. Use it when Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation. Use it when Create an advisory Trajectory checkpoint packet before compaction/model switch; pair with Workpoint checkpoint for canonical continuation. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5281,7 +5281,7 @@
       "type": "function",
       "function": {
         "name": "focusa_trajectory_define_goal",
-        "description": "Create an advisory per-project Trajectory goal candidate without changing task/execution authority. Use it when Create an advisory per-project Trajectory goal candidate, including HLT/MLG/STG/Waypoints, without changing task or execution authority. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Create an advisory per-project Trajectory goal candidate without changing task/execution authority. Use it when Create an advisory per-project Trajectory goal candidate, including HLT/MLG/STG/Waypoints, without changing task or execution authority. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5393,7 +5393,7 @@
       "type": "function",
       "function": {
         "name": "focusa_trajectory_propose_workpoint",
-        "description": "Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. Use it when Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. Use it when Propose an advisory Workpoint candidate from the active per-project Trajectory gap; does not promote or execute it. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5431,7 +5431,7 @@
       "type": "function",
       "function": {
         "name": "focusa_trajectory_resume",
-        "description": "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume. Use it when Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume, including prediction/metacog review prompts. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume. Use it when Resume per-project Trajectory orientation plus Workpoint handoff context after compaction/model switch/session resume, including prediction/metacog review prompts. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5470,7 +5470,7 @@
       "type": "function",
       "function": {
         "name": "focusa_trajectory_view",
-        "description": "Read the per-project Trajectory Intelligence view: project identity, goal/state/gap/evidence/drift, and next Workpoint candidate. Use it when Read the per-project Trajectory Intelligence view before acting: project identity, goal/state/gap/evidence/drift, next Workpoint candidate, and learning-loop context for task closure. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read the per-project Trajectory Intelligence view: project identity, goal/state/gap/evidence/drift, and next Workpoint candidate. Use it when Read the per-project Trajectory Intelligence view before acting: project identity, goal/state/gap/evidence/drift, next Workpoint candidate, and learning-loop context for task closure. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5513,7 +5513,7 @@
       "type": "function",
       "function": {
         "name": "focusa_traverse",
-        "description": "Read-only surgical traversal across large Focusa surfaces. Use for bounded lineage, ontology, evidence, telemetry, Workpoint, and registry slices instead of full payloads. Use it when Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read-only surgical traversal across large Focusa surfaces. Use for bounded lineage, ontology, evidence, telemetry, Workpoint, and registry slices instead of full payloads. Use it when Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5664,7 +5664,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tree_diff_context",
-        "description": "Best safe compare tool for snapshots. Use this instead of guessing what changed across checkpoints. Use it when Best safe compare tool for snapshots. Use this instead of guessing what changed across checkpoints. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Best safe compare tool for snapshots. Use this instead of guessing what changed across checkpoints. Use it when Best safe compare tool for snapshots. Use this instead of guessing what changed across checkpoints. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5696,7 +5696,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tree_head",
-        "description": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work. Use it when Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work. Use it when Best safe starting point for lineage work. Use first when you need current branch/head context before path, snapshot, diff, or restore work. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5716,7 +5716,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tree_path",
-        "description": "Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Use it when Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Use it when Safe ancestry lookup. Use when branch position or lineage depth matters and you do not want to infer it from prior turns. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5740,7 +5740,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tree_recent_snapshots",
-        "description": "Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id. Use it when Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id. Use it when Best safe helper for finding recent snapshot ids. Use this before diff or restore when you do not already know the right snapshot id. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5760,7 +5760,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tree_restore_state",
-        "description": "Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. Use it when Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. Use it when Restore a saved checkpoint when you need rollback or exact/merge recovery. State-changing tool. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5797,7 +5797,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tree_snapshot_compare_latest",
-        "description": "Create a fresh snapshot and compare it to the latest prior snapshot in one move. Best tool when you want checkpoint + diff without manual id hunting. Use it when Create a fresh snapshot and compare it to the latest prior snapshot in one move. Best tool when you want checkpoint + diff without manual id hunting. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Create a fresh snapshot and compare it to the latest prior snapshot in one move. Best tool when you want checkpoint + diff without manual id hunting. Use it when Create a fresh snapshot and compare it to the latest prior snapshot in one move. Best tool when you want checkpoint + diff without manual id hunting. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5822,7 +5822,7 @@
       "type": "function",
       "function": {
         "name": "focusa_tree_snapshot_state",
-        "description": "Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason. Use it when Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason. Use it when Create a recoverable checkpoint before risky work or comparisons. Best write tool for saving current state with a reason. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5847,7 +5847,7 @@
       "type": "function",
       "function": {
         "name": "focusa_utility_card",
-        "description": "Read compact bootstrap, post-compaction, recovery, and brevity guidance. Use it when Read compact bootstrap, post-compaction, recovery, and brevity guidance. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read compact bootstrap, post-compaction, recovery, and brevity guidance. Use it when Read compact bootstrap, post-compaction, recovery, and brevity guidance. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5860,7 +5860,7 @@
       "type": "function",
       "function": {
         "name": "focusa_work_loop_checkpoint",
-        "description": "Create a manual continuous-loop checkpoint. Use it when Create a manual continuous-loop checkpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Create a manual continuous-loop checkpoint. Use it when Create a manual continuous-loop checkpoint. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5878,7 +5878,7 @@
       "type": "function",
       "function": {
         "name": "focusa_work_loop_context",
-        "description": "Update continuation decision context (current ask/scope/steering). Use it when Update continuation decision context (current ask/scope/steering). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Update continuation decision context (current ask/scope/steering). Use it when Update continuation decision context (current ask/scope/steering). Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -5927,7 +5927,7 @@
       "type": "function",
       "function": {
         "name": "focusa_work_loop_control",
-        "description": "Control continuous work loop. Daemon North Star admission applies to on/resume progression; pause/stop recovery controls remain available. Use it when Control continuous work loop: on, pause, resume, stop. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Control continuous work loop. Daemon North Star admission applies to on/resume progression; pause/stop recovery controls remain available. Use it when Control continuous work loop: on, pause, resume, stop. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -6016,7 +6016,7 @@
       "type": "function",
       "function": {
         "name": "focusa_work_loop_select_next",
-        "description": "Ask daemon to defer blocked work and select the next ready item after North Star progression admission passes. Use it when Ask daemon to defer blocked work and select next ready work item. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Ask daemon to defer blocked work and select the next ready item after North Star progression admission passes. Use it when Ask daemon to defer blocked work and select next ready work item. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -6034,7 +6034,7 @@
       "type": "function",
       "function": {
         "name": "focusa_work_loop_status",
-        "description": "Get current continuous work-loop state and budgets. Use it when Get current continuous work-loop state and budgets. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Get current continuous work-loop state and budgets. Use it when Get current continuous work-loop state and budgets. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -6047,7 +6047,7 @@
       "type": "function",
       "function": {
         "name": "focusa_work_loop_writer_status",
-        "description": "Read current work-loop writer ownership and mutation preflight guidance without mutating state. Use it when Read current work-loop writer ownership and mutation preflight guidance without mutating state. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read current work-loop writer ownership and mutation preflight guidance without mutating state. Use it when Read current work-loop writer ownership and mutation preflight guidance without mutating state. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -6060,7 +6060,7 @@
       "type": "function",
       "function": {
         "name": "focusa_workpoint_checkpoint",
-        "description": "Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. Use it when Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. Use it when Create a typed Focusa Workpoint checkpoint before compaction, resume, context overflow, model switch, or risky continuation. Use this instead of trusting raw transcript memory; Focusa becomes the canonical continuation source and returns an explicit next-step hint. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -6165,7 +6165,7 @@
       "type": "function",
       "function": {
         "name": "focusa_workpoint_link_evidence",
-        "description": "Attach stable proof to the active canonical Workpoint; daemon mutation admission requires its exact Trajectory binding, lifecycle stage, active operation, and current frontier. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Attach stable proof to the active canonical Workpoint; daemon mutation admission requires its exact Trajectory binding, lifecycle stage, active operation, and current frontier. Use it when Attach a stable evidence reference or verification result to the active canonical Workpoint. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -6215,7 +6215,7 @@
       "type": "function",
       "function": {
         "name": "focusa_workpoint_resume",
-        "description": "Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. Use it when Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. Use it when Fetch the active Focusa WorkpointResumePacket after compaction, resume, context overflow, model switch, or uncertainty. Use this instead of guessing from transcript tail; output includes canonical/degraded status, warnings, and the exact next action. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -6253,7 +6253,7 @@
       "type": "function",
       "function": {
         "name": "focusa_workset_projection",
-        "description": "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Read a Spec 149 Workset: the deterministic replay projection (membership, requirement dispositions, settlement) from the append-only ledger. Read-only; execution lives in CallGraph. Use it when Read one Workset's deterministic membership, requirement-disposition, and settlement projection from the append-only ledger. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
         "strict": true,
         "parameters": {
           "type": "object",

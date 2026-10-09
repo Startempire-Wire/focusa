@@ -1,13 +1,13 @@
 # Focusa Model-Visible Awareness Surfaces
 
-Purpose: describe what the LLM actually sees from Focusa and the precedence of those signals.
+Purpose: describe source-defined model-visible surfaces and how to verify what the current LLM actually received. Use [the cohesive project journey](../agent/02-focusa-cohesive-project-flow.md); neither documentation nor a successful read proves loaded activation.
 
 ## Surfaces visible to the model
 
-1. **Tool definitions** — always available through the Pi tool registry.
+1. **Tool definitions** — available only when the current Pi process actually loaded the adapter and registered them.
    The model sees each `focusa_*` tool name, description, parameter schema, and prompt snippet.
 
-2. **Focusa Utility Card** — injected into the system prompt at agent start/reload; also shown once as a visible card.
+2. **Focusa Utility Card** — source-defined startup/reload guidance delivered through the active hook's supported message/awareness mechanism; inspect the current adapter and receipt rather than assume system-prompt injection or unconditional display.
    Source: `apps/pi-extension/src/awareness.ts` via `buildFocusaUtilityCard()`.
 
 3. **Focusa Focus Slice** — injected on each LLM context event. When Focusa has a scoped frame it includes live Focus State; when not, it still injects a compact local Project/Trajectory/Architecture fallback card.
@@ -17,7 +17,7 @@ Purpose: describe what the LLM actually sees from Focusa and the precedence of t
    Source: `selectFocusSliceToolAffordances()` in `apps/pi-extension/src/tool-contracts.ts`.
 
 5. **Skill descriptions** — visible before loading; full skill files become visible when loaded.
-   Source: `/root/.pi/skills/focusa*/SKILL.md` and project skill copies.
+   Source: configured installed skill roots and project/packaged skill copies. Canonical generation, installation and the current process's native resource reload are separate facts.
 
 6. **Tool results** — every Focusa tool returns a visible summary plus `details.tool_result_v1` with status, canonical/degraded posture, failure class, retry posture, recovery/misuse hints, side effects, evidence refs, next-tool hints, and optional `reflex_suggestions`.
 
@@ -32,7 +32,7 @@ Focusa now separates four states that were previously easy to conflate:
 - **Attended memory** — the non-droppable prefix in the Focus Slice/compaction prompt: `MEMORY_ANCHOR`, `ATTENTION_RECALL_VERDICT`, `CURRENT_ASK_SCOPE_VERDICT`, and visible recap lines when tool output flood risk is active.
 - **Action authority** — the final gate for file/API/tool action. A packet can be `canonical_for_saved_scope=true` while `action_authority_for_current_ask=false` when the latest operator ask names a different project/root/remote.
 
-Implemented model-visible attention surfaces:
+Source-defined model-visible attention surfaces (verify installed/load/receipt evidence for the calling harness):
 
 - `MEMORY_ANCHOR` pins task, must-not-forget facts, latest report summary ref, evidence refs, next action, and action authority before verbose Workpoint/Trajectory JSON.
 - `ATTENTION_RECALL_VERDICT` reports attentive/attention-risk/conflict status, recap requirement, attention risks, and required next steps.
@@ -64,7 +64,7 @@ Focus Slice sections are ordered by priority in `turns.ts`. The practical model 
 
 1. Operator steering/current ask.
 2. Protected attention prefix: `MEMORY_ANCHOR`, `ATTENTION_RECALL_VERDICT`, `CURRENT_ASK_SCOPE_VERDICT`, and required recap lines.
-3. Hard safety + identity prior (`project_root + continuity_id`) and `action_authority_for_current_ask`.
+3. Hard safety + exact Scope/Workstream/continuity/attachment and current action admission; `project_root + continuity_id` alone is not complete authority.
 4. ResourceMode when non-normal.
 5. Project Trajectory (`PROJECT_TRAJECTORY`).
 6. Workpoint continuation packet (`canonical_for_saved_scope`, not automatically action authority).
@@ -79,7 +79,13 @@ Operator steering always wins, but stale transcript tail does not outrank canoni
 
 `PROJECT_TRAJECTORY` is now always attempted from the context hook. If Focusa is unavailable, the scoped frame is missing, or trajectory lookup fails, the model still sees a compact fallback card with `PROJECT_IDENTITY`, `PROJECT_INFRA`, `PROJECT_ARCHITECTURE`, degraded sufficiency, and the recommended recovery route. Unsafe broad roots withhold architecture facts until `focusa_project_identity` verifies an explicit project root.
 
-## Current improvement
+## Contextual selection and activation
+
+The caller may receive a budgeted or truncated subset: inspect the actual context receipt and bounded rehydration refs. Retrieved or attended memory is not an execution grant. Next-tool/affordance links are advisory selection hints; missing fields require diagnosis, not invented values. The default route and explicitly scoped route must agree before action; a mismatch is a binding/reconciliation issue.
+
+Development instruction refresh uses the harness's native resource loader on the verified source; no universal Git push is required. A different process's reload, changed files or generated mirrors do not prove this running agent refreshed. Compiled production changes retain the approved signed install/update path.
+
+## Source capabilities
 
 The Friendly Focusa Q now includes project infrastructure/architecture orientation, and the per-call trajectory slice includes both `PROJECT_INFRA` and `PROJECT_ARCHITECTURE` so the model does not infer architecture from folder names alone. Machine-readable choreography edges are available at `docs/current/focusa-tool-choreography.json` and `GET /v1/ontology/tool-choreography`; live choreography can weight edges using evaluated prediction evidence.
 

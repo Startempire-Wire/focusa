@@ -10,7 +10,7 @@ UIAI packets are proposal material until their embedded `project_root`, `continu
 
 ## Guard behavior
 
-- Expected authority is `project_root + continuity_id`.
+- Resolve expected Scope/Workstream/continuity/attachment through the installed adapter; root/continuity fields alone are not complete authority.
 - Broad or missing roots are rejected.
 - Cross-project packets return `failure_class=scope_mismatch` and `capture_status=scope_mismatch`.
 - Cross-workstream packets return `failure_class=scope_mismatch` and `capture_status=scope_mismatch`.

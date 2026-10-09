@@ -5100,7 +5100,7 @@ fn build_trajectory_guard(
     (Some(binding), guard)
 }
 
-async fn trajectory_guard(
+pub(crate) async fn trajectory_guard(
     _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Json(request): Json<TrajectoryGuardRequest>,

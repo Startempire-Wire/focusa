@@ -2,9 +2,9 @@
 
 Focusa Pi Bridge is the Pi coding-agent extension that registers Focusa tools, lifecycle hooks, compaction/session handling, and Focusa skills used by Pi sessions.
 
-## v0.9.142 surface
+## Source surface and installed activation
 
-The extension exposes the 135-tool parity surface through typed project/workstream scope. Startup/reload now renders the Focusa Utility Card; recovery composes `focusa_tool_doctor`, project identity, Trajectory, Workpoint checkpoint/resume, evidence capture/linking, prediction evaluation, metacognition, and work-loop routes. Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, and Tool Discovery remain available through the same scope and operator-steering boundary.
+Use [the shared project journey](../../docs/agent/02-focusa-cohesive-project-flow.md). Discover the current process's tool count and registry digest rather than assume a historical inventory. Source registration and generated projections do not prove the installed package or another harness loaded them. Startup/reload now renders the Focusa Utility Card; recovery composes `focusa_tool_doctor`, project identity, Trajectory, Workpoint checkpoint/resume, evidence capture/linking, prediction evaluation, metacognition, and work-loop routes. Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, and Tool Discovery remain available through the same scope and operator-steering boundary.
 
 ## North Star diagnostics
 
@@ -28,6 +28,10 @@ The `before_agent_start` hook treats Pi's event as read-only and returns
 `{ systemPrompt }` to override the turn's prompt. Both cache-safe and legacy
 layouts use that result; cache telemetry records the returned prompt. Regression
 coverage: `node tests/636-readonly-system-prompt.test.mjs`.
+
+## Development feedback and refresh
+
+For the approved development source/runtime, use change → supported native reload/deployment → exact consumer verification. Git push is required only where that project's approved mechanism consumes the remote. Instruction/skill edits need native resource refresh; executable package changes need their supported package/load lifecycle. A file change or reload in another process is not this agent's activation proof. Compiled production daemon changes retain canonical signed release/install controls.
 
 ## Loading model
 

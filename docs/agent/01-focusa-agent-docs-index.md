@@ -39,7 +39,8 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 
 ### 2.1 Current authority and recovery model
 
-- Exact authority is `project_root + continuity_id`; parent repositories and worktrees are ranked binding candidates, then verified before mutation.
+- Canonical cognition is scoped by ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey (Spec158/164); project root, cwd, selected project or continuity alone cannot select it.
+- Scope and worktrees: verified worktrees are working subpaths of the same project, not new authority roots; switching them requires current attachment verification.
 - Workstream Root (Spec 164) is the durable project runtime root; state does not become daemon-global merely for convenience.
 - Workpoint is immediate action authority; Trajectory supplies destination, current state, gap, and waypoints.
 - Focus State is the bounded decision/constraint/failure journal, not a transcript replacement.
@@ -98,6 +99,10 @@ When a change touches persistent project-agent identity, proactive monitoring, R
 9. Load the matched `.pi/skills/<skill>/SKILL.md`, then its numbered runbook under `references/`.
 
 A release gate must prove runtime tool count = contracts = Pi descriptors = per-tool docs, and installed skills/runbooks = packaged skill/runbook copies.
+
+### One cohesive project journey
+
+Start with [the cohesive agent project flow](02-focusa-cohesive-project-flow.md). Bootstrap establishes the baseline; Genesis commits intent through the first Workpoint; existing scoped Ladder/Workpoint owners then Prepare → Act → Reconcile → Advance. Reuse valid state and make bounded corrections in service of the accepted goal. Capability lists are conditional routing inventories, never mandatory mutation/restore sequences. Source presence does not prove installed transition support.
 
 ## 3. Canonical command surface
 

@@ -1,0 +1,106 @@
+name: Windows OVH candidate build
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+      release_sha:
+        required: true
+        type: string
+      desktop_nsis:
+        default: false
+        type: boolean
+      desktop_msi:
+        default: false
+        type: boolean
+      msi_tools_only:
+        default: false
+        type: boolean
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: false
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: false
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing immutable candidate tag
+        required: true
+        type: string
+      release_sha:
+        description: Exact immutable candidate commit
+        required: true
+        type: string
+      desktop_nsis:
+        description: Produce and verify signed NSIS installers
+        default: false
+        type: boolean
+      desktop_msi:
+        description: Produce and verify signed MSI installers using the owned Wine toolchain
+        default: false
+        type: boolean
+      msi_tools_only:
+        description: Prepare isolated MSI packaging tools
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-ovh-${{ inputs.release_tag }}-${{ inputs.msi_tools_only }}-${{ inputs.desktop_msi }}
+  cancel-in-progress: false
+
+jobs:
+  cross-compile:
+    name: Scripted Windows artifact pipeline — OVH
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reclaim verified idle release cache before MSI tools
+        if: ${{ inputs.desktop_msi }}
+        env:
+          CARGO_TARGET_DIR: /home/wirebot/build/focusa/target
+        run: bash scripts/run-guardian-release-cleanup.sh pre
+      - name: Verify controller adapter contract
+        run: |
+          python3 tests/windows_xwin_release_adapter_test.py
+          python3 tests/windows_native_msi_adapter_test.py
+      - name: Preserve canonical controller outside immutable candidate checkout
+        run: |
+          set -euo pipefail
+          controller="$RUNNER_TEMP/focusa-windows-controller-${GITHUB_RUN_ID}"
+          mkdir -p "$controller"
+          cp scripts/ci/run-windows-ovh-release.py scripts/ci/build-windows-xwin-release.py \
+            scripts/ci/prepare-windows-msi-wine.py scripts/ci/prepare-wine32-runtime.py \
+            scripts/ci/prepare-native-windows-tauri.py \
+            scripts/ci/windows-nsis-packages.lock "$controller/"
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_sha }}
+          fetch-depth: 0
+      - name: Run canonical Windows pipeline
+        env:
+          CANDIDATE_TAG: ${{ inputs.release_tag }}
+          CANDIDATE_SHA: ${{ inputs.release_sha }}
+          DESKTOP_NSIS: ${{ inputs.desktop_nsis }}
+          DESKTOP_MSI: ${{ inputs.desktop_msi }}
+          MSI_TOOLS_ONLY: ${{ inputs.msi_tools_only }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mode=all
+          extra=(--publish)
+          if [ "$DESKTOP_NSIS" = true ]; then mode=nsis; fi
+          if [ "$DESKTOP_MSI" = true ]; then mode=msi; fi
+          if [ "$MSI_TOOLS_ONLY" = true ]; then mode=msi-tools; extra=(); fi
+          python3 "$RUNNER_TEMP/focusa-windows-controller-${GITHUB_RUN_ID}/run-windows-ovh-release.py" \
+            --source "$GITHUB_WORKSPACE" --tag "$CANDIDATE_TAG" --sha "$CANDIDATE_SHA" \
+            --mode "$mode" "${extra[@]}"
+# Deterministic worker mechanics live in the script, not hand-operated recovery.
+# Complete signed inventory and installed/native acceptance remain canonical release gates.

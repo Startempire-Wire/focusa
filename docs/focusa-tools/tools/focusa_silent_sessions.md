@@ -1,6 +1,6 @@
 # `focusa_silent_sessions`
 
-Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Creation, start, and resume require exact daemon North Star admission; pause, interrupt, cancel, and observation remain available for recovery. Process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Creation, start, and resume require exact daemon North Star admission; pause, interrupt, cancel, and observation remain available for recovery. Process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 ## When to use
 
@@ -59,8 +59,8 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 - Scope: `{"kind":"read","route_family":"auto"}`
 - Authority: `{"kind":"canonical","path":"daemon:/v1/silent-sessions"}`
 - Side effects: `daemon_api_control`, `daemon_api_control`
-- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
-- Confirmation required: `false`; preview supported: `false`.
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
 
@@ -72,11 +72,15 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+Complete journey: `docs/agent/02-focusa-cohesive-project-flow.md` (Bootstrap/Genesis → linked Ladder/spec/tasks → Workpoint → Prepare/Act/Reconcile/Advance). Reuse valid state; select capabilities by condition rather than running a tool list as a script.
+A rejected operation calls for exact-cause diagnosis and supported scoped recovery, not automatic mission abandonment; preserve genuine authority boundaries and resume only after verification.
+Shared boundaries and conditional crosswalk: [AUTHORITY_MODEL.md](../../current/AUTHORITY_MODEL.md), [GOLDEN_WORKFLOW.md](../../current/GOLDEN_WORKFLOW.md), and [AGENT_ADAPTER_CONTRACT.md](../../current/AGENT_ADAPTER_CONTRACT.md).
+
 - `focusa_work_loop_status` (likely_next)
 - `focusa_work_loop_checkpoint` (likely_next)
 - `focusa_resource_mode` (likely_next)
 
-Prerequisites: verified project_root plus continuity_id when project-bound.
+Prerequisites: resolve exact ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey through installed bindings; project_root/continuity_id are lookup inputs; verify current instruction, lifecycle/operation/frontier and required grants before effects.
 Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_resource_mode`.
 
 ## Skills, protocols, and source authority
@@ -87,4 +91,4 @@ Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_r
 - CLI: `focusa silent`.
 - REST: `GET /v1/silent-sessions`, `POST /v1/silent-sessions/preflight`, `GET /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}/output`, `POST /v1/silent-sessions/{session_id}/input`, `POST /v1/silent-sessions/{session_id}/start`, `POST /v1/silent-sessions/{session_id}/pause`, `POST /v1/silent-sessions/{session_id}/resume`, `POST /v1/silent-sessions/{session_id}/interrupt`, `POST /v1/silent-sessions/{session_id}/cancel`, `POST /v1/silent-sessions/{session_id}/restart`, `POST /v1/silent-sessions/{session_id}/config/preview`, `GET /v1/silent-sessions/{session_id}/receipts`, `GET /v1/silent-sessions/capabilities`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3b0e843420b9c65cc535bb7fef6488a812b7e597e53c4ac73be3691d1487243d`.
+- Descriptor digest: `sha256:94bf1ba7457810732e7bc32cd2f2e2547b0ed2dd673ebdd69550d04c99647b91`.

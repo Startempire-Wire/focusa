@@ -25,29 +25,12 @@ bd close <id>         # Complete work
 bd sync               # Sync with git
 ```
 
+## Connected workflow and delivery
+
+Inherit the repository `AGENTS.md` and `docs/agent/02-focusa-cohesive-project-flow.md`: exact binding, conditional initialization, linked goals/spec/tasks, current action, recovery and verified advancement. Catalog links are not executable dependency graphs. Do not inject a static product goal or treat a saved-scope packet as current-action permission.
+
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+Follow the repository's outcome/delivery contract instead of duplicating a universal Git checklist here. Apply an approved development/native reload promptly when active testing is requested, verify the actual consumer and retain evidence. Git publication is conditional on the configured delivery mechanism or explicit request; production artifacts retain the canonical signed release/install path.
 
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+Preserve other agents' changes and stashes. Do not treat a commit, push, source/schema generation or a different process's reload as installed or current-process behavioral proof. Continue ready authorized work; record exact unresolved dependencies rather than claim completeness.
