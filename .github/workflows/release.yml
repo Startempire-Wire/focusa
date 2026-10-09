@@ -1028,12 +1028,14 @@ jobs:
           names = {path.name: path for path in dist.iterdir() if path.is_file()}
 
           def exact(name: str) -> tuple[str, str]:
+              import base64
               path = names.get(name)
-              signature = names.get(name + ".sig")
-              if path is None or signature is None:
+              signature_path = names.get(name + ".sig")
+              if path is None or signature_path is None:
                   raise SystemExit(f"missing Tauri updater receipt: {name}")
               url = f"https://github.com/{repo}/releases/download/{tag}/{name}"
-              return url, signature.read_text(encoding="utf-8").strip()
+              sig_bytes = signature_path.read_bytes()
+              return url, base64.b64encode(sig_bytes).decode("ascii").strip()
 
           def pattern(glob: str) -> tuple[str, str]:
               matches = sorted(name for name in names if fnmatch.fnmatchcase(name, glob))
