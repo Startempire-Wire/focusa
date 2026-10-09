@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Prepare an isolated Wine/WiX build-tool prefix; never claim native Windows proof."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import shutil
+import urllib.request
+import zipfile
+
+WIX_URL = 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip'
+# Authoritative tauri-cli-v2.11.2 tauri-bundler/windows/msi constant.
+WIX_SHA256 = '6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31'
+# Wine 9.0's own addons.c specifies this compatible version and SHA-256.
+MONO_VERSION = '8.1.0'
+MONO_FILE = f'wine-mono-{MONO_VERSION}-x86.msi'
+MONO_URL = f'https://github.com/wine-mono/wine-mono/releases/download/wine-mono-{MONO_VERSION}/{MONO_FILE}'
+MONO_SHA256 = '0ed3ec533aef79b2f312155931cf7b1080009ac0c5b4c2bcfeb678ac948e0810'
+PACKAGES = ['wine64=9.0~repack-4build3', 'libwine=9.0~repack-4build3', 'libz-mingw-w64=1.3.1+dfsg-1']
+
+
+def download(url, destination, expected=None, *, algorithm='sha256'):
+    with urllib.request.urlopen(url, timeout=60) as response, destination.open('wb') as out:
+        while chunk := response.read(1024 * 1024):
+            out.write(chunk)
+    data = destination.read_bytes()
+    if algorithm not in {'sha256', 'sha512'}:
+        raise ValueError('unsupported tool digest algorithm')
+    if expected and hashlib.new(algorithm, data).hexdigest() != expected:
+        raise ValueError('upstream tool checksum mismatch: ' + destination.name)
+    return {'url': url, 'name': destination.name, 'sha256': hashlib.sha256(data).hexdigest(),
+            'external_checksum_verified': expected is not None}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--tools-directory', required=True, type=Path)
+    parser.add_argument('--plan', action='store_true')
+    args = parser.parse_args()
+    if args.plan:
+        print(json.dumps({'packages': PACKAGES, 'wix_url': WIX_URL,
+                          'wix_sha256': WIX_SHA256, 'mono_url': MONO_URL,
+                          'native_windows_proof': False, 'installer_proof': False}))
+        return
+    if os.environ.get('GITHUB_ACTIONS') != 'true':
+        raise ValueError('approved self-hosted CI build-tool context required')
+    tools = args.tools_directory.resolve()
+    tools.relative_to(Path(os.environ['RUNNER_TEMP']).resolve())
+    tools.mkdir(parents=True, exist_ok=False)
+    packages = tools / 'packages'
+    packages.mkdir()
+    root = tools / 'root'
+    root.mkdir()
+    subprocess.run(['apt-get', 'download', *PACKAGES], cwd=packages, check=True)
+    for package in packages.glob('*.deb'):
+        subprocess.run(['dpkg-deb', '-x', str(package), str(root)], check=True)
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('wine32_inputs', Path(__file__).with_name('prepare-wine32-runtime.py'))
+    wine32_inputs = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wine32_inputs)
+    wine32_inputs.prepare(tools, root)
+    wine = root / 'usr/lib/wine/wine64'
+    server = root / 'usr/lib/wine/wineserver64'
+    library = root / 'usr/lib/x86_64-linux-gnu/wine'
+    # Wine's Ubuntu package splits this actual Windows DLL into its declared
+    # runtime dependency. Resolve it inside the prefix, never the host system.
+    zlib = root / 'usr/x86_64-w64-mingw32/lib/zlib1.dll'
+    if not zlib.is_file():
+        raise ValueError('pinned Wine Windows zlib dependency missing')
+    shutil.copy2(zlib, library / 'x86_64-windows/zlib1.dll')
+    # Restore the distribution's relative executable layout inside the owned
+    # root; upstream Wine discovers the unversioned server in its bin directory.
+    binary_directory = root / 'usr/bin'
+    binary_directory.mkdir(parents=True, exist_ok=True)
+    (binary_directory / 'wineserver').symlink_to(server)
+    wrapper = wine.parent / 'wineserver'
+    if wrapper.exists() or wrapper.is_symlink():
+        wrapper.rename(wrapper.with_name('wineserver.distribution-wrapper'))
+    wrapper.symlink_to(server)
+    env = os.environ.copy()
+    env['WINEPREFIX'] = str(tools / 'prefix')
+    env['WINEARCH'] = 'win64'
+    env['WINESERVER'] = str(server)
+    # Both architecture loaders now exist in the canonical sibling layout.
+    # Let Wine select the correct loader for Windows child-process images.
+    env.pop('WINELOADER', None)
+    env['PATH'] = str(binary_directory) + os.pathsep + str(wine.parent) + os.pathsep + env['PATH']
+    library32 = root / 'usr/lib/i386-linux-gnu/wine'
+    env['WINEDLLPATH'] = ':'.join([str(library / 'x86_64-windows'), str(library / 'x86_64-unix'),
+                                 str(library32 / 'i386-windows'), str(library32 / 'i386-unix')])
+    env['LD_LIBRARY_PATH'] = ':'.join(str(path) for path in [library / 'x86_64-unix',
+        root / 'usr/lib/x86_64-linux-gnu', root / 'lib/x86_64-linux-gnu',
+        library32 / 'i386-unix', root / 'usr/lib/i386-linux-gnu', root / 'lib/i386-linux-gnu'])
+    env['WINEDLLOVERRIDES'] = 'mscoree,mshtml='
+    # MinGW zlib is a native PE dependency, not a Wine builtin; place it on
+    # the actual native DLL search path before user32 is loaded by wineboot.
+    system32 = Path(env['WINEPREFIX']) / 'drive_c/windows/system32'
+    system32.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(zlib, system32 / 'zlib1.dll')
+    zlib32 = root / 'usr/i686-w64-mingw32/lib/zlib1.dll'
+    if not zlib32.is_file():
+        raise ValueError('pinned Wine32 zlib dependency missing')
+    wow = Path(env['WINEPREFIX']) / 'drive_c/windows/syswow64'
+    wow.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(zlib32, wow / 'zlib1.dll')
+    shutil.copy2(zlib32, library32 / 'i386-windows/zlib1.dll')
+    subprocess.run([str(server), '--version'], env=env, check=True, timeout=30)
+    subprocess.run([str(wine), 'wineboot', '-u'], env=env, check=True, timeout=120)
+    artifacts = [download(WIX_URL, tools / 'wix.zip', WIX_SHA256),
+                 download(MONO_URL, tools / MONO_FILE, MONO_SHA256)]
+    wix = tools / 'wix'
+    wix.mkdir()
+    with zipfile.ZipFile(tools / 'wix.zip') as archive:
+        for member in archive.infolist():
+            (wix / member.filename).resolve().relative_to(wix.resolve())
+        archive.extractall(wix)
+    env.pop('WINEDLLOVERRIDES')
+    subprocess.run([str(wine), 'msiexec', '/i', str(tools / MONO_FILE),
+                    '/quiet', '/norestart'], env=env, check=True, timeout=180)
+    subprocess.run([str(wine), str(wix / 'candle.exe'), '-?'], env=env, check=True, timeout=90)
+    subprocess.run([str(wine), str(wix / 'light.exe'), '-?'], env=env, check=True, timeout=90)
+    receipt = {'kind': 'ovh_wine_wix_toolchain', 'artifacts': artifacts,
+               'wine_api_execution': 'passed', 'native_windows_proof': False,
+               'installer_proof': False, 'prefix': env['WINEPREFIX'],
+               'launcher': str(wine),
+               'launcher_env': {key: env[key] for key in ['WINEPREFIX', 'WINEARCH',
+                   'WINESERVER', 'WINEDLLPATH', 'LD_LIBRARY_PATH']}}
+    (tools / 'toolchain-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    print(json.dumps(receipt))
+
+
+if __name__ == '__main__':
+    main()
