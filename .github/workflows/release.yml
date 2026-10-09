@@ -1326,3 +1326,4 @@ jobs:
             -f release_tag="$TAG" \
             -f asset_suffix="x86_64-unknown-linux-musl" \
             -f dry_run=false
+# workflow refresh
