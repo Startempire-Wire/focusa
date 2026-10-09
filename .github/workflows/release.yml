@@ -952,6 +952,11 @@ jobs:
           cp docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
             dist/distribution-manifest.json
 
+      - name: Remove existing release intelligence outputs (immutable re-run safety)
+        run: |
+          set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
+
       - name: Require every canonical surface on every supported system
         run: |
           set -euo pipefail
