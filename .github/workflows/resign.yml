@@ -1,0 +1,119 @@
+name: Re-sign Release from Tag
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+      release_sha:
+        required: true
+        type: string
+permissions:
+  contents: write
+  id-token: write
+  actions: write
+env:
+  NODE_OPTIONS: --use-system-ca
+  RELEASE_TAG: ${{ inputs.release_tag }}
+  RELEASE_SHA: ${{ inputs.release_sha }}
+jobs:
+  resign:
+    name: Re-sign SHA256SUMS with tag-bound cosign
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 0
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.10.0
+
+      - name: Download all release assets and regenerate SHA256SUMS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${RELEASE_TAG}"
+          mkdir -p dist
+          gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
+          
+          # Regenerate SHA256SUMS with all non-sig/non-pem assets
+          python3 <<'PY'
+          import hashlib
+          from pathlib import Path
+          dist = Path("dist")
+          
+          sums = []
+          for asset in sorted(dist.iterdir(), key=lambda p: p.name):
+              if not asset.is_file():
+                  continue
+              if asset.name.endswith(('.sig', '.pem', '.cosign.sig', '.cosign.pem')):
+                  continue
+              h = hashlib.sha256()
+              with asset.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1 << 20), b""):
+                      h.update(chunk)
+              sums.append(f"{h.hexdigest()}  {asset.name}")
+          
+          (dist / "SHA256SUMS.txt").write_text("\n".join(sums) + "\n")
+          print(f"Regenerated SHA256SUMS.txt with {len(sums)} assets")
+
+      - name: Re-sign SHA256SUMS with cosign (tag-bound OIDC)
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes \
+            --output-signature dist/SHA256SUMS.txt.cosign.sig \
+            --output-certificate dist/SHA256SUMS.txt.cosign.pem \
+            dist/SHA256SUMS.txt
+          test -s dist/SHA256SUMS.txt.cosign.sig
+          test -s dist/SHA256SUMS.txt.cosign.pem
+          echo "Cosign signature and certificate created from tag ref"
+
+      - name: Upload new SHA256SUMS and cosign signatures
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
+          files: |
+            dist/SHA256SUMS.txt
+            dist/SHA256SUMS.txt.cosign.sig
+            dist/SHA256SUMS.txt.cosign.pem
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish as Latest stable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          echo "release_channel=stable tag=$TAG"
+          gh release edit "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft=false \
+            --prerelease=false \
+            --latest
+
+  deploy:
+    name: Dispatch Deploy Live Daemon
+    needs: resign
+    runs-on: self-hosted
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch production deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-musl repo=${REPO}"
+          gh workflow run 'Deploy Live Daemon' \
+            --repo "$REPO" \
+            --ref main \
+            -f release_tag="$TAG" \
+            -f asset_suffix="x86_64-unknown-linux-musl" \
+            -f dry_run=false
