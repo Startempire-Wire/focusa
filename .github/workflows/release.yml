@@ -66,6 +66,7 @@ jobs:
           APPVEYOR_API_TOKEN: ${{ secrets.APPVEYOR_API_TOKEN }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           if [ -z "${APPVEYOR_API_TOKEN:-}" ]; then
             echo "::error::APPVEYOR_API_TOKEN repo secret is missing (GH#656). Provision a token at https://ci.appveyor.com/api-keys and add it as a repo secret, then re-run this job."
             exit 1
@@ -108,6 +109,7 @@ jobs:
           TAG: ${{ env.RELEASE_TAG }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           blocking_prs=$(gh pr list --repo "$REPOSITORY" --state open --limit 500 --json number,title,url,labels \
             | jq '[.[] | select(any(.labels[]?; (.name | startswith("release-gate:")) or .name == "release-candidate")) | {number,title,url,labels:[.labels[].name]}]')
           if [ "$(jq 'length' <<<"$blocking_prs")" -ne 0 ]; then
@@ -151,6 +153,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
           tag_sha="$(git rev-parse "${RELEASE_TAG}^{commit}")"
           head_sha="$(git rev-parse HEAD)"
@@ -164,6 +167,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           echo "recover_staged_assets=true: skipping immutable tag SHA verification"
           git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
           tag_sha="$(git rev-parse "${RELEASE_TAG}^{commit}")"
@@ -174,6 +178,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           candidate_paths="$(git diff-tree --root --no-commit-id --name-only -r "$RELEASE_SHA")"
           non_docs_paths="$(printf '%s\n' "$candidate_paths" | grep -Ev '(^docs/|\.md$)' || true)"
           if [ -n "$candidate_paths" ] && [ -z "$non_docs_paths" ]; then
@@ -190,6 +195,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           # The tag is pushed atomically with the version-bump commit, so CI may
           # still be running when the release workflow starts. Docs/markdown-only
           # candidates are intentionally excluded by Spec 177 and use the local
@@ -213,6 +219,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           candidate_sha="$RELEASE_SHA"
           # Spec 178: billing-locked macos-latest Menubar job is substituted by the
           # Codemagic macOS package-proof receipt. The CI candidate gate therefore
@@ -273,6 +280,7 @@ jobs:
           CONTROLLER_SHA: ${{ github.workflow_sha }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           controller_test="${RUNNER_TEMP}/spec143-controller-test.py"
           controller_workflow="${RUNNER_TEMP}/release-controller.yml"
           git show "${CONTROLLER_SHA}:tests/spec143_ota_installability_release_gate_test.py" > "$controller_test"
@@ -293,6 +301,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           echo "tag_ci_proof=reused-from-rust-check candidate=${RELEASE_SHA}"
 
   # Final customer-lifecycle closure: all-surface OTA activation, worktree and
@@ -340,6 +349,7 @@ jobs:
       - name: Validate tag against docs/release-strategy.md
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           echo "Checking ${RELEASE_TAG} against release strategy..."
           python3 scripts/next-version.py --repo "$PWD" --tag "$RELEASE_TAG" --json
 
@@ -363,6 +373,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           topology_sha=$(sha256sum config/focusa-release-topology.json | awk '{print $1}')
           jq -n \
             --arg candidate_id "release:${GITHUB_REPOSITORY}:${RELEASE_TAG}" \
@@ -526,6 +537,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           case "${FOCUSA_MACOS_RELEASE_MODE}" in
             beta_ad_hoc)
               echo "::warning::Building explicit pre-license, unnotarized beta. Tauri updater signatures remain mandatory."
@@ -575,6 +587,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           test -n "${TAURI_SIGNING_PRIVATE_KEY:-}" || { echo "::error::TAURI_SIGNING_PRIVATE_KEY is required"; exit 1; }
           test -n "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" || { echo "::error::TAURI_SIGNING_PRIVATE_KEY_PASSWORD is required"; exit 1; }
 
@@ -612,6 +625,7 @@ jobs:
         working-directory: apps/menubar
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           for app in src-tauri/target/${TARGET}/release/bundle/macos/*.app; do
             codesign --verify --deep --strict --verbose=2 "${app}"
             case "${FOCUSA_MACOS_RELEASE_MODE}" in
@@ -664,6 +678,7 @@ jobs:
         working-directory: apps/menubar
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           shopt -s nullglob
           mkdir -p ../../dist/menubar
           packaged=0
@@ -732,6 +747,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           python3 scripts/wait-for-external-release-assets.py \
             --tag "${RELEASE_TAG}" \
             --kind menubar \
@@ -884,6 +900,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           python3 scripts/wait-for-external-release-assets.py \
             --tag "${RELEASE_TAG}" \
             --kind rust-binaries \
@@ -901,11 +918,13 @@ jobs:
       - name: Verify immutable Pi and distribution surfaces
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           python3 scripts/verify-version-surfaces.py "${RELEASE_TAG}"
           python3 scripts/distribution_manifest.py --check
       - name: Package bundled Pi extension, installer, and agent context
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           TAG="${RELEASE_TAG}"
           tar -C apps -czf "focusa-pi-extension-${TAG}.tar.gz" pi-extension
           tar -czf "focusa-generated-clients-${TAG}.tar.gz" \
@@ -982,6 +1001,7 @@ jobs:
       - name: Verify release tooling
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           gh --version
           openssl version
           python3 --version
@@ -994,6 +1014,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           TAG="${RELEASE_TAG}"
           mkdir -p dist
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
@@ -1003,6 +1024,7 @@ jobs:
       - name: Require every canonical surface on every supported system
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           python3 scripts/verify-canonical-release-assets.py \
             --dist dist \
             --tag "${RELEASE_TAG}"
@@ -1014,6 +1036,7 @@ jobs:
           RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           python3 - <<'PY'
           import datetime
           import fnmatch
@@ -1083,6 +1106,7 @@ jobs:
           RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           python3 - <<'PY'
           import datetime
           import json
@@ -1160,8 +1184,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           TAG="${RELEASE_TAG}"
-          CLI="dist/focusa-${TAG}-x86_64-unknown-linux-gnu"
+          CLI="dist/focusa-${TAG}-x86_64-unknown-linux-musl"
           test -s "$CLI"
           chmod +x "$CLI"
           PREVIOUS_TAG="$(git describe --tags --abbrev=0 "${RELEASE_SHA}^" 2>/dev/null || true)"
@@ -1189,6 +1214,7 @@ jobs:
           FOCUSA_RELEASE_ED25519_PRIVATE_KEY: ${{ secrets.FOCUSA_RELEASE_ED25519_PRIVATE_KEY }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
           umask 077
           KEY_FILE="${RUNNER_TEMP}/focusa-release-ed25519.pem"
@@ -1236,6 +1262,7 @@ jobs:
           TAG: ${{ env.RELEASE_TAG }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           test -s dist/release-intelligence.md
           # The OTA update pointer is the channel the shipped installer resolves
           # (scripts/install-focusa-menubar-beta.sh reads
@@ -1318,6 +1345,7 @@ jobs:
           TAG: ${{ env.RELEASE_TAG }}
         run: |
           set -euo pipefail
+          rm -f dist/release-intelligence.json dist/release-intelligence.md
           echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-musl repo=${REPO}"
           gh workflow run 'Deploy Live Daemon' \
             --repo "$REPO" \
