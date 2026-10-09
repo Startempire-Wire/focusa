@@ -967,7 +967,7 @@ jobs:
   checksums:
     name: Publish SHA256SUMS
     if: ${{ always() && (inputs.recover_staged_assets == 'true' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
-    needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]
+    needs: [rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
