@@ -1149,8 +1149,7 @@ jobs:
                   "pub_date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                   "platforms": platforms,
               }
-              (dist / "latest.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "
-", encoding="utf-8")
+              (dist / "latest.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
               print("Generated latest.json")
           python3 -m json.tool dist/latest.json >/dev/null
           PY
