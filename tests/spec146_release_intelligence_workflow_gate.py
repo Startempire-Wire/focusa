@@ -27,11 +27,9 @@ def main() -> None:
         "--draft=false",
         "--prerelease",
         "--latest=false",
-        # Channel-aware publication: a stable tag must publish as stable and
-        # become Latest, otherwise GitHub keeps resolving consumers to an
-        # older release. These tokens pin that behaviour.
-        "--prerelease=false",
-        "release_channel=stable",
+        # Stable tags publish a signed candidate; deployment acceptance alone
+        # promotes stable/Latest. Artifact publication cannot promote early.
+        "release_channel=stable_candidate",
         "release_channel=candidate",
         # The OTA update pointer must be published explicitly. It is written
         # after the dist/* upload, so listing only dist/*.sig publishes
@@ -41,6 +39,12 @@ def main() -> None:
     ]
     for token in required_workflow_tokens:
         assert token in WORKFLOW, token
+    publication = WORKFLOW[WORKFLOW.index("Publish immutable release on the channel implied by its tag"):]
+    assert "--prerelease=false" not in publication, "publication promoted stable before acceptance"
+    deploy = (ROOT / ".github/workflows/deploy-live-daemon.yml").read_text()
+    promotion = deploy[deploy.index("Promote accepted stable release to Latest"):]
+    assert "--prerelease=false" in promotion, "accepted deployment must promote stable"
+    assert "--latest" in promotion, "accepted deployment must promote Latest"
     assert WORKFLOW.index("Generate typed release intelligence packet and page") < WORKFLOW.index(
         "Generate detached signatures, manifest, provenance, and trust metadata"
     )
