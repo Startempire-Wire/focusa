@@ -3328,7 +3328,11 @@ async fn resolve_latest_github(
         if release.draft
             || !(release_tag_matches_channel(&release.tag_name, channel, release.prerelease)
                 || (channel != "stable"
-                    && release_tag_matches_channel(&release.tag_name, "stable", release.prerelease)))
+                    && release_tag_matches_channel(
+                        &release.tag_name,
+                        "stable",
+                        release.prerelease,
+                    )))
             || pinned_version.is_some_and(|pinned| normalize_version(pinned) != normalized_tag)
             || skipped_versions.contains(&normalized_tag)
         {
@@ -3549,9 +3553,9 @@ fn release_tag_matches_channel(tag: &str, channel: &str, prerelease: bool) -> bo
                 && tag.strip_prefix('v').is_some_and(|version| {
                     let parts = version.split('.').collect::<Vec<_>>();
                     parts.len() == 3
-                        && parts
-                            .iter()
-                            .all(|part| !part.is_empty() && part.chars().all(|ch| ch.is_ascii_digit()))
+                        && parts.iter().all(|part| {
+                            !part.is_empty() && part.chars().all(|ch| ch.is_ascii_digit())
+                        })
                 })
         }
         "dev" => tag.starts_with('v') && tag.ends_with("-dev"),
@@ -3569,7 +3573,11 @@ mod release_channel_tests {
     fn stable_channel_accepts_only_unsuffixed_semver_tags() {
         assert!(release_tag_matches_channel("v0.9.139", "stable", false));
         assert!(!release_tag_matches_channel("v0.9.139-dev", "stable", true));
-        assert!(!release_tag_matches_channel("v0.9.139-rc.1", "stable", true));
+        assert!(!release_tag_matches_channel(
+            "v0.9.139-rc.1",
+            "stable",
+            true
+        ));
         assert!(!release_tag_matches_channel("0.9.139", "stable", false));
         assert!(!release_tag_matches_channel("v0.9", "stable", false));
     }
@@ -3583,14 +3591,22 @@ mod release_channel_tests {
     #[test]
     fn prerelease_channels_remain_disjoint() {
         assert!(release_tag_matches_channel("v0.9.139-dev", "dev", true));
-        assert!(release_tag_matches_channel("v0.9.139-rc.1", "preview", true));
+        assert!(release_tag_matches_channel(
+            "v0.9.139-rc.1",
+            "preview",
+            true
+        ));
         assert!(release_tag_matches_channel(
             "v0.9.139-nightly.42",
             "nightly",
             true
         ));
         assert!(!release_tag_matches_channel("v0.9.139", "dev", false));
-        assert!(!release_tag_matches_channel("v0.9.139-dev", "preview", true));
+        assert!(!release_tag_matches_channel(
+            "v0.9.139-dev",
+            "preview",
+            true
+        ));
     }
 }
 
