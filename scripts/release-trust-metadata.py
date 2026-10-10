@@ -24,6 +24,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 METADATA_NAMES = {
     "SHA256SUMS.txt",
     "SHA256SUMS.txt.sig",
+    "SHA256SUMS.txt.cosign.sig",
+    "SHA256SUMS.txt.cosign.pem",
+    "SHA256SUMS.txt.cosign.pem.sig",
     "release-manifest.json",
     "release-manifest.json.sig",
     "release-provenance.json",
@@ -84,12 +87,20 @@ def write_json(path: pathlib.Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
 
+def is_tauri_updater_asset(name: str) -> bool:
+    """Provider Minisign sidecars and release Ed25519 signatures are distinct."""
+    return name.startswith("Focusa") and name.endswith(
+        (".app.tar.gz", ".msi", "setup.exe")
+    )
+
+
 def sign_and_verify(
     path: pathlib.Path,
     private_key: Ed25519PrivateKey,
     public_key: Ed25519PublicKey,
 ) -> pathlib.Path:
-    signature = path.with_name(path.name + ".sig")
+    suffix = ".ed25519.sig" if is_tauri_updater_asset(path.name) else ".sig"
+    signature = path.with_name(path.name + suffix)
     payload = path.read_bytes()
     signature.write_bytes(private_key.sign(payload))
     public_key.verify(signature.read_bytes(), payload)

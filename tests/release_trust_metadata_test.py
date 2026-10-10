@@ -214,6 +214,32 @@ def main() -> int:
         assert unauthorized.returncode != 0
         assert "requires --candidate" in unauthorized.stderr
 
+        # Minisign belongs to the native updater; release signing must never
+        # replace it with a raw Ed25519 signature, including on rerun.
+        updater_assets = [
+            dist / "Focusa_aarch64.app.tar.gz",
+            dist / "Focusa_0.9.95_x64_en-US.msi",
+            dist / "Focusa_0.9.95_arm64-setup.exe",
+        ]
+        provider_signature = base64.b64encode(
+            b"untrusted comment: provider fixture\nprovider-signature-box\n"
+        ) + b"\n"
+        for asset in updater_assets:
+            asset.write_bytes(b"updater-fixture")
+            asset.with_name(asset.name + ".sig").write_bytes(provider_signature)
+        (dist / "SHA256SUMS.txt.cosign.pem").write_bytes(b"old-certificate")
+        for _ in range(2):
+            run(*common_args)
+            updated = json.loads((dist / "release-manifest.json").read_text())
+            checksums = (dist / "SHA256SUMS.txt").read_text()
+            assert "SHA256SUMS.txt.cosign.pem" not in checksums
+            assert "SHA256SUMS.txt.cosign.pem" not in updated["assets"]
+            for asset in updater_assets:
+                assert asset.with_name(asset.name + ".sig").read_bytes() == provider_signature
+                detached = asset.with_name(asset.name + ".ed25519.sig").read_bytes()
+                public.verify(detached, asset.read_bytes())
+                assert base64.b64decode(updated["assets"][asset.name]["signature"]["signature"]) == detached
+
         assets[0].write_bytes(b"tampered")
         try:
             public.verify(

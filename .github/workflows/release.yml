@@ -14,11 +14,6 @@ on:
         description: Exact commit SHA the release tag must resolve to
         required: true
         type: string
-      recover_staged_assets:
-        description: Reverify existing candidate receipts and finish signing/publication without rebuilding artifacts
-        required: false
-        type: boolean
-        default: false
 
 concurrency:
   group: release-${{ inputs.release_tag || github.ref }}
@@ -95,7 +90,7 @@ jobs:
 
   pull-request-release-gate:
     name: Pull request inclusion gate
-    if: ${{ always() && (inputs.recover_staged_assets == 'true' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v6
@@ -149,7 +144,6 @@ jobs:
           ref: ${{ env.RELEASE_SHA }}
           fetch-depth: 0
       - name: Verify immutable tag identity
-        if: ${{ inputs.recover_staged_assets != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -162,18 +156,6 @@ jobs:
             exit 1
           fi
           echo "release_candidate_identity=passed tag=${RELEASE_TAG} sha=${RELEASE_SHA}"
-      - name: Verify recover mode tag identity
-        if: ${{ inputs.recover_staged_assets == 'true' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
-          echo "recover_staged_assets=true: skipping immutable tag SHA verification"
-          git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
-          tag_sha="$(git rev-parse "${RELEASE_TAG}^{commit}")"
-          head_sha="$(git rev-parse HEAD)"
-          echo "tag: ${{ github.ref_name }}, expected: ${RELEASE_TAG}, actual_sha: ${tag_sha}"
-          echo "head_sha: ${head_sha}, expected: ${RELEASE_SHA}"
       - name: Classify candidate CI requirement
         shell: bash
         run: |
@@ -309,7 +291,7 @@ jobs:
   final-release-gap-gate:
     name: Final release gap gate
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
@@ -733,7 +715,7 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     # Producer-before-waiter: do not consume a bounded OVH lane while local
     # support artifacts are still queued on that same runner pool.
-    needs: [create-release, pi-extension-release]
+    needs: [create-release, pi-extension-release, windows-ovh-executables]
     runs-on: self-hosted
     timeout-minutes: 150
     steps:
@@ -985,10 +967,10 @@ jobs:
 
   checksums:
     name: Publish SHA256SUMS
-    if: ${{ always() && (inputs.recover_staged_assets == 'true' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
-    needs: [rust-release, pi-extension-release, tag-ci-proof]
-    runs-on: self-hosted
-    timeout-minutes: 5
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
         with:
@@ -1017,7 +999,15 @@ jobs:
           rm -f dist/release-intelligence.json dist/release-intelligence.md
           TAG="${RELEASE_TAG}"
           mkdir -p dist
-          gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
+          downloaded=false
+          for attempt in 1 2 3; do
+            if gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber; then
+              downloaded=true
+              break
+            fi
+            echo "::warning::Release download attempt ${attempt}/3 failed; retrying exact assets"
+          done
+          [ "$downloaded" = true ] || { echo "::error::Release asset download exhausted"; exit 1; }
           cp docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
             dist/distribution-manifest.json
 
@@ -1029,7 +1019,6 @@ jobs:
             --dist dist \
             --tag "${RELEASE_TAG}"
 
-        if: ${{ inputs.recover_staged_assets != 'true' }}
       - name: Generate signed Tauri updater metadata from provider receipts
         env:
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
@@ -1051,14 +1040,18 @@ jobs:
           names = {path.name: path for path in dist.iterdir() if path.is_file()}
 
           def exact(name: str) -> tuple[str, str]:
-              import base64
               path = names.get(name)
               signature_path = names.get(name + ".sig")
               if path is None or signature_path is None:
                   raise SystemExit(f"missing Tauri updater receipt: {name}")
               url = f"https://github.com/{repo}/releases/download/{tag}/{name}"
-              sig_bytes = signature_path.read_bytes()
-              return url, base64.b64encode(sig_bytes).decode("ascii").strip()
+              signature = signature_path.read_text(encoding="ascii").strip()
+              # Tauri sidecars are already base64-encoded Minisign signature boxes.
+              import base64
+              decoded = base64.b64decode(signature, validate=True)
+              if not decoded.startswith(b"untrusted comment:"):
+                  raise SystemExit(f"invalid Tauri provider signature: {name}")
+              return url, signature
 
           def pattern(glob: str) -> tuple[str, str]:
               matches = sorted(name for name in names if fnmatch.fnmatchcase(name, glob))
@@ -1099,86 +1092,6 @@ jobs:
           PY
           python3 -m json.tool dist/latest.json >/dev/null
 
-      - name: Generate latest.json for recover mode (simplified)
-        if: ${{ inputs.recover_staged_assets == 'true' }}
-        env:
-          RELEASE_TAG: ${{ env.RELEASE_TAG }}
-          RELEASE_REPOSITORY: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
-          python3 - <<'PY'
-          import datetime
-          import json
-          import os
-          from pathlib import Path
-
-          dist = Path("dist")
-          tag = os.environ["RELEASE_TAG"]
-          repo = os.environ["RELEASE_REPOSITORY"]
-          version = tag.removeprefix("v")
-
-          # Check if latest.json already exists and is valid
-          existing = dist / "latest.json"
-          if existing.exists():
-              try:
-                  json.loads(existing.read_text())
-                  print("Using existing latest.json from release assets")
-                  data = json.loads(existing.read_text())
-                  if "version" in data and "platforms" in data:
-                      print("latest.json structure valid")
-                  else:
-                      raise ValueError("invalid structure")
-              except Exception as e:
-                  print(f"Existing latest.json invalid: {e}, will regenerate")
-                  existing = None
-          else:
-              existing = None
-
-          if existing is None:
-              # Generate minimal latest.json with available assets
-              names = {path.name: path for path in dist.iterdir() if path.is_file() and not path.name.endswith(('.sig', '.pem', '.cosign.sig', '.cosign.pem'))}
-              platforms = {}
-
-              def find_asset(patterns):
-                  for pat in patterns:
-                      matches = [n for n in names if pat in n]
-                      if matches:
-                          return matches[0]
-                  return None
-
-              linux_x64 = find_asset([f"focusa-{version}-x86_64-unknown-linux-musl", f"focusa-{version}-x86_64-unknown-linux-gnu"])
-              linux_arm64 = find_asset([f"focusa-{version}-aarch64-unknown-linux-gnu"])
-              mac_x64_app = find_asset([f"Focusa-{version}-x86_64-apple-darwin.app", f"Focusa_{version}_x64.app"])
-              mac_arm64_app = find_asset([f"Focusa-{version}-aarch64-apple-darwin.app", f"Focusa_{version}_aarch64.app"])
-              win_x64_msi = find_asset([f"Focusa_{version}_x64_en-US.msi", f"Focusa_{version}_x64.msi"])
-              win_arm64_msi = find_asset([f"Focusa_{version}_arm64_en-US.msi", f"Focusa_{version}_arm64.msi"])
-
-              if linux_x64:
-                  platforms["linux-x64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{linux_x64}", "signature": ""}
-              if linux_arm64:
-                  platforms["linux-arm64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{linux_arm64}", "signature": ""}
-              if mac_x64_app:
-                  platforms["darwin-x86_64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{mac_x64_app}", "signature": ""}
-              if mac_arm64_app:
-                  platforms["darwin-aarch64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{mac_arm64_app}", "signature": ""}
-              if win_x64_msi:
-                  platforms["windows-x86_64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{win_x64_msi}", "signature": ""}
-              if win_arm64_msi:
-                  platforms["windows-aarch64"] = {"url": f"https://github.com/{repo}/releases/download/{tag}/{win_arm64_msi}", "signature": ""}
-
-              payload = {
-                  "version": version,
-                  "notes": f"https://github.com/{repo}/releases/tag/{tag}",
-                  "pub_date": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                  "platforms": platforms,
-              }
-              (dist / "latest.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-              print("Generated latest.json")
-          python3 -m json.tool dist/latest.json >/dev/null
-          PY
-          echo "latest.json ready"
-
       - name: Generate typed release intelligence packet and page
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -1214,7 +1127,10 @@ jobs:
           FOCUSA_RELEASE_ED25519_PRIVATE_KEY: ${{ secrets.FOCUSA_RELEASE_ED25519_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
+          if [ "$GITHUB_REF" != "refs/tags/${RELEASE_TAG}" ] || [ "$GITHUB_SHA" != "$RELEASE_SHA" ]; then
+            echo "::error::Release signing requires the exact immutable tag workflow ref and SHA"
+            exit 1
+          fi
           test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
           umask 077
           KEY_FILE="${RUNNER_TEMP}/focusa-release-ed25519.pem"
@@ -1236,6 +1152,12 @@ jobs:
             dist/SHA256SUMS.txt
           test -s dist/SHA256SUMS.txt.cosign.sig
           test -s dist/SHA256SUMS.txt.cosign.pem
+          cosign verify-blob \
+            --certificate dist/SHA256SUMS.txt.cosign.pem \
+            --signature dist/SHA256SUMS.txt.cosign.sig \
+            --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@refs/tags/${RELEASE_TAG}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            dist/SHA256SUMS.txt
 
       - name: Upload trusted OTA metadata and detached signatures
         uses: softprops/action-gh-release@v2
@@ -1262,7 +1184,6 @@ jobs:
           TAG: ${{ env.RELEASE_TAG }}
         run: |
           set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
           test -s dist/release-intelligence.md
           # The OTA update pointer is the channel the shipped installer resolves
           # (scripts/install-focusa-menubar-beta.sh reads

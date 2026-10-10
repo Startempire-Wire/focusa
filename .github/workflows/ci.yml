@@ -150,6 +150,13 @@ jobs:
       - name: Automatic Windows producer and full-release gate regressions
         run: python3 tests/windows_xwin_release_adapter_test.py
 
+      - name: Signed publication and native updater signature regressions
+        run: |
+          python3 tests/154_focusa_canonical_release_assets_test.py
+          python3 tests/release_trust_metadata_test.py
+          python3 tests/spec146_release_intelligence_workflow_gate.py
+          bash tests/release_tauri_artifacts_static_test.sh
+
       - name: Cross-build exact-identity cancellation ownership (#543, blocking)
         run: python3 tests/cross_cancellation_cleanup_test.py
 
