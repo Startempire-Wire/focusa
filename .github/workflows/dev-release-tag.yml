@@ -36,6 +36,10 @@ jobs:
     name: Gate immutable candidate and start canonical release
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 45
+    env:
+      # Existing approved OVH -> KH alias; KH authority remains loopback-only.
+      FOCUSA_KH_RESOURCE_HEALTH_SSH_HOST: kh
+      AGENT_KB_API_URL: http://127.0.0.1:8791
     steps:
       - uses: actions/checkout@v6
         with:

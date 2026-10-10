@@ -16,7 +16,7 @@ on:
         type: string
 
 concurrency:
-  group: release-${{ inputs.release_tag || github.ref }}
+  group: release-${{ inputs.release_tag || github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -1193,9 +1193,9 @@ jobs:
           test -s dist/latest.json
           python3 -m json.tool dist/latest.json >/dev/null
 
-          # A stable tag must publish as stable, otherwise GitHub keeps the
-          # previous "Latest" release and every consumer resolves an older
-          # build. Candidate tags stay pre-release and never become Latest.
+          # Publish a downloadable candidate, never Latest. The existing
+          # deployment workflow promotes an unsuffixed stable tag only after
+          # installation, OTA and deployment acceptance succeed.
           #
           # Tag matching uses fnmatch globs, not regex, per the canonical
           # release-surface contract (spec145 / structural guard mode 23).
@@ -1217,13 +1217,13 @@ jobs:
                   --prerelease \
                   --latest=false
               else
-                echo "release_channel=stable tag=$TAG"
+                echo "release_channel=stable_candidate tag=$TAG"
                 gh release edit "$TAG" \
                   --repo "$GITHUB_REPOSITORY" \
                   --notes-file dist/release-intelligence.md \
                   --draft=false \
-                  --prerelease=false \
-                  --latest
+                  --prerelease \
+                  --latest=false
               fi
               ;;
             *)

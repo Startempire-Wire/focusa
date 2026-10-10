@@ -14,7 +14,7 @@ use axum::{
 use chrono::Utc;
 use focusa_core::scoped_state::ScopeRef;
 use focusa_core::types::{
-    FocusaEvent, HltStatus, TrajectoryConfidence, TrajectoryDefinitionStatus,
+    FocusaEvent, HltLedgerEntry, HltStatus, TrajectoryConfidence, TrajectoryDefinitionStatus,
     TrajectoryGoalProvenanceRecord, TrajectoryProjectionRecord, TrajectoryRootGoalStability,
     TrajectoryWaypointRecord, TrajectoryWaypointStatus, WorkpointActionIntentRecord,
     WorkpointCheckpointReason, WorkpointConfidence, WorkpointRecord, WorkpointStatus,
@@ -89,11 +89,18 @@ fn existing_readiness_gate(
         return Ok(None);
     }
     let same_continuity = binding["continuity_id"].as_str() == Some(req.continuity_id.as_str());
-    if same_continuity {
-        return Ok(read_json(&packet_path(root)).filter(|packet| packet["status"] == "ready"));
-    }
-    if req.takeover == Some(true) && req.confirm == Some(true) {
+    let packet = read_json(&packet_path(root)).filter(|packet| packet["status"] == "ready");
+    let replay = packet.as_ref().is_some_and(|packet| {
+        packet["idempotency_key"].as_str() == Some(req.idempotency_key.as_str())
+    });
+    // A new, explicitly confirmed reconciliation may replace a historical
+    // ready receipt in the SAME continuity, using the atomic constructor.
+    // Exact replays still return the original receipt without new events.
+    if req.takeover == Some(true) && req.confirm == Some(true) && !(same_continuity && replay) {
         return Ok(None);
+    }
+    if same_continuity {
+        return Ok(packet);
     }
     if req.takeover == Some(true) {
         return Err(reject(
@@ -333,12 +340,47 @@ pub(super) async fn commit(
         idempotency_key: Some(req.idempotency_key.clone()),
         ..WorkpointRecord::default()
     };
-    let already_committed = {
+    let (already_committed, previous_trajectory) = {
         let focusa = state.focusa.read().await;
-        focusa.workpoint.records.iter().any(|record| {
+        let committed = focusa.workpoint.records.iter().any(|record| {
             record.workpoint_id == workpoint_id && record.status == WorkpointStatus::Active
-        })
+        });
+        let previous = focusa
+            .trajectory
+            .records
+            .iter()
+            .rev()
+            .find(|record| {
+                record.canonical
+                    && record.project_root.as_deref() == Some(root.to_string_lossy().as_ref())
+                    && record.continuity_id.as_deref() == Some(req.continuity_id.as_str())
+            })
+            .cloned();
+        (committed, previous)
     };
+    let hlt_entry = HltLedgerEntry::new(
+        root.to_string_lossy().to_string(),
+        hlt,
+        "project_genesis_commit",
+        state
+            .external_mutation_epoch
+            .load(std::sync::atomic::Ordering::Acquire)
+            + 1,
+    )
+    .with_old_hlt(
+        previous_trajectory
+            .as_ref()
+            .map(|record| record.long_term_goal.clone()),
+    )
+    .with_scope(Some(req.continuity_id.clone()), None)
+    .with_reason(Some("project_genesis_commit".into()));
+    let ladder_events = super::trajectory::trajectory_commit_events(
+        &trajectory,
+        previous_trajectory.as_ref(),
+        &hlt_entry,
+        &[],
+        Some(req.idempotency_key.as_str()),
+    );
     if !already_committed {
         let scope = ScopeContext {
             project_root: Some(root.to_string_lossy().to_string()),
@@ -363,6 +405,29 @@ pub(super) async fn commit(
         .await?;
     }
 
+    // A canonical projection without its scoped HLT ladder is not ready.
+    // Reuse the goal-definition event compiler and fail before publishing
+    // readiness if either append fails. Retries use the same replay key.
+    state
+        .persistence
+        .append_trajectory_ladder_events(&ladder_events)
+        .map_err(|error| {
+            reject(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "genesis_ladder_commit_failed",
+                error.to_string(),
+            )
+        })?;
+    state
+        .persistence
+        .append_hlt_ledger_entry(&hlt_entry)
+        .map_err(|error| {
+            reject(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "genesis_hlt_commit_failed",
+                error.to_string(),
+            )
+        })?;
     let owner_id = stable_id("coordination", &root, &req.idempotency_key);
     packet["status"] = json!("ready");
     packet["first_workpoint"] =

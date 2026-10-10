@@ -568,7 +568,7 @@ fn trajectory_waypoint_records(
         .collect()
 }
 
-fn trajectory_commit_events(
+pub(super) fn trajectory_commit_events(
     trajectory: &TrajectoryProjectionRecord,
     previous: Option<&TrajectoryProjectionRecord>,
     hlt_entry: &HltLedgerEntry,
@@ -602,12 +602,15 @@ fn trajectory_commit_events(
             object_id,
             old_value,
             new_value,
-            actor: "trajectory_define_goal".to_string(),
-            source: "trajectory_define_goal".to_string(),
+            actor: hlt_entry.source.clone(),
+            source: hlt_entry.source.clone(),
             authority: "canonical_explicit".to_string(),
             provenance: "operator_or_durable_supersession".to_string(),
             confidence: trajectory.confidence,
-            reason: Some("trajectory_goal_defined".to_string()),
+            reason: hlt_entry
+                .reason
+                .clone()
+                .or_else(|| Some("trajectory_goal_defined".to_string())),
             evidence_refs: evidence_refs.to_vec(),
             idempotency_key: idempotency_key.map(str::to_string),
             lamport_ts: lamport,

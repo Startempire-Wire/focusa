@@ -33,6 +33,7 @@ concurrency:
 
 jobs:
   windows-conpty:
+    if: ${{ vars.FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX == 'enabled' }}
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -64,6 +65,7 @@ jobs:
   # GitHub hosted-macOS billing lock, Codemagic is the authoritative menubar
   # package proof; see docs/178-focusa-temporary-ci-provider-parity-and-github-restoration-spec.md.
   unix-terminal:
+    if: ${{ vars.FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX == 'enabled' }}
     strategy:
       matrix:
         include:
@@ -100,6 +102,7 @@ jobs:
           if-no-files-found: warn
 
   linux-musl-runtime-artifact:
+    if: ${{ vars.FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX == 'enabled' }}
     name: Build Linux musl proof artifact (x86_64)
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -159,6 +162,7 @@ jobs:
           path: ${{ runner.temp }}/${{ steps.bundle.outputs.artifact_file }}
 
   native-linux-runtime-kh:
+    if: ${{ vars.FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX == 'enabled' }}
     needs: linux-musl-runtime-artifact
     runs-on: [self-hosted, Linux, X64, focusa-deploy, production]
     timeout-minutes: 35
@@ -203,6 +207,7 @@ jobs:
 
 
   release-target-build:
+    if: ${{ vars.FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX == 'enabled' }}
     name: Release target build (${{ matrix.target }})
     strategy:
       fail-fast: false
@@ -273,6 +278,7 @@ jobs:
           if-no-files-found: warn
 
   pi-extension-gate:
+    if: ${{ vars.FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX == 'enabled' }}
     name: Pi extension package/typecheck/lint
     runs-on: ubuntu-latest
     timeout-minutes: 15

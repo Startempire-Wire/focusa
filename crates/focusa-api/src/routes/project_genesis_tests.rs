@@ -170,6 +170,99 @@ fn coordination_conflict_uses_plain_language_and_confirmed_takeover() {
 }
 
 #[test]
+fn confirmed_same_continuity_reconciliation_does_not_reuse_stale_ready_packet() {
+    let root = test_root("same-continuity-recovery");
+    let mut request = complete_request(&root);
+    write_json_atomic(
+        &root.join(".focusa-project.json"),
+        &json!({
+            "genesis_binding": {"status": "ready", "continuity_id": request.continuity_id}
+        }),
+    )
+    .unwrap();
+    write_json_atomic(
+        &packet_path(&root),
+        &json!({
+            "status": "ready", "idempotency_key": "old-transaction"
+        }),
+    )
+    .unwrap();
+    assert!(existing_readiness_gate(&root, &request).unwrap().is_some());
+    request.takeover = Some(true);
+    assert!(existing_readiness_gate(&root, &request).unwrap().is_some());
+    request.confirm = Some(true);
+    assert!(existing_readiness_gate(&root, &request).unwrap().is_none());
+    request.idempotency_key = "old-transaction".into();
+    assert!(existing_readiness_gate(&root, &request).unwrap().is_some());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn genesis_ladder_preserves_actual_producer_and_scoped_goals() {
+    let trajectory = TrajectoryProjectionRecord {
+        trajectory_id: "genesis-ledger-test".into(),
+        project_root: Some("/test/genesis".into()),
+        continuity_id: Some("genesis-ledger-continuity".into()),
+        long_term_goal: "Release verified software".into(),
+        mid_level_goal: Some("Restore canonical continuation".into()),
+        short_term_goal: Some("Bind the first Workpoint".into()),
+        canonical: true,
+        ..TrajectoryProjectionRecord::default()
+    };
+    let entry = HltLedgerEntry::new(
+        "/test/genesis".into(),
+        trajectory.long_term_goal.clone(),
+        "project_genesis_commit",
+        42,
+    )
+    .with_scope(trajectory.continuity_id.clone(), None);
+    let events = crate::routes::trajectory::trajectory_commit_events(
+        &trajectory,
+        None,
+        &entry,
+        &[],
+        Some("genesis-ledger-replay"),
+    );
+    assert_eq!(events.len(), 3);
+    for event in &events {
+        assert_eq!(event.trajectory_id, trajectory.trajectory_id);
+        assert_eq!(event.project_root, "/test/genesis");
+        assert_eq!(event.continuity_id, trajectory.continuity_id);
+        assert_eq!(event.source, "project_genesis_commit");
+        assert_eq!(event.hlt_version, 42);
+    }
+    assert_eq!(events[0].new_value, json!(trajectory.long_term_goal));
+    assert_eq!(events[1].new_value, json!(trajectory.mid_level_goal));
+    assert_eq!(events[2].new_value, json!(trajectory.short_term_goal));
+    assert_eq!(
+        events[1].causal_parent_event_id.as_deref(),
+        Some(events[0].event_id.as_str())
+    );
+    assert_eq!(
+        events[2].causal_parent_event_id.as_deref(),
+        Some(events[1].event_id.as_str())
+    );
+}
+
+#[test]
+fn genesis_uses_shared_ladder_compiler_and_commits_history_before_readiness() {
+    let source = include_str!("project_genesis.rs");
+    let compile = source
+        .find("super::trajectory::trajectory_commit_events(")
+        .unwrap();
+    let ladder = source
+        .find("append_trajectory_ladder_events(&ladder_events)")
+        .unwrap();
+    let hlt = source.find("append_hlt_ledger_entry(&hlt_entry)").unwrap();
+    let ready = source
+        .find("packet[\"status\"] = json!(\"ready\")")
+        .unwrap();
+    assert!(compile < ladder && ladder < hlt && hlt < ready);
+    assert!(source.contains("genesis_ladder_commit_failed"));
+    assert!(source.contains("genesis_hlt_commit_failed"));
+}
+
+#[test]
 fn marker_is_committed_only_after_ready_packet_in_source_contract() {
     let source = include_str!("project_genesis.rs");
     let ready = source

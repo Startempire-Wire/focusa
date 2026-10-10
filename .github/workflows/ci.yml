@@ -154,6 +154,7 @@ jobs:
         run: |
           python3 tests/154_focusa_canonical_release_assets_test.py
           python3 tests/release_trust_metadata_test.py
+          python3 tests/release_readiness_recovery_test.py
           python3 tests/spec146_release_intelligence_workflow_gate.py
           bash tests/release_tauri_artifacts_static_test.sh
 
