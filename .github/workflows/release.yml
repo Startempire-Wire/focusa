@@ -987,8 +987,8 @@ jobs:
           gh --version
           openssl version
           python3 --version
-          python3 -m pip install --disable-pip-version-check --user 'cryptography==46.0.4'
-          python3 -c 'import cryptography; print(cryptography.__version__)'
+          scripts/ci/setup-python-test-env.sh
+          .focusa-python-test-venv/bin/python -c 'import cryptography; print(cryptography.__version__)'
           test -s config/focusa-trusted-release-keys.json
 
       - name: Download completed release assets
