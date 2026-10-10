@@ -208,7 +208,7 @@ require(
     [
         "tags:",
         "'v*'",
-        "release-${{ inputs.release_tag || github.ref }}",
+        "release-${{ inputs.release_tag || github.ref_name }}",
         "Swatinem/rust-cache@v2",
         "Lock exact release candidate",
         "focusa.release_candidate.v1",
