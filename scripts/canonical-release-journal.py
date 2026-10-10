@@ -6,9 +6,11 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import io
 import json
 import os
 import re
+import shlex
 import statistics
 import subprocess
 import sys
@@ -102,7 +104,7 @@ class JournalApiError(RuntimeError):
 
 
 def api_request(method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-    base = os.environ.get("AGENT_KB_API_URL", DEFAULT_API).rstrip("/")
+    base = os.environ.get("AGENT_KB_RELEASE_API_URL", os.environ.get("AGENT_KB_API_URL", DEFAULT_API)).rstrip("/")
     body = None if payload is None else json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     request = urllib.request.Request(
         base + path,
@@ -138,23 +140,65 @@ def focusa_headers() -> dict[str, str]:
     return headers
 
 
-def focusa_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
+# This adapter reaches the existing authoritative loopback daemon, never starts
+# a daemon/relay, and carries authorization and payload only over encrypted stdin.
+FOCUSA_SSH_HTTP = """import json, sys, urllib.request, urllib.error
+p = json.load(sys.stdin)
+data = None if p['payload'] is None else json.dumps(p['payload'], sort_keys=True).encode()
+r = urllib.request.Request(p['url'], data=data, method=p['method'], headers=p['headers'])
+try:
+    response = urllib.request.urlopen(r, timeout=25)
+except urllib.error.HTTPError as error:
+    response = error
+with response:
+    body = response.read(4194305)
+    if len(body) > 4194304:
+        raise ValueError('Focusa response exceeds transport limit')
+    print(json.dumps({'status': response.code, 'body': body.decode()}))
+"""
+
+
+def focusa_http(method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
     base = os.environ.get("FOCUSA_API_URL", DEFAULT_FOCUSA_API).rstrip("/")
+    url = base + path
+    headers = focusa_headers()
+    ssh_host = os.environ.get("FOCUSA_API_SSH_HOST", "").strip()
+    if ssh_host:
+        parsed = urllib.parse.urlsplit(url)
+        if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", ssh_host)
+                or parsed.scheme not in ("http", "https")
+                or parsed.hostname not in ("127.0.0.1", "localhost", "::1")
+                or parsed.username is not None or parsed.password is not None):
+            raise ValueError("Focusa SSH transport requires an explicit host alias and loopback URL")
+        result = subprocess.run(
+            ["ssh", "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+             "-o", "StrictHostKeyChecking=yes", ssh_host,
+             "python3 -c " + shlex.quote(FOCUSA_SSH_HTTP)],
+            input=json.dumps({"url": url, "method": method, "headers": headers, "payload": payload}),
+            text=True, capture_output=True, timeout=35, check=False,
+        )
+        if result.returncode:
+            raise RuntimeError(f"Focusa SSH route failed (exit {result.returncode}): "
+                               + _bounded_command_diagnostic(result.stderr or ""))
+        reply = json.loads(result.stdout)
+        if not 200 <= reply["status"] < 300:
+            raise urllib.error.HTTPError(url, reply["status"], "Focusa request rejected", None,
+                                         io.BytesIO(reply["body"].encode()))
+        return json.loads(reply["body"])
     request = urllib.request.Request(
-        base + path,
-        data=json.dumps(payload, sort_keys=True).encode(),
-        method="POST",
-        headers=focusa_headers(),
+        url, data=None if payload is None else json.dumps(payload, sort_keys=True).encode(),
+        method=method, headers=headers,
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         return json.loads(response.read())
 
 
+def focusa_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
+    return focusa_http("POST", path, payload)
+
+
 def focusa_get(path: str) -> dict[str, Any]:
-    base = os.environ.get("FOCUSA_API_URL", DEFAULT_FOCUSA_API).rstrip("/")
-    request = urllib.request.Request(base + path, headers=focusa_headers())
-    with urllib.request.urlopen(request, timeout=30) as response:
-        return json.loads(response.read())
+    return focusa_http("GET", path)
 
 
 def prediction_scope() -> dict[str, Any]:

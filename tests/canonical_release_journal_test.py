@@ -266,6 +266,73 @@ finally:
     module.token = original_token
     module.time.sleep = original_read_sleep
 
+# Existing KH SSH route preserves HTTP semantics and never puts credentials in argv.
+ssh_calls = []
+ssh_reply = {"status": 200, "body": '{"status":"ok"}'}
+original_run = module.subprocess.run
+original_environment = dict(module.os.environ)
+original_urlopen = module.urllib.request.urlopen
+original_token = module.token
+
+def fake_ssh(args, **kwargs):
+    ssh_calls.append((args, kwargs))
+    assert kwargs["timeout"] == 35
+    assert kwargs["check"] is False
+    assert "synthetic-secret" not in " ".join(args)
+    return subprocess.CompletedProcess(args, 0, json.dumps(ssh_reply), "")
+
+try:
+    module.os.environ.update({"FOCUSA_API_SSH_HOST": "kh", "FOCUSA_API_URL": "http://127.0.0.1:8787",
+                              "FOCUSA_AUTH_TOKEN": "synthetic-secret"})
+    module.subprocess.run = fake_ssh
+    assert module.focusa_get("/v1/health")["status"] == "ok"
+    assert module.focusa_request("/v1/metacognition/retrieve", {"k": 1})["status"] == "ok"
+    assert [json.loads(call[1]["input"])["method"] for call in ssh_calls] == ["GET", "POST"]
+    assert json.loads(ssh_calls[-1][1]["input"])["headers"]["Authorization"] == "Bearer synthetic-secret"
+    assert "StrictHostKeyChecking=yes" in ssh_calls[-1][0]
+    ssh_reply = {"status": 403, "body": '{"code":"scope_denied"}'}
+    before = len(ssh_calls)
+    try:
+        module.focusa_request("/v1/metacognition/retrieve", {"k": 1})
+    except urllib.error.HTTPError as error:
+        assert error.code == 403 and json.loads(error.read())["code"] == "scope_denied"
+    else:
+        raise AssertionError("remote permission failure must remain a failure")
+    assert len(ssh_calls) == before + 1  # uncertain mutations never replay
+    for alias in ("-oProxyCommand=bad", "kh;bad", "kh bad"):
+        module.os.environ["FOCUSA_API_SSH_HOST"] = alias
+        try:
+            module.focusa_get("/v1/health")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid SSH alias accepted")
+    module.os.environ["FOCUSA_API_SSH_HOST"] = "kh"
+    module.os.environ["FOCUSA_API_URL"] = "https://example.test"
+    try:
+        module.focusa_get("/v1/health")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("non-loopback SSH target accepted")
+    requests = []
+    def journal_urlopen(request, timeout):
+        requests.append(request.full_url)
+        return FakeReadResponse({"events": []})
+    module.token = lambda: "offline-test-token"
+    module.urllib.request.urlopen = journal_urlopen
+    module.os.environ["AGENT_KB_API_URL"] = "http://127.0.0.1:8791"
+    module.os.environ["AGENT_KB_RELEASE_API_URL"] = "http://private-master.test:8791"
+    assert module.query_events(limit=1)["events"] == []
+    assert requests[-1].startswith("http://private-master.test:8791/v1/releases/journal?")
+    assert module.os.environ["AGENT_KB_API_URL"] == "http://127.0.0.1:8791"
+finally:
+    module.subprocess.run = original_run
+    module.urllib.request.urlopen = original_urlopen
+    module.token = original_token
+    module.os.environ.clear()
+    module.os.environ.update(original_environment)
+
 actuals = {"total_elapsed_seconds": 900, "remote_pipeline_seconds": 600, "asset_count": 60, "problems_count": 1}
 estimates = {"total_elapsed_seconds": 1200, "remote_pipeline_seconds": 500, "asset_count": 60, "problems_count": 0}
 deltas = module.estimate_deltas(actuals, estimates)

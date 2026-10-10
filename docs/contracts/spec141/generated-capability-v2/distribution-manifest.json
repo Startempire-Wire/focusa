@@ -1,22 +1,22 @@
 {
   "schema": "focusa.distribution_manifest.v1",
-  "release_version": "0.9.204",
-  "source_commit": "d66852a1b",
-  "generated_at": "2026-10-10T20:15:10.993182Z",
+  "release_version": "0.9.205",
+  "source_commit": "768246951",
+  "generated_at": "2026-10-10T23:18:51.198397Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
-    "Cargo.toml": "sha256:0460b3fbb94056d28f39b24df9b52a355a2ecce22008d067586ffae725a69059",
-    "apps/pi-extension/package.json": "sha256:418fbeda2752a7a9d3f877edcff6299ebfcf17a9a0dc6b7643c46c629e2685d3",
+    "Cargo.toml": "sha256:833b25da4a0ede26022e055b92d6deb9e55088456a9674661a99017b40ab43d6",
+    "apps/pi-extension/package.json": "sha256:221bef81f14fead2bc4e6e57e3774b5be38b85e328492865c53398ff52d91f03",
     "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:2155f36bc42db7be22d2a2895e3cfa8e9fafcaa1744ffb5e84be669bfe175ba8",
     "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59",
-    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:5e1652b0764189c3c4c7efd896a88fc0e9624e6f4273bd687f38b8f3825995ac",
+    "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:fc48936c3b5b97d7e08b81ed4931622f14a44187ccc852642c1a67acf70ff5de",
     "docs/contracts/spec141/generated-capability-v2/mcp-tools.json": "sha256:9be5a68bbfc1289d13b12d03eab307749018b08b5070a564cbdb1cbca004c914",
     "docs/contracts/spec141/generated-capability-v2/pi-tools.json": "sha256:52da7e713c7601d9748330db8060dde345740c9d17677dcd6dd5c110503386fc"
   },
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:a9f8fb51a56b6ec36438374aecdee27ba5071d693c1bd4e84e20f8f5371f28e9",
+      "sha256": "sha256:6474d0184d2fb011cceda239856afef7489db5671e9ee336d9cc7a02bbd5f8da",
       "file_count": 846,
       "source_paths": [
         "Cargo.toml",
@@ -26,7 +26,7 @@
     },
     "pi_extension": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:06bfaadcc2b3cfd33fad68cb36aedeb23d78fb9e0e9452c6fa197f47176b503b",
+      "sha256": "sha256:d7925570c589e731ca7affaf9d06af88985523d656488929871d7cf9ee51b1ed",
       "file_count": 209,
       "source_paths": [
         "apps/pi-extension"
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:4e22834689d1f780989f405152e1cc2dfbdf2fff73a031ee4af82ba04ac23ebf",
+      "sha256": "sha256:8245d1f75fd3dad096ea77a55e9c71cecfe78c8cb951946701918f23e2586f0f",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -67,7 +67,7 @@
     },
     "installers": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:82fc327d34334b0b1bd8fc5054919ef7d8fca646871fc02dad3308a16b3ae56e",
+      "sha256": "sha256:bab095d39e16b9c0aacd2290be653807204689d4e464985b568c93963db0dac1",
       "file_count": 3,
       "source_paths": [
         "scripts/install-focusa.sh",
@@ -77,7 +77,7 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:06e55e5e0fceed20e900cbb269fd03774c6e1d4bab8e70d153ed19d2b0c54259",
+      "sha256": "sha256:3bb8ef8f0a09937e3685bbff2ab7d879917bc4ce0ea1343758ac411d039c9146",
       "file_count": 41,
       "source_paths": [
         ".appveyor.yml",
@@ -126,7 +126,7 @@
     "capability_surfaces": {
       "contract_count": 157,
       "registry_sha256": "sha256:56249f287999e94e47bb0c717650ddc138657e69c9bb74319dc554e95dee3255",
-      "agent_card_sha256": "sha256:5e1652b0764189c3c4c7efd896a88fc0e9624e6f4273bd687f38b8f3825995ac",
+      "agent_card_sha256": "sha256:fc48936c3b5b97d7e08b81ed4931622f14a44187ccc852642c1a67acf70ff5de",
       "pi_tools_sha256": "sha256:52da7e713c7601d9748330db8060dde345740c9d17677dcd6dd5c110503386fc",
       "mcp_tools_sha256": "sha256:9be5a68bbfc1289d13b12d03eab307749018b08b5070a564cbdb1cbca004c914",
       "openai_tools_sha256": "sha256:64c2d1d0af46a73305f54b69986725aeb8e35405d78ad55424879e43afa080cf",
