@@ -90,6 +90,18 @@ class ReleasePublicationRegressionTests(unittest.TestCase):
     def workflow(self):
         return yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
 
+    def test_editorial_override_keeps_substantive_release_gates(self):
+        launcher = yaml.safe_load((ROOT / ".github/workflows/dev-release-tag.yml").read_text())
+        step = next(s for s in launcher["jobs"]["create-tag"]["steps"] if s.get("name") == "Create approved immutable tag")
+        run = step["run"]
+        self.assertIn('if [ -n "$RELEASE_REASON" ]; then', run)
+        override = run.index("--force-release")
+        self.assertLess(run.index("scripts/release-gate.py"), override)
+        self.assertLess(run.index("scripts/next-version.py"), override)
+        self.assertIn('(.violations | length == 0)', run)
+        self.assertIn('scripts/create-dev-release-tag.sh "${args[@]}" --push', run)
+        self.assertNotIn("--no-verify", run)
+
     def test_receipt_gates_and_immutable_validation_cannot_be_skipped(self):
         workflow = self.workflow()
         jobs = workflow["jobs"]

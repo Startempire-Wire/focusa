@@ -11,6 +11,10 @@ on:
         description: 'Exact approved release tag; empty selects the next stable patch'
         required: false
         type: string
+      release_reason:
+        description: 'Approved editorial history override reason; trust, version and strict gates remain required'
+        required: false
+        type: string
       push:
         description: 'Push the approved tag and main'
         required: true
@@ -59,6 +63,7 @@ jobs:
           APPROVED_TAG: ${{ inputs.tag }}
           APPROVED_BASE: ${{ inputs.base }}
           PUSH: ${{ inputs.push }}
+          RELEASE_REASON: ${{ inputs.release_reason }}
         run: |
           set -euo pipefail
           args=(--base "$APPROVED_BASE")
@@ -70,6 +75,14 @@ jobs:
             gh run list --repo "$GITHUB_REPOSITORY" --workflow CI --commit "$candidate" \
               --limit 10 --json status,conclusion,headSha | \
               jq -e --arg sha "$candidate" 'any(.[]; .headSha == $sha and .status == "completed" and .conclusion == "success")'
+            if [ -n "$RELEASE_REASON" ]; then
+              # The canonical override records an editorial exception in the tag;
+              # independently require substantive release/version gates first.
+              FOCUSA_RELEASE_CHANNEL=stable python3 scripts/release-gate.py
+              python3 scripts/next-version.py --tag "$APPROVED_TAG" --json | \
+                jq -e '(.violations | type == "array") and (.violations | length == 0)'
+              args+=(--force-release --release-reason "$RELEASE_REASON")
+            fi
             scripts/create-dev-release-tag.sh "${args[@]}" --push --no-wait-ci --no-wait-deploy
             tag="v$(tr -d '[:space:]' < docs/current/.release-version-stamp)"
             sha=$(git rev-parse "$tag^{commit}")
