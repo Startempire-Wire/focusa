@@ -5877,6 +5877,29 @@ pub(crate) async fn require_scoped_north_star_mutation_admission(
     require_north_star_mutation_admission(&linkage, requested_mutation)
 }
 
+/// A missing Workpoint frontier is a reconcile signal, not a hard stop
+/// (#618 invariant #9 "scoped stopping, not paralysis"; #672). Read-only and
+/// non-consequential work may continue; only consequential mutation requires
+/// the frontier to be reconciled first.
+fn apply_frontier_reconcile(payload: &mut Value, linkage_ready: bool) {
+    if payload.get("status").and_then(Value::as_str) == Some("completed") && !linkage_ready {
+        let object = payload.as_object_mut().expect("payload is an object");
+        object.insert("status".to_string(), Value::String("reconcile".to_string()));
+        object.insert(
+            "code".to_string(),
+            Value::String("WORKPOINT_FRONTIER_MISSING".to_string()),
+        );
+        object.insert(
+            "reconcile".to_string(),
+            json!({
+                "signal": "workpoint_frontier_missing",
+                "severity": "informational",
+                "next_step_hint": "reconcile the Trajectory-to-Workpoint binding before consequential mutation; read-only and non-consequential work may continue"
+            }),
+        );
+    }
+}
+
 async fn north_star_gate(
     scope: ScopeContext,
     State(state): State<Arc<AppState>>,
@@ -5990,14 +6013,8 @@ async fn north_star_gate(
         if let Some(object) = payload.as_object_mut() {
             object.insert("projection".to_string(), projection);
             object.insert("workpoint_linkage".to_string(), linkage);
-            if object.get("status").and_then(Value::as_str) == Some("completed") && !linkage_ready {
-                object.insert("status".to_string(), Value::String("blocked".to_string()));
-                object.insert(
-                    "code".to_string(),
-                    Value::String("WORKPOINT_FRONTIER_MISSING".to_string()),
-                );
-            }
         }
+        apply_frontier_reconcile(&mut payload, linkage_ready);
     }
     mark_north_star_daemon_authority(&mut payload, &trigger);
     (status_code, Json(payload))
@@ -6041,6 +6058,33 @@ mod tests {
         assert_eq!(payload["advisory"], false);
         assert_eq!(payload["trigger"], "model_switch");
         assert_eq!(payload["canonical"], true);
+    }
+
+    #[test]
+    fn frontier_missing_is_reconcile_not_blocked() {
+        let mut payload = json!({"status": "completed"});
+        apply_frontier_reconcile(&mut payload, false);
+        assert_eq!(payload["status"], "reconcile");
+        assert_eq!(payload["code"], "WORKPOINT_FRONTIER_MISSING");
+        assert_eq!(payload["reconcile"]["severity"], "informational");
+        assert_eq!(payload["reconcile"]["signal"], "workpoint_frontier_missing");
+    }
+
+    #[test]
+    fn frontier_ready_keeps_completed_status() {
+        let mut payload = json!({"status": "completed"});
+        apply_frontier_reconcile(&mut payload, true);
+        assert_eq!(payload["status"], "completed");
+        assert!(payload.get("code").is_none());
+        assert!(payload.get("reconcile").is_none());
+    }
+
+    #[test]
+    fn non_completed_status_is_untouched_by_reconcile() {
+        let mut payload = json!({"status": "blocked", "code": "SCOPE_MISMATCH"});
+        apply_frontier_reconcile(&mut payload, false);
+        assert_eq!(payload["status"], "blocked");
+        assert_eq!(payload["code"], "SCOPE_MISMATCH");
     }
 
     #[tokio::test]

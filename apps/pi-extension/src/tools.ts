@@ -2398,9 +2398,17 @@ pi.registerTool({
       const response = await focusaFetchDetailed(`/project/north-star-gate?${query.toString()}`);
       const body = response.body && typeof response.body === "object" ? response.body : {};
       const guard = body.trajectory_integrity_guard || {};
-      const ready = response.ok && body.status === "completed" && guard.status === "ready";
+      // A missing Workpoint frontier is a reconcile signal, not a hard stop
+      // (#618 invariant #9 "scoped stopping, not paralysis" and #12
+      // "proportionate hot path"; #672). Read-only and non-consequential work
+      // may continue; only consequential mutation requires the frontier to be
+      // reconciled first.
+      const reconcile = body.status === "reconcile" && body.code === "WORKPOINT_FRONTIER_MISSING";
+      const ready = response.ok && (body.status === "completed" || reconcile) && guard.status === "ready";
       const status = ready
-        ? "ready"
+        ? reconcile
+          ? "reconcile"
+          : "ready"
         : String(body.code || guard.status || body.status || `http_${response.status}`);
       const details = {
         ...body,
@@ -2418,7 +2426,9 @@ pi.registerTool({
           {
             type: "text",
             text: ready
-              ? "🧭 NORTH STAR READY · daemon verified the canonical Trajectory Ladder"
+              ? reconcile
+                ? "🧭 NORTH STAR RECONCILE · daemon verified the Trajectory Ladder; Workpoint frontier needs reconciliation before consequential mutation"
+                : "🧭 NORTH STAR READY · daemon verified the canonical Trajectory Ladder"
               : `🧭 NORTH STAR BLOCKED · ${status}`,
           },
         ],
