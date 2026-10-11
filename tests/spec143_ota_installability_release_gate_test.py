@@ -35,6 +35,11 @@ rust_release = release[release.index("  rust-release:") : release.index("  pi-ex
 assert "timeout-minutes: 30" in rust_release
 
 assert "deploy-success.json deploy-success.json.sig" in deploy
+# System promotion does not copy the installer-owned HOME/.focusa context.
+# Audit the actual active bundle rather than a stale system-state mirror.
+assert "vars.FOCUSA_DEPLOY_AGENT_CONTEXT_DIR || '/root/.focusa/agent-context'" in deploy
+assert 'FOCUSA_AGENT_CONTEXT_DIR="${DEPLOY_AGENT_CONTEXT_DIR}"' in deploy
+assert "FOCUSA_AGENT_CONTEXT_DIR=/usr/local/lib/focusa/agent-context" not in deploy
 assert "Gate OTA installability against signed deployed release" in deploy
 assert "ota-update-plan.json" in deploy
 assert ".latest.trust.deploy_proof_verified == true" in deploy

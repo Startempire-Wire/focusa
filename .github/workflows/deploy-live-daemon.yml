@@ -35,6 +35,9 @@ jobs:
     environment: production
     env:
       DEPLOY_INSTALL_ROOT: ${{ vars.FOCUSA_DEPLOY_INSTALL_ROOT }}
+      # Rust keeps agent context in the installing user's HOME/.focusa;
+      # system promotion owns binaries/manifest, not a second context mirror.
+      DEPLOY_AGENT_CONTEXT_DIR: ${{ vars.FOCUSA_DEPLOY_AGENT_CONTEXT_DIR || '/root/.focusa/agent-context' }}
       DEPLOY_SERVICE_NAME: ${{ vars.FOCUSA_DEPLOY_SERVICE_NAME }}
       DEPLOY_HEALTH_URL: ${{ vars.FOCUSA_DEPLOY_HEALTH_URL }}
       DEPLOY_ASSET_SUFFIX_DEFAULT: ${{ vars.FOCUSA_DEPLOY_ASSET_SUFFIX }}
@@ -359,7 +362,7 @@ jobs:
           # Unprivileged parity audit: the canonical state root and the release
           # temp dir are runner-readable; no root needed for a read-only audit.
           FOCUSA_DISTRIBUTION_MANIFEST=/usr/local/lib/focusa/distribution-manifest.json \
-            FOCUSA_AGENT_CONTEXT_DIR=/usr/local/lib/focusa/agent-context \
+            FOCUSA_AGENT_CONTEXT_DIR="${DEPLOY_AGENT_CONTEXT_DIR}" \
             FOCUSA_RELEASE_MANIFEST=/tmp/focusa-release/release-manifest.json \
             FOCUSA_RELEASE_ASSET_SUFFIX="${{ steps.cfg.outputs.asset_suffix }}" \
             node "$GITHUB_WORKSPACE/scripts/audit-distribution-parity.mjs" --json \
