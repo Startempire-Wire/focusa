@@ -177,35 +177,50 @@ def main() -> int:
         ).hexdigest()
         assert len(signature) == 64
 
-        settled = subprocess.run(
-            [
-                "python3",
-                str(SCRIPT),
-                "--output",
-                str(output),
-                "--tag",
-                tag,
-                "--commit",
-                commit,
-                "--run-url",
-                "https://github.com/Startempire-Wire/focusa/actions/runs/1",
-                "--asset",
-                str(asset),
-                "--manifest",
-                str(manifest_path),
-                "--manifest-signature",
-                str(manifest_signature),
-                "--distribution-parity",
-                str(parity_path),
-                "--version",
-                "0.9.99-dev",
-                "--private-key",
-                str(key_path),
-                "--settle",
-            ],
-            capture_output=True,
-            text=True,
-        )
+        ota_path = work / "ota-update-plan.json"
+        ota_plan = {
+            "schema": "focusa.update_plan.v1",
+            "read_only": True,
+            "mutations_performed": False,
+            "apply_allowed": True,
+            "apply_blocked_until": [],
+            "latest": {
+                "tag": tag,
+                "version": "0.9.99-dev",
+                "trust": {
+                    "manifest_signature_verified": True,
+                    "deploy_proof_verified": True,
+                    "trusted_key_fingerprint": promoted_manifest["trust"]["public_key_fingerprint"],
+                    "blockers": [],
+                },
+            },
+        }
+        settlement_args = [*generated.args, "--settle", "--ota-plan", str(ota_path)]
+        candidate_bytes = manifest_path.read_bytes()
+        for field, value in (("apply_allowed", False), ("mutations_performed", True)):
+            bad_ota = {**ota_plan, field: value}
+            ota_path.write_text(json.dumps(bad_ota))
+            refused = subprocess.run(settlement_args, capture_output=True, text=True)
+            assert refused.returncode != 0
+            assert "OTA audit plan is not accepted" in refused.stderr
+            assert manifest_path.read_bytes() == candidate_bytes
+        for field, value in (("tag", "v0.9.98-dev"), ("version", "0.9.98-dev")):
+            bad_ota = {**ota_plan, "latest": {**ota_plan["latest"], field: value}}
+            ota_path.write_text(json.dumps(bad_ota))
+            refused = subprocess.run(settlement_args, capture_output=True, text=True)
+            assert refused.returncode != 0
+            assert "OTA audit plan is not accepted" in refused.stderr
+            assert manifest_path.read_bytes() == candidate_bytes
+        bad_ota = json.loads(json.dumps(ota_plan))
+        bad_ota["latest"]["trust"]["trusted_key_fingerprint"] = "0" * 64
+        ota_path.write_text(json.dumps(bad_ota))
+        refused = subprocess.run(settlement_args, capture_output=True, text=True)
+        assert refused.returncode != 0
+        assert "OTA audit plan is not accepted" in refused.stderr
+        assert manifest_path.read_bytes() == candidate_bytes
+        assert not ota_path.with_name(ota_path.name + ".sig").exists()
+        ota_path.write_text(json.dumps(ota_plan))
+        settled = subprocess.run(settlement_args, capture_output=True, text=True)
         assert settled.returncode == 0, settled.stderr
         promoted_manifest = json.loads(manifest_path.read_text())
         assert promoted_manifest["publication_status"] == "published"
@@ -216,6 +231,18 @@ def main() -> int:
         assert proof["release_manifest_sha256"] == hashlib.sha256(
             manifest_path.read_bytes()
         ).hexdigest()
+
+        assert proof["ota_plan_sha256"] == hashlib.sha256(ota_path.read_bytes()).hexdigest()
+        for audit in (parity_path, ota_path):
+            audit_signature = audit.with_name(audit.name + ".sig").read_bytes()
+            assert len(audit_signature) == 64
+            private_key.public_key().verify(audit_signature, audit.read_bytes())
+            try:
+                private_key.public_key().verify(audit_signature, audit.read_bytes() + b"tampered")
+            except Exception:
+                pass
+            else:
+                raise AssertionError("tampered audit receipt unexpectedly verified")
 
         tampered = output.read_bytes().replace(b'"success": true', b'"success": false')
         try:

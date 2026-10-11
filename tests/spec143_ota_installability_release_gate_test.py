@@ -44,7 +44,12 @@ assert "Gate OTA installability against signed deployed release" in deploy
 assert "ota-update-plan.json" in deploy
 assert ".latest.trust.deploy_proof_verified == true" in deploy
 assert ".apply_allowed == true" in deploy
-assert "ota-installability-proof-${{ steps.cfg.outputs.tag }}" in deploy
+assert "--ota-plan /tmp/focusa-release/ota-update-plan.json" in deploy
+assert "Publish signed installed parity and OTA audit receipts" in deploy
+assert "/tmp/focusa-release/ota-update-plan.json.sig" in deploy
+assert "/tmp/focusa-release/distribution-parity.json.sig" in deploy
+assert "actions/upload-artifact" not in deploy
+assert "continue-on-error" not in deploy
 assert "Gate published bootstrapper asset resolution" in deploy
 assert 'PUBLISHED_INSTALLER="focusa-installer-${TAG}.sh"' in deploy
 assert 'PUBLISHED_PS1="focusa-installer-${TAG}.ps1"' in deploy

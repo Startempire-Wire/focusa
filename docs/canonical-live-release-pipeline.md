@@ -79,5 +79,6 @@ A deployment is complete only when:
 - `Deploy Live Daemon` completed successfully for that exact immutable tag.
 - `/usr/local/lib/focusa/distribution-manifest.json` is byte-identical to the signed release asset and reports the installed version.
 - All four installed binary versions and SHA-256 values, active Pi package, agent skills/docs, health response, and CallGraph probe are captured in the parity receipt.
+- After OTA acceptance, the existing deployment-proof owner validates the exact plan and signs `distribution-parity.json` and `ota-update-plan.json`; their receipts and detached signatures are attached to the same Release. Mandatory release evidence does not depend on Actions artifact storage quota. Existing payloads and native updater signatures remain unchanged.
 - `/v1/health` proof is emitted by the deploy workflow.
 - Audit Recorder has no unresolved process-error row for the pipeline run.

@@ -517,6 +517,7 @@ jobs:
             --distribution-parity /tmp/focusa-release/distribution-parity.json \
             --version '${{ steps.cfg.outputs.version }}' \
             --private-key "$KEY_FILE" \
+            --ota-plan /tmp/focusa-release/ota-update-plan.json \
             --settle
           gh release upload '${{ steps.cfg.outputs.tag }}' \
             /tmp/focusa-release/release-manifest.json \
@@ -552,23 +553,21 @@ jobs:
           test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .prerelease)" = false
           test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "$TAG"
 
-      - name: Upload installed distribution parity proof
+      - name: Publish signed installed parity and OTA audit receipts
         if: ${{ !inputs.dry_run }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: distribution-parity-proof-${{ steps.cfg.outputs.tag }}
-          path: /tmp/focusa-release/distribution-parity.json
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload OTA installability proof
-        if: ${{ !inputs.dry_run }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: ota-installability-proof-${{ steps.cfg.outputs.tag }}
-          path: /tmp/focusa-release/ota-update-plan.json
-          if-no-files-found: error
-          retention-days: 30
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Release-bound evidence must not depend on Actions storage quota.
+          gh release upload '${{ steps.cfg.outputs.tag }}' \
+            /tmp/focusa-release/distribution-parity.json \
+            /tmp/focusa-release/distribution-parity.json.sig \
+            /tmp/focusa-release/ota-update-plan.json \
+            /tmp/focusa-release/ota-update-plan.json.sig \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
 
       - name: Cleanup release artifact temp dir
         if: ${{ !inputs.dry_run }}

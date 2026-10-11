@@ -7,6 +7,7 @@ import argparse
 import base64
 import datetime as dt
 import hashlib
+import importlib.util
 import json
 import pathlib
 from typing import Any
@@ -16,6 +17,13 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 SCHEMA = "focusa.deploy_success.v1"
 WORKFLOW = ".github/workflows/deploy-live-daemon.yml"
+
+# Reuse the release owner's native-sidecar-safe signing implementation.
+_trust_spec = importlib.util.spec_from_file_location(
+    "release_trust_metadata", pathlib.Path(__file__).with_name("release-trust-metadata.py")
+)
+_trust = importlib.util.module_from_spec(_trust_spec)
+_trust_spec.loader.exec_module(_trust)
 
 
 def sha256(path: pathlib.Path) -> str:
@@ -49,6 +57,10 @@ def main() -> int:
     parser.add_argument("--manifest", type=pathlib.Path, required=True)
     parser.add_argument("--manifest-signature", type=pathlib.Path, required=True)
     parser.add_argument("--distribution-parity", type=pathlib.Path, required=True)
+    parser.add_argument(
+        "--ota-plan", type=pathlib.Path,
+        help="validate and sign actual OTA/installed audit receipts during settlement",
+    )
     parser.add_argument("--version", required=True)
     parser.add_argument("--private-key", type=pathlib.Path, required=True)
     parser.add_argument(
@@ -155,6 +167,27 @@ def main() -> int:
             f"{repository_url}/releases/download/{args.tag}/{asset_name}"
         )
 
+    if args.ota_plan is not None:
+        if not args.settle:
+            raise ValueError("OTA audit receipts require settlement")
+        ota = json.loads(args.ota_plan.read_bytes())
+        latest = ota.get("latest", {})
+        ota_trust = latest.get("trust", {})
+        if (
+            ota.get("schema") != "focusa.update_plan.v1"
+            or ota.get("read_only") is not True
+            or ota.get("mutations_performed") is not False
+            or ota.get("apply_allowed") is not True
+            or ota.get("apply_blocked_until") != []
+            or latest.get("tag") != args.tag
+            or latest.get("version") != args.version
+            or ota_trust.get("manifest_signature_verified") is not True
+            or ota_trust.get("deploy_proof_verified") is not True
+            or ota_trust.get("trusted_key_fingerprint") != trust["public_key_fingerprint"]
+            or ota_trust.get("blockers") != []
+        ):
+            raise ValueError("OTA audit plan is not accepted for this signed release")
+
     manifest["publication_status"] = (
         "published" if args.settle else "deployed_candidate"
     )
@@ -197,10 +230,15 @@ def main() -> int:
         .isoformat()
         .replace("+00:00", "Z"),
     }
+    if args.ota_plan is not None:
+        payload["ota_plan_sha256"] = sha256(args.ota_plan)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     encoded = write_json(args.output, payload)
     signature = private_key.sign(encoded)
     args.output.with_name(args.output.name + ".sig").write_bytes(signature)
+    if args.ota_plan is not None:
+        for audit in (args.distribution_parity, args.ota_plan):
+            _trust.sign_and_verify(audit, private_key, public_key)
     print(
         json.dumps(
             {
