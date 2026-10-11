@@ -406,12 +406,39 @@ def event(
     }
 
 
+def direct_master_acceptance(payload: dict[str, Any], receipt: dict[str, Any]) -> dict[str, Any] | None:
+    """Verify a primary's durable event, not a nonexistent replica queue entry."""
+    if not os.environ.get("AGENT_KB_RELEASE_API_URL", "").strip():
+        return None
+    health = api_request("GET", "/v1/health")
+    if not (health.get("status") == "ok" and health.get("source") == "master"
+            and health.get("freshness") == "fresh" and health.get("stale") is False
+            and health.get("fallback_used") is False and health.get("master_configured") is False):
+        return None
+    history = query_events(str(payload["release_id"]))
+    durable = next((row for row in history.get("events", [])
+                    if row.get("event_id") == payload.get("event_id")), None)
+    digest = receipt.get("event_hash")
+    if (history.get("status") != "ok" or not isinstance(digest, str)
+            or not re.fullmatch(r"[a-f0-9]{64}", digest) or durable is None
+            or durable.get("event_hash") != digest
+            or any(durable.get(key) != value for key, value in payload.items())):
+        raise RuntimeError("direct master acceptance requires matching durable event, payload and hash")
+    return {"basis": "authenticated_direct_master_read", "event_id": payload["event_id"],
+            "event_hash": digest, "index_generation": health.get("index_generation")}
+
+
 def publish(payload: dict[str, Any]) -> dict[str, Any]:
     receipt = api_request("POST", "/v1/releases/journal", payload)
     if os.environ.get("AGENT_KB_REQUIRE_MASTER_ACK", "1") != "0":
         event_id = str(payload.get("event_id", "")).strip()
         if not event_id:
             raise RuntimeError("release journal event_id required for master acknowledgement")
+        primary_acceptance = direct_master_acceptance(payload, receipt)
+        if primary_acceptance is not None:
+            receipt["master_acknowledged"] = True
+            receipt["master_acceptance"] = primary_acceptance
+            return receipt
         replication_path = (
             "/v1/releases/journal?view=replication&event_id="
             + urllib.parse.quote(event_id, safe="")

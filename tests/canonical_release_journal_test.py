@@ -187,6 +187,53 @@ finally:
 
 assert timeout_calls == ["POST", "GET"]
 
+# Direct-master writes require fresh authenticated role, durable payload and hash.
+primary_hash = "a" * 64
+primary_health = {"status": "ok", "source": "master", "freshness": "fresh",
+                  "stale": False, "fallback_used": False, "master_configured": False}
+primary_row = {**payload, "event_hash": primary_hash}
+primary_calls = []
+original_primary_environment = dict(module.os.environ)
+
+def primary_api(method, path, body=None):
+    primary_calls.append((method, path))
+    if method == "POST":
+        assert body == payload
+        return {"status": "appended", "event_hash": primary_hash}
+    if path == "/v1/health":
+        return primary_health
+    assert path.startswith("/v1/releases/journal?") and "view=replication" not in path
+    return {"status": "ok", "events": [primary_row]}
+
+try:
+    module.api_request = primary_api
+    module.os.environ["AGENT_KB_RELEASE_API_URL"] = "http://private-master.test:8791"
+    module.os.environ["AGENT_KB_REQUIRE_MASTER_ACK"] = "1"
+    accepted = module.publish(payload)
+    assert accepted["master_acknowledged"] is True
+    assert accepted["master_acceptance"]["basis"] == "authenticated_direct_master_read"
+    assert accepted["master_acceptance"]["event_hash"] == primary_hash
+    assert [method for method, _ in primary_calls] == ["POST", "GET", "GET"]
+    for bad in ({**payload, "event_hash": "b" * 64},
+                {**payload, "event_hash": primary_hash, "phase": "different"}):
+        primary_row = bad
+        try:
+            module.direct_master_acceptance(payload, {"event_hash": primary_hash})
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("mismatched durable master event accepted")
+    primary_row = {**payload, "event_hash": primary_hash}
+    for rejected_health in ({**primary_health, "source": "slave"},
+                            {**primary_health, "stale": True},
+                            {**primary_health, "fallback_used": True}):
+        primary_health = rejected_health
+        assert module.direct_master_acceptance(payload, {"event_hash": primary_hash}) is None
+finally:
+    module.api_request = original_api_request
+    module.os.environ.clear()
+    module.os.environ.update(original_primary_environment)
+
 # Real request boundary: all journal reads share bounded transport recovery.
 class FakeReadResponse:
     def __init__(self, data):
