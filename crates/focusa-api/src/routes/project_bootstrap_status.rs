@@ -113,7 +113,11 @@ mod tests {
             r#"{"genesis_binding":{"status":"ready"}}"#,
         )
         .unwrap();
-        fs::write(root.join(".focusa/genesis/packet.json"), r#"{"status":"ready"}"#).unwrap();
+        fs::write(
+            root.join(".focusa/genesis/packet.json"),
+            r#"{"status":"ready"}"#,
+        )
+        .unwrap();
         assert!(is_genesis_ready(&root));
         let _ = fs::remove_dir_all(&root);
     }
@@ -129,7 +133,11 @@ mod tests {
         // No packet file at all.
         assert!(!is_genesis_ready(&root));
         // Packet present but not ready.
-        fs::write(root.join(".focusa/genesis/packet.json"), r#"{"status":"hlt_impasse"}"#).unwrap();
+        fs::write(
+            root.join(".focusa/genesis/packet.json"),
+            r#"{"status":"hlt_impasse"}"#,
+        )
+        .unwrap();
         assert!(!is_genesis_ready(&root));
         let _ = fs::remove_dir_all(&root);
     }
@@ -142,7 +150,11 @@ mod tests {
             r#"{"genesis_binding":{"status":"pending"}}"#,
         )
         .unwrap();
-        fs::write(root.join(".focusa/genesis/packet.json"), r#"{"status":"ready"}"#).unwrap();
+        fs::write(
+            root.join(".focusa/genesis/packet.json"),
+            r#"{"status":"ready"}"#,
+        )
+        .unwrap();
         assert!(!is_genesis_ready(&root));
         let _ = fs::remove_dir_all(&root);
     }
