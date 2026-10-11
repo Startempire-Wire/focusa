@@ -2,7 +2,7 @@
   "schema": "focusa.agent_card.v1",
   "name": "Focusa",
   "description": "Source capability catalog for scoped goals, Workpoints, evidence and recovery across declared interfaces; inspect installed support and current action admission separately. Workflow guide: docs/agent/02-focusa-cohesive-project-flow.md. Tool inventories and next-tool links are advisory, not executable task graphs.",
-  "version": "0.9.205",
+  "version": "0.9.206",
   "interfaces": [
     "pi",
     "mcp",
@@ -410,5 +410,5 @@
     "workset"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:7c25d6f0452aee351e4de61847010cdbe3d7f412b240274930e051c6300ac40e"
+  "card_digest": "sha256:cfa8feb15c6a6bbd1303910564cf948f8e10ab1bd947b4b39de8788489f8cf29"
 }
