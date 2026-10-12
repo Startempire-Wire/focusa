@@ -54,6 +54,17 @@ jobs:
           # daemon must come from the same tag, never a moving main checkout.
           ref: ${{ github.event.release.tag_name || inputs.release_tag }}
 
+      - name: Checkout exact workflow-owned audit controller
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .release-controller
+          sparse-checkout: |
+            scripts/release-deploy-proof.py
+            scripts/release-trust-metadata.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
       - name: Resolve tag and deployment inputs
         id: cfg
         shell: bash
@@ -371,6 +382,7 @@ jobs:
             /tmp/focusa-release/distribution-parity.json >/dev/null
 
       - name: Publish signed deploy-success proof
+        working-directory: .release-controller
         if: ${{ !inputs.dry_run }}
         shell: bash
         env:
@@ -494,6 +506,7 @@ jobs:
           echo "OTA release gate: updater trust resolved and apply is eligible for $TAG"
 
       - name: Settle signed release manifest after OTA acceptance
+        working-directory: .release-controller
         if: ${{ !inputs.dry_run }}
         shell: bash
         env:

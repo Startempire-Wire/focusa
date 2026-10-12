@@ -44,6 +44,11 @@ assert "Gate OTA installability against signed deployed release" in deploy
 assert "ota-update-plan.json" in deploy
 assert ".latest.trust.deploy_proof_verified == true" in deploy
 assert ".apply_allowed == true" in deploy
+assert "ref: ${{ github.event.release.tag_name || inputs.release_tag }}" in deploy
+assert "ref: ${{ github.workflow_sha }}" in deploy
+assert "path: .release-controller" in deploy
+assert deploy.count("working-directory: .release-controller") == 2
+assert "scripts/release-trust-metadata.py" in deploy
 assert "--ota-plan /tmp/focusa-release/ota-update-plan.json" in deploy
 assert "Publish signed installed parity and OTA audit receipts" in deploy
 assert "/tmp/focusa-release/ota-update-plan.json.sig" in deploy
