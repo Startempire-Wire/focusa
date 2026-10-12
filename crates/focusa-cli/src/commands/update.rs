@@ -3326,14 +3326,12 @@ async fn resolve_latest_github(
     for release in releases {
         let normalized_tag = normalize_version(&release.tag_name);
         if release.draft
-            || !(release_tag_matches_channel(&release.tag_name, channel, release.prerelease)
-                || (channel != "stable"
-                    && release_tag_matches_channel(
-                        &release.tag_name,
-                        "stable",
-                        release.prerelease,
-                    )))
-            || pinned_version.is_some_and(|pinned| normalize_version(pinned) != normalized_tag)
+            || !release_matches_selection(
+                &release.tag_name,
+                channel,
+                release.prerelease,
+                pinned_version,
+            )
             || skipped_versions.contains(&normalized_tag)
         {
             continue;
@@ -3565,9 +3563,86 @@ fn release_tag_matches_channel(tag: &str, channel: &str, prerelease: bool) -> bo
     }
 }
 
+// Selection is not authorization: build_latest_from_release still verifies the
+// full signed manifest/provenance and production or isolated-canary requirements.
+// Exact pinned candidates must be selectable before stable/Latest promotion;
+// automatic discovery must never offer an unfinished stable candidate.
+fn release_matches_selection(
+    tag: &str,
+    channel: &str,
+    prerelease: bool,
+    pinned_version: Option<&str>,
+) -> bool {
+    if pinned_version.is_some_and(|pinned| normalize_version(pinned) != normalize_version(tag)) {
+        return false;
+    }
+    release_tag_matches_channel(tag, channel, prerelease)
+        || (channel != "stable" && release_tag_matches_channel(tag, "stable", prerelease))
+        || (channel == "stable"
+            && prerelease
+            && pinned_version.is_some()
+            && release_tag_matches_channel(tag, "stable", false))
+}
+
 #[cfg(test)]
 mod release_channel_tests {
-    use super::release_tag_matches_channel;
+    use super::{release_matches_selection, release_tag_matches_channel};
+
+    #[test]
+    fn pinned_stable_candidate_reaches_trust_verification() {
+        assert!(release_matches_selection(
+            "v0.9.206",
+            "stable",
+            true,
+            Some("v0.9.206")
+        ));
+        assert!(release_matches_selection(
+            "v0.9.206",
+            "stable",
+            true,
+            Some("0.9.206")
+        ));
+    }
+
+    #[test]
+    fn automatic_stable_discovery_rejects_unsettled_candidates() {
+        assert!(!release_matches_selection("v0.9.206", "stable", true, None));
+        assert!(release_matches_selection("v0.9.205", "stable", false, None));
+    }
+
+    #[test]
+    fn pin_does_not_broaden_tag_identity_or_channel() {
+        assert!(!release_matches_selection(
+            "v0.9.206",
+            "stable",
+            true,
+            Some("v0.9.205")
+        ));
+        assert!(!release_matches_selection(
+            "v0.9.206-rc.1",
+            "stable",
+            true,
+            Some("v0.9.206-rc.1")
+        ));
+        assert!(!release_matches_selection(
+            "v0.9.206",
+            "dev",
+            true,
+            Some("v0.9.206")
+        ));
+        assert!(!release_matches_selection(
+            "v0.9.206",
+            "preview",
+            true,
+            Some("v0.9.206")
+        ));
+        assert!(!release_matches_selection(
+            "0.9.206",
+            "stable",
+            true,
+            Some("0.9.206")
+        ));
+    }
 
     #[test]
     fn stable_channel_accepts_only_unsuffixed_semver_tags() {
