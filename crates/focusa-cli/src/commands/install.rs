@@ -2438,6 +2438,12 @@ pub async fn run(args: InstallArgs) -> Result<()> {
 
 // ----- Phase 1: License re-validation (focusa-112-license-revalidate) -----
 async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
+    // #307: the canonical live-identity resolver grants trusted development
+    // machines every feature without customer activation or synthetic leases.
+    // Preserve customer state by resolving this before node/migration writes.
+    if let Some(developer) = focusa_license::developer_full_projection() {
+        return Ok(format!("developer_full_{}", developer.authority_source));
+    }
     let home = std::env::var_os("HOME")
         .map(std::path::PathBuf::from)
         .ok_or_else(|| anyhow!("HOME not set; cannot resolve authority entitlement"))?;

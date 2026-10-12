@@ -322,6 +322,8 @@ membership changes land as typed proposals via the ontology action route.
 
 ## license — activation and entitlement operations
 
+Trusted development installations use the canonical verified-origin `developer_full` resolver (#307) before customer node creation, migration or activation. Real private machine registration or pinned operator-tailnet membership is required; an arbitrary environment flag is never a grant. Other machines retain signed, node-bound authority checks. The installer correction tracked in #678 is source-only until delivered through a new immutable installer candidate; existing 206 artifacts are unchanged.
+
 Generated from `focusa license --help` and subcommand help on this build. Paid fast-path: `focusa license activate-flow --license-key <KEY>` redeems an already-paid key in ONE request (no email verification, no menu, no polling) for ANY product in the authority registry; retry is idempotent.
 
 ### `license (top)`
