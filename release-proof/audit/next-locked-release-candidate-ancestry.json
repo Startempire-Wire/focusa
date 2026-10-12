@@ -23,12 +23,12 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:dd83bf8a9dc485f21cfa5647bf709162265c5281f9e15961fb5622136f9b3fd3",
+  "ancestry_digest": "sha256:6e8fde8d57278788a9dcc1a773c94e118d71ada6d5ac72f03131ec69173d9965",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "f579f24c3a3a02726ac687b64a1fd5564c84396a",
+    "audit_head": "05971c72e1ff60e99394037aab33b48ce3dfa61d",
     "changed_after_source_commit": [],
-    "source_commit": "f579f24c3a3a02726ac687b64a1fd5564c84396a",
+    "source_commit": "05971c72e1ff60e99394037aab33b48ce3dfa61d",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -92,6 +92,9 @@
       "focusa-generated-clients-v0.9.143.tar.gz",
       "focusa-installer-v0.9.143.ps1",
       "distribution-manifest.json",
+      "pattern:Focusa-*aarch64*.dmg",
+      "pattern:Focusa-*x64*.dmg",
+      "pattern:Focusa-*x86_64*.dmg",
       "pattern:Focusa_*x64*setup.exe",
       "pattern:Focusa_*x64*setup.exe.sig",
       "pattern:Focusa_*arm64*setup.exe",
@@ -122,17 +125,17 @@
     "publish_release": false,
     "rewrite_v0.9.143": false
   },
-  "next_stable_tag": "v0.9.203",
+  "next_stable_tag": "v0.9.207",
   "next_version_selection": {
     "base": "0.9",
     "channel_maxima": {
       "dev": 194,
-      "preview": 202,
+      "preview": 206,
       "rc": null,
-      "stable": 202
+      "stable": 206
     },
-    "considered_tags": 214,
-    "highest_patch": 202,
+    "considered_tags": 212,
+    "highest_patch": 206,
     "ignored_malformed_tags": [
       "spec-integration-v1",
       "spec-integraton-v1-start"
@@ -141,9 +144,9 @@
     "monotonic": true,
     "schema": "focusa.release_version_selection.v1",
     "selected_channel": "stable",
-    "selected_patch": 203,
-    "selected_tag": "v0.9.203",
-    "selected_version": "0.9.203",
+    "selected_patch": 207,
+    "selected_tag": "v0.9.207",
+    "selected_version": "0.9.207",
     "status": "completed"
   },
   "pull_request_ancestry": [
@@ -920,9 +923,9 @@
   "schema": "focusa.locked_release_candidate_ancestry.v1",
   "source_version_agreement": true,
   "source_versions": {
-    "menubar": "0.9.203",
-    "pi_extension": "0.9.203",
-    "workspace": "0.9.203"
+    "menubar": "0.9.207",
+    "pi_extension": "0.9.207",
+    "workspace": "0.9.207"
   },
   "status": "verified",
   "tag_chain": {

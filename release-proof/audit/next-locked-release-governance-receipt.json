@@ -1160,7 +1160,7 @@
       ]
     },
     "closure_set_digest": "sha256:410833c5602317fb7742b3ed52119401963e79f0c73bf280bcea9b62913f5f69",
-    "governance_source_commit": "f579f24c3a3a02726ac687b64a1fd5564c84396a",
+    "governance_source_commit": "05971c72e1ff60e99394037aab33b48ce3dfa61d",
     "input_artifacts": [
       {
         "digest": "sha256:deda390b4067b160bae3110c7ee44cf8bf08ba96c970dce08cf96a53dda7cf27",
@@ -1179,7 +1179,7 @@
         "path": "release-proof/audit/next-locked-release-technical-closure-gate.json"
       },
       {
-        "digest": "sha256:70a574d29f5b5b8bc70c85ff2b93a45541f91e4e39f77b086f2de2d3687bf8d3",
+        "digest": "sha256:36c2d1cecd81d9cb9d571a7b8b1139dad4f3ef9efca940565fd5643aa2eadf51",
         "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
       },
       {
@@ -1187,7 +1187,7 @@
         "path": "release-proof/audit/next-locked-release-v09143-published-assets.json"
       }
     ],
-    "input_artifacts_digest": "sha256:7e34cc48d7ce000616adf449c611a0acd8d43b96894a0ac249407389703fba5f",
+    "input_artifacts_digest": "sha256:0e9e39a6023e26fcc0001abf8a58887bf2eb6cb1c451b1511a283260e04dd92b",
     "linkage": {
       "artifact_refs": [
         "release-proof/audit/next-locked-release-candidate-ancestry.json",
@@ -1394,7 +1394,7 @@
           "path": "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
         },
         {
-          "digest": "sha256:70a574d29f5b5b8bc70c85ff2b93a45541f91e4e39f77b086f2de2d3687bf8d3",
+          "digest": "sha256:36c2d1cecd81d9cb9d571a7b8b1139dad4f3ef9efca940565fd5643aa2eadf51",
           "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
         },
         {
@@ -1508,7 +1508,7 @@
         "tests/spec52_onboarding_consolidation_gate.py"
       ]
     },
-    "linkage_digest": "sha256:3a4e4efa4c37215780dbe41b17473214913e015402c2408461cd7426e5816236",
+    "linkage_digest": "sha256:4d5dc14edd51fca55c687981b983d39c6b4d6e9ae398bfe6b2637e64cf92be4a",
     "mutation_policy": {
       "canonical_replay_required": true,
       "detached_signature_required": true,
@@ -1516,10 +1516,10 @@
       "provider_status_is_not_technical_proof": true,
       "rewrite_v0.9.143": false
     },
-    "payload_digest": "sha256:481d7d2629a369699dc8f3d4c23c34d6558f3d660c6274e62cce3475b8e5f37f",
+    "payload_digest": "sha256:e0a75c7d133c14f87f4878b46dba3e754c197a40cb842e3a807ba0142976d83b",
     "release_proof": {
-      "ancestry_digest": "sha256:dd83bf8a9dc485f21cfa5647bf709162265c5281f9e15961fb5622136f9b3fd3",
-      "candidate_source_commit": "f579f24c3a3a02726ac687b64a1fd5564c84396a",
+      "ancestry_digest": "sha256:6e8fde8d57278788a9dcc1a773c94e118d71ada6d5ac72f03131ec69173d9965",
+      "candidate_source_commit": "05971c72e1ff60e99394037aab33b48ce3dfa61d",
       "immutable_tag": "v0.9.143",
       "immutable_tag_commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
       "missing_required_assets": [
@@ -1542,6 +1542,9 @@
         "focusa-generated-clients-v0.9.143.tar.gz",
         "focusa-installer-v0.9.143.ps1",
         "distribution-manifest.json",
+        "pattern:Focusa-*aarch64*.dmg",
+        "pattern:Focusa-*x64*.dmg",
+        "pattern:Focusa-*x86_64*.dmg",
         "pattern:Focusa_*x64*setup.exe",
         "pattern:Focusa_*x64*setup.exe.sig",
         "pattern:Focusa_*arm64*setup.exe",
@@ -1551,7 +1554,7 @@
         "pattern:Focusa_*arm64*.msi",
         "pattern:Focusa_*arm64*.msi.sig"
       ],
-      "next_stable_tag": "v0.9.203",
+      "next_stable_tag": "v0.9.207",
       "published_asset_count": 66,
       "release_blockers": [
         "technical_acceptance_pending"
@@ -1567,8 +1570,8 @@
     "authority_boundary": "integrity and replay seal only; not release publication, entitlement, OTA, or production signing authority",
     "key_authority": "one_time_governance_integrity_seal",
     "private_key_persisted": false,
-    "public_key_base64": "KxdMPV87odQauufLFUB40IjSZvAi98KnCSZdf9WeyW4=",
-    "public_key_fingerprint": "8edc9f3f965f4c4e63a509c70224ea282459fb0287ff1bdf98060a6993cb8bba",
+    "public_key_base64": "QFnim4qJPp9TPLFoPtrVrSfr8O4Fp55Rjp4jfnygE+g=",
+    "public_key_fingerprint": "5fedb299d736bba01945c959064f002738b48667a3e8870c0e6f6b5f002bbda4",
     "signed_encoding": "canonical-json-sorted-keys-compact-utf8"
   }
 }
