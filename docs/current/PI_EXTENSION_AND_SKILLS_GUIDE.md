@@ -12,6 +12,10 @@ node scripts/validate-skill-hygiene.mjs
 python3 scripts/audit-agent-first-tool-surfaces.py --json /tmp/focusa-agent-first.json
 ```
 
+## Ongoing upkeep
+
+Follow the [owning documentation-maintenance runbook](../../.pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md) for behavior-change, release and periodic between-release reviews of public documentation, deep skills/runbooks and Pi extension consumers. Generated parity is only one check: examples, permissions, recovery instructions and actual installed/native-reload behavior must also agree. Use the existing maintenance queue; this guide does not create or prove an unattended schedule.
+
 ## Current locations
 
 - Pi extension source: `apps/pi-extension/`

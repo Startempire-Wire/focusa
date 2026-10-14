@@ -1,11 +1,11 @@
 ---
 name: focusa-docs-maintenance
-description: "Use for public, machine-readable, generated tool, Agent Card, and agent-skill documentation freshness with bounded Focusa authority."
+description: "Use for ongoing Focusa documentation, skills, Pi extension guidance, generated tool and Agent Card freshness with bounded Focusa authority."
 ---
 
 # Focusa Docs Maintenance
 
-Use for public, machine-readable, generated tool, Agent Card, and agent-skill documentation freshness with bounded Focusa authority.
+Use for ongoing Focusa documentation, skills, Pi extension guidance, generated tool and Agent Card freshness with bounded Focusa authority.
 
 ## Progressive disclosure
 

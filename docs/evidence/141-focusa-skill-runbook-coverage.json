@@ -305,7 +305,7 @@
         "focusa_evidence_capture"
       ],
       "runbook": ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md",
-      "sha256": "2691e45be4ea2b44991163e32596542709dbb554dd0c5f82acd5a5988d0909fd"
+      "sha256": "090d13f4b448589b2cd6e923aa310cdac3464c416d4acc161b5246c21a1879d8"
     },
     {
       "name": "focusa-metacognition",
