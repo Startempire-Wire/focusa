@@ -218,14 +218,19 @@ try {
   persistState();
   assert(entries.length === 2, "changed state bypassed coalescing interval");
   assert(
-    loadPersistedRecoveryState(anchor)?.frameGoal === "Changed semantic recovery goal",
-    "existing anchor did not resolve the atomically updated sidecar"
+    loadPersistedRecoveryState(anchor)?.frameGoal === "Keep semantic memory without replay OOM",
+    "a pending newer generation silently replaced the original anchor"
   );
   S.lastPersistAt = Date.now() - 10_000;
   persistState();
   assert(
     entries.filter((entry) => entry.customType === "focusa-state").length === 2,
     "pending semantic revision was not anchored after coalescing interval"
+  );
+  const updatedAnchor = entries.filter((entry) => entry.customType === "focusa-state").at(-1)!.data;
+  assert(
+    loadPersistedRecoveryState(updatedAnchor)?.frameGoal === "Changed semantic recovery goal",
+    "newly published native anchor did not restore its exact saved state"
   );
 
   const ledgerStart = entries.filter(
@@ -257,13 +262,19 @@ try {
       .length <= 3,
     "sidecar generation retention exceeded its hard bound"
   );
-  const sidecarPath = latestSidecarPath();
+  const referencedName = readdirSync(sidecarDir).find((name) => {
+    if (!name.startsWith(`${updatedAnchor.sidecarKey}.r`)) return false;
+    const saved = JSON.parse(readFileSync(join(sidecarDir, name), "utf8"));
+    return saved.revision === updatedAnchor.anchorRevision && saved.semanticDigest === updatedAnchor.semanticDigest;
+  });
+  assert(referencedName, "exact newly published generation missing");
+  const sidecarPath = join(sidecarDir, referencedName);
   const sidecar = JSON.parse(readFileSync(sidecarPath, "utf8"));
   sidecar.semanticDigest = "sha256:corrupt";
   writeFileSync(sidecarPath, JSON.stringify(sidecar));
   assert(
-    loadPersistedRecoveryState(anchor) !== null,
-    "reader did not fall back to an older integrity-valid sidecar generation"
+    loadPersistedRecoveryState(updatedAnchor) === null,
+    "a corrupt requested generation was silently replaced by another saved request"
   );
   for (const name of readdirSync(sidecarDir).filter((candidate) =>
     candidate.startsWith(`${anchor.sidecarKey}.r`)

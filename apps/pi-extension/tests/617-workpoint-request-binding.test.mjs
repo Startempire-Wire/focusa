@@ -620,7 +620,7 @@ function writeExactSidecar(text, revision) {
   const sidecar = persistenceExports.writeRecoverySidecar(state, digest, revision);
   return { state, anchor: { schema: persistenceExports.COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
     projectRoot: state.projectRoot, sessionId: state.sessionId,
-    revision, semanticDigest: digest, sidecarKey: sidecar.key } };
+    anchorRevision: revision, semanticDigest: digest, sidecarKey: sidecar.key } };
 }
 
 test('real atomic sidecar round-trip restores the complete late exclusion', () => {
@@ -630,6 +630,8 @@ test('real atomic sidecar round-trip restores the complete late exclusion', () =
     const loaded = persistenceExports.loadPersistedRecoveryState(anchor);
     assert.deepEqual(loaded, JSON.parse(JSON.stringify(state)));
     assert.equal(restoreFixture(loaded).currentAsk.text, text);
+    const { anchorRevision, ...unidentified } = anchor;
+    assert.equal(persistenceExports.loadPersistedRecoveryState({ ...unidentified, revision: anchorRevision }), null);
   });
 });
 

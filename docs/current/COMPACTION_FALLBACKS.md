@@ -21,6 +21,11 @@ Late startup health or project-identity replies are discarded if the existing
 lifecycle generation ended or was replaced; those replies cannot read session
 entries or apply project-binding effects for the superseded startup.
 
+Native recovery anchors identify their saved sidecar with the existing
+`anchorRevision`, `semanticDigest` and exact session/project identity. A newer
+state receives its own reference; missing, corrupt or mismatched references
+never silently recover another generation.
+
 Qualified ancillary presentation may use related sources, not random filler:
 
 Presentation fallback order (never execution authority):

@@ -226,7 +226,7 @@ export function loadPersistedRecoveryState(
   const sessionId = String(anchor.sessionId || "").trim();
   if (!projectRoot || !sessionId || key !== sidecarKey(projectRoot, sessionId)) return null;
   const expectedDigest = String(anchor.semanticDigest || "");
-  const expectedRevision = anchor.revision;
+  const expectedRevision = anchor.anchorRevision;
   if (!/^sha256:[a-f0-9]{64}$/.test(expectedDigest) ||
       !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) return null;
 

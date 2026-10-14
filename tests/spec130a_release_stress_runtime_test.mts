@@ -112,7 +112,7 @@ for (const boundary of boundaries) {
     sessionId: base.sessionId,
     sidecarKey: written.key,
     semanticDigest: nextDigest,
-    revision: 2,
+    anchorRevision: 2,
   });
   assert(
     recovered?.revision === 2 && recovered?.receipt === "r2",
@@ -124,7 +124,7 @@ for (const boundary of boundaries) {
     sessionId: base.sessionId,
     sidecarKey: written.key,
     semanticDigest: baseDigest,
-    revision: 1,
+    anchorRevision: 1,
   });
   assert(
     original?.revision === 1 && original?.receipt === "r",
