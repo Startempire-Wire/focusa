@@ -111,10 +111,33 @@ for (const boundary of boundaries) {
     projectRoot,
     sessionId: base.sessionId,
     sidecarKey: written.key,
+    semanticDigest: nextDigest,
+    revision: 2,
   });
   assert(
     recovered?.revision === 2 && recovered?.receipt === "r2",
     `idempotent recovery failed at ${boundary}`,
+  );
+  const original = loadPersistedRecoveryState({
+    schema: COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
+    projectRoot,
+    sessionId: base.sessionId,
+    sidecarKey: written.key,
+    semanticDigest: baseDigest,
+    revision: 1,
+  });
+  assert(
+    original?.revision === 1 && original?.receipt === "r",
+    `a newer generation replaced the original request at ${boundary}`,
+  );
+  assert(
+    loadPersistedRecoveryState({
+      schema: COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
+      projectRoot,
+      sessionId: base.sessionId,
+      sidecarKey: written.key,
+    }) === null,
+    `unidentified recovery reference was accepted at ${boundary}`,
   );
   rmSync(faultRoot, { recursive: true, force: true });
 }
