@@ -26,6 +26,8 @@ export function canInjectCompactionMission(packet: unknown, currentScope: Compac
   return (
     candidate.schema_version === "focusa.compaction_mission_packet.v1" &&
     candidate.status === "verified" &&
+    candidate.current_ask?.text_complete === true &&
+    typeof candidate.current_ask.text === "string" && candidate.current_ask.text.trim().length > 0 &&
     scope.scope_status === "verified" &&
     exact(scope.project_root) === expectedRoot &&
     exact(scope.continuity_id) === expectedContinuity &&
@@ -41,10 +43,17 @@ export function canInjectCompactionMission(packet: unknown, currentScope: Compac
   );
 }
 
-export function safeCompactionRecoveryContext(): string {
-  return [
+export function safeCompactionRecoveryContext(currentInput = "", budgetChars = 0): string {
+  const warning = [
     "Focusa post-compaction continuation authority is not verified.",
     "Do not rely on a prior mission or next action.",
     "Re-verify the current project scope and resume a canonical Workpoint before continuing.",
   ].join(" ");
+  if (!currentInput) return warning;
+  // Fresh operator steering survives quarantine; it is not saved-action authority.
+  const rendered = `${warning}\nCurrent operator input (steering only): ${JSON.stringify(currentInput)}`;
+  if (budgetChars <= 0 || rendered.length > budgetChars) {
+    throw new Error("compaction_resume_projection_mandatory_budget_exceeded: current steering requires rehydration");
+  }
+  return rendered;
 }

@@ -11,6 +11,14 @@ Write a Spec 111 preload packet to an allowlisted target with an idempotency key
 ## Parameters and strict input schema
 
 - `profile` (optional; string | string | string | string): Preload profile id from focusa_preload_profiles. Defaults to rules_and_context.
+- `project_root` (optional; string): See the strict descriptor schema.
+- `continuity_id` (optional; string): See the strict descriptor schema.
+- `artifact_version` (optional; number): See the strict descriptor schema.
+- `constitution_id` (optional; string): See the strict descriptor schema.
+- `current_ask` (optional; string): See the strict descriptor schema.
+- `artifact` (optional; structured): See the strict descriptor schema.
+- `artifact_ref` (optional; string): See the strict descriptor schema.
+- `expected_digest` (optional; string): See the strict descriptor schema.
 - `target` (required; string): See the strict descriptor schema.
 - `idempotency_key` (required; string): See the strict descriptor schema.
 - `overwrite` (optional; boolean): See the strict descriptor schema.
@@ -83,4 +91,4 @@ Likely next: `focusa_preload_receipt_preview`, `focusa_preload_verify`.
 - CLI: `focusa preload write`.
 - REST: `POST /v1/preload/write`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:729714ba61a9205bb0ac7ffd2fa8dd17a6a98753d140ab6a30a32a2f907751bd`.
+- Descriptor digest: `sha256:3ad6cdec05af1ea306e1535a6b202320d7b08d64610f44dfd1cfb3780fb423b7`.

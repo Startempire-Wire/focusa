@@ -24,6 +24,7 @@ const scope = {
 const verified = {
   schema_version: "focusa.compaction_mission_packet.v1",
   status: "verified",
+  current_ask: { text: "Review only.", text_complete: true },
   scope: {
     scope_status: "verified",
     project_root: "/home/wirebot/focusa",
@@ -47,6 +48,9 @@ const verified = {
 assert.equal(canInjectCompactionMission(verified, scope), true);
 for (const candidate of [
   { ...verified, status: "blocked" },
+  { ...verified, current_ask: undefined },
+  { ...verified, current_ask: { text: "partial", text_complete: false } },
+  { ...verified, current_ask: { text: "", text_complete: true } },
   { ...verified, status: "degraded" },
   { ...verified, scope: { ...verified.scope, scope_status: "mismatch" } },
   { ...verified, scope: { ...verified.scope, project_root: "/root" } },
@@ -62,6 +66,13 @@ for (const candidate of [
   assert.equal(canInjectCompactionMission(candidate, scope), false);
 }
 
+for (const budget of [900, 600, 400, 250]) {
+  const steering = safeCompactionRecoveryContext("Read-only review; no changes.", budget * 4);
+  assert.ok(steering.includes("Read-only review; no changes."));
+  assert.ok(steering.length <= budget * 4);
+  assert.throws(() => safeCompactionRecoveryContext("No changes. ".repeat(1000), budget * 4),
+    /mandatory_budget_exceeded/);
+}
 const recovery = safeCompactionRecoveryContext();
 assert.match(recovery, /authority is not verified/);
 assert.match(recovery, /Do not rely on a prior mission/);

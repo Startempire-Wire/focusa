@@ -16,6 +16,12 @@ fixes batch into the minor lane (0.10.x), breaking changes require a planned
 major bump. Commits must remain Conventional Commit subjects so the version
 policy (`scripts/next-version.py`) can classify each change correctly.
 
+## JavaScript contract checks
+
+Use Node 22.13 or newer (CI uses Node 22). The tool-contract validator uses
+Node's built-in TypeScript stripping to read the self-contained runtime registry,
+including computed policy, without a second classifier or an added package.
+
 ## Python contract tests
 
 On Linux/macOS, use Python 3.11 or newer and the committed hash-locked

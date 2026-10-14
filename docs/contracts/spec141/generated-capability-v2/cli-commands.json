@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:f151c1d2e5e10681410e561b5fa844d4013b4a82989753d8d45d2b5f49be1fc0",
+  "registry_digest": "sha256:8143f1a9e662cc4e4d9380fdff61aa9b91e98adcb55618c8a5a995b1fa31c285",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -4718,6 +4718,30 @@
             "minLength": 1,
             "maxLength": 256,
             "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -4773,6 +4797,30 @@
           "continuity_id": {
             "minLength": 1,
             "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
             "type": "string"
           }
         },
@@ -4848,6 +4896,45 @@
               }
             ]
           },
+          "project_root": {
+            "minLength": 1,
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "delivery_target": {
+            "minLength": 1,
+            "maxLength": 4096,
+            "type": "string"
+          },
           "idempotency_key": {
             "minLength": 1,
             "maxLength": 256,
@@ -4900,6 +4987,40 @@
                 "type": "string"
               }
             ]
+          },
+          "project_root": {
+            "minLength": 1,
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -4955,6 +5076,30 @@
           "continuity_id": {
             "minLength": 1,
             "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
             "type": "string"
           }
         },
@@ -5012,6 +5157,30 @@
             "minLength": 1,
             "maxLength": 256,
             "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -5062,6 +5231,40 @@
                 "type": "string"
               }
             ]
+          },
+          "project_root": {
+            "minLength": 1,
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
           },
           "target": {
             "minLength": 1,

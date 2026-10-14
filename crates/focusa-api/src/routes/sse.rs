@@ -309,6 +309,7 @@ mod tests {
             event_id: "event-42".to_string(),
             timestamp: "2026-01-01T00:00:00Z".to_string(),
             correlation_id: Some("correlation-42".to_string()),
+            thread_id: None,
             payload: json!({"type": "test", "project_root": "/tmp/project"}),
         };
         let envelope = durable_event_envelope(&record);
@@ -328,6 +329,7 @@ mod tests {
             event_id: "event-43".into(),
             timestamp: "2026-01-01T00:00:01Z".into(),
             correlation_id: None,
+            thread_id: None,
             payload: json!({
                 "type": "WorkspaceArtifactLinked",
                 "artifact": {"content": {"inline_preview": "must-not-stream"}},

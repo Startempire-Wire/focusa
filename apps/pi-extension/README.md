@@ -22,6 +22,58 @@ be adopted. A late reply cannot replace newer saved work. An explicit alternate
 positive authority flags require supported reconciliation rather than assumed
 permission. Successful adoption binds the evaluated ask, not newer input.
 
+CurrentAsk retains the complete cleaned instruction; only the operator-facing
+label is bounded. The hash-verified recovery sidecar stores exact request text
+with `textIsPreview: false`. Recovery requires the anchor's exact digest and
+revision plus the matching project/session; a corrupt or missing current
+artifact cannot silently substitute an older or newer request. The bounded
+native anchor carries a preview marked `textIsPreview: true`, never a substitute
+for the exact sidecar. Restoration
+checks session, project and continuity and accepts only explicitly complete
+request text. Missing sidecars and legacy snapshots of unknown completeness
+remain recovery context; frame goals cannot reconstruct request authority.
+Existing sidecar and native-anchor size limits remain enforced. Original input
+must be recovered before treating incomplete saved text as a current request.
+
+The resumed-context projection reserves required request, scope warning,
+identity, goal/action, blocker, restriction, evidence/receipt and rehydration
+meaning before optional temporal detail. A supplied temporal effect-guard
+reference also remains required. Required fields are never individually clipped;
+if they cannot fit the selected 900/600/400/250 budget estimate, rendering
+explicitly blocks rather than dropping a late restriction. Unverified request
+completeness retains advisory review context but blocks saved-action resumption.
+Provider/tokenizer/model-delivery qualification remains separate from this
+source-level budget estimate. The normal producer/caller lifecycle binds the
+complete current input and actual source turn to a durable prepared artifact,
+checks current request/scope after each asynchronous response, and rejects
+legacy partial or mismatched handoffs. Preparation uses the actual reducer
+version and existing writer/SQLite fences; committed local deltas are reconciled
+without reapplication. Pending deltas block rather than becoming count-as-commit
+claims. Identical epoch retries reuse the artifact; changed epoch input conflicts.
+Prepared-artifact verification is not model-consumption evidence. See
+`docs/current/COMPACTION_FALLBACKS.md` for the exact compatibility/failure posture.
+
+### Exact scoped preload artifacts (opt-in protocol 2)
+
+Preload build/render/verify/doctor and delivery tools accept `artifact_version: 2`
+with the exact project/continuity, complete `current_ask`, and existing approved,
+active `constitution_id`. Build returns an artifact, reference and SHA-256; later
+calls must forward that same artifact, `artifact_ref` and `expected_digest`.
+Canonical cognition and registered instruction sources are recomposed and checked;
+changed scope, request, revision, Constitution, rules or rendered bytes are denied.
+Rendering occurs after composition. Required scope/request meaning is not silently
+clipped into a profile template. The transport has an explicit byte ceiling, not
+an assertion about model token accounting.
+
+Writes preserve exact bytes at allowlisted, non-traversing/non-symlink targets.
+Receipt commit additionally requires `delivery_target` and verifies its bytes;
+replayed keys cannot select a different artifact. These checks prove artifact/source
+or exact file delivery only, never current-process refresh or model consumption.
+Legacy requests remain template-only. New clients reject legacy success as scoped
+proof. The CLI uses the same opt-in fields (`--artifact-version 2`,
+`--constitution-id`, `--current-ask`, `--artifact-file`) and propagates HTTP failures.
+No Constitution is activated by building, rendering or verifying a preload.
+
 ## Prompt hook compatibility
 
 The `before_agent_start` hook treats Pi's event as read-only and returns

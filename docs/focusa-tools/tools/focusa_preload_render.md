@@ -13,6 +13,12 @@ Render Preload Packet through the scoped Spec 111 preload API. Use it when Rende
 - `profile` (optional; string | string | string | string): Preload profile id from focusa_preload_profiles. Defaults to rules_and_context.
 - `project_root` (optional; string): See the strict descriptor schema.
 - `continuity_id` (optional; string): See the strict descriptor schema.
+- `artifact_version` (optional; number): See the strict descriptor schema.
+- `constitution_id` (optional; string): See the strict descriptor schema.
+- `current_ask` (optional; string): See the strict descriptor schema.
+- `artifact` (optional; structured): See the strict descriptor schema.
+- `artifact_ref` (optional; string): See the strict descriptor schema.
+- `expected_digest` (optional; string): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_preload_render`.
 
@@ -79,4 +85,4 @@ Likely next: `focusa_preload_verify`, `focusa_preload_write`.
 - CLI: `focusa preload render`.
 - REST: `POST /v1/preload/render`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:9f745792d754d7dba24eae941b9754deadf5a99bd2d7dd5cf41238c4b667d74e`.
+- Descriptor digest: `sha256:97bab13149090e7cd3ca1f5fd755fd66c6b1ab22e263f47d6e171fb98acff782`.

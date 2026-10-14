@@ -65,6 +65,8 @@ pub struct DurableEventRecord {
     pub event_id: String,
     pub timestamp: String,
     pub correlation_id: Option<String>,
+    /// Caller thread attribution is indexed separately from an event's thread identity.
+    pub thread_id: Option<Uuid>,
     pub payload: serde_json::Value,
 }
 
@@ -319,7 +321,7 @@ impl SqlitePersistence {
         std::fs::create_dir_all(data_dir.join("ecs/handles"))?;
 
         let db_path = data_dir.join("focusa.sqlite");
-        let conn = Connection::open(db_path)?;
+        let mut conn = Connection::open(db_path)?;
 
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "synchronous", "NORMAL")?;
@@ -329,6 +331,7 @@ impl SqlitePersistence {
         conn.pragma_update(None, "busy_timeout", 5000)?;
         let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA optimize;");
 
+        crate::agent_runtime_constitution_store::migrate_runtime_constitution_schema(&mut conn)?;
         let this = Self {
             data_dir,
             conn: Arc::new(Mutex::new(conn)),
@@ -1605,7 +1608,8 @@ impl SqlitePersistence {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let mut statement = conn.prepare(
             r#"
-            SELECT h.chain_index + 1, e.event_id, e.ts, e.payload_json, e.correlation_id
+            SELECT h.chain_index + 1, e.event_id, e.ts, e.payload_json, e.correlation_id,
+                   e.thread_id
             FROM event_hash_chain h
             INNER JOIN events e ON e.event_id = h.event_id
             WHERE h.chain_index >= ?1
@@ -1623,16 +1627,18 @@ impl SqlitePersistence {
                     row.get::<_, String>(2)?,
                     payload_json,
                     row.get::<_, Option<String>>(4)?,
+                    row.get::<_, Option<String>>(5)?,
                 ))
             },
         )?;
         rows.map(|row| {
-            let (sequence, event_id, timestamp, payload_json, correlation_id) = row?;
+            let (sequence, event_id, timestamp, payload_json, correlation_id, thread_id) = row?;
             Ok(DurableEventRecord {
                 sequence: u64::try_from(sequence)?,
                 event_id,
                 timestamp,
                 correlation_id,
+                thread_id: thread_id.map(|id| Uuid::parse_str(&id)).transpose()?,
                 payload: serde_json::from_str(&payload_json)?,
             })
         })

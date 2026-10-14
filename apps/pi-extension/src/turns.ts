@@ -109,6 +109,7 @@ import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./comp
 import { catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 import { buildFocusaUtilityCard } from "./awareness.js";
+import { revokeWorkpointRequestAuthority } from "./workpoint-request-binding.js";
 import { buildAwarenessPacket, renderAwarenessPacketText } from "./awareness-substrate.js";
 import {
   attachFocusSliceToNewestUser,
@@ -2289,9 +2290,11 @@ export function registerTurns(pi: ExtensionAPI) {
     const packageUpdateCommand = /^\s*(update|pi\s+update|\/update)\s*$/i.test(String(text));
     const askKind = packageUpdateCommand ? "meta" : classifyCurrentAsk(String(text));
     const storedAskText = cleanedText || (askKind === "meta" ? "" : String(text));
-    const newTaskText = storedAskText.slice(0, 500);
+    // CurrentAsk is request-binding state, not a display label. Retain the
+    // complete source instruction; only the operator-facing label is bounded.
+    const newTaskText = storedAskText;
     getAttachmentRuntime().currentTaskStartTime = Date.now();
-    getAttachmentRuntime().currentTaskLabel = newTaskText;
+    getAttachmentRuntime().currentTaskLabel = newTaskText.slice(0, 500);
     setCurrentTaskTurnStart(getTurnCount() + 1);
     getAttachmentRuntime().currentTaskInputTokenEstimate = estimateTokens(newTaskText);
     getAttachmentRuntime().currentTaskOutputTokenEstimate = 0;
@@ -2309,18 +2312,10 @@ export function registerTurns(pi: ExtensionAPI) {
     };
     const activeWorkpoint = getActiveWorkpointPacket();
     const boundAsk = String((activeWorkpoint as any)?.current_ask_binding || "").trim();
-    if (activeWorkpoint && newTaskText && boundAsk !== newTaskText) {
-      setActiveWorkpointPacket({
-        ...activeWorkpoint,
-        action_authority_for_current_ask: false,
-        matches_current_ask_scope: false,
-        current_ask_scope: {
-          ...(activeWorkpoint as any).current_ask_scope,
-          action_authority_for_current_ask: false,
-          matches_current_ask_scope: false,
-          scope_conflict_reason: "operator_ask_changed_since_workpoint_binding",
-        },
-      });
+    if (activeWorkpoint && boundAsk !== newTaskText) {
+      setActiveWorkpointPacket(
+        revokeWorkpointRequestAuthority(activeWorkpoint, "operator_ask_changed_since_workpoint_binding")
+      );
       persistState();
     }
     updateNorthStarCard(_ctx, "operator_input");

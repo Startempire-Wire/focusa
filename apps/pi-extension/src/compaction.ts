@@ -4,7 +4,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { requestCoordinatedCompaction } from "./auto-compaction.js";
-import { projectionPressure, renderCompactionResumeProjection } from "./compaction-resume-projection.js";
+import { projectionPressure, renderCompactionResumeProjection, compactionProjectionBudgetTokens } from "./compaction-resume-projection.js";
 import {
   buildProjectWorkstreamKey,
   scopedQueryParams,
@@ -56,6 +56,7 @@ import {
 import { pushDelta } from "./tools.js";
 import { updateNorthStarCard } from "./north-star.js";
 import { canInjectCompactionMission, safeCompactionRecoveryContext } from "./compaction-resume-safety.js";
+import { captureResumeRequest, isResumeRequestCurrent, type ResumeRequestBinding } from "./workpoint-request-binding.js";
 import { compactionDeliveryAckEligible } from "./compaction-delivery-ack.js";
 
 function basename(value: string): string {
@@ -251,9 +252,9 @@ async function buildCompactionMissionPacket(resumeSource: string): Promise<any |
         project_root: scope.root_scope.root_path,
         continuity_id: scope.continuity_id,
         session_id: getSessionFrameKey() || undefined,
-        current_ask: semanticCurrentAsk() || undefined,
+        current_ask: getAttachmentRuntime().currentAsk?.text || undefined,
         ask_kind: getAttachmentRuntime().currentAsk?.kind || "unknown",
-        source_turn_id: `pi-turn-${getTurnCount()}`,
+        source_turn_id: getAttachmentRuntime().currentAsk?.sourceTurnId || undefined,
         omitted_sections: visibleRecapReason ? ["raw_tool_history"] : [],
         rehydrate_refs: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_traverse"],
       }),
@@ -922,10 +923,13 @@ type ActiveCompactionEpoch = {
   epochId: string;
   scope: ReturnType<typeof currentCompactionScope>;
   prepare: CompactionPrepareResult;
+  requestBinding: ResumeRequestBinding;
+  preparedProjectionJson: string;
   startedAt: number;
 };
 
 let activeCompactionEpoch: ActiveCompactionEpoch | null = null;
+let activeCompactionPreparation: object | null = null;
 
 async function withCompactionDeadline<T>(
   signal: AbortSignal | undefined,
@@ -954,25 +958,35 @@ function compactionEpochKey(event: any): string {
 }
 
 async function prepareCompactionEpoch(event: any): Promise<CompactionPrepareResult | null> {
+  const invocation = {};
+  activeCompactionPreparation = invocation;
+  activeCompactionEpoch = null;
   const scope = currentCompactionScope();
   if (!scope || !getAttachmentRuntime().focusaAvailable) return null;
   const epochKey = compactionEpochKey(event);
+  const runtime = getAttachmentRuntime();
+  // A literal continuation or review is still current steering, not an empty
+  // request or permission to fall back to an older mission.
+  const requestBinding = captureResumeRequest(runtime, runtime.currentAsk?.text || "");
   const result = await withCompactionDeadline(event?.signal, (signal) =>
     focusaFetch("/compaction/prepare", {
       method: "POST",
+      headers: { "X-Focusa-Permissions": "admin:service" },
       signal,
       body: JSON.stringify({
         schema: "focusa.compaction_prepare_request.v1",
+        request_id: `compaction-prepare:${getSessionFrameKey()}:${epochKey}`,
         epoch: {
           epoch_key: epochKey,
           session_frame_key: getSessionFrameKey(),
+          source_turn_id: requestBinding.turnId,
         },
         scope,
         trigger: {
           source: "pi_session_before_compact",
           manual: event?.manual === true,
         },
-        current_ask: semanticCurrentAsk(),
+        current_ask: requestBinding.evaluatedAsk,
         local_semantic_deltas: {
           decisions: getAttachmentRuntime().localDecisions.slice(-10),
           constraints: getAttachmentRuntime().localConstraints.slice(-10),
@@ -990,11 +1004,21 @@ async function prepareCompactionEpoch(event: any): Promise<CompactionPrepareResu
       }),
     })
   );
-  if (!result?.epoch_id || !["prepared", "degraded"].includes(String(result.status))) return null;
+  if (activeCompactionPreparation !== invocation ||
+      !result?.epoch_id || !["prepared", "degraded"].includes(String(result.status))) return null;
+  const preparedAsk = result.resume_projection?.current_ask;
+  if (!isResumeRequestCurrent(requestBinding, getAttachmentRuntime()) ||
+      JSON.stringify(scope) !== JSON.stringify(currentCompactionScope()) ||
+      preparedAsk?.text_complete !== true || preparedAsk.text !== requestBinding.evaluatedAsk ||
+      preparedAsk.source_turn_id !== requestBinding.turnId ||
+      !/^sha256:[a-f0-9]{64}$/.test(String(result.semantic_digest || ""))) return null;
+  activeCompactionPreparation = null;
   activeCompactionEpoch = {
     epochId: String(result.epoch_id),
     scope: structuredClone(scope),
-    prepare: result,
+    prepare: structuredClone(result),
+    requestBinding,
+    preparedProjectionJson: JSON.stringify(result.resume_projection),
     startedAt: Date.now(),
   };
   return result;
@@ -1009,14 +1033,25 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
       runtime.compactResumeDeliveryState = "deferred_to_next_turn";
       return;
     }
+    if (!isResumeRequestCurrent(epoch.requestBinding, getAttachmentRuntime()) ||
+        JSON.stringify(epoch.scope) !== JSON.stringify(currentCompactionScope())) {
+      runtime.compactResumePending = false;
+      runtime.compactResumeDeliveryState = "superseded_by_operator";
+      return;
+    }
     const entry = event?.compactionEntry || {};
     const verification = await withCompactionDeadline(undefined, (signal) =>
       focusaFetch("/compaction/verify", {
         method: "POST",
+        headers: { "X-Focusa-Permissions": "admin:service" },
         signal,
         body: JSON.stringify({
           schema: "focusa.compaction_verify_request.v1",
+          request_id: `compaction-verify:${epoch.epochId}`,
           epoch_id: epoch.epochId,
+          expected_semantic_digest: epoch.prepare.semantic_digest,
+          current_ask: epoch.requestBinding.evaluatedAsk,
+          scope: epoch.scope,
           native_compaction_result: {
             entry_id: entry.id || entry.uuid || null,
             timestamp: entry.timestamp || null,
@@ -1038,8 +1073,13 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
         }),
       })
     );
-    if (!["verified", "degraded"].includes(String(verification?.status))) {
-      runtime.compactResumeDeliveryState = "failed";
+    if (activeCompactionEpoch !== epoch || verification?.status !== "verified" ||
+        verification?.semantic_digest !== epoch.prepare.semantic_digest ||
+        verification?.required_fields_preserved !== true ||
+        JSON.stringify(epoch.prepare.resume_projection) !== epoch.preparedProjectionJson ||
+        !isResumeRequestCurrent(epoch.requestBinding, getAttachmentRuntime()) ||
+        JSON.stringify(epoch.scope) !== JSON.stringify(currentCompactionScope())) {
+      if (activeCompactionEpoch === epoch) runtime.compactResumeDeliveryState = "failed";
       return;
     }
     runtime.lastCompactResumeKey = compactionEpochKey(event);
@@ -1051,7 +1091,8 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
     const resumeText =
       projection && liveScope && canInjectCompactionMission(projection, liveScope)
         ? renderResumeProjection(projection)
-        : safeCompactionRecoveryContext();
+        : safeCompactionRecoveryContext(runtime.currentAsk?.text || "",
+            compactionProjectionBudgetTokens(projectionPressure(projection, runtime.currentTier)) * 4);
     queueCompactionResumeContext(ctx, resumeText);
   } catch (error) {
     runtime.compactResumePending = false;
@@ -1065,7 +1106,7 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
     }
   } finally {
     runtime.compactionVerifyPendingKey = "";
-    activeCompactionEpoch = null;
+    if (activeCompactionEpoch === epoch) activeCompactionEpoch = null;
     const liveScope = currentCompactionScope();
     if (liveScope?.root_scope?.root_path) {
       await refreshTrajectoryClarityLifecycle(

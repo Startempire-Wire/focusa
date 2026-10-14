@@ -2,6 +2,11 @@
 
 One doc per current `focusa_*` tool. Family pages are indexes only.
 
+The legacy tool-contract registry and native runtime retain the same computed
+operation policy. Routed capability descriptors are a separate enriched view:
+compare like projections without discarding authority differences. A failed or
+incomplete registry read is unknown, not proof of an outdated installed binary.
+
 Authority-bearing tool docs should align with the canonical [Authority Model](../current/AUTHORITY_MODEL.md).
 
 - [Focus State](./focus-state.md)

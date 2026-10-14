@@ -87,25 +87,11 @@ struct ProfileQuery {
     profile: Option<String>,
 }
 
-#[derive(serde::Deserialize, Default)]
-struct PreloadBuildRequest {
-    #[serde(default)]
-    profile: Option<String>,
-    #[serde(default)]
-    target: Option<String>,
-    #[serde(default)]
-    project_root: Option<String>,
-    #[serde(default)]
-    working_subpath_id: Option<String>,
-    #[serde(default)]
-    continuity_id: Option<String>,
-    #[serde(default)]
-    current_ask: Option<String>,
-    #[serde(default)]
-    include_context_cognition: Option<bool>,
-    #[serde(default)]
-    include_awareness: Option<bool>,
-}
+#[cfg(test)]
+mod http_tests;
+mod scoped_artifact;
+
+type PreloadBuildRequest = scoped_artifact::Request;
 
 fn packet_response(step: &str, profile: Option<String>) -> Json<Value> {
     let profile = profile.unwrap_or_else(|| PROFILE_RULES_AND_CONTEXT.to_string());
@@ -179,6 +165,12 @@ async fn build_post(
     State(state): State<Arc<AppState>>,
     Json(query): Json<PreloadBuildRequest>,
 ) -> (StatusCode, Json<Value>) {
+    if query.artifact_version.is_some() {
+        return match scoped_artifact::build(&state, &query).await {
+            Ok(body) => (StatusCode::OK, body),
+            Err(error) => error,
+        };
+    }
     let profile_id = query
         .profile
         .as_deref()
@@ -350,6 +342,16 @@ async fn build_post(
     selection["selected_context"] = json!(included);
     selection["excluded_context"] = json!(excluded);
     packet["dynamic_context_lines"] = json!(dynamic_lines);
+    let mut composed = build_packet(profile_id).expect("profile checked above");
+    composed.dynamic_context_lines = packet["dynamic_context_lines"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect();
+    composed.bounded_dynamic_items = composed.dynamic_context_lines.len();
+    packet["rendered"] = json!(render_packet(&composed));
     packet["temporal_context"] = query
         .continuity_id
         .as_deref()
@@ -394,20 +396,41 @@ async fn build_post(
 async fn render(Query(query): Query<ProfileQuery>) -> Json<Value> {
     packet_response("render", query.profile)
 }
-async fn render_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
-    packet_response("render", query.profile)
+async fn render_post(
+    State(state): State<Arc<AppState>>,
+    Json(query): Json<scoped_artifact::Request>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if query.artifact_version.is_some() {
+        scoped_artifact::inspect(&state, &query, "render").await
+    } else {
+        Ok(packet_response("render", query.profile))
+    }
 }
 async fn verify(Query(query): Query<ProfileQuery>) -> Json<Value> {
     packet_response("verify", query.profile)
 }
-async fn verify_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
-    packet_response("verify", query.profile)
+async fn verify_post(
+    State(state): State<Arc<AppState>>,
+    Json(query): Json<scoped_artifact::Request>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if query.artifact_version.is_some() {
+        scoped_artifact::inspect(&state, &query, "verify").await
+    } else {
+        Ok(packet_response("verify", query.profile))
+    }
 }
 async fn doctor(Query(query): Query<ProfileQuery>) -> Json<Value> {
     packet_response("doctor", query.profile)
 }
-async fn doctor_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
-    packet_response("doctor", query.profile)
+async fn doctor_post(
+    State(state): State<Arc<AppState>>,
+    Json(query): Json<scoped_artifact::Request>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if query.artifact_version.is_some() {
+        scoped_artifact::inspect(&state, &query, "doctor").await
+    } else {
+        Ok(packet_response("doctor", query.profile))
+    }
 }
 
 pub fn build_packet_for_profile(profile_id: &str) -> Result<Value, String> {
@@ -440,12 +463,21 @@ async fn receipt_preview(Query(query): Query<ProfileQuery>) -> Json<Value> {
     receipt_preview_response(query.profile)
 }
 
-async fn receipt_preview_post(Json(query): Json<ProfileQuery>) -> Json<Value> {
-    receipt_preview_response(query.profile)
+async fn receipt_preview_post(
+    State(state): State<Arc<AppState>>,
+    Json(query): Json<scoped_artifact::Request>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if query.artifact_version.is_some() {
+        scoped_artifact::inspect(&state, &query, "receipt_preview").await
+    } else {
+        Ok(receipt_preview_response(query.profile))
+    }
 }
 
 #[derive(serde::Deserialize)]
 struct ReceiptCommitRequest {
+    #[serde(flatten)]
+    scoped: scoped_artifact::Request,
     #[serde(default = "default_profile")]
     profile: String,
     idempotency_key: String,
@@ -490,7 +522,14 @@ pub fn commit_receipt_for(profile: &str, idempotency_key: &str) -> Result<(Value
     Ok((committed, false))
 }
 
-async fn receipt_commit(Json(req): Json<ReceiptCommitRequest>) -> (StatusCode, Json<Value>) {
+async fn receipt_commit(
+    State(state): State<Arc<AppState>>,
+    Json(mut req): Json<ReceiptCommitRequest>,
+) -> (StatusCode, Json<Value>) {
+    if req.scoped.artifact_version.is_some() {
+        req.scoped.profile = Some(req.profile.clone());
+        return scoped_artifact::commit_receipt(&state, &req.scoped, &req.idempotency_key).await;
+    }
     if req.idempotency_key.trim().is_empty() || profile_by_id(&req.profile).is_none() {
         let message = if req.idempotency_key.trim().is_empty() {
             "idempotency_key is required".to_string()
@@ -648,6 +687,8 @@ pub fn render_packet(packet: &AgentBootstrapPacket) -> String {
 
 #[derive(serde::Deserialize)]
 struct WriteRequest {
+    #[serde(flatten)]
+    scoped: scoped_artifact::Request,
     profile_id: String,
     target_path: String,
     idempotency_key: String,
@@ -672,7 +713,19 @@ fn write_failure(err: &'static str, reason: impl Into<String>) -> Json<WriteFail
 
 fn is_safe_target(target: &str) -> bool {
     let p = std::path::Path::new(target);
-    if target.contains('\0') {
+    if target.contains('\0')
+        || p.components().any(|component| {
+            !matches!(
+                component,
+                std::path::Component::RootDir | std::path::Component::Normal(_)
+            )
+        })
+    {
+        return false;
+    }
+    if p.ancestors().any(|ancestor| {
+        std::fs::symlink_metadata(ancestor).is_ok_and(|metadata| metadata.file_type().is_symlink())
+    }) {
         return false;
     }
     if p.is_absolute() {
@@ -683,7 +736,14 @@ fn is_safe_target(target: &str) -> bool {
     }
 }
 
-async fn write_packet(Json(req): Json<WriteRequest>) -> (StatusCode, Json<Value>) {
+async fn write_packet(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<WriteRequest>,
+) -> (StatusCode, Json<Value>) {
+    if req.scoped.artifact_version.is_some() {
+        return scoped_artifact::write(&state, &req.scoped, &req.target_path, &req.idempotency_key)
+            .await;
+    }
     if req.idempotency_key.trim().is_empty() {
         return (
             StatusCode::BAD_REQUEST,

@@ -17,22 +17,27 @@ const packet = {
   packet_id: "packet-1",
   scope: {
     scope_status: "verified",
-    project_root: `/srv/${"project".repeat(100)}`,
-    continuity_id: `continuity-${"x".repeat(500)}`,
+    project_root: "/srv/p",
+    continuity_id: "cont-1",
+    warning: "Verify scope.",
   },
   trajectory: {
     hlt_status: "canonical_explicit",
-    hlt: "ship truthful release ".repeat(100),
-    warnings: ["warning ".repeat(100)],
+    hlt: "Continuity.",
+    warnings: [],
   },
   workpoint: {
     status: "active",
-    mission: "preserve tactical cognition ".repeat(100),
-    next_slice: "run exact acceptance ".repeat(100),
+    mission: "Verify.",
+    next_slice: "Test.",
   },
   next: { exact_next_tool: "focusa_workpoint_resume" },
-  evidence: { evidence_refs: Array.from({ length: 100 }, (_, i) => `evidence:${i}`) },
-  bloatgaurd: { rehydrate_refs: ["focusa_workpoint_resume", "focusa_trajectory_view"] },
+  current_ask: { text: "Review only.", text_complete: true },
+  active_blocker: { exact_blocker_excerpt: "Proof pending." },
+  focus_state: { constraints: ["No deploy."] },
+  receipt_expectation: { required_before_completion: true },
+  evidence: { evidence_refs: ["proof-1"] },
+  bloatgaurd: { rehydrate_refs: ["focusa_workpoint_resume"] },
 };
 
 for (const pressure of ["normal", "pressure", "critical", "blocked"]) {
@@ -51,10 +56,46 @@ for (const pressure of ["normal", "pressure", "critical", "blocked"]) {
     "EXACT_NEXT_TOOL:",
     "PACKET_ID:",
     "AUTHORITY:",
+    "CURRENT_ASK:",
+    "SCOPE_WARNING:",
+    "ACTIVE_BLOCKER:",
+    "CRITICAL_CONSTRAINTS:",
+    "RECEIPT_EXPECTATION:",
+    "EVIDENCE_REFS:",
+    "REHYDRATE_REFS:",
   ]) {
     assert.ok(rendered.includes(field), `${pressure} omitted mandatory ${field}`);
   }
   assert.ok(!rendered.includes("CompactionMissionPacket"));
+  assert.ok(rendered.includes("Review only."));
+  assert.ok(rendered.includes("No deploy."));
+  assert.ok(rendered.includes("Proof pending."));
+
+  // Every pressure must retain the late restriction or explicitly refuse the
+  // projection. No per-field clipping may turn the prefix into permission.
+  for (const changed of [
+    { current_ask: { text: `${"Review this source. ".repeat(180)}NO DEPLOYMENT.`, text_complete: true } },
+    { focus_state: { constraints: [`${"Keep this restriction. ".repeat(180)}NEVER CHANGE CUSTOMER DATA.`] } },
+    { scope: { ...packet.scope, project_root: `/srv/${"p".repeat(4000)}/different-customer` } },
+    { active_blocker: { exact_blocker_excerpt: `${"Blocked. ".repeat(500)}Missing grant.` } },
+    { temporal: { execution_guard_ref: `guard-${"required".repeat(800)}` } },
+  ]) {
+    assert.throws(() => projection.renderCompactionResumeProjection({ ...packet, ...changed }, pressure),
+      /compaction_resume_projection_mandatory_budget_exceeded/);
+  }
+  const late = { ...packet, current_ask: { text: `${"Review. ".repeat(65)}No global writes.`, text_complete: true } };
+  try {
+    const complete = projection.renderCompactionResumeProjection(late, pressure);
+    assert.ok(complete.includes("No global writes."));
+    assert.ok(complete.length <= projection.compactionProjectionBudgetTokens(pressure) * 4);
+  } catch (error) {
+    assert.match(String(error.message), /compaction_resume_projection_mandatory_budget_exceeded/);
+  }
+  const advisory = projection.renderCompactionResumeProjection({ ...packet, status: "blocked",
+    current_ask: { text: "Review only." }, workpoint: { ...packet.workpoint, action_authority: false } }, pressure);
+  assert.ok(advisory.includes("Review only."));
+  assert.ok(advisory.includes("unverified; saved-action resume blocked"));
+  assert.ok(advisory.includes("AUTHORITY: advisory"));
 }
 assert.equal(projection.projectionPressure({ status: "blocked" }, ""), "blocked");
 assert.equal(projection.projectionPressure(packet, "hard"), "critical");

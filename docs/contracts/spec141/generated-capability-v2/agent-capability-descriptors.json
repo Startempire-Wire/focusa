@@ -48681,6 +48681,30 @@
             "minLength": 1,
             "maxLength": 256,
             "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -49090,7 +49114,7 @@
         "snippet": "Build Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:587d64152399898041411ab335d677e3340c226fd30d1fe43343774f29959941"
+      "descriptor_digest": "sha256:21abff1ddd14920f33fc04282975673ca28093595d11cb3725da9fd3ecd024ce"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -49218,6 +49242,30 @@
           "continuity_id": {
             "minLength": 1,
             "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
             "type": "string"
           }
         },
@@ -49628,7 +49676,7 @@
         "snippet": "Doctor Preload Scope through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a3aae897c43736c8fe7a140dd16e8a3fa134e7b4e2cecb38e2e55a1585763238"
+      "descriptor_digest": "sha256:4164cf51c00f0a2ed35ddb7e85c86413e73fcc651d8a5e3fcb87aff77f53bcfa"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -50257,6 +50305,45 @@
               }
             ]
           },
+          "project_root": {
+            "minLength": 1,
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "delivery_target": {
+            "minLength": 1,
+            "maxLength": 4096,
+            "type": "string"
+          },
           "idempotency_key": {
             "minLength": 1,
             "maxLength": 256,
@@ -50675,7 +50762,7 @@
         "snippet": "Commit an idempotent Spec 111 bootstrap delivery receipt.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b395beb18e3e916d541d2dcbf3d8796689c2da5c4f071d09396371c3c02ef57d"
+      "descriptor_digest": "sha256:bfd17103ff957b8836de4b332d5252cbad853e1a3c937128fc49f3634b98af9b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -50794,6 +50881,40 @@
                 "type": "string"
               }
             ]
+          },
+          "project_root": {
+            "minLength": 1,
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -51203,7 +51324,7 @@
         "snippet": "Preview a Spec 111 bootstrap delivery receipt without committing it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:21b56c021a29340da35f7c86064daf28b4ffadab70a7562f47167d6f76590eda"
+      "descriptor_digest": "sha256:2beb7620db8c66e665201af016854a064bf7f6e7a0a34cbed0d55b5682488665"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -51331,6 +51452,30 @@
           "continuity_id": {
             "minLength": 1,
             "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
             "type": "string"
           }
         },
@@ -51741,7 +51886,7 @@
         "snippet": "Render Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9f745792d754d7dba24eae941b9754deadf5a99bd2d7dd5cf41238c4b667d74e"
+      "descriptor_digest": "sha256:97bab13149090e7cd3ca1f5fd755fd66c6b1ab22e263f47d6e171fb98acff782"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -51869,6 +52014,30 @@
           "continuity_id": {
             "minLength": 1,
             "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
             "type": "string"
           }
         },
@@ -52279,7 +52448,7 @@
         "snippet": "Verify Preload Packet through the scoped Spec 111 preload API.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:203f7ef9d98ebdcb0cb384a524d39263486fb356fd64e70b18e0b3b3816cab85"
+      "descriptor_digest": "sha256:c67332bad59502febf0a4c77a301defa586d00305f87a81bbe686bcff28b6032"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -52402,6 +52571,40 @@
                 "type": "string"
               }
             ]
+          },
+          "project_root": {
+            "minLength": 1,
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "maxLength": 256,
+            "type": "string"
+          },
+          "artifact_version": {
+            "const": 2,
+            "type": "number"
+          },
+          "constitution_id": {
+            "minLength": 1,
+            "maxLength": 512,
+            "type": "string"
+          },
+          "current_ask": {
+            "minLength": 1,
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "artifact": {},
+          "artifact_ref": {
+            "minLength": 1,
+            "maxLength": 160,
+            "type": "string"
+          },
+          "expected_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
           },
           "target": {
             "minLength": 1,
@@ -52830,7 +53033,7 @@
         "snippet": "Write a Spec 111 preload packet to an allowlisted target with an idempotency key.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:729714ba61a9205bb0ac7ffd2fa8dd17a6a98753d140ab6a30a32a2f907751bd"
+      "descriptor_digest": "sha256:3ad6cdec05af1ea306e1535a6b202320d7b08d64610f44dfd1cfb3780fb423b7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87567,5 +87770,5 @@
       "descriptor_digest": "sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae"
     }
   ],
-  "registry_digest": "sha256:f151c1d2e5e10681410e561b5fa844d4013b4a82989753d8d45d2b5f49be1fc0"
+  "registry_digest": "sha256:8143f1a9e662cc4e4d9380fdff61aa9b91e98adcb55618c8a5a995b1fa31c285"
 }

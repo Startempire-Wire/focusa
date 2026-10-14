@@ -2,6 +2,7 @@
 
 import { statSync } from "fs";
 import { getHeapStatistics } from "v8";
+import { once } from "node:events";
 
 export type NativeSessionPressurePosture =
   "normal" | "soft_pressure" | "hard_pressure" | "emergency" | "oversized_at_start";
@@ -352,7 +353,6 @@ function injectMigrationFault(
 
 async function writeBuffersAtomic(path: string, entries: Buffer[]): Promise<void> {
   const { createWriteStream, unlinkSync } = await import("fs");
-  const { once } = await import("events");
   const temporary = `${path}.tmp-${process.pid}`;
   const stream = createWriteStream(temporary, { mode: 0o600, flags: "wx" });
   try {

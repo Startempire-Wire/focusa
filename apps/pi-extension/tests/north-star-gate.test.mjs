@@ -11,6 +11,7 @@ const turns = fs.readFileSync(path.join(root, "apps/pi-extension/src/turns.ts"),
 const compaction = fs.readFileSync(path.join(root, "apps/pi-extension/src/compaction.ts"), "utf8");
 const northStar = fs.readFileSync(path.join(root, "apps/pi-extension/src/north-star.ts"), "utf8");
 const state = fs.readFileSync(path.join(root, "apps/pi-extension/src/state.ts"), "utf8");
+const requestBinding = fs.readFileSync(path.join(root, "apps/pi-extension/src/workpoint-request-binding.ts"), "utf8");
 
 function sessionStartBlock() {
   const start = session.indexOf('pi.on("session_start"');
@@ -130,8 +131,11 @@ test("first Workpoint checkpoint omits fake writer identity when no lease exists
 
 test("operator ask changes demote stale action authority without false project blocking", () => {
   assert.match(turns, /boundAsk !== newTaskText/);
-  assert.match(turns, /action_authority_for_current_ask: false/);
+  assert.match(turns, /revokeWorkpointRequestAuthority\(activeWorkpoint,/);
   assert.match(turns, /operator_ask_changed_since_workpoint_binding/);
+  assert.match(requestBinding, /action_authority_for_current_ask: false/);
+  assert.match(requestBinding, /matches_current_ask_scope: false/);
+  assert.match(state, /revokeWorkpointRequestAuthority\(packet, "saved_request_authority_requires_fresh_validation"\)/);
   assert.match(northStar, /getLastProjectIdentity/);
   assert.match(northStar, /identityVerified/);
   assert.match(northStar, /trigger === "operator_input"/);

@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { stripTypeScriptTypes } from 'node:module';
 import { parseJsonLikeTsLiteral } from './lib/json-like-ts.mjs';
 
 const root = process.cwd();
@@ -171,6 +172,24 @@ if (preloadMatch && agentRuntimeMatch && smsMatch && jsonMatch) {
   const baseContracts = parseJsonLikeTsLiteral(`${baseContractsLiteral}\n]`);
   contracts = [...agentRuntimeContracts, ...smsContracts, ...preloadContracts, ...baseContracts];
 }
+
+// Literal extraction cannot execute the registry's final policy map. Use the
+// actual self-contained metadata owner, not a duplicate classifier or a routed
+// descriptor policy (whose canonical operation binding is a different view).
+const runtimeRegistry = await import(`data:text/javascript;base64,${
+  Buffer.from(stripTypeScriptTypes(contractsSrc)).toString('base64')}`);
+const canonicalContracts = runtimeRegistry.FOCUSA_TOOL_CONTRACTS;
+if (!Array.isArray(canonicalContracts)) {
+  throw new Error('canonical operation policy registry unavailable');
+}
+contracts = contracts.map((contract) => {
+  const matches = canonicalContracts.filter((item) => item.name === contract.name);
+  if (matches.length !== 1 || !matches[0].operation_policy ||
+      typeof matches[0].operation_policy !== 'object') {
+    throw new Error(`canonical operation policy missing or ambiguous for ${contract.name}`);
+  }
+  return { ...contract, operation_policy: matches[0].operation_policy };
+});
 
 const registryProjection = {
   schema: 'focusa.tool_contracts.v1',

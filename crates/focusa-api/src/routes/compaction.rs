@@ -36,7 +36,7 @@ const RESUME_SOURCES: &[&str] = &[
     "provider_overflow",
 ];
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct BuildCompactionPacketRequest {
     pub resume_source: Option<String>,
     pub project_root: Option<String>,
@@ -78,6 +78,11 @@ pub struct PrepareCompactionRequest {
 pub struct VerifyCompactionRequest {
     pub schema: String,
     pub epoch_id: String,
+    pub expected_semantic_digest: Option<String>,
+    #[serde(default)]
+    pub current_ask: Value,
+    #[serde(default)]
+    pub scope: Value,
     #[serde(default)]
     pub native_compaction_result: Value,
     #[serde(default)]
@@ -108,6 +113,17 @@ fn bounded_text(value: Option<&str>, max: usize) -> Option<String> {
     Some(value.chars().take(max).collect())
 }
 
+// Match the existing private sidecar ceiling; overflow is rejected, not clipped.
+const CURRENT_ASK_MAX_BYTES: usize = 256 * 1024;
+
+pub(crate) fn complete_current_ask(value: Option<&str>) -> Option<String> {
+    let value = value?;
+    if value.trim().is_empty() || value.len() > CURRENT_ASK_MAX_BYTES {
+        return None;
+    }
+    Some(value.to_string())
+}
+
 fn normalized_scope_root(value: &str) -> &str {
     value.trim().trim_end_matches(['/', '\\'])
 }
@@ -126,8 +142,9 @@ fn exact_scope_match(
     )
 }
 
-fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Value {
+pub(crate) fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Value {
     let packet_id = Uuid::now_v7().to_string();
+    let current_ask = complete_current_ask(req.current_ask.as_deref());
     let project_root = bounded_text(req.project_root.as_deref(), 4096);
     let continuity_id = bounded_text(req.continuity_id.as_deref(), 256);
     let scope_safe = project_root
@@ -216,12 +233,27 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
     let hlt_status = trajectory
         .map(|record| record.hlt_status)
         .unwrap_or_default();
-    let hlt_ready = matches!(
-        hlt_status,
-        HltStatus::CanonicalExplicit | HltStatus::PreviousValidFallback
+    let linkage = crate::routes::project::north_star_workpoint_linkage(
+        state,
+        project_root.as_deref().unwrap_or_default(),
+        continuity_id.as_deref(),
     );
+    let hlt_ready = trajectory.is_some_and(|record| record.canonical)
+        && matches!(
+            hlt_status,
+            HltStatus::CanonicalExplicit | HltStatus::PreviousValidFallback
+        );
     let workpoint_ready = workpoint
-        .map(|record| record.canonical && record.status == WorkpointStatus::Active)
+        .map(|record| {
+            record.canonical
+                && record.status == WorkpointStatus::Active
+                && crate::routes::project::north_star_workpoint_admission_ready(&linkage)
+                && linkage["workpoint_id"].as_str()
+                    == Some(record.workpoint_id.to_string().as_str())
+                && trajectory.is_some_and(|goal| {
+                    linkage["trajectory_id"].as_str() == Some(goal.trajectory_id.as_str())
+                })
+        })
         .unwrap_or(false);
     let scope_status = if project_root.is_none() || continuity_id.is_none() {
         "missing"
@@ -232,7 +264,7 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
     };
     let status = if scope_status != "verified" {
         "blocked"
-    } else if hlt_ready && workpoint_ready {
+    } else if hlt_ready && workpoint_ready && current_ask.is_some() {
         "verified"
     } else {
         "degraded"
@@ -314,6 +346,7 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
         "schema_version": PACKET_SCHEMA,
         "packet_id": packet_id,
         "generated_at": Utc::now().to_rfc3339(),
+        "source_revision": state.version,
         "resume_source": req.resume_source.as_deref().unwrap_or("manual"),
         "resume_state": resume_state,
         "status": status,
@@ -329,11 +362,13 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
             "scope_status": scope_status
         },
         "current_ask": {
-            "text": bounded_text(req.current_ask.as_deref(), 1000),
+            "text": current_ask,
+            "text_complete": current_ask.is_some(),
             "ask_kind": req.ask_kind.as_deref().unwrap_or("unknown"),
             "source_turn_id": bounded_text(req.source_turn_id.as_deref(), 160)
         },
         "trajectory": {
+            "trajectory_id": trajectory.map(|record| record.trajectory_id.clone()),
             "packet_ref": trajectory.map(|record| format!("trajectory_resume_packet_v3:{}", record.trajectory_id)),
             "project_root": trajectory.and_then(|record| record.project_root.clone()),
             "continuity_id": trajectory.and_then(|record| record.continuity_id.clone()),
@@ -351,6 +386,8 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
             "warnings": trajectory.map(|record| record.blockers.iter().take(8).cloned().collect::<Vec<_>>()).unwrap_or_default()
         },
         "workpoint": {
+            "canonical": workpoint.map(|record| record.canonical).unwrap_or(false),
+            "linkage": linkage,
             "packet_ref": workpoint.map(|record| format!("workpoint_resume_packet_v2:{}", record.workpoint_id)),
             "workpoint_id": workpoint.map(|record| record.workpoint_id.to_string()),
             "project_root": workpoint.and_then(|record| record.project_root.clone()),
@@ -366,7 +403,7 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
             "intent": frame.map(|frame| frame.focus_state.intent.clone()),
             "current_focus": frame.map(|frame| frame.focus_state.current_state.clone()),
             "decisions": frame.map(|frame| frame.focus_state.decisions.iter().rev().take(8).cloned().collect::<Vec<_>>()).unwrap_or_default(),
-            "constraints": frame.map(|frame| frame.focus_state.constraints.iter().rev().take(8).cloned().collect::<Vec<_>>()).unwrap_or_default(),
+            "constraints": frame.map(|frame| frame.focus_state.constraints.clone()).unwrap_or_default(),
             "failures": frame.map(|frame| frame.focus_state.failures.iter().rev().take(4).cloned().collect::<Vec<_>>()).unwrap_or_default(),
             "recent_results": frame.map(|frame| frame.focus_state.recent_results.iter().take(6).cloned().collect::<Vec<_>>()).unwrap_or_default()
         },
@@ -503,9 +540,92 @@ fn value_text(value: &Value, pointers: &[&str], max: usize) -> Option<String> {
     })
 }
 
-fn semantic_digest(value: &Value) -> String {
-    let bytes = serde_json::to_vec(value).unwrap_or_default();
+pub(crate) fn semantic_digest(value: &Value) -> String {
+    let bytes = serde_json::to_vec(value).expect("JSON value serialization is infallible");
     format!("sha256:{:x}", Sha256::digest(bytes))
+}
+
+fn cognition_digest(packet: &Value) -> String {
+    semantic_digest(&json!({
+        "trajectory": packet["trajectory"], "workpoint": packet["workpoint"],
+        "focus_state": packet["focus_state"], "evidence": packet["evidence"]
+    }))
+}
+
+// Reconcile against the exact scoped snapshot; compaction never re-applies a
+// previously committed reducer delta or promotes an uncommitted local note.
+fn reconcile_local_deltas(state: &FocusaState, packet: &Value, deltas: &Value) -> Value {
+    let frame = state
+        .focus_stack
+        .frames
+        .iter()
+        .find(|frame| Some(frame.id) == state.focus_stack.active_id)
+        .filter(|frame| {
+            exact_scope_match(
+                frame.project_root.as_deref(),
+                frame.continuity_id.as_deref(),
+                packet
+                    .pointer("/scope/project_root")
+                    .and_then(Value::as_str),
+                packet
+                    .pointer("/scope/continuity_id")
+                    .and_then(Value::as_str),
+            )
+        });
+    let mut committed = serde_json::Map::new();
+    let mut pending = serde_json::Map::new();
+    let mut complete = true;
+    for key in ["decisions", "constraints", "failures"] {
+        let values = deltas.get(key).and_then(Value::as_array);
+        let saved = frame.map(|frame| match key {
+            "decisions" => &frame.focus_state.decisions,
+            "constraints" => &frame.focus_state.constraints,
+            _ => &frame.focus_state.failures,
+        });
+        let mut found = 0;
+        let mut missing = 0;
+        if let Some(values) = values {
+            for value in values {
+                if value.as_str().is_some_and(|value| {
+                    saved.is_some_and(|saved| saved.iter().any(|item| item == value))
+                }) {
+                    found += 1;
+                } else {
+                    missing += 1;
+                }
+            }
+        } else if deltas.get(key).is_some_and(|value| !value.is_null()) {
+            missing += 1;
+        }
+        complete &= missing == 0;
+        committed.insert(key.into(), json!(found));
+        pending.insert(key.into(), json!(missing));
+    }
+    json!({"status": if complete { "reconciled" } else { "pending" },
+        "already_committed_counts": committed, "uncommitted_counts": pending,
+        "applied_count": 0, "application": "none_readonly_reconciliation"})
+}
+
+// The existing packet store is the sole preparation store. An immediate SQLite
+// transaction serializes cross-writer retries without another ledger or clock.
+fn persist_prepared_packet(data_dir: &str, packet: &Value) -> rusqlite::Result<Value> {
+    let mut conn = Connection::open(packet_db_path(data_dir))?;
+    ensure_packet_table(&conn)?;
+    let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+    let prior: Option<String> = tx.query_row(
+        "SELECT packet_json FROM compaction_packets WHERE json_extract(packet_json, '$.prepare_identity') = ?1 AND json_extract(packet_json, '$.resume_source') = 'before_compaction' LIMIT 1",
+        params![packet["prepare_identity"].as_str().unwrap_or_default()], |row| row.get(0),
+    ).optional()?;
+    let result = if let Some(raw) = prior {
+        serde_json::from_str::<Value>(&raw).map_err(|_| rusqlite::Error::InvalidQuery)?
+    } else {
+        tx.execute("INSERT INTO compaction_packets(packet_id, packet_json, created_at) VALUES (?1, ?2, strftime('%s','now'))",
+            params![packet["packet_id"].as_str().unwrap_or_default(), packet.to_string()])?;
+        tx.execute("DELETE FROM compaction_packets WHERE packet_id NOT IN (SELECT packet_id FROM compaction_packets ORDER BY created_at DESC LIMIT ?1)", params![PACKET_CAP as i64])?;
+        packet.clone()
+    };
+    tx.commit()?;
+    Ok(result)
 }
 
 async fn prepare(
@@ -522,6 +642,15 @@ async fn prepare(
             })),
         ));
     }
+    let epoch_key = req.epoch.get("epoch_key").and_then(Value::as_str);
+    if epoch_key.is_none_or(|key| key.trim().is_empty() || key.len() > 512) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"status":"blocked","error":"exact_epoch_key_required"})),
+        ));
+    }
+    // Reuse the canonical daemon write fence, never a parallel writer authority.
+    let _writer = state.write_serial_lock.lock().await;
     let project_root = value_text(
         &req.scope,
         &["/root_scope/root_path", "/project_root"],
@@ -529,10 +658,25 @@ async fn prepare(
     );
     let continuity_id = value_text(&req.scope, &["/continuity_id"], 256);
     let session_id = value_text(&req.epoch, &["/session_frame_key", "/session_id"], 512);
-    let current_ask = req
+    let current_ask = complete_current_ask(req.current_ask.as_str());
+    if req
         .current_ask
         .as_str()
-        .and_then(|text| bounded_text(Some(text), 4096));
+        .is_some_and(|text| text.len() > CURRENT_ASK_MAX_BYTES)
+    {
+        return Err((
+            StatusCode::PAYLOAD_TOO_LARGE,
+            Json(json!({
+                "schema":"focusa.compaction_error.v1", "status":"blocked", "error":"current_request_too_large"
+            })),
+        ));
+    }
+    if current_ask.is_none() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"status":"blocked", "error":"complete_current_request_required"})),
+        ));
+    }
     let build_req = BuildCompactionPacketRequest {
         resume_source: Some("before_compaction".into()),
         project_root,
@@ -540,7 +684,7 @@ async fn prepare(
         session_id,
         current_ask,
         ask_kind: Some("compaction_prepare".into()),
-        source_turn_id: value_text(&req.epoch, &["/epoch_key"], 512),
+        source_turn_id: value_text(&req.epoch, &["/source_turn_id"], 160),
         omitted_sections: Vec::new(),
         omitted_bytes: 0,
         omitted_tokens: 0,
@@ -548,37 +692,55 @@ async fn prepare(
     };
     let focusa = state.focusa.read().await;
     let mut packet = build_packet(&focusa, &build_req);
+    let reconciliation = reconcile_local_deltas(&focusa, &packet, &req.local_semantic_deltas);
     drop(focusa);
+    if reconciliation["status"] != "reconciled" {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(
+                json!({"status":"blocked","error":"local_semantic_deltas_not_committed", "delta_reconciliation":reconciliation}),
+            ),
+        ));
+    }
+    packet["source_cognition_digest"] = json!(cognition_digest(&packet));
+    packet["prepare_identity"] = json!(semantic_digest(&json!({
+        "scope": req.scope, "epoch": req.epoch
+    })));
+    packet["prepare_request_digest"] = json!(semantic_digest(&json!({
+        "current_ask": req.current_ask, "local_semantic_deltas":req.local_semantic_deltas,
+        "scope":req.scope, "epoch":req.epoch
+    })));
     packet["prepare_context"] = json!({
         "trigger": req.trigger,
         "native_pressure": req.native_pressure,
         "adapter_capabilities": req.adapter_capabilities,
+        "delta_reconciliation": reconciliation,
         "local_semantic_delta_counts": {
             "decisions": req.local_semantic_deltas.pointer("/decisions").and_then(Value::as_array).map_or(0, Vec::len),
             "constraints": req.local_semantic_deltas.pointer("/constraints").and_then(Value::as_array).map_or(0, Vec::len),
             "failures": req.local_semantic_deltas.pointer("/failures").and_then(Value::as_array).map_or(0, Vec::len)
         }
     });
+    let requested_digest = packet["prepare_request_digest"].clone();
+    let packet_for_write = packet.clone();
+    let data_dir = state.config.data_dir.clone();
+    let stored = tokio::task::spawn_blocking(move || persist_prepared_packet(&data_dir, &packet_for_write))
+        .await.map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"status":"blocked","error":"prepare_writer_join_failed"}))))?
+        .map_err(|error| (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"blocked","error":"prepare_store_unavailable","detail":error.to_string()}))))?;
+    if stored["prepare_request_digest"] != requested_digest {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(json!({"status":"blocked","error":"epoch_request_changed"})),
+        ));
+    }
+    packet = stored;
     let epoch_id = packet
         .get("packet_id")
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
     let digest = semantic_digest(&packet);
-    let packet_for_write = packet.clone();
-    let data_dir = state.config.data_dir.clone();
-    let persistence = tokio::task::spawn_blocking(move || persist_packet(&data_dir, &packet_for_write))
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"schema":"focusa.compaction_error.v1","status":"degraded","error":"prepare_writer_join_failed"})),
-            )
-        })?;
-    let persistence_ack = match persistence {
-        Ok(()) => json!({"status":"persisted"}),
-        Err(error) => json!({"status":"degraded","error":error.to_string()}),
-    };
+    let persistence_ack = json!({"status":"persisted"});
     let mission = packet
         .pointer("/workpoint/mission")
         .and_then(Value::as_str)
@@ -591,13 +753,13 @@ async fn prepare(
         "schema": "focusa.compaction_prepare_result.v1",
         "status": if persistence_ack["status"] == "persisted" { "prepared" } else { "degraded" },
         "epoch_id": epoch_id,
-        "source_revision": 0,
+        "source_revision": packet["source_revision"],
         "semantic_digest": digest,
         "workpoint_checkpoint_ref": packet.pointer("/workpoint/workpoint_id").cloned().unwrap_or(Value::Null),
         "trajectory_checkpoint_ref": packet.pointer("/trajectory/trajectory_id").cloned().unwrap_or(Value::Null),
         "compaction_packet_ref": format!("compaction:{}", epoch_id),
         "resume_projection": packet,
-        "native_compactor_instructions": format!("Preserve Focusa mission: {mission}. Preserve exact next action: {next_slice}. Keep Pi's native tactical summary, queued operator input, cancellation, retry, and reconnect authority."),
+        "native_compactor_instructions": format!("Preserve the complete current operator input (JSON): {}. Saved mission/context: {mission}. Saved next action/context: {next_slice}. Saved context is not fresh action authority. Keep Pi's native tactical summary, queued operator input, cancellation, retry, and reconnect authority.", packet.pointer("/current_ask/text").unwrap_or(&Value::Null)),
         "fidelity_manifest": {"required_fields":["scope","workpoint.mission","workpoint","trajectory","evidence"]},
         "persistence_ack": persistence_ack,
         "warnings": []
@@ -645,24 +807,81 @@ async fn verify(
         (Some(before), Some(after)) if before > 0.0 => ((before - after) / before).clamp(0.0, 1.0),
         _ => 0.0,
     };
-    let required_preserved = ["/scope", "/workpoint", "/trajectory", "/evidence"]
-        .iter()
-        .all(|pointer| !packet.pointer(pointer).unwrap_or(&Value::Null).is_null());
+    let digest = semantic_digest(&packet);
+    let request_matches = packet
+        .pointer("/current_ask/text_complete")
+        .and_then(Value::as_bool)
+        == Some(true)
+        && req.current_ask.as_str().is_some_and(|text| {
+            !text.trim().is_empty()
+                && packet.pointer("/current_ask/text").and_then(Value::as_str) == Some(text)
+        });
+    let scope_matches = exact_scope_match(
+        packet
+            .pointer("/scope/project_root")
+            .and_then(Value::as_str),
+        packet
+            .pointer("/scope/continuity_id")
+            .and_then(Value::as_str),
+        req.scope
+            .pointer("/root_scope/root_path")
+            .and_then(Value::as_str),
+        req.scope.pointer("/continuity_id").and_then(Value::as_str),
+    );
+    let artifact_matches = req.expected_semantic_digest.as_deref() == Some(digest.as_str());
+    let current_req = BuildCompactionPacketRequest {
+        resume_source: Some("before_compaction".into()),
+        project_root: packet
+            .pointer("/scope/project_root")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+        continuity_id: packet
+            .pointer("/scope/continuity_id")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+        session_id: None,
+        current_ask: None,
+        ask_kind: None,
+        source_turn_id: None,
+        omitted_sections: vec![],
+        omitted_bytes: 0,
+        omitted_tokens: 0,
+        rehydrate_refs: vec![],
+    };
+    let current = state.focusa.read().await;
+    let current_packet = build_packet(&current, &current_req);
+    let current_revision = current.version;
+    drop(current);
+    let source_matches = packet["source_cognition_digest"].as_str()
+        == Some(cognition_digest(&current_packet).as_str());
+    let required_preserved = request_matches
+        && scope_matches
+        && artifact_matches
+        && source_matches
+        && ["/scope", "/workpoint", "/trajectory", "/evidence"]
+            .iter()
+            .all(|pointer| !packet.pointer(pointer).unwrap_or(&Value::Null).is_null());
     let status = if required_preserved {
         "verified"
     } else {
-        "degraded"
+        "blocked"
     };
     Ok(Json(json!({
         "schema": "focusa.compaction_verify_result.v1",
         "status": status,
         "epoch_id": req.epoch_id,
         "context_release_ratio": ratio,
+        "semantic_digest": digest,
+        "source_revision": packet["source_revision"],
+        "current_source_revision": current_revision,
+        "source_fields_preserved": source_matches,
+        "verification_scope": "prepared_artifact_identity_current_request_and_scoped_source",
+        "native_context_fidelity": "unverified",
         "required_fields_preserved": required_preserved,
         "workpoint_resume_status": if packet.pointer("/workpoint/canonical").and_then(Value::as_bool).unwrap_or(false) { "canonical" } else { "degraded" },
         "resume_projection_ref": format!("compaction-resume:{}", req.epoch_id),
         "recommended_next": if req.delivery_posture.as_deref() == Some("deferred") { "defer" } else { "continue" },
-        "findings": if required_preserved { Vec::<String>::new() } else { vec!["required_projection_field_missing".to_string()] },
+        "findings": if required_preserved { Vec::<String>::new() } else { vec!["required_projection_identity_or_request_mismatch".to_string()] },
         "native_compaction_result": req.native_compaction_result,
         "native_pressure_after": req.native_pressure_after
     })))
@@ -672,6 +891,18 @@ async fn build(
     State(state): State<Arc<AppState>>,
     Json(req): Json<BuildCompactionPacketRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if req
+        .current_ask
+        .as_ref()
+        .is_some_and(|text| text.len() > CURRENT_ASK_MAX_BYTES)
+    {
+        return Err((
+            StatusCode::PAYLOAD_TOO_LARGE,
+            Json(json!({
+                "schema":"focusa.compaction_error.v1", "status":"blocked", "error":"current_request_too_large"
+            })),
+        ));
+    }
     let resume_source = req.resume_source.as_deref().unwrap_or("manual");
     if !RESUME_SOURCES.contains(&resume_source) {
         return Err((
@@ -940,6 +1171,9 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/compaction/replay", post(replay))
         .route("/v1/compaction/diff", post(diff))
 }
+
+#[cfg(test)]
+mod http_tests;
 
 #[cfg(test)]
 mod tests {

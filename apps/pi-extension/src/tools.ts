@@ -5109,7 +5109,10 @@ pi.registerTool({
           }
         : await focusaFetchDetailed("/workpoint/current", { method: "GET" });
       const loop = await focusaFetchDetailed("/work-loop/status?summary_only=true", { method: "GET" });
-      const liveContracts = await focusaFetchDetailed("/ontology/tool-contracts", { method: "GET" });
+      const liveContracts = await focusaFetchDetailed("/ontology/tool-contracts", {
+        method: "GET",
+        headers: { "X-Focusa-Permissions": "ontology:read" },
+      });
       const uiaiBrowser = await uiaiBrowserHealthCard();
       const contractSummary = focusaToolContractSummary();
       const scopedContracts =
@@ -9728,12 +9731,13 @@ pi.registerTool({
         ...(writerId ? writerLeaseHeaders(writerId, writerLease) : {}),
         ...requestScopeHeaders,
         ...(requestSessionId ? { "x-scope-session-id": requestSessionId } : {}),
+        ...(endpoint.startsWith("/preload/") ? { "X-Focusa-Permissions": "admin:service" } : {}),
       },
       body: method === "POST" ? JSON.stringify(request) : undefined,
     };
     const first = await focusaFetchDetailed(endpoint, req);
     const transient = new Set([0, 429, 502, 503, 504]);
-    if (!first.ok && transient.has(first.status)) {
+    if ((method === "GET" || !endpoint.startsWith("/preload/")) && !first.ok && transient.has(first.status)) {
       await new Promise((resolve) => setTimeout(resolve, 150));
       const second = await focusaFetchDetailed(endpoint, req);
       return { ...second, writerId };
@@ -15069,7 +15073,22 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     profile: preloadProfile,
     project_root: Type.Optional(Type.String({ minLength: 1, maxLength: 4096 })),
     continuity_id: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
+    artifact_version: Type.Optional(Type.Literal(2)),
+    constitution_id: Type.Optional(Type.String({ minLength: 1, maxLength: 512 })),
+    current_ask: Type.Optional(Type.String({ minLength: 1, maxLength: 262144 })),
+    artifact: Type.Optional(Type.Unknown()),
+    artifact_ref: Type.Optional(Type.String({ minLength: 1, maxLength: 160 })),
+    expected_digest: Type.Optional(Type.String({ pattern: "^[a-f0-9]{64}$" })),
   };
+  function boundPreloadResponse(request: Record<string, any>, response: any) {
+    if (request.artifact_version !== 2 || !response.ok) return response;
+    const artifact = response.body?.artifact;
+    const bad = response.body?.schema !== "focusa.scoped_preload_artifact.v2" ||
+      artifact?.schema !== "focusa.scoped_preload_artifact.v2" ||
+      (request.artifact_ref && artifact?.artifact_ref !== request.artifact_ref) ||
+      (request.expected_digest && artifact?.content_sha256 !== request.expected_digest);
+    return bad ? { ...response, ok: false, body: { ...response.body, status: "blocked", error: { code: "scoped_artifact_response_identity_missing_or_changed" } } } : response;
+  }
   const preloadReadTools: Array<[string, string, string, string[]]> = [
     [
       "focusa_preload_build",
@@ -15107,7 +15126,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           continuity_id: input.continuity_id || getContinuityId() || ensureContinuityId(projectRoot),
           working_subpath_id: process.env.FOCUSA_WORKING_SUBPATH_ID || "primary",
         };
-        const res = await callSpec80Tool(name, `/preload/${action}`, request, { method: "POST" });
+        const res = boundPreloadResponse(request, await callSpec80Tool(name, `/preload/${action}`, request, { method: "POST" }));
         const bodyStatus = String(res.body?.status || (res.ok ? "completed" : "failed")).toLowerCase();
         const functionallyFailed = ["failed", "error", "blocked"].includes(bodyStatus);
         const functionalResult = { ...res, ok: res.ok && !functionallyFailed };
@@ -15141,7 +15160,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     label: "Write Preload Packet",
     description: "Write a Spec 111 preload packet to an allowlisted target with an idempotency key.",
     parameters: strictObject({
-      profile: preloadProfile,
+      ...preloadScopeParams,
       target: Type.String({ minLength: 1, maxLength: 4096 }),
       idempotency_key: Type.String({ minLength: 1, maxLength: 256 }),
       overwrite: Type.Optional(Type.Boolean()),
@@ -15149,15 +15168,16 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     async execute(_id, params) {
       const p = params as Record<string, any>;
       const request = {
+        ...p,
         profile_id: p.profile || "rules_and_context",
         target_path: p.target,
         idempotency_key: p.idempotency_key,
         overwrite: p.overwrite || false,
       };
-      const res = await callSpec80Tool("focusa_preload_write", "/preload/write", request, {
+      const res = boundPreloadResponse(request, await callSpec80Tool("focusa_preload_write", "/preload/write", request, {
         method: "POST",
         writer: true,
-      });
+      }));
       return spec80Result(
         "focusa_preload_write",
         "/v1/preload/write",
@@ -15177,15 +15197,15 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     name: "focusa_preload_receipt_preview",
     label: "Preview Preload Receipt",
     description: "Preview a Spec 111 bootstrap delivery receipt without committing it.",
-    parameters: strictObject({ profile: preloadProfile }),
+    parameters: strictObject(preloadScopeParams),
     async execute(_id, params) {
       const request = params as Record<string, any>;
-      const res = await callSpec80Tool(
+      const res = boundPreloadResponse(request, await callSpec80Tool(
         "focusa_preload_receipt_preview",
         "/preload/receipt-preview",
         request,
         { method: "POST" }
-      );
+      ));
       return spec80Result(
         "focusa_preload_receipt_preview",
         "/v1/preload/receipt-preview",
@@ -15206,16 +15226,17 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     label: "Commit Preload Receipt",
     description: "Commit an idempotent Spec 111 bootstrap delivery receipt.",
     parameters: strictObject({
-      profile: preloadProfile,
+      ...preloadScopeParams,
+      delivery_target: Type.Optional(Type.String({ minLength: 1, maxLength: 4096 })),
       idempotency_key: Type.String({ minLength: 1, maxLength: 256 }),
     }),
     async execute(_id, params) {
       const p = params as Record<string, any>;
-      const request = { profile: p.profile || "rules_and_context", idempotency_key: p.idempotency_key };
-      const res = await callSpec80Tool("focusa_preload_receipt_commit", "/preload/receipt-commit", request, {
+      const request = { ...p, profile: p.profile || "rules_and_context", idempotency_key: p.idempotency_key };
+      const res = boundPreloadResponse(request, await callSpec80Tool("focusa_preload_receipt_commit", "/preload/receipt-commit", request, {
         method: "POST",
         writer: true,
-      });
+      }));
       return spec80Result(
         "focusa_preload_receipt_commit",
         "/v1/preload/receipt-commit",

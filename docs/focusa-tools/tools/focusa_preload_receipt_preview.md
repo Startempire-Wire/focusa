@@ -11,6 +11,14 @@ Preview a Spec 111 bootstrap delivery receipt without committing it. Use it when
 ## Parameters and strict input schema
 
 - `profile` (optional; string | string | string | string): Preload profile id from focusa_preload_profiles. Defaults to rules_and_context.
+- `project_root` (optional; string): See the strict descriptor schema.
+- `continuity_id` (optional; string): See the strict descriptor schema.
+- `artifact_version` (optional; number): See the strict descriptor schema.
+- `constitution_id` (optional; string): See the strict descriptor schema.
+- `current_ask` (optional; string): See the strict descriptor schema.
+- `artifact` (optional; structured): See the strict descriptor schema.
+- `artifact_ref` (optional; string): See the strict descriptor schema.
+- `expected_digest` (optional; string): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_preload_receipt_preview`.
 
@@ -77,4 +85,4 @@ Likely next: `focusa_preload_receipt_commit`, `focusa_preload_verify`.
 - CLI: `focusa preload receipt-preview`.
 - REST: `POST /v1/preload/receipt-preview`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:21b56c021a29340da35f7c86064daf28b4ffadab70a7562f47167d6f76590eda`.
+- Descriptor digest: `sha256:2beb7620db8c66e665201af016854a064bf7f6e7a0a34cbed0d55b5682488665`.

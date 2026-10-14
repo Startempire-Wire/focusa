@@ -225,15 +225,23 @@ export function loadPersistedRecoveryState(
   const projectRoot = String(anchor.projectRoot || fallbackProjectRoot || "").trim();
   const sessionId = String(anchor.sessionId || "").trim();
   if (!projectRoot || !sessionId || key !== sidecarKey(projectRoot, sessionId)) return null;
+  const expectedDigest = String(anchor.semanticDigest || "");
+  const expectedRevision = anchor.revision;
+  if (!/^sha256:[a-f0-9]{64}$/.test(expectedDigest) ||
+      !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) return null;
 
   for (const candidate of sidecarCandidates(key)) {
     try {
       const parsed = JSON.parse(readFileSync(candidate, "utf8"));
       if (parsed?.schema !== COMPACTION_PERSISTENCE_SIDECAR_SCHEMA) continue;
+      // Integrity alone is not identity: never replace the requested artifact
+      // with an older/newer self-consistent request from the same session.
+      if (parsed.semanticDigest !== expectedDigest || parsed.revision !== expectedRevision) continue;
       const recoveryState = parsed.recoveryState;
       if (!recoveryState || typeof recoveryState !== "object") continue;
       if (semanticPersistenceDigest(recoveryState) !== parsed.semanticDigest) continue;
-      if (String(recoveryState.sessionId || "") !== sessionId) continue;
+      if (String(recoveryState.sessionId || "") !== sessionId ||
+          String(recoveryState.projectRoot || "").trim() !== projectRoot) continue;
       return recoveryState;
     } catch {
       continue;

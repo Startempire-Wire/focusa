@@ -13,6 +13,12 @@ Doctor Preload Scope through the scoped Spec 111 preload API. Use it when Diagno
 - `profile` (optional; string | string | string | string): Preload profile id from focusa_preload_profiles. Defaults to rules_and_context.
 - `project_root` (optional; string): See the strict descriptor schema.
 - `continuity_id` (optional; string): See the strict descriptor schema.
+- `artifact_version` (optional; number): See the strict descriptor schema.
+- `constitution_id` (optional; string): See the strict descriptor schema.
+- `current_ask` (optional; string): See the strict descriptor schema.
+- `artifact` (optional; structured): See the strict descriptor schema.
+- `artifact_ref` (optional; string): See the strict descriptor schema.
+- `expected_digest` (optional; string): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_preload_doctor`.
 
@@ -79,4 +85,4 @@ Likely next: `focusa_preload_profiles`, `focusa_preload_build`.
 - CLI: `focusa preload doctor`.
 - REST: `POST /v1/preload/doctor`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:a3aae897c43736c8fe7a140dd16e8a3fa134e7b4e2cecb38e2e55a1585763238`.
+- Descriptor digest: `sha256:4164cf51c00f0a2ed35ddb7e85c86413e73fcc651d8a5e3fcb87aff77f53bcfa`.

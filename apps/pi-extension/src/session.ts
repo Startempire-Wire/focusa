@@ -1035,14 +1035,21 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
 }
 
 function seedCurrentAskFromPersistedState(ctx: any, data: any) {
+  // session_start clears prior input before asynchronous binding. Any input
+  // captured since that boundary wins, including empty/meta steering.
+  if (getAttachmentRuntime().currentAsk) return;
   const restoredAsk = data?.currentAsk;
+  // Only the verified sidecar declares complete request text. A native preview
+  // or legacy snapshot of unknown completeness cannot become request authority.
+  if (!restoredAsk || restoredAsk.textIsPreview !== false) return;
   const cleanedRestoredAsk = stripQuotedFocusaContext(restoredAsk?.text || "");
   const cwd = adoptPiProjectRoot(ctx?.cwd || getSessionCwd() || process.cwd());
   if (cleanedRestoredAsk && !isNonTaskStatusLikeText(cleanedRestoredAsk)) {
     if (restoredAsk.sessionId && restoredAsk.sessionId !== getAttachmentRuntime().sessionFrameKey) return;
     if (restoredAsk.projectRoot && adoptPiProjectRoot(restoredAsk.projectRoot) !== cwd) return;
+    if (restoredAsk.continuityId && restoredAsk.continuityId !== getContinuityId()) return;
     getAttachmentRuntime().currentAsk = {
-      text: trimFrameText(cleanedRestoredAsk, 500),
+      text: cleanedRestoredAsk,
       kind: restoredAsk.kind || classifyCurrentAsk(cleanedRestoredAsk),
       sourceTurnId: restoredAsk.sourceTurnId || "restored",
       updatedAt: restoredAsk.updatedAt || Date.now(),
@@ -1054,20 +1061,9 @@ function seedCurrentAskFromPersistedState(ctx: any, data: any) {
     return;
   }
 
-  const goal = stripQuotedFocusaContext(String(data?.frameGoal || "").trim());
-  const title = String(data?.frameTitle || "").trim();
-  if (!goal || isNonTaskStatusLikeText(goal) || isGenericPiFrameForCwd(cwd, title, goal)) return;
-  if (!/^Pi (Task|Question|Correction): /.test(title)) return;
-
-  getAttachmentRuntime().currentAsk = {
-    text: trimFrameText(goal, 500),
-    kind: classifyCurrentAsk(goal),
-    sourceTurnId: "restored-frame-goal",
-    updatedAt: Date.now(),
-    sessionId: getAttachmentRuntime().sessionFrameKey,
-    projectRoot: cwd,
-    continuityId: getContinuityId(),
-  };
+  // Frame titles/goals remain orientation context, not substitutes for the
+  // original instruction. Missing exact text must use its original source.
+  return;
 }
 
 async function ensureActiveFrame(ctx: any, sessionId?: string) {
@@ -1341,6 +1337,7 @@ export function registerSession(pi: ExtensionAPI) {
 
     // Health check
     await checkFocusa();
+    if (!healthLifecycleIsCurrent()) return;
 
     // §36.4 + §33.5: Restore decisions from Pi session entries.
     // CRITICAL §33.5: Never restore activeFrameId from previous sessions — that
@@ -1379,6 +1376,7 @@ export function registerSession(pi: ExtensionAPI) {
     const bindingPayload = await focusaFetch(`/project/identity?${bindingQuery.toString()}`, {
       method: "GET",
     }).catch(() => null);
+    if (!healthLifecycleIsCurrent()) return;
     const bindingDecision = bindingPayload?.binding_decision || null;
     const bindingCandidates = Array.isArray(bindingPayload?.binding_candidates)
       ? bindingPayload.binding_candidates
@@ -1512,7 +1510,6 @@ export function registerSession(pi: ExtensionAPI) {
         getAttachmentRuntime().lastCompactResumeAt = d.lastCompactResumeAt || 0;
         getAttachmentRuntime().activeFrameTitle = d.frameTitle || "";
         getAttachmentRuntime().activeFrameGoal = d.frameGoal || "";
-        seedCurrentAskFromPersistedState(ctx, d);
         getAttachmentRuntime().lastFocusSnapshot = {
           decisions: d.authoritativeDecisions || [],
           constraints: d.authoritativeConstraints || [],
@@ -1543,6 +1540,9 @@ export function registerSession(pi: ExtensionAPI) {
           eventSessionId,
           selectedBindingRoot || localBinding.projectRoot
         );
+        // The existing identity/continuity owners must be adopted before the
+        // request's exact scope is compared; captured input still takes priority.
+        seedCurrentAskFromPersistedState(ctx, d);
         // Explicitly clear stale pollution — do NOT carry across sessions
         getAttachmentRuntime().localConstraints = [];
         getAttachmentRuntime().localFailures = [];

@@ -1590,3 +1590,28 @@ Partial bootstrap surfaces may ship behind preview labels, but public docs must 
 ## Spec 144 Builder/Verifier bootstrap and delivery
 
 Agent Bootstrap MUST deliver target-specific Builder, Verifier, Router, coverage-challenger, and arbiter packets with exact role, Runtime Constitution, Work Contract, Workpoint revision, obligations, disclosure policy, tools, placement, temporal/presence posture, and context hash. Delivery Receipts prove what each lineage received; they do not prove the work passed.
+
+## Scoped artifact protocol 2 — opt-in compatibility contract
+
+`artifact_version: 2` selects `focusa.scoped_preload_artifact.v2`. Legacy calls
+retain advisory profile-template behavior; they cannot verify a scoped artifact.
+Build requires exact canonical project/continuity, complete current input, and an
+existing approved/active scoped Runtime Constitution. Its registered source hashes,
+trust, authority and selected instruction claims must still match canonical discovery;
+missing, conflicted, superseded or revoked source authority fails closed. No preload
+operation activates a Constitution.
+
+The self-contained artifact binds the actual reducer revision, selected profile,
+complete scoped material and final rendered text. Rendering follows composition.
+Later render/verify/doctor/receipt-preview calls require the original artifact,
+`artifact_ref` and `expected_digest`; canonical recomposition must match all bytes
+and identities. No independent artifact authority, scheduler or ledger is added.
+The byte ceiling is a transport limit, not tokenizer or model-use evidence.
+
+Write reuses the existing allowlisted target owner and refuses traversal/symlinks
+or different existing content. Receipt commit reuses the existing receipt owner,
+requires the exact delivery target and rechecks file bytes before immutable commit
+or identity-bound replay. Artifact verification, file delivery, current-process
+refresh and model consumption are distinct evidence levels; response fields must
+never promote one into another. CLI/native clients carry the same protocol and
+reject legacy/template success as scoped verification.

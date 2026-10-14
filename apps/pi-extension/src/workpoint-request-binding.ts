@@ -22,15 +22,20 @@ export function captureResumeRequest(runtime: ResumeRuntime, evaluatedAsk: strin
 
 export type ResumeRequestBinding = ReturnType<typeof captureResumeRequest>;
 
+export function isResumeRequestCurrent(captured: ResumeRequestBinding, runtime: ResumeRuntime): boolean {
+  const current = captureResumeRequest(runtime, captured.evaluatedAsk);
+  return Object.keys(captured).every((key) =>
+    captured[key as keyof ResumeRequestBinding] === current[key as keyof ResumeRequestBinding]
+  );
+}
+
 export function evaluateResumeRequest(
   reply: any,
   captured: ResumeRequestBinding,
   runtime: ResumeRuntime
 ): { accepted: boolean; reason: string } {
-  const current = captureResumeRequest(runtime, captured.evaluatedAsk);
-  if (Object.keys(captured).some((key) =>
-    captured[key as keyof ResumeRequestBinding] !== current[key as keyof ResumeRequestBinding]
-  )) return { accepted: false, reason: "resume_request_changed" };
+  if (!isResumeRequestCurrent(captured, runtime))
+    return { accepted: false, reason: "resume_request_changed" };
   if (captured.evaluatedAsk !== captured.currentAsk)
     return { accepted: false, reason: "resume_evaluated_different_ask" };
   const v2 = reply?.resume_packet_v2;
@@ -71,6 +76,23 @@ export function isGenericWorkpointMission(mission: unknown): boolean {
   const normalized = String(mission ?? "").trim().toLowerCase();
   if (!normalized) return true;
   return GENERIC_WORKPOINT_MISSIONS.has(normalized);
+}
+
+// Saved context and changed steering retain orientation, never cached permission.
+// Only a fresh daemon response accepted by evaluateResumeRequest can regrant it.
+export function revokeWorkpointRequestAuthority(packet: any, reason: string): any {
+  if (!packet || typeof packet !== "object") return packet;
+  return {
+    ...packet,
+    action_authority_for_current_ask: false,
+    matches_current_ask_scope: false,
+    current_ask_scope: {
+      ...packet.current_ask_scope,
+      action_authority_for_current_ask: false,
+      matches_current_ask_scope: false,
+      scope_conflict_reason: reason,
+    },
+  };
 }
 
 export function stampResumeRequest(candidate: any, captured: ResumeRequestBinding): any {

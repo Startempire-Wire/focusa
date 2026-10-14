@@ -88,7 +88,7 @@ fn replay_durable_tail(
                     state.clone(),
                     entry.event,
                     historical_machine,
-                    entry.thread_id,
+                    record.thread_id,
                     entry.is_observation,
                 )
             })?

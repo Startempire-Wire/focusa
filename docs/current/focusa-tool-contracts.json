@@ -34,6 +34,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -67,6 +78,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -100,6 +122,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -133,6 +166,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -166,6 +210,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -199,6 +254,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -232,6 +298,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -265,6 +342,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -298,6 +386,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -332,6 +431,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -365,6 +475,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -399,6 +520,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -432,6 +564,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -466,6 +609,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -500,6 +654,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -534,6 +699,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -567,6 +743,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -609,7 +796,7 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "read_projection",
-        "source_owner": "communications_capability_contracts",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -652,7 +839,7 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "read_projection",
-        "source_owner": "communications_capability_contracts",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -689,14 +876,14 @@
         "path": "/v1/sms/threads"
       },
       "operation_policy": {
-        "operation_class": "read",
+        "operation_class": "value_mutation",
         "capability_family": "base_focusa",
         "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "none",
-        "source_owner": "communications_capability_contracts",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -734,14 +921,14 @@
         "path": "/v1/sms/threads/{thread}/messages"
       },
       "operation_policy": {
-        "operation_class": "read",
+        "operation_class": "value_mutation",
         "capability_family": "base_focusa",
         "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "none",
-        "source_owner": "communications_capability_contracts",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -778,14 +965,14 @@
         "path": "/v1/sms/search"
       },
       "operation_policy": {
-        "operation_class": "read",
+        "operation_class": "value_mutation",
         "capability_family": "base_focusa",
         "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "none",
-        "source_owner": "communications_capability_contracts",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -829,7 +1016,7 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "none",
-        "source_owner": "communications_capability_contracts",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -873,7 +1060,7 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "none",
-        "source_owner": "communications_capability_contracts",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -917,7 +1104,7 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "none",
-        "source_owner": "communications_capability_contracts",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -960,7 +1147,7 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "none",
-        "source_owner": "communications_capability_contracts",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -997,13 +1184,13 @@
       },
       "operation_policy": {
         "operation_class": "read",
-        "capability_family": "base_focusa",
-        "commercial_treatment": "base_entitlement",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
-        "recovery_allowance": "none",
-        "source_owner": "communications_capability_contracts",
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -1040,14 +1227,14 @@
         "path": "/v1/sms/revoke"
       },
       "operation_policy": {
-        "operation_class": "recovery",
-        "capability_family": "account_recovery",
-        "commercial_treatment": "always_available",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
-        "recovery_allowance": "account_recovery",
-        "source_owner": "communications_capability_contracts",
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }
     },
@@ -1080,6 +1267,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1111,6 +1309,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1142,6 +1351,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1174,6 +1394,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/preload/write"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1205,6 +1436,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1236,6 +1478,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1267,6 +1520,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1299,6 +1563,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/preload/receipt-commit"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1332,6 +1607,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/daemon-routing/resolve"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1366,6 +1652,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/project/north-star-gate"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1397,6 +1694,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1428,6 +1736,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1460,6 +1779,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1491,6 +1821,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1523,6 +1864,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1560,6 +1912,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "reducer event plus append-only receipt"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1593,6 +1956,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1626,6 +2000,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1658,6 +2043,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1695,6 +2091,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1728,6 +2135,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1766,6 +2184,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1798,6 +2227,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1837,6 +2277,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "daemon:/v1/project/bootstrap/apply"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1877,6 +2328,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "daemon:/v1/project/genesis/commit"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1950,6 +2412,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "daemon:/v1/temporal/commit"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -1985,6 +2458,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2020,6 +2504,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2055,6 +2550,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2090,6 +2596,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2125,6 +2642,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2160,6 +2688,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2195,6 +2734,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2227,6 +2777,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2258,6 +2819,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2289,6 +2861,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2320,6 +2903,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2351,6 +2945,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2379,6 +2984,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2412,6 +3028,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2445,6 +3072,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2478,6 +3116,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2511,6 +3160,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2544,6 +3204,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2577,6 +3248,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2610,6 +3292,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2644,6 +3337,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2677,6 +3381,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2707,6 +3422,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2737,6 +3463,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2767,6 +3504,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2797,6 +3545,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2827,6 +3586,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2857,6 +3627,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2887,6 +3668,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2917,6 +3709,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2948,6 +3751,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -2978,6 +3792,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3008,6 +3833,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3038,6 +3874,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3071,6 +3918,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3101,6 +3959,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3131,6 +4000,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3161,6 +4041,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3190,6 +4081,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3219,6 +4121,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3249,6 +4162,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3295,6 +4219,17 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "daemon:/v1/silent-sessions"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "automation",
+        "commercial_treatment": "optional_premium",
+        "policy_activation": "active",
+        "required_feature": "focusa.agent.silent_sessions",
+        "limit_bucket": "silent_session_runs",
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3327,6 +4262,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3362,6 +4308,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3393,6 +4350,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3424,6 +4392,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3463,6 +4442,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3494,6 +4484,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3525,6 +4526,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3556,6 +4568,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3591,6 +4614,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3624,6 +4658,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3657,6 +4702,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "recovery",
+        "capability_family": "account_recovery",
+        "commercial_treatment": "always_available",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "account_recovery",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3689,6 +4745,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "recovery",
+        "capability_family": "account_recovery",
+        "commercial_treatment": "always_available",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "account_recovery",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3721,6 +4788,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "recovery",
+        "capability_family": "account_recovery",
+        "commercial_treatment": "always_available",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "account_recovery",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3752,6 +4830,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "recovery",
+        "capability_family": "account_recovery",
+        "commercial_treatment": "always_available",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "account_recovery",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3782,6 +4871,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "recovery",
+        "capability_family": "account_recovery",
+        "commercial_treatment": "always_available",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "account_recovery",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3812,6 +4912,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "recovery",
+        "capability_family": "account_recovery",
+        "commercial_treatment": "always_available",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "account_recovery",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3846,6 +4957,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3884,6 +5006,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3916,6 +5049,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3948,6 +5092,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -3981,6 +5136,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4016,6 +5182,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4049,6 +5226,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4081,6 +5269,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4113,6 +5312,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4144,6 +5354,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4175,6 +5396,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4205,6 +5437,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4237,6 +5480,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4268,6 +5522,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4299,6 +5564,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4329,6 +5605,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4360,6 +5647,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4390,6 +5688,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4420,6 +5729,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4455,6 +5775,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4486,6 +5817,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4516,6 +5858,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4546,6 +5899,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4577,6 +5941,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4608,6 +5983,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4639,6 +6025,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4670,6 +6067,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4701,6 +6109,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4732,6 +6151,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4762,6 +6192,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4792,6 +6233,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4822,6 +6274,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4852,6 +6315,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4883,6 +6357,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4914,6 +6399,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4947,6 +6443,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -4977,6 +6484,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -5007,6 +6525,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -5041,6 +6570,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -5072,6 +6612,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -5103,6 +6654,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -5134,6 +6696,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -5168,6 +6741,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "read",
+        "capability_family": "read_projection",
+        "commercial_treatment": "read_allowance",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "read_projection",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -5225,6 +6809,17 @@
       },
       "authority_requirement": {
         "kind": "canonical_write"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     },
     {
@@ -5258,6 +6853,17 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      },
+      "operation_policy": {
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
+        "policy_activation": "active",
+        "required_feature": null,
+        "limit_bucket": null,
+        "recovery_allowance": "none",
+        "source_owner": "agent_capability_contracts",
+        "policy_owner": "entitlement_policy_resolver"
       }
     }
   ]

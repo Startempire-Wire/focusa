@@ -87,6 +87,13 @@ impl ApiClient {
         Self { client, base }
     }
 
+    /// Explicit per-command routing without changing process-global environment.
+    pub fn for_base_url(base: &str) -> Self {
+        let mut client = Self::new();
+        client.base = base.trim_end_matches('/').to_string();
+        client
+    }
+
     pub fn base_url(&self) -> &str {
         &self.base
     }

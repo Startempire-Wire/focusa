@@ -238,7 +238,7 @@ test("session restore rejects foreign trajectory ScopeRef and validates same-pro
     "unidentified fallback source fails closed"
   );
 
-  const restore = block(session, "seedCurrentAskFromPersistedState(ctx, d)", "if (d.latestReportSummary?.handle)");
+  const restore = block(session, "// Stable ProjectIdentity ScopeRef must be registered", "if (d.latestReportSummary?.handle)");
   assert.ok(restore.indexOf("setLastProjectVerify") < restore.indexOf("setLastTrajectoryClarity"));
   assert.match(restore, /setLastTrajectoryClarity\(d\.lastTrajectoryClarity\)/);
   assert.doesNotMatch(restore, /fallback_prior_project_trajectory === true/);

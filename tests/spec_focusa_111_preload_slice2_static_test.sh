@@ -27,7 +27,8 @@ for needle in \
   'includes_acceptance_prompt' \
   'max_dynamic_items' \
   'Focusa does not bypass install' \
-  'Canonical Workpoint authority requires operator approval' \
+  'Canonical action authority requires the existing operator grant' \
+  'exact Scope/Workstream/continuity/attachment and current operation/frontier' \
   'Acknowledge Focusa rules'; do
   grep -qF -- "$needle" "$PRE" || fail "preload slice 2 missing: $needle"
 done

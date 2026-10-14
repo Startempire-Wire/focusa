@@ -4785,7 +4785,7 @@ pub struct ReductionResult {
 // ─── Event Log Entry (from G1-detail-03-runtime-daemon.md) ──────────────────
 
 /// Persisted event log entry (JSONL).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct EventLogEntry {
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
@@ -4819,6 +4819,51 @@ pub struct EventLogEntry {
     /// Observations are recorded but do not mutate canonical Focus Stack/State.
     #[serde(default)]
     pub is_observation: bool,
+}
+
+// Event identity and ingress attribution intentionally share legacy flat keys.
+// A derived envelope decoder consumes those keys before the flattened event can
+// read them (#685), breaking session/thread replay and dropping optional scope.
+// Decode both views from the same unchanged value; never invent missing identity.
+impl<'de> Deserialize<'de> for EventLogEntry {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw = serde_json::Value::deserialize(deserializer)?;
+        let event = FocusaEvent::deserialize(&raw).map_err(serde::de::Error::custom)?;
+        macro_rules! field {
+            ($name:ident) => {
+                serde_json::from_value(raw.get(stringify!($name)).cloned().ok_or_else(|| {
+                    <D::Error as serde::de::Error>::missing_field(stringify!($name))
+                })?)
+                .map_err(serde::de::Error::custom)?
+            };
+            ($name:ident, $default:expr) => {
+                match raw.get(stringify!($name)) {
+                    Some(value) => {
+                        serde_json::from_value(value.clone()).map_err(serde::de::Error::custom)?
+                    }
+                    None => $default,
+                }
+            };
+        }
+        Ok(Self {
+            id: field!(id),
+            timestamp: field!(timestamp),
+            temporal: field!(temporal, Default::default()),
+            event,
+            correlation_id: field!(correlation_id, None),
+            origin: field!(origin),
+            machine_id: field!(machine_id, None),
+            instance_id: field!(instance_id, None),
+            session_id: field!(session_id, None),
+            project_root: field!(project_root, None),
+            continuity_id: field!(continuity_id, None),
+            thread_id: field!(thread_id, None),
+            is_observation: field!(is_observation, false),
+        })
+    }
 }
 
 impl EventLogEntry {

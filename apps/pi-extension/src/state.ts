@@ -29,7 +29,7 @@ import {
   stableSemanticValue,
   writeRecoverySidecar,
 } from "./persistence.js";
-import { isGenericWorkpointMission } from "./workpoint-request-binding.js";
+import { isGenericWorkpointMission, revokeWorkpointRequestAuthority } from "./workpoint-request-binding.js";
 export {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -834,9 +834,13 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
       // The daemon JSON guard rejects malformed mutation bodies before handlers.
     }
   }
-  const attempts = 2;
+  // Unknown mutation completion must be reconciled, never blindly replayed.
+  const attempts = ["POST", "PUT", "PATCH", "DELETE"].includes(mutationMethod) ? 1 : 2;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const ac = new AbortController();
+    const abortFromParent = () => ac.abort(opts.signal?.reason);
+    if (opts.signal?.aborted) return null;
+    opts.signal?.addEventListener("abort", abortFromParent, { once: true });
     const t = setTimeout(() => ac.abort(), timeout);
     try {
       const r = await fetch(`${base}${path}`, {
@@ -895,7 +899,9 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
       if (attempt === attempts - 1) return null;
     } finally {
       clearTimeout(t);
+      opts.signal?.removeEventListener("abort", abortFromParent);
     }
+    if (opts.signal?.aborted) return null;
     await new Promise((resolve) => setTimeout(resolve, 150));
   }
   return null;
@@ -3729,7 +3735,11 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
     packet.status !== "partial" &&
     packet.status !== "rejected_scope_mismatch"
   ) {
-    setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(packet));
+    setActiveWorkpointPacket(
+      stampWorkpointPacketForCurrentPiSession(
+        revokeWorkpointRequestAuthority(packet, "saved_request_authority_requires_fresh_validation")
+      )
+    );
     setActiveWorkpointSummary(String(data?.activeWorkpointSummary || ""));
     getAttachmentRuntime().lastWorkpointUpdate = Date.now();
   } else {
@@ -4212,7 +4222,10 @@ function buildPersistedRecoveryState(): Record<string, any> {
     currentAsk: getAttachmentRuntime().currentAsk
       ? {
           ...getAttachmentRuntime().currentAsk,
-          text: trimPersistText(getAttachmentRuntime().currentAsk.text),
+          // The hash-verified sidecar owns the complete request. Preview limits
+          // apply only to the small native anchor, not recovery semantics.
+          text: getAttachmentRuntime().currentAsk.text,
+          textIsPreview: false,
         }
       : null,
     queryScope: getAttachmentRuntime().queryScope,
@@ -4403,6 +4416,7 @@ export function persistState(): void {
     currentAsk: recoveryState.currentAsk
       ? {
           text: trimPersistText(recoveryState.currentAsk.text || ""),
+          textIsPreview: true,
           kind: recoveryState.currentAsk.kind || "unknown",
           sourceTurnId: recoveryState.currentAsk.sourceTurnId || "",
         }

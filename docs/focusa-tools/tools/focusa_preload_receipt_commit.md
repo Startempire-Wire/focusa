@@ -11,6 +11,15 @@ Commit an idempotent Spec 111 bootstrap delivery receipt. Use it when Commit an 
 ## Parameters and strict input schema
 
 - `profile` (optional; string | string | string | string): Preload profile id from focusa_preload_profiles. Defaults to rules_and_context.
+- `project_root` (optional; string): See the strict descriptor schema.
+- `continuity_id` (optional; string): See the strict descriptor schema.
+- `artifact_version` (optional; number): See the strict descriptor schema.
+- `constitution_id` (optional; string): See the strict descriptor schema.
+- `current_ask` (optional; string): See the strict descriptor schema.
+- `artifact` (optional; structured): See the strict descriptor schema.
+- `artifact_ref` (optional; string): See the strict descriptor schema.
+- `expected_digest` (optional; string): See the strict descriptor schema.
+- `delivery_target` (optional; string): See the strict descriptor schema.
 - `idempotency_key` (required; string): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_preload_receipt_commit`.
@@ -80,4 +89,4 @@ Likely next: `focusa_preload_verify`, `focusa_preload_doctor`.
 - CLI: `focusa preload receipt-commit`.
 - REST: `POST /v1/preload/receipt-commit`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:b395beb18e3e916d541d2dcbf3d8796689c2da5c4f071d09396371c3c02ef57d`.
+- Descriptor digest: `sha256:bfd17103ff957b8836de4b332d5252cbad853e1a3c937128fc49f3634b98af9b`.

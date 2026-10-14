@@ -588,7 +588,7 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use crate::scoped_store::ScopedCrdtLedger;
     use crate::server::{AppState, build_router};
     use axum::body::Body;
@@ -613,8 +613,12 @@ mod tests {
         cfg
     }
 
-    async fn setup_app() -> (axum::Router, SqlitePersistence) {
-        let cfg = temp_config();
+    // Shared in-process fixture: production router/storage, test-only identity.
+    pub(crate) async fn setup_state(
+        auth_token: Option<String>,
+    ) -> (Arc<AppState>, SqlitePersistence) {
+        let mut cfg = temp_config();
+        cfg.auth_token = auth_token;
         let persistence = SqlitePersistence::new(&cfg).expect("persistence");
 
         let (tx, mut rx) = mpsc::channel::<Action>(64);
@@ -691,6 +695,11 @@ mod tests {
             shutdown_accepted: Arc::new(Mutex::new(false)),
         });
 
+        (state, persistence)
+    }
+
+    async fn setup_app() -> (axum::Router, SqlitePersistence) {
+        let (state, persistence) = setup_state(None).await;
         (build_router(state), persistence)
     }
 
