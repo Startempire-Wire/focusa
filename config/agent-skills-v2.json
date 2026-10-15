@@ -324,7 +324,9 @@
         "Audit AGENTS, public docs, onboarding, every Pi tool projection/doc, complete skill/runbook parity, and recent architecture before release.",
         "Run generated drift, Spec141 conformance, version-surface, Markdown, lifecycle, Mission Canvas, and final release gap gates.",
         "Publish only after one green final CI; verify release assets, checksums, deployment health, updater rollback, and customer lifecycle evidence.",
-        "Discover current registry/tool/skill counts and validate generated public/machine freshness plus relevant consumer proof; neither inventory parity nor a tag proves activation or release acceptance."
+        "Discover current registry/tool/skill counts and validate generated public/machine freshness plus relevant consumer proof; neither inventory parity nor a tag proves activation or release acceptance.",
+        "Batch related code before compiler validation; reuse existing checks and repeat only affected checks after a correction, while preserving the mandatory final release gate.",
+        "Use the current release rules for explicit unavailable/deferred learning; that evidence never substitutes for mandatory benchmarks, authority, exact-source CI or installed acceptance."
       ],
       "done": "Every acceptance criterion, issue, changelog entry, platform boundary, and evidence ref is verified before authorized release action."
     },
@@ -823,7 +825,9 @@
       ],
       "runbook_notes": [
         "Verify typed project/workstream scope before durable mutation.",
-        "Return bounded evidence and executable recovery."
+        "Return bounded evidence and executable recovery.",
+        "Without the matching bound harness transport, report TransportDegraded rather than idle execution; use the existing budget projection, which excludes transport wait while preserving the epoch and spent budget.",
+        "A restored connection or saved context is not a new grant: verify current writer, scope and actual transport before dispatch; expired grants and exhausted budgets still require their existing recovery or explicit renewal."
       ],
       "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
     },

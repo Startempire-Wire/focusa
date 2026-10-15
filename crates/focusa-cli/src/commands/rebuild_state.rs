@@ -6,7 +6,7 @@
 
 use anyhow::Context;
 use clap::Args;
-use focusa_core::reducer::reduce_with_meta;
+use focusa_core::reducer::reduce_recorded;
 use focusa_core::types::{EventLogEntry, FocusaState};
 use rusqlite::{Connection, OpenFlags};
 
@@ -147,20 +147,14 @@ pub async fn run(args: RebuildStateArgs, json_mode: bool) -> anyhow::Result<()> 
 
 fn replay_events(mut state: FocusaState, events: &[EventLogEntry]) -> anyhow::Result<FocusaState> {
     for entry in events {
-        state = reduce_with_meta(
-            state,
-            entry.event.clone(),
-            entry.machine_id.as_deref(),
-            entry.thread_id,
-            entry.is_observation,
-        )
-        .with_context(|| {
-            format!(
-                "rebuild replay rejected event {}; snapshot not written",
-                entry.id
-            )
-        })?
-        .new_state;
+        state = reduce_recorded(state, entry, entry.machine_id.as_deref(), entry.thread_id)
+            .with_context(|| {
+                format!(
+                    "rebuild replay rejected event {}; snapshot not written",
+                    entry.id
+                )
+            })?
+            .new_state;
     }
     Ok(state)
 }

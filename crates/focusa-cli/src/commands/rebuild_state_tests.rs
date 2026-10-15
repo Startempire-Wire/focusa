@@ -161,6 +161,23 @@ async fn command_rejected_event_preserves_target_snapshot() {
         )
         .unwrap();
     assert_eq!(stored, ("original".into(), state_json));
+
+    // Valid rebuilds retain the recorded budget epoch rather than renewing it.
+    let mut valid = rejected_event();
+    valid.thread_id = None;
+    valid.event = FocusaEvent::ContinuousWorkModeEnabled {
+        project_run_id: uuid::Uuid::now_v7(),
+        policy: Default::default(),
+        scope: None,
+        work_item_id: None,
+        workpoint_id: None,
+    };
+    let rebuilt = replay_events(FocusaState::new(), &[valid.clone()]).unwrap();
+    assert_eq!(rebuilt.work_loop.budget_epoch_id, Some(valid.id));
+    assert_eq!(
+        rebuilt.work_loop.budget_epoch_started_at,
+        Some(valid.timestamp)
+    );
     drop(conn);
     std::fs::remove_dir_all(root).unwrap();
 }

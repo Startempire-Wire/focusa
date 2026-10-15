@@ -27,6 +27,8 @@ For resume, normally omit `current_ask` so the adapter forwards the exact latest
 
 1. Verify typed project/workstream scope before durable mutation.
 2. Return bounded evidence and executable recovery.
+3. Without the matching bound harness transport, report TransportDegraded rather than idle execution; use the existing budget projection, which excludes transport wait while preserving the epoch and spent budget.
+4. A restored connection or saved context is not a new grant: verify current writer, scope and actual transport before dispatch; expired grants and exhausted budgets still require their existing recovery or explicit renewal.
 
 ## Branches
 

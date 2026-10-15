@@ -27,6 +27,8 @@ function globalNpmRoot() {
 const globalRoot = globalNpmRoot();
 const packageCandidates = [
   process.env.PI_SKILLS_MODULE,
+  path.join(process.cwd(), 'apps/pi-extension/node_modules/@earendil-works/pi-coding-agent/dist/core/skills.js'),
+  path.join(process.cwd(), 'apps/pi-extension/node_modules/@mariozechner/pi-coding-agent/dist/core/skills.js'),
   '@mariozechner/pi-coding-agent/dist/core/skills.js',
   '@earendil-works/pi-coding-agent/dist/core/skills.js',
   globalRoot && path.join(globalRoot, '@mariozechner/pi-coding-agent/dist/core/skills.js'),

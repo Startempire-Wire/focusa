@@ -31,6 +31,8 @@ For resume, normally omit `current_ask` so the adapter forwards the exact latest
 2. Run generated drift, Spec141 conformance, version-surface, Markdown, lifecycle, Mission Canvas, and final release gap gates.
 3. Publish only after one green final CI; verify release assets, checksums, deployment health, updater rollback, and customer lifecycle evidence.
 4. Discover current registry/tool/skill counts and validate generated public/machine freshness plus relevant consumer proof; neither inventory parity nor a tag proves activation or release acceptance.
+5. Batch related code before compiler validation; reuse existing checks and repeat only affected checks after a correction, while preserving the mandatory final release gate.
+6. Use the current release rules for explicit unavailable/deferred learning; that evidence never substitutes for mandatory benchmarks, authority, exact-source CI or installed acceptance.
 
 ## Branches
 
