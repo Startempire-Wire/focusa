@@ -1389,8 +1389,9 @@ impl SqlitePersistence {
         Ok(imported)
     }
 
-    fn save_state_on_connection(
-        conn: &Connection,
+    /// Save a snapshot and its exact replay cursor inside the caller's write transaction.
+    pub fn save_state_on_connection(
+        conn: &rusqlite::Transaction<'_>,
         state: &FocusaState,
         event_sequence: i64,
     ) -> anyhow::Result<()> {

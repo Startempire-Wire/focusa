@@ -12,6 +12,12 @@ Health `ok` proves liveness, not writable storage. Check `persistence_readiness`
 
 SQLite event/snapshot writers reserve their write transaction before reading chain or cursor metadata; an event and its hash-chain link commit together. A lock timeout is not a successful write. Reconcile durable event IDs before retrying an operation with uncertain effects.
 
+## Snapshot recovery (current source)
+
+`rebuild-state` requires a snapshot with a matching durable cursor and event-chain prefix. It streams the complete suffix in sequence order, preserves indexed ownership and recorded budget identity/time, and atomically saves the rebuilt snapshot with its cursor through the existing persistence owner. Missing prefixes, unlinked events, gaps or a target that advanced before writing fail without changing the snapshot. `--since` is an optional legacy hint, not a timestamp filter.
+
+This is source behavior, not proof of the installed command. Older timestamp-only implementations are not qualified for current cursor-based databases. Use verified backups and the approved recovery procedure; no production rebuild is implied by source tests.
+
 ## Skill loading problems
 
 If Pi reports `description is required`, the skill is missing YAML frontmatter. Validate with:
