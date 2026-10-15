@@ -174,13 +174,22 @@ fn actual_sqlite_producer_and_daemon_restart_replay_preserve_scope_and_history()
                     .thread_id
                     .is_none()
             );
+            let mut loop_entry = entry(FocusaEvent::ContinuousWorkModeEnabled {
+                project_run_id: Uuid::from_u128(13),
+                policy: focusa_core::types::WorkLoopPolicy::default(),
+                scope: None,
+                work_item_id: None,
+                workpoint_id: None,
+            });
+            loop_entry.id = Uuid::from_u128(14);
+            persistence.append_event(&loop_entry).unwrap();
             let before: Vec<_> = persistence
                 .durable_events_after(0, 10)
                 .unwrap()
                 .into_iter()
                 .map(|record| (record.sequence, record.event_id, record.payload))
                 .collect();
-            assert_eq!(before.len(), 2);
+            assert_eq!(before.len(), 3);
             drop(persistence);
             let shared = Arc::new(RwLock::new(FocusaState::default()));
             let daemon = Daemon::new(
@@ -191,7 +200,18 @@ fn actual_sqlite_producer_and_daemon_restart_replay_preserve_scope_and_history()
             )
             .expect("actual startup replay must decode session and thread events");
             let restored = shared.try_read().unwrap().clone();
-            assert_eq!(restored.version, 2);
+            assert_eq!(restored.version, 3);
+            assert_eq!(restored.work_loop.budget_epoch_id, Some(loop_entry.id));
+            assert_eq!(
+                restored.work_loop.budget_epoch_started_at,
+                Some(loop_entry.timestamp)
+            );
+            assert_eq!(
+                restored
+                    .work_loop
+                    .elapsed_budget_ms(loop_entry.timestamp + chrono::Duration::hours(2)),
+                0
+            );
             let session = restored.session.as_ref().unwrap();
             assert_eq!(session.session_id, sid);
             assert_eq!(
@@ -226,10 +246,21 @@ fn actual_sqlite_producer_and_daemon_restart_replay_preserve_scope_and_history()
             .unwrap();
             let settled = shared.try_read().unwrap();
             assert_eq!(
-                settled.version, 2,
+                settled.version, 3,
                 "checkpointed events must not be applied twice"
             );
             assert_eq!(settled.session.as_ref().unwrap().session_id, sid);
+            assert_eq!(settled.work_loop.budget_epoch_id, Some(loop_entry.id));
+            assert_eq!(
+                settled.work_loop.budget_epoch_started_at,
+                Some(loop_entry.timestamp)
+            );
+            assert_eq!(
+                settled
+                    .work_loop
+                    .elapsed_budget_ms(loop_entry.timestamp + chrono::Duration::hours(2)),
+                0
+            );
             drop(settled);
             let persistence = _daemon.persistence();
             let mut foreign = entry(FocusaEvent::IntuitionSignalObserved {
@@ -260,7 +291,7 @@ fn actual_sqlite_producer_and_daemon_restart_replay_preserve_scope_and_history()
                     .unwrap()
                     .0
                     .version,
-                2
+                3
             );
         })
         .unwrap()

@@ -1233,7 +1233,7 @@ fn continuation_boundary_reason(wl: &focusa_core::types::WorkLoopState) -> Optio
 
 fn transport_health_for_status(wl: &focusa_core::types::WorkLoopState) -> Value {
     json!({
-        "status": if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded {
+        "status": if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded || (wl.enabled && !wl.has_bound_transport()) {
             "degraded"
         } else {
             "healthy"
@@ -1643,12 +1643,7 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
             focusa.work_loop.last_turn_requested_at,
             focusa.work_loop.policy.status_heartbeat_ms,
             focusa.work_loop.transport_session_state.clone(),
-            focusa.work_loop.transport_scope == focusa.work_loop.execution_scope
-                && focusa.work_loop.transport_work_item_id
-                    == focusa.work_loop.execution_work_item_id
-                && focusa.work_loop.transport_workpoint_id
-                    == focusa.work_loop.execution_workpoint_id
-                && focusa.work_loop.transport_session_id.is_some(),
+            focusa.work_loop.has_bound_transport(),
             continuation_boundary_reason(&focusa.work_loop),
             work_loop_scope_root(&focusa),
             focusa.work_loop.execution_scope.clone(),
@@ -1684,6 +1679,16 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
     )
     .await?;
 
+    if !transport_partition_matches {
+        send_work_loop_action(
+            state,
+            "work_loop_transport_unavailable",
+            Action::MarkContinuousLoopTransportDegraded {
+                reason: "No attached agent transport; attach a scoped harness session before executing work".to_string(),
+            },
+        ).await?;
+        return Ok(false);
+    }
     if current_task.is_none() {
         if maybe_select_rooted_ready_work_item(state, &scope_root).await? {
             let refreshed_task = {
@@ -1803,15 +1808,14 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
 
 fn budget_remaining_for_status(wl: &focusa_core::types::WorkLoopState) -> Value {
     let policy = &wl.policy;
-    let elapsed_ms = wl
-        .budget_epoch_started_at
-        .map(|ts| (Utc::now() - ts).num_milliseconds().max(0) as u64)
-        .unwrap_or(0);
+    let elapsed_ms = wl.elapsed_budget_ms(Utc::now());
     json!({
         "epoch_id": wl.budget_epoch_id,
         "epoch_started_at": wl.budget_epoch_started_at,
+        "transport_wait_started_at": wl.transport_wait_started_at,
+        "transport_wait_total_ms": wl.transport_wait_total_ms,
         "renewal_count": wl.budget_renewal_count,
-        "state": if wl.budget_exhaustion.is_some() { "exhausted" } else { "active" },
+        "state": if wl.budget_exhaustion.is_some() { "exhausted" } else if wl.transport_wait_started_at.is_some() { "waiting_for_transport" } else { "active" },
         "exhaustion": wl.budget_exhaustion,
         "renewal": {
             "authorized_action": "POST /v1/work-loop/resume with {\"renew_budget\":true}",
@@ -1989,17 +1993,13 @@ fn resume_payload_for_status(
         "last_blocker_reason": wl.last_blocker_reason,
         "last_completed_turn_summary": wl.last_observed_summary,
         "active_workpoint": scoped_workpoint_summary_for_status(s, key),
-        "continuation_eligibility": wl.enabled && !wl.pause_flags.operator_override_active,
-        "current_transport_health": if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded {
-            "degraded"
-        } else {
-            "healthy"
-        },
+        "continuation_eligibility": wl.enabled && !wl.pause_flags.operator_override_active && wl.has_bound_transport() && wl.budget_exhaustion.is_none(),
+        "current_transport_health": transport_health_for_status(wl)["status"],
         "exact_recovery_action": if wl.budget_exhaustion.is_some() {
             "approved resume with renew_budget=true"
         } else if !wl.deferred_items.is_empty() {
             "select next non-deferred ready WorkItem under execution root"
-        } else if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded {
+        } else if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded || (wl.enabled && !wl.has_bound_transport()) {
             "attach a transport matching the execution partition"
         } else {
             "continue current selected WorkItem"
@@ -2677,6 +2677,8 @@ fn work_loop_status_surface_state(
         "blocked"
     } else if wl.enabled && active_lease.is_none() {
         "absent"
+    } else if wl.enabled && !wl.has_bound_transport() {
+        "unavailable"
     } else if wl.enabled {
         "healthy"
     } else if wl.current_task.is_some() || active_lease.is_some() {
@@ -2707,6 +2709,10 @@ async fn health(
     let active_writer = active_lease.as_ref().map(|lease| lease.writer_id.clone());
     let boundary_reason = continuation_boundary_reason(wl);
     let dispatch_ready = wl.enabled
+        && active_lease.is_some()
+        && wl.current_task.is_some()
+        && wl.has_bound_transport()
+        && wl.budget_exhaustion.is_none()
         && boundary_reason.is_none()
         && !wl.pause_flags.operator_override_active
         && !wl.pause_flags.destructive_confirmation_required
@@ -2730,7 +2736,7 @@ async fn health(
         "dispatch_readiness": {
             "ready": dispatch_ready,
             "boundary_reason": boundary_reason,
-            "transport_status": if wl.status == focusa_core::types::WorkLoopStatus::TransportDegraded { "degraded" } else { "healthy" },
+            "transport_status": transport_health_for_status(wl)["status"],
             "pause_flags": wl.pause_flags,
             "next_step": if dispatch_ready { "dispatch may proceed via work-loop control or heartbeat" } else { "inspect writer/status/deep before dispatching or retrying" },
         },
@@ -5178,6 +5184,22 @@ mod tests {
         assert_eq!(work_loop_status_surface_state(&wl, None, None), "absent");
         assert_eq!(
             work_loop_status_surface_state(&wl, None, Some(&lease)),
+            "unavailable"
+        );
+        assert_eq!(transport_health_for_status(&wl)["status"], "degraded");
+        let scope = sample_workstream_key("transport-fixture");
+        let workpoint = uuid::Uuid::now_v7();
+        wl.execution_scope = Some(scope.clone());
+        wl.transport_scope = Some(scope);
+        wl.execution_work_item_id = Some("fixture-root".into());
+        wl.transport_work_item_id = Some("fixture-root".into());
+        wl.execution_workpoint_id = Some(workpoint);
+        wl.transport_workpoint_id = Some(workpoint);
+        wl.transport_adapter = Some("pi-rpc".into());
+        wl.transport_session_id = Some("fixture-session".into());
+        wl.transport_session_state = Some("attached".into());
+        assert_eq!(
+            work_loop_status_surface_state(&wl, None, Some(&lease)),
             "healthy"
         );
         assert_eq!(
@@ -5185,6 +5207,13 @@ mod tests {
             "blocked"
         );
         wl.status = focusa_core::types::WorkLoopStatus::TransportDegraded;
+        wl.budget_epoch_started_at = Some(now);
+        wl.policy.max_wall_clock_ms = Some(60_000);
+        wl.begin_transport_wait(now);
+        let budget = budget_remaining_for_status(&wl);
+        assert_eq!(budget["elapsed_wall_clock_ms"], 0);
+        assert_eq!(budget["remaining_wall_clock_ms"], 60_000);
+        assert_eq!(budget["state"], "waiting_for_transport");
         assert_eq!(
             work_loop_status_surface_state(&wl, None, Some(&lease)),
             "unavailable"

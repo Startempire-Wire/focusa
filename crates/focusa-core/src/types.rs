@@ -541,6 +541,11 @@ pub struct WorkLoopState {
     pub budget_epoch_id: Option<Uuid>,
     #[serde(default)]
     pub budget_epoch_started_at: Option<DateTime<Utc>>,
+    /// Transport wait is excluded from execution budget, never from grant expiry.
+    #[serde(default)]
+    pub transport_wait_started_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub transport_wait_total_ms: u64,
     #[serde(default)]
     pub budget_renewal_count: u32,
     #[serde(default)]
@@ -562,6 +567,67 @@ pub struct WorkLoopState {
     pub temporal_priority_frame_ref: Option<String>,
     #[serde(default)]
     pub temporal_pulse_state: Option<crate::temporal_progress::TemporalPulseState>,
+}
+
+impl WorkLoopState {
+    pub fn has_bound_transport(&self) -> bool {
+        self.transport_session_id
+            .as_deref()
+            .is_some_and(|id| !id.trim().is_empty())
+            && self
+                .transport_adapter
+                .as_deref()
+                .is_some_and(|adapter| !adapter.trim().is_empty())
+            && self.transport_scope.is_some()
+            && self.transport_scope == self.execution_scope
+            && self.transport_work_item_id.is_some()
+            && self.transport_work_item_id == self.execution_work_item_id
+            && self.transport_workpoint_id.is_some()
+            && self.transport_workpoint_id == self.execution_workpoint_id
+            && self
+                .transport_session_state
+                .as_deref()
+                .is_some_and(|state| {
+                    matches!(
+                        state,
+                        "attached"
+                            | "running"
+                            | "turn_active"
+                            | "streaming"
+                            | "turn_completed"
+                            | "agent_completed"
+                            | "observed"
+                    )
+                })
+    }
+
+    pub fn elapsed_budget_ms(&self, now: DateTime<Utc>) -> u64 {
+        let elapsed = self
+            .budget_epoch_started_at
+            .map(|start| (now - start).num_milliseconds().max(0) as u64)
+            .unwrap_or(0);
+        let waiting = self
+            .transport_wait_started_at
+            .map(|start| (now - start).num_milliseconds().max(0) as u64)
+            .unwrap_or(0);
+        elapsed
+            .saturating_sub(self.transport_wait_total_ms)
+            .saturating_sub(waiting)
+    }
+
+    pub fn begin_transport_wait(&mut self, now: DateTime<Utc>) {
+        if self.enabled && self.transport_wait_started_at.is_none() {
+            self.transport_wait_started_at = Some(now);
+        }
+    }
+
+    pub fn end_transport_wait(&mut self, now: DateTime<Utc>) {
+        if let Some(start) = self.transport_wait_started_at.take() {
+            self.transport_wait_total_ms = self
+                .transport_wait_total_ms
+                .saturating_add((now - start).num_milliseconds().max(0) as u64);
+        }
+    }
 }
 
 // ─── Canonical State (from core-reducer.md) ─────────────────────────────────

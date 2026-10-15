@@ -84,12 +84,11 @@ fn replay_durable_tail(
                 .context("decode durable event during checkpoint replay")?;
             let historical_machine = entry.machine_id.as_deref().or(Some(machine_id));
             let reduction = run_on_large_state_stack("replay", || {
-                reducer::reduce_with_meta(
+                reducer::reduce_recorded(
                     state.clone(),
-                    entry.event,
+                    &entry,
                     historical_machine,
                     record.thread_id,
-                    entry.is_observation,
                 )
             })?
             .context("reduce durable event during checkpoint replay")?;
@@ -652,14 +651,14 @@ impl Daemon {
             // current_thread_id is set during ThreadAttach actions.
             let thread_id = self.current_thread_id;
 
-            // Use reduce_with_meta for ownership enforcement (Policy #5).
+            // Capture once: reduction and replay use the same existing event clock/identity.
+            let recorded_entry = create_entry(event.clone(), SignalOrigin::Daemon, None);
             let reduction = run_on_large_state_stack("reduce", || {
-                reducer::reduce_with_meta(
+                reducer::reduce_recorded(
                     self.state.clone(),
-                    event.clone(),
+                    &recorded_entry,
                     Some(&self.machine_id),
                     thread_id,
-                    false, // Daemon events are never observations
                 )
             })?;
             match reduction {
@@ -669,9 +668,19 @@ impl Daemon {
                     let mut persistence_entries = result
                         .emitted_events
                         .iter()
-                        .map(|emitted| {
-                            let mut entry =
-                                create_entry(emitted.clone(), SignalOrigin::Daemon, None);
+                        .enumerate()
+                        .map(|(index, emitted)| {
+                            let mut entry = if index == 0 {
+                                recorded_entry.clone()
+                            } else {
+                                EventLogEntry::with_temporal(
+                                    emitted.clone(),
+                                    SignalOrigin::Daemon,
+                                    None,
+                                    recorded_entry.temporal.clone(),
+                                )
+                            };
+                            entry.event = emitted.clone();
                             entry.instance_id = self.current_instance_id;
                             entry.thread_id = self.current_thread_id;
                             entry.session_id = self.state.session.as_ref().map(|s| s.session_id);
@@ -4233,10 +4242,7 @@ Return:
                             })
                         })
                         .unwrap_or(false);
-                let elapsed_ms = wl
-                    .budget_epoch_started_at
-                    .map(|ts| (chrono::Utc::now() - ts).num_milliseconds().max(0) as u64)
-                    .unwrap_or(0);
+                let elapsed_ms = wl.elapsed_budget_ms(chrono::Utc::now());
 
                 let since_last_turn_ms = wl
                     .last_turn_requested_at
@@ -4374,6 +4380,17 @@ Return:
                         FocusaEvent::ContinuousLoopRecoveryCheckpointed {
                             checkpoint_id: Uuid::now_v7(),
                             summary: "checkpoint: blocked on wall-clock budget".to_string(),
+                        },
+                    ]);
+                }
+                if !wl.has_bound_transport() {
+                    return Ok(vec![
+                        FocusaEvent::ContinuousLoopTransportDegraded {
+                            reason: "No attached agent transport; attach a scoped harness session before executing work".to_string(),
+                        },
+                        FocusaEvent::ContinuousLoopRecoveryCheckpointed {
+                            checkpoint_id: Uuid::now_v7(),
+                            summary: "checkpoint: waiting for an attached agent transport".to_string(),
                         },
                     ]);
                 }

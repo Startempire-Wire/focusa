@@ -587,6 +587,44 @@ pub fn reduce_with_meta(
     thread_id: Option<Uuid>,
     is_observation: bool,
 ) -> Result<ReductionResult, ReducerError> {
+    reduce_with_recorded_time(
+        state,
+        event,
+        machine_id,
+        thread_id,
+        is_observation,
+        Utc::now(),
+        Uuid::now_v7(),
+    )
+}
+
+/// Use the existing durable event identity and clock during both live reduction and replay.
+pub fn reduce_recorded(
+    state: FocusaState,
+    entry: &EventLogEntry,
+    machine_id: Option<&str>,
+    indexed_thread_id: Option<Uuid>,
+) -> Result<ReductionResult, ReducerError> {
+    reduce_with_recorded_time(
+        state,
+        entry.event.clone(),
+        machine_id,
+        indexed_thread_id,
+        entry.is_observation,
+        entry.timestamp,
+        entry.id,
+    )
+}
+
+fn reduce_with_recorded_time(
+    state: FocusaState,
+    event: FocusaEvent,
+    machine_id: Option<&str>,
+    thread_id: Option<Uuid>,
+    is_observation: bool,
+    event_time: chrono::DateTime<Utc>,
+    event_id: Uuid,
+) -> Result<ReductionResult, ReducerError> {
     check_invariants(&state)?;
 
     // Policy #2: Observations don't mutate canonical state
@@ -2033,10 +2071,19 @@ pub fn reduce_with_meta(
                 "project mission active; constraints and verification posture inherited from current state"
                     .to_string(),
             );
-            let now = Utc::now();
+            let now = event_time;
             state.work_loop.enabled_at = Some(now);
-            state.work_loop.budget_epoch_id = Some(Uuid::now_v7());
+            state.work_loop.budget_epoch_id = Some(event_id);
             state.work_loop.budget_epoch_started_at = Some(now);
+            state.work_loop.transport_wait_started_at = None;
+            state.work_loop.transport_wait_total_ms = 0;
+            if !state.work_loop.has_bound_transport() {
+                state.work_loop.status = WorkLoopStatus::TransportDegraded;
+                state.work_loop.last_blocker_reason = Some(
+                    "No attached agent transport; attach a scoped harness session before executing work".to_string(),
+                );
+                state.work_loop.begin_transport_wait(now);
+            }
             state.work_loop.budget_renewal_count = 0;
             state.work_loop.budget_exhaustion = None;
             state.work_loop.last_turn_requested_at = None;
@@ -2065,6 +2112,8 @@ pub fn reduce_with_meta(
             state.work_loop.enabled_at = None;
             state.work_loop.budget_epoch_id = None;
             state.work_loop.budget_epoch_started_at = None;
+            state.work_loop.transport_wait_started_at = None;
+            state.work_loop.transport_wait_total_ms = 0;
             state.work_loop.budget_exhaustion = None;
             state.work_loop.last_turn_requested_at = None;
         }
@@ -2152,7 +2201,11 @@ pub fn reduce_with_meta(
             state.work_loop.transport_session_state = Some("attached".to_string());
             state.work_loop.last_transport_event_kind = Some("session_attached".to_string());
             state.work_loop.last_transport_event_summary = Some(session_id);
+            if state.work_loop.enabled && state.work_loop.has_bound_transport() {
+                state.work_loop.end_transport_wait(event_time);
+            }
             if state.work_loop.enabled
+                && state.work_loop.has_bound_transport()
                 && state.work_loop.status == WorkLoopStatus::TransportDegraded
             {
                 state.work_loop.status = if state.work_loop.current_task.is_some() {
@@ -2295,7 +2348,7 @@ pub fn reduce_with_meta(
             state.work_loop.status = WorkLoopStatus::PreparingTurn;
             state.work_loop.run.task_run_id = task_run_id;
             state.work_loop.last_continue_reason = Some(reason);
-            state.work_loop.last_turn_requested_at = Some(Utc::now());
+            state.work_loop.last_turn_requested_at = Some(event_time);
             state.work_loop.turn_count += 1;
         }
         FocusaEvent::ContinuousTurnStarted {
@@ -2396,19 +2449,22 @@ pub fn reduce_with_meta(
             state.work_loop.budget_exhaustion = Some(WorkLoopBudgetExhaustion {
                 dimension,
                 reason,
-                exhausted_at: Utc::now(),
-                epoch_id: state.work_loop.budget_epoch_id.unwrap_or_else(Uuid::now_v7),
+                exhausted_at: event_time,
+                epoch_id: state.work_loop.budget_epoch_id.unwrap_or(event_id),
             });
         }
         FocusaEvent::ContinuousLoopTransportDegraded { reason } => {
             state.work_loop.status = WorkLoopStatus::TransportDegraded;
+            state.work_loop.transport_session_state = Some("degraded".to_string());
             state.work_loop.last_blocker_reason = Some(reason);
+            state.work_loop.begin_transport_wait(event_time);
         }
         FocusaEvent::ContinuousLoopResumed {
             reason,
             budget_renewed,
             policy,
         } => {
+            let now = event_time;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.pause_flags = WorkLoopPauseFlags::default();
             state.work_loop.last_safe_reentry_prompt_basis = Some(reason.clone());
@@ -2417,8 +2473,10 @@ pub fn reduce_with_meta(
                 state.work_loop.policy = policy;
             }
             if budget_renewed {
-                state.work_loop.budget_epoch_id = Some(Uuid::now_v7());
-                state.work_loop.budget_epoch_started_at = Some(Utc::now());
+                state.work_loop.budget_epoch_id = Some(event_id);
+                state.work_loop.budget_epoch_started_at = Some(now);
+                state.work_loop.transport_wait_started_at = None;
+                state.work_loop.transport_wait_total_ms = 0;
                 state.work_loop.budget_renewal_count =
                     state.work_loop.budget_renewal_count.saturating_add(1);
                 state.work_loop.budget_exhaustion = None;
@@ -2426,6 +2484,15 @@ pub fn reduce_with_meta(
                 state.work_loop.consecutive_failures_for_task_class = 0;
                 state.work_loop.consecutive_low_productivity_turns = 0;
                 state.work_loop.consecutive_same_work_item_retries = 0;
+            }
+            if state.work_loop.has_bound_transport() {
+                state.work_loop.end_transport_wait(now);
+            } else if state.work_loop.enabled {
+                state.work_loop.status = WorkLoopStatus::TransportDegraded;
+                state.work_loop.last_blocker_reason = Some(
+                    "No attached agent transport; attach a scoped harness session before executing work".to_string(),
+                );
+                state.work_loop.begin_transport_wait(now);
             }
         }
         FocusaEvent::ContinuousLoopRecoveryCheckpointed {
@@ -7126,8 +7193,7 @@ mod tests {
         state.work_loop.run.tranche_run_id = Some(Uuid::now_v7());
         state.work_loop.run.worker_session_id = Some("stale-worker".to_string());
 
-        let rebound = reduce(
-            state,
+        let entry = EventLogEntry::captured(
             FocusaEvent::ContinuousWorkModeEnabled {
                 project_run_id: Uuid::now_v7(),
                 policy: WorkLoopPolicy::default(),
@@ -7135,16 +7201,41 @@ mod tests {
                 work_item_id: Some("focusa-vbcqu.20.15".to_string()),
                 workpoint_id: Some(Uuid::now_v7()),
             },
-        )
-        .unwrap()
-        .new_state;
+            SignalOrigin::Daemon,
+            None,
+        );
+        let replayed = reduce_recorded(state.clone(), &entry, None, None)
+            .unwrap()
+            .new_state;
+        let rebound = reduce_recorded(state, &entry, None, None)
+            .unwrap()
+            .new_state;
+        assert_eq!(rebound.work_loop.budget_epoch_id, Some(entry.id));
+        assert_eq!(
+            rebound.work_loop.budget_epoch_started_at,
+            Some(entry.timestamp)
+        );
+        assert_eq!(
+            replayed.work_loop.budget_epoch_id,
+            rebound.work_loop.budget_epoch_id
+        );
+        assert_eq!(
+            replayed.work_loop.budget_epoch_started_at,
+            rebound.work_loop.budget_epoch_started_at
+        );
 
         assert!(rebound.work_loop.deferred_items.is_empty());
         assert!(rebound.work_loop.current_task.is_none());
         assert!(rebound.work_loop.run.task_run_id.is_none());
         assert!(rebound.work_loop.run.tranche_run_id.is_none());
         assert!(rebound.work_loop.run.worker_session_id.is_none());
-        assert_eq!(rebound.work_loop.status, WorkLoopStatus::Idle);
+        assert_eq!(rebound.work_loop.status, WorkLoopStatus::TransportDegraded);
+        let future =
+            rebound.work_loop.budget_epoch_started_at.unwrap() + chrono::Duration::hours(2);
+        assert_eq!(rebound.work_loop.elapsed_budget_ms(future), 0);
+        let restored: WorkLoopState =
+            serde_json::from_value(serde_json::to_value(&rebound.work_loop).unwrap()).unwrap();
+        assert_eq!(restored.elapsed_budget_ms(future), 0);
     }
 
     #[test]
@@ -7298,6 +7389,16 @@ mod tests {
         state.work_loop.status = WorkLoopStatus::TransportDegraded;
         state.work_loop.last_blocker_class = Some(BlockerClass::Transport);
         state.work_loop.last_blocker_reason = Some("rpc stream closed".to_string());
+        let workpoint_id = Uuid::now_v7();
+        let epoch_id = Uuid::now_v7();
+        let now = Utc::now();
+        state.work_loop.execution_scope = Some(scope.clone());
+        state.work_loop.execution_work_item_id = Some("focusa-vbcqu.20.15".into());
+        state.work_loop.execution_workpoint_id = Some(workpoint_id);
+        state.work_loop.budget_epoch_id = Some(epoch_id);
+        state.work_loop.budget_epoch_started_at = Some(now - chrono::Duration::seconds(120));
+        state.work_loop.transport_wait_started_at = Some(now - chrono::Duration::seconds(90));
+        assert_eq!(state.work_loop.elapsed_budget_ms(now), 30_000);
         state.work_loop.current_task = Some(SpecLinkedTaskPacket {
             work_item_id: "focusa-vbcqu.20.15.7".to_string(),
             ..SpecLinkedTaskPacket::default()
@@ -7310,7 +7411,7 @@ mod tests {
                 session_id: "replacement-session".to_string(),
                 scope,
                 work_item_id: "focusa-vbcqu.20.15".to_string(),
-                workpoint_id: Uuid::now_v7(),
+                workpoint_id,
             },
         )
         .unwrap()
@@ -7322,6 +7423,12 @@ mod tests {
         );
         assert!(recovered.work_loop.last_blocker_class.is_none());
         assert!(recovered.work_loop.last_blocker_reason.is_none());
+        assert!(recovered.work_loop.has_bound_transport());
+        assert!(recovered.work_loop.transport_wait_started_at.is_none());
+        assert!(recovered.work_loop.transport_wait_total_ms >= 90_000);
+        assert!((30_000..35_000).contains(&recovered.work_loop.elapsed_budget_ms(Utc::now())));
+        assert_eq!(recovered.work_loop.budget_epoch_id, Some(epoch_id));
+        assert_eq!(recovered.work_loop.budget_renewal_count, 0);
         assert_eq!(
             recovered.work_loop.transport_session_id.as_deref(),
             Some("replacement-session")

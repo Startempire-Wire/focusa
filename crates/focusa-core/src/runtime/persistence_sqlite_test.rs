@@ -222,6 +222,30 @@ fn sqlite_event_hash_chain_links_appended_events() {
     p.append_event(&first).unwrap();
     p.append_event(&second).unwrap();
 
+    // The API and daemon can hold independent connections to this same ledger.
+    let other = SqlitePersistence::new(&cfg).unwrap();
+    let barrier = std::sync::Barrier::new(2);
+    std::thread::scope(|threads| {
+        threads.spawn(|| {
+            barrier.wait();
+            for index in 0..32 {
+                p.append_event(&test_event(&format!("api-{index}")))
+                    .unwrap();
+            }
+        });
+        threads.spawn(|| {
+            barrier.wait();
+            for index in 0..32 {
+                other
+                    .persist_event_batch_and_state(
+                        &[test_event(&format!("daemon-{index}"))],
+                        &FocusaState::default(),
+                    )
+                    .unwrap();
+            }
+        });
+    });
+
     let db_path = dir.join("focusa.sqlite");
     let conn = Connection::open(db_path).unwrap();
     let rows: Vec<(i64, String, String)> = conn
@@ -234,7 +258,13 @@ fn sqlite_event_hash_chain_links_appended_events() {
         .map(Result::unwrap)
         .collect();
 
-    assert_eq!(rows.len(), 2);
+    assert_eq!(rows.len(), 66);
+    for (index, row) in rows.iter().enumerate() {
+        assert_eq!(row.0, index as i64);
+        if index > 0 {
+            assert_eq!(row.1, rows[index - 1].2);
+        }
+    }
     assert_eq!(rows[0].0, 0);
     assert_eq!(rows[0].1, "GENESIS");
     assert_eq!(rows[1].0, 1);

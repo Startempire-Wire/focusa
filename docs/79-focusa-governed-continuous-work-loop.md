@@ -488,6 +488,8 @@ Suggested runtime loop states:
 These states should align with Focusa's broader lifecycle/status normalization rather than inventing one-off semantics.  
 **Sources:** `docs/70-shared-interfaces-statuses-and-lifecycle.md`.
 
+A loop without an attached transport for its exact project/workstream, root item and Workpoint is `TransportDegraded`, not healthy idle execution. Its existing execution budget excludes transport-wait time; attaching the matching transport resumes the same epoch and spent budget. Grant expiry, deadlines, turn/retry caps and explicit budget-renewal requirements remain unchanged. The existing WorkLoop state owns this accounting, and the existing durable event identity/timestamp anchors epoch creation and replay—no new scheduler, clock service or authority store.
+
 ### 11.2 High-Level Flow
 1. operator enables continuous execution mode for a scoped plan/project
 2. daemon validates mission/scope/autonomy prerequisites

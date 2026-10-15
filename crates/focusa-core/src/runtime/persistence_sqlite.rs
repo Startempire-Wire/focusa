@@ -1451,7 +1451,8 @@ impl SqlitePersistence {
             .conn
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let transaction = conn.transaction()?;
+        let transaction =
+            conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         for entry in entries {
             Self::append_event_on_connection(&transaction, entry)?;
         }
@@ -1470,7 +1471,8 @@ impl SqlitePersistence {
             .conn
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let transaction = conn.transaction()?;
+        let transaction =
+            conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         let event_sequence: i64 = transaction.query_row(
             "SELECT COALESCE(MAX(chain_index) + 1, 0) FROM event_hash_chain",
             [],
@@ -1750,7 +1752,8 @@ impl SqlitePersistence {
             .conn
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let transaction = conn.transaction()?;
+        let transaction =
+            conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         for entry in entries {
             Self::append_event_on_connection(&transaction, entry)?;
         }
@@ -1759,12 +1762,17 @@ impl SqlitePersistence {
     }
 
     pub fn append_event(&self, entry: &EventLogEntry) -> anyhow::Result<()> {
-        // Avoid re-locking the same mutex (machine_id() also locks conn).
-        let conn = self
+        // Reserve the writer before reading the chain head; publish the event
+        // and its hash-chain link atomically across independent connections.
+        let mut conn = self
             .conn
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        Self::append_event_on_connection(&conn, entry)
+        let transaction =
+            conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        Self::append_event_on_connection(&transaction, entry)?;
+        transaction.commit()?;
+        Ok(())
     }
     /// Ensure confidence calibration table exists.
     pub fn ensure_calibration_table(&self) -> anyhow::Result<()> {
