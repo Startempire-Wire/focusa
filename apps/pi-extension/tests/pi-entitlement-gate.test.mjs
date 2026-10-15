@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import test from 'node:test';
+import { loadSourceSection } from './helpers/source-section-harness.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const state = fs.readFileSync(path.join(root, 'src/state.ts'), 'utf8');
@@ -20,7 +22,49 @@ assert.match(helper, /update_for_recovery/);
 assert.match(helper, /\"uninstall\"/);
 assert.match(helper, /safe_read/);
 assert.match(helper, /status_path/);
-assert.ok(helper.indexOf('r.status === 403') < helper.indexOf('return null;'), 'entitlement denial is discarded before projection');
+function actualFetch(response, observe = () => {}) {
+  return loadSourceSection('state.ts', 'export async function focusaFetch', '// Fire-and-forget variant', {
+    currentAttachmentKey: () => null,
+    getAttachmentRuntime: () => assert.fail('unattached global client must not invent an attachment'),
+    isProjectRootAuthoritySafe: () => false,
+    AbortController, setTimeout, clearTimeout,
+    fetch: async (_url, opts) => { observe(opts); return response; },
+  }, 'focusaFetch');
+}
+
+test('actual client projects entitlement denial despite the earlier cancellation guard', async () => {
+  let calls = 0;
+  const request = actualFetch({ ok: false, status: 403, json: async () => ({ error: {
+    code: 'ENTITLEMENT_FEATURE_REQUIRED', state: 'recovery_only',
+    required_feature: 'workpoints', limit_bucket: 'missions',
+  } }) }, (opts) => {
+    calls++;
+    assert.equal(opts.headers['Idempotency-Key'], 'synthetic-denial-request');
+    assert.equal(opts.headers['X-Scope-Project-Root'], undefined);
+  });
+  const result = await request('/workpoint/checkpoint', {
+    method: 'POST', body: JSON.stringify({ idempotency_key: 'synthetic-denial-request' }),
+  });
+  assert.equal(calls, 1, 'authorization denial must not be blindly retried');
+  assert.equal(result.failure_class, 'entitlement_blocked');
+  assert.equal(result.error.code, 'ENTITLEMENT_FEATURE_REQUIRED');
+  assert.equal(result.error.required_feature, 'workpoints');
+  assert.equal(result.error.limit_bucket, 'missions');
+  assert.equal(result.error.recovery.status_path, '/v1/license/status');
+  assert.ok(result.error.recovery.allowed.includes('safe_read'));
+});
+
+test('actual client honors prior cancellation without fetching or inventing a denial', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const request = actualFetch(null, () => assert.fail('cancelled request must not execute'));
+  assert.equal(await request('/license/status', { signal: controller.signal }), null);
+});
+
+test('actual client does not mislabel an unrelated forbidden response as entitlement', async () => {
+  const request = actualFetch({ ok: false, status: 403, json: async () => ({ error: { code: 'SCOPE_DENIED' } }) });
+  assert.equal(await request('/workpoint/checkpoint', { method: 'POST' }), null);
+});
 
 assert.match(tools, /focusaFetch\(/, 'Pi tools do not use the governed daemon client');
 assert.doesNotMatch(helper, /eval|dev_mode|license\.json/i, 'Pi client contains local entitlement bypass');

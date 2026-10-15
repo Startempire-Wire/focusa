@@ -141,8 +141,10 @@ fn actual_sqlite_producer_and_daemon_restart_replay_preserve_scope_and_history()
         .spawn(|| {
             let root = std::env::temp_dir().join(format!("focusa-685-replay-{}", Uuid::now_v7()));
             std::fs::create_dir(&root).unwrap();
-            let mut config = FocusaConfig::default();
-            config.data_dir = root.to_string_lossy().into_owned();
+            let config = FocusaConfig {
+                data_dir: root.to_string_lossy().into_owned(),
+                ..FocusaConfig::default()
+            };
             let persistence = SqlitePersistence::new(&config).unwrap();
             persistence.save_state(&FocusaState::default()).unwrap();
             let sid = Uuid::from_u128(8);
