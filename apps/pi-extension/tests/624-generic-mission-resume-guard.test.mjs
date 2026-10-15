@@ -24,7 +24,7 @@ test('specific missions are never rejected by the guard', () => {
 });
 
 test('scope check wires the generic-mission guard', () => {
-  assert.match(state, /import \{ isGenericWorkpointMission \} from "\.\/workpoint-request-binding\.js"/);
+  assert.match(state, /import\s*\{[^}]*\bisGenericWorkpointMission\b[^}]*\}\s*from\s*["']\.\/workpoint-request-binding\.js["']/);
   assert.match(
     state,
     /isWorkpointPacketScopedToCurrentSession[\s\S]*?isGenericWorkpointMission\(packet\.mission\)/,

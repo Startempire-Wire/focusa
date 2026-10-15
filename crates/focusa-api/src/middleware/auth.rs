@@ -179,6 +179,47 @@ pub async fn auth_layer(mut req: Request, next: Next) -> Result<Response, Status
 }
 
 #[cfg(test)]
+pub(crate) fn isolate_synthetic_http_test(token: &str) -> bool {
+    const CHILD: &str = "FOCUSA_ISOLATED_HTTP_AUTH_TEST";
+    let test_name = std::thread::current()
+        .name()
+        .expect("HTTP fixture must run in a named test")
+        .to_owned();
+    if std::env::var(CHILD).as_deref() == Ok(test_name.as_str()) {
+        assert!(
+            std::env::var("FOCUSA_AUTH_TOKEN").as_deref() == Ok(token),
+            "isolated HTTP fixture token is not configured"
+        );
+        return false;
+    }
+    let data_dir = tempfile::tempdir().unwrap();
+    let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+    command
+        .env_clear()
+        .env("FOCUSA_DATA_DIR", data_dir.path())
+        .env(CHILD, &test_name)
+        .env("FOCUSA_AUTH_TOKEN", token)
+        .env("FOCUSA_TEST_MODE", "1");
+    for key in ["PATH", "HOME", "TMPDIR"] {
+        if let Some(value) = std::env::var_os(key) {
+            command.env(key, value);
+        }
+    }
+    let output = command
+        .args(["--exact", &test_name, "--nocapture", "--test-threads=1"])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success() && stdout.contains("test result: ok. 1 passed;"),
+        "isolated HTTP test did not execute successfully:\n{}\n{}",
+        stdout,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    true
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use axum::{
@@ -191,27 +232,8 @@ mod tests {
 
     #[tokio::test]
     async fn device_permissions_cannot_exceed_verified_grants() {
-        const CHILD: &str = "FOCUSA_ISOLATED_PERMISSION_PROBE";
         const OWNER: &str = "synthetic-owner-permission-probe";
-        if std::env::var_os(CHILD).is_none() {
-            // Isolate environment and pairing globals from every other test.
-            let output = std::process::Command::new(std::env::current_exe().unwrap())
-                .env_clear()
-                .env(CHILD, "1")
-                .env("FOCUSA_AUTH_TOKEN", OWNER)
-                .args([
-                    "device_permissions_cannot_exceed_verified_grants",
-                    "--nocapture",
-                    "--test-threads=1",
-                ])
-                .output()
-                .unwrap();
-            assert!(
-                output.status.success(),
-                "isolated permission probe failed:\n{}\n{}",
-                String::from_utf8_lossy(&output.stdout),
-                String::from_utf8_lossy(&output.stderr)
-            );
+        if isolate_synthetic_http_test(OWNER) {
             return;
         }
 

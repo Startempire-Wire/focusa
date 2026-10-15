@@ -176,6 +176,9 @@ fn bound(mut request: Value, result: &Value) -> Value {
 }
 #[tokio::test]
 async fn production_registered_preload_tools_roundtrip_actual_api_without_model_calls() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _, request) = fixture().await;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
@@ -202,6 +205,9 @@ async fn production_registered_preload_tools_roundtrip_actual_api_without_model_
 #[tokio::test]
 async fn scoped_build_renders_composed_current_request_and_all_inspectors_validate_exact_artifact()
 {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _, req) = fixture().await;
     let (status, built) = call(&app, "build", req.clone()).await;
     assert_eq!(status, StatusCode::OK, "{built}");
@@ -227,6 +233,9 @@ async fn scoped_build_renders_composed_current_request_and_all_inspectors_valida
 }
 #[tokio::test]
 async fn cross_scope_tampered_partial_legacy_and_changed_request_artifacts_are_denied() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _, req) = fixture().await;
     let (_, built) = call(&app, "build", req.clone()).await;
     assert_eq!(built["status"], "completed", "{built}");
@@ -255,6 +264,9 @@ async fn cross_scope_tampered_partial_legacy_and_changed_request_artifacts_are_d
 }
 #[tokio::test]
 async fn exact_write_receipt_replay_file_tamper_and_unsafe_targets_are_checked() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _, req) = fixture().await;
     let (_, built) = call(&app, "build", req.clone()).await;
     assert_eq!(built["status"], "completed", "{built}");
@@ -306,6 +318,9 @@ async fn exact_write_receipt_replay_file_tamper_and_unsafe_targets_are_checked()
 }
 #[tokio::test]
 async fn concurrent_delivery_keys_bind_one_target_but_remain_project_scoped() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _, req) = fixture().await;
     let (_, built) = call(&app, "build", req.clone()).await;
     let key = uuid::Uuid::now_v7().to_string();
@@ -348,6 +363,9 @@ async fn concurrent_delivery_keys_bind_one_target_but_remain_project_scoped() {
 }
 #[tokio::test]
 async fn revoked_constitution_cannot_verify_previously_valid_artifact() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, state, req) = fixture().await;
     let (_, built) = call(&app, "build", req.clone()).await;
     state
@@ -373,6 +391,9 @@ async fn revoked_constitution_cannot_verify_previously_valid_artifact() {
 }
 #[tokio::test]
 async fn source_and_constitution_drift_reject_stale_identity() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, state, req) = fixture().await;
     let (_, built) = call(&app, "build", req.clone()).await;
     assert_eq!(built["status"], "completed", "{built}");

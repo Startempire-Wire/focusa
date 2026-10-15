@@ -22,6 +22,12 @@ Use Node 22.13 or newer (CI uses Node 22). The tool-contract validator uses
 Node's built-in TypeScript stripping to read the self-contained runtime registry,
 including computed policy, without a second classifier or an added package.
 
+Rust's actual HTTP consumer tests also execute the Pi JavaScript consumers.
+For authorized test runs, prepare their declared locked dependencies with
+`scripts/ci/setup-pi-extension-test-env.sh`, the same owner used by both CI jobs.
+Those HTTP fixtures isolate synthetic authentication in child processes; real
+credentials or a process-wide authentication override are not required.
+
 ## Python contract tests
 
 On Linux/macOS, use Python 3.11 or newer and the committed hash-locked

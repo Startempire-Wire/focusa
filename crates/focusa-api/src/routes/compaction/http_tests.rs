@@ -62,6 +62,9 @@ fn verify_body(prepared: &Value, ask: &str) -> Value {
 
 #[tokio::test]
 async fn production_pi_caller_roundtrips_actual_authenticated_http_without_model_calls() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _) = fixture().await;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
@@ -89,6 +92,9 @@ async fn production_pi_caller_roundtrips_actual_authenticated_http_without_model
 
 #[tokio::test]
 async fn authenticated_actual_prepare_verify_preserves_complete_input_and_revision() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _) = fixture().await;
     let ask = format!(
         "{}NEVER DEPLOY OR CHANGE CUSTOMER DATA.",
@@ -131,6 +137,9 @@ async fn authenticated_actual_prepare_verify_preserves_complete_input_and_revisi
 
 #[tokio::test]
 async fn canonical_active_work_alone_is_not_admitted_without_its_current_operation_frontier() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     use focusa_core::types::{
         HltStatus, TrajectoryProjectionRecord, WorkpointActionIntentRecord,
         WorkpointLifecycleStage, WorkpointRecord,
@@ -201,6 +210,9 @@ async fn canonical_active_work_alone_is_not_admitted_without_its_current_operati
 
 #[tokio::test]
 async fn committed_deltas_are_reconciled_without_reapplication_or_restriction_clipping() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     use focusa_core::types::{FocusState, FrameRecord, FrameStats, FrameStatus};
     let (app, state) = fixture().await;
     let constraints: Vec<String> = (0..15)
@@ -256,6 +268,9 @@ async fn committed_deltas_are_reconciled_without_reapplication_or_restriction_cl
 
 #[tokio::test]
 async fn canonical_writer_contention_waits_and_captures_one_consistent_revision() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, state) = fixture().await;
     let writer = state.write_serial_lock.lock().await;
     let cloned = app.clone();
@@ -279,6 +294,9 @@ async fn canonical_writer_contention_waits_and_captures_one_consistent_revision(
 
 #[tokio::test]
 async fn actual_authentication_rejects_missing_credentials() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _) = fixture().await;
     let (status, _) = request(
         &app,
@@ -292,6 +310,9 @@ async fn actual_authentication_rejects_missing_credentials() {
 
 #[tokio::test]
 async fn actual_authenticated_read_device_cannot_request_administrative_compaction_capability() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _) = fixture().await;
     let token = format!("synthetic-compaction-read-{}", Uuid::now_v7());
     let pairing = crate::routes::device_pairing::shared_state();
@@ -328,6 +349,9 @@ async fn actual_authenticated_read_device_cannot_request_administrative_compacti
 
 #[tokio::test]
 async fn actual_prepare_rejects_missing_null_and_oversized_input_without_prefixes() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _) = fixture().await;
     for input in [
         Value::Null,
@@ -356,6 +380,9 @@ async fn actual_prepare_rejects_missing_null_and_oversized_input_without_prefixe
 
 #[tokio::test]
 async fn actual_epoch_retries_are_idempotent_and_changed_request_conflicts() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _) = fixture().await;
     let body = prepare_body("same-epoch", "review only");
     let ((s1, a), (s2, b)) = tokio::join!(
@@ -379,6 +406,9 @@ async fn actual_epoch_retries_are_idempotent_and_changed_request_conflicts() {
 
 #[tokio::test]
 async fn actual_verify_rejects_digest_request_scope_and_legacy_identity_loss() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, _) = fixture().await;
     let (_, prepared) = request(
         &app,
@@ -404,6 +434,9 @@ async fn actual_verify_rejects_digest_request_scope_and_legacy_identity_loss() {
 
 #[tokio::test]
 async fn actual_uncommitted_delta_blocks_without_applying_or_counting_as_commit() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, state) = fixture().await;
     let mut body = prepare_body("uncommitted", "review only");
     body["local_semantic_deltas"] = json!({"constraints":["NEVER CHANGE CUSTOMER DATA"]});
@@ -415,6 +448,9 @@ async fn actual_uncommitted_delta_blocks_without_applying_or_counting_as_commit(
 
 #[tokio::test]
 async fn unrelated_reducer_version_change_does_not_forge_scoped_drift() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, state) = fixture().await;
     let (_, prepared) = request(
         &app,
@@ -439,6 +475,9 @@ async fn unrelated_reducer_version_change_does_not_forge_scoped_drift() {
 
 #[tokio::test]
 async fn durable_prepare_survives_reader_reload_and_rejects_changed_scoped_source() {
+    if crate::middleware::auth::isolate_synthetic_http_test(TOKEN) {
+        return;
+    }
     let (app, state) = fixture().await;
     let (_, prepared) = request(
         &app,
