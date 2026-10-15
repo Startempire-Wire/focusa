@@ -125,6 +125,8 @@ Preview locally: `python3 scripts/generate-release-notes.py --tag v0.9.177 --pre
 
 `journal_client plan → progress → learning-guards → candidate-ci → tag → release` is kept for every Release. `scripts/run-release-learning-guards.py` replays prior failure modes (modes 41 azure mirror, 42 spec104 drift, 43 colon path, 44 stale manifest, 45 commit-msg) before stamping. Catalog is `docs/current/RELEASE_FAILURE_MODE_CATALOG_2026-08-17.md` H+I.
 
+In `auto` mode, a refused connection to the existing Focusa daemon defers optional learning through the existing Agent-KB journal: unavailable retrieval, prediction creation, capture and evaluation are explicit, with no invented IDs or measurements. Known prediction IDs survive a partial attempt; mutations are not automatically replayed. `required` mode keeps the refusal fatal. Authentication/scope denials, TLS errors, malformed responses and ambiguous timeout effects remain failures, not empty history. Journal publication/readback, recurrence guards, actual benchmarks, exact-source CI, signatures, installation and consumer acceptance are unchanged; deferred learning does not prove those obligations complete.
+
 ### Dry-run without a full Release
 
 ```bash

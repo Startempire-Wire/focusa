@@ -58,14 +58,19 @@ finally:
     else:
         module.os.environ["FOCUSA_AUTH_TOKEN"] = original_focusa_token
 
-original_focusa_get = module.focusa_get
+original_focusa_http = module.focusa_http
 try:
-    module.focusa_get = lambda _path: (_ for _ in ()).throw(
+    module.focusa_http = lambda *_args, **_kwargs: (_ for _ in ()).throw(
         module.urllib.error.HTTPError("http://focusa.test", 403, "Forbidden", {}, None)
     )
-    assert module.record_release_predictions("v0.9.151") == {}
+    try:
+        module.record_release_predictions("v0.9.151")
+    except urllib.error.HTTPError as error:
+        assert error.code == 403
+    else:
+        raise AssertionError("permission denial is not an empty prediction history")
 finally:
-    module.focusa_get = original_focusa_get
+    module.focusa_http = original_focusa_http
 
 improved = module.metric_comparison(80, 100, "seconds", True)
 assert improved == {
@@ -346,6 +351,14 @@ try:
     else:
         raise AssertionError("remote permission failure must remain a failure")
     assert len(ssh_calls) == before + 1  # uncertain mutations never replay
+    ssh_reply = {"status": 0, "failure_class": "daemon_connection_refused"}
+    try:
+        module.focusa_request("/v1/metacognition/retrieve", {"k": 1})
+    except urllib.error.URLError as error:
+        assert isinstance(error.reason, ConnectionRefusedError)
+    else:
+        raise AssertionError("SSH refusal must preserve the typed transport failure")
+    assert len(ssh_calls) == before + 2
     for alias in ("-oProxyCommand=bad", "kh;bad", "kh bad"):
         module.os.environ["FOCUSA_API_SSH_HOST"] = alias
         try:
@@ -408,6 +421,88 @@ assert "--tag" in release_script
 client_source = SCRIPT.read_text()
 for learning_binding in ("retrieve_release_lessons", "record_release_predictions", "capture_release_lesson", "evaluate_stage_prediction", "cmd_correction"):
     assert learning_binding in client_source
+
+# Exercise outage behavior in the existing client contract, without a daemon or publisher.
+learning_originals = {name: getattr(module, name) for name in (
+    "focusa_http", "existing_phase", "estimate_from_history", "git", "publish",
+    "record_release_predictions", "prediction_for_stage",
+)}
+previous_mode = module.os.environ.get("FOCUSA_RELEASE_JOURNAL_MODE")
+try:
+    published = []
+    module.os.environ["FOCUSA_RELEASE_JOURNAL_MODE"] = "auto"
+    module.existing_phase = lambda *_args: None
+    module.estimate_from_history = lambda: {}
+    module.git = lambda *_args: "synthetic-journal-fixture"
+    module.publish = lambda payload: published.append(payload) or {"status": "accepted"}
+    def refuse_learning(*_args, **_kwargs):
+        raise urllib.error.URLError(ConnectionRefusedError("synthetic daemon unavailable"))
+    module.focusa_http = refuse_learning
+    def predictions_must_not_run(*_args):
+        raise AssertionError("prediction writes must not follow unavailable lesson retrieval")
+    module.record_release_predictions = predictions_must_not_run
+    args = module.argparse.Namespace(tag="v0.9.999", channel="stable")
+    module.cmd_plan(args)
+    learning = published[-1]["measurements"]["learning"]
+    assert learning["status"] == "deferred"
+    assert learning["retrieved_lessons"]["status"] == "unavailable"
+    assert "candidate_count" not in learning["retrieved_lessons"]
+    assert learning["predictions"] == {}
+    assert module.capture_release_lesson("fixture", "fixture", "fixture", ["fixture:evidence"])["status"] == "unavailable"
+    module.prediction_for_stage = lambda *_args: "synthetic-prediction"
+    assert module.evaluate_stage_prediction(args.tag, "release", "fixture", 0)["status"] == "unavailable"
+    module.os.environ["FOCUSA_RELEASE_JOURNAL_MODE"] = "required"
+    try:
+        module.cmd_plan(args)
+    except urllib.error.URLError:
+        pass
+    else:
+        raise AssertionError("required mode must preserve refused-connection failure")
+    module.os.environ["FOCUSA_RELEASE_JOURNAL_MODE"] = "auto"
+    for error in [
+        urllib.error.HTTPError("http://fixture.invalid", code, "denied", {}, None)
+        for code in (401, 403, 409, 503)
+    ] + [urllib.error.URLError("unclassified transport"), TimeoutError("unknown effects")]:
+        def fail_learning(*_args, **_kwargs):
+            raise error
+        module.focusa_http = fail_learning
+        try:
+            module.cmd_plan(args)
+        except type(error):
+            pass
+        else:
+            raise AssertionError("auth, scope and ambiguous failures must not become deferred success")
+    for response in [{"status": "blocked", "candidates": []}, {"candidates": {}}]:
+        module.focusa_http = lambda *_args, **_kwargs: response
+        try:
+            module.cmd_plan(args)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("malformed/denied learning must not become empty history")
+    assert len(published) == 1, "only the explicit auto outage plan may publish"
+    module.record_release_predictions = learning_originals["record_release_predictions"]
+    writes = []
+    def partial_predictions(method, path, _payload=None):
+        if method == "GET":
+            return {"data": {"predictions": []}}
+        writes.append(path)
+        if len(writes) == 1:
+            return {"data": {"record": {"record_id": "synthetic-durable-prediction"}}}
+        return refuse_learning()
+    module.focusa_http = partial_predictions
+    result = module.record_release_predictions(args.tag)
+    assert result["status"] == "unavailable"
+    assert result["predictions"] == {"benchmark": "synthetic-durable-prediction"}
+    assert len(writes) == 2, "a refused mutation must not be automatically replayed"
+finally:
+    for name, original in learning_originals.items():
+        setattr(module, name, original)
+    if previous_mode is None:
+        module.os.environ.pop("FOCUSA_RELEASE_JOURNAL_MODE", None)
+    else:
+        module.os.environ["FOCUSA_RELEASE_JOURNAL_MODE"] = previous_mode
+
 
 guards = json.loads((ROOT / "config/release-learning-guards.json").read_text())
 assert guards["schema"] == "focusa.release_learning_guards.v1"
