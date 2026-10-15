@@ -28,10 +28,11 @@ pub struct RebuildStateArgs {
 }
 
 pub async fn run(args: RebuildStateArgs, json_mode: bool) -> anyhow::Result<()> {
-    anyhow::ensure!(
-        args.dry_run || args.confirm,
-        "rebuild-state writes the live snapshot and cursor; pass --confirm or use --dry-run"
-    );
+    if !args.dry_run && !args.confirm {
+        anyhow::bail!(
+            "rebuild-state writes the live snapshot and cursor; pass --confirm or use --dry-run"
+        );
+    }
     let (mut state, source_sequence, source_hash) = {
         let mut conn =
             Connection::open_with_flags(&args.snapshot_db, OpenFlags::SQLITE_OPEN_READ_ONLY)?;

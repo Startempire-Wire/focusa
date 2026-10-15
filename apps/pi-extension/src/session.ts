@@ -385,8 +385,10 @@ async function ensureLowConfidenceWorkpoint(reason: string, draft?: WorkpointDra
   }).catch(() => null);
 }
 
-async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
-  if (!getAttachmentRuntime().focusaAvailable) return;
+async function refreshSessionWorkpointPacket(
+  reason: string, lifecycleIsCurrent: () => boolean = () => true
+): Promise<void> {
+  if (!lifecycleIsCurrent() || !getAttachmentRuntime().focusaAvailable) return;
   if (!isProjectRootAuthoritySafe(getSessionCwd() || process.cwd())) {
     setActiveWorkpointPacket(null);
     setActiveWorkpointSummary("");
@@ -406,6 +408,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
         current_ask: currentAsk || undefined,
       }),
     });
+    if (!lifecycleIsCurrent()) return;
     const requestVerdict = evaluateResumeRequest(packet, requestBinding, getAttachmentRuntime());
     if (requestVerdict.reason === "resume_request_changed" ||
         requestVerdict.reason === "resume_evaluated_different_ask") {
@@ -1738,12 +1741,16 @@ export function registerSession(pi: ExtensionAPI) {
     if (!healthLifecycleIsCurrent()) return;
     await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start", healthLifecycleIsCurrent);
     if (!healthLifecycleIsCurrent()) return;
-    await refreshSessionWorkpointPacket("session_start");
+    await refreshSessionWorkpointPacket("session_start", healthLifecycleIsCurrent);
+    if (!healthLifecycleIsCurrent()) return;
     if (!getActiveWorkpointPacket()) {
       await refreshTrajectoryClarityLifecycle("session_start_genesis", projectRoot);
+      if (!healthLifecycleIsCurrent()) return;
       const genesisReady = await ensureProjectGenesis(projectRoot, "session_start");
+      if (!healthLifecycleIsCurrent()) return;
       if (genesisReady) {
-        await refreshSessionWorkpointPacket("session_start_genesis_ready");
+        await refreshSessionWorkpointPacket("session_start_genesis_ready", healthLifecycleIsCurrent);
+        if (!healthLifecycleIsCurrent()) return;
         await refreshTrajectoryClarityLifecycle("session_start_genesis_ready", projectRoot);
       } else {
         ctx.ui.notify(

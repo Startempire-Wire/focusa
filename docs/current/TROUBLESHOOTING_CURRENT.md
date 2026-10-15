@@ -41,6 +41,8 @@ curl -sS http://127.0.0.1:8787/v1/workpoint/current | jq .
 
 If a result is `pending`, retry current/resume before relying on it.
 
+Saved context remains orientation until a fresh daemon response is validated. Responses from a replaced attachment or ended startup lifecycle cannot renew local action authority, even when visible identifiers match. A fresh valid response can restore that local authority without changing the underlying grants.
+
 ## Work-loop writer conflict
 
 Writer conflicts are blocked states, not daemon failures.

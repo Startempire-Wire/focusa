@@ -160,6 +160,35 @@ test('affirmative unchanged request binds without mutating the response', () => 
   assert.equal(stamped.workpoint.current_ask_binding, 'continue');
   assert.equal(packet.current_ask_binding, undefined);
   assert.equal(packet.workpoint.current_ask_binding, undefined);
+  const replacement = { ...r, currentAsk: { ...r.currentAsk } };
+  assert.equal(binding.evaluateResumeRequest(response, captured, replacement).accepted, false);
+  assert.equal(binding.evaluateResumeRequest(response,
+    binding.captureResumeRequest(replacement, replacement.currentAsk.text), replacement).accepted, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(captured)), {
+    evaluatedAsk: 'continue', currentAsk: 'continue', turnId: 'turn-1', askUpdatedAt: 1,
+    sessionId: 'session-1', projectRoot: r.sessionCwd, continuityId: r.continuityId,
+  });
+});
+
+test('actual session refresh fences a retained attachment lifecycle and permits fresh revalidation', async () => {
+  const r = { ...runtime(), focusaAvailable: true };
+  let current = true, expire = true, requests = 0, adopted = 0;
+  const refresh = loadSourceSection('session.ts',
+    'async function refreshSessionWorkpointPacket(', 'async function promptForConfirmedProjectRoot(', {
+      ...binding, getAttachmentRuntime: () => r, getSessionCwd: () => r.sessionCwd,
+      isProjectRootAuthoritySafe: () => true, ensureContinuityId: () => r.continuityId,
+      focusaFetch: async () => { requests++; if (expire) current = false; return reply(); },
+      setActiveWorkpointPacket: () => { adopted++; }, setActiveWorkpointSummary() {}, focusaPost() {},
+      normalizeWorkpointResumePacketEnvelope: x => x, isWorkpointPacketScopedToCurrentSession: () => true,
+      stampWorkpointPacketForCurrentPiSession: x => x,
+    }, 'refreshSessionWorkpointPacket');
+  await refresh('fixture', () => current);
+  assert.equal(requests, 1);
+  assert.equal(adopted, 0);
+  current = true; expire = false;
+  await refresh('fixture', () => current);
+  assert.equal(requests, 2);
+  assert.equal(adopted, 1);
 });
 
 for (const field of ['text', 'sourceTurnId', 'updatedAt', 'sessionFrameKey', 'sessionCwd', 'continuityId']) {

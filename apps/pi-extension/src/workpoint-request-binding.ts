@@ -7,9 +7,12 @@ type ResumeRuntime = {
 };
 
 const text = (value: unknown): string => String(value ?? "").trim();
+// Private request ownership, never serialized into a packet or restored grant.
+const resumeRuntimeIdentity = Symbol("resumeRuntimeIdentity");
 
 export function captureResumeRequest(runtime: ResumeRuntime, evaluatedAsk: string) {
   return {
+    [resumeRuntimeIdentity]: runtime,
     evaluatedAsk: text(evaluatedAsk),
     currentAsk: text(runtime.currentAsk?.text),
     turnId: text(runtime.currentAsk?.sourceTurnId),
@@ -23,6 +26,7 @@ export function captureResumeRequest(runtime: ResumeRuntime, evaluatedAsk: strin
 export type ResumeRequestBinding = ReturnType<typeof captureResumeRequest>;
 
 export function isResumeRequestCurrent(captured: ResumeRequestBinding, runtime: ResumeRuntime): boolean {
+  if (captured[resumeRuntimeIdentity] !== runtime) return false;
   const current = captureResumeRequest(runtime, captured.evaluatedAsk);
   return Object.keys(captured).every((key) =>
     captured[key as keyof ResumeRequestBinding] === current[key as keyof ResumeRequestBinding]
