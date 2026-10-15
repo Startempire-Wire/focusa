@@ -1,7 +1,7 @@
 # Spec 187 — Autonomous Agentic Flow State: cohesive next-stable release workset
 
 **Status:** operator-requested outcome and source workset prepared; implementation, runtime admission, credential-use authorization and installed acceptance are NOT implied.  
-**Task owner:** `focusa-ak5sv` — Autonomous Agentic Flow State release workset; 18 dependency-ordered child tasks.  
+**Task owner:** `focusa-ak5sv` — Autonomous Agentic Flow State release workset; 19 dependency-ordered child tasks.
 **Normative authoring inputs:** [requirements](contracts/spec187/requirements.v1.json), [release workset](contracts/spec187/release-workset.v1.json). These define acceptance and task scope, not mutable execution state.  
 **Existing program owners:** #252 (complete agent runtime), #253 (one cohesive lifecycle), #101 (managed documentation/skills convergence). Their broader acceptance remains intact.
 
@@ -22,7 +22,7 @@ The operator's subsequent explicit steering makes this workset the **current ful
 - **Ultimate goal:** bring this repository to truthful zero open issues. Each closure requires full acceptance or a truthful explicit owner-approved disposition; hiding issues, bulk paper closure or renaming unfinished work is not zero.
 - **Current release goal:** complete the entire Flow State workset **and all unfinished previously authorized release obligations**, then deliver and verify the complete canonical signed stable release on the approved destinations.
 - **Immediate focus:** reconcile current exact-source CI and prior release carryover; restore reliable runtime/admission and complete instruction/accepted-goal continuity; advance the next eligible dependency frontier.
-- **After release or workset settlement:** assess the remaining issue/task queue and advance the next ready authorized repository work toward truthful zero without a routine continue prompt. A completed release is not a reason to abandon the remaining outcome; real authority, consent and budget boundaries still apply. The 15 Flow State closure candidates do not replace the full repository backlog.
+- **After release or workset settlement:** assess the remaining issue/task queue and advance the next ready authorized repository work toward truthful zero without a routine continue prompt. A completed release is not a reason to abandon the remaining outcome; real authority, consent and budget boundaries still apply. The 16 Flow State closure candidates do not replace the full repository backlog.
 
 This is effective operator steering for the work. The live goal-update attempt was blocked while the runtime was unavailable; source text does not pretend that the live tracker accepted a mutation. Restore and verify that existing owner, then reconcile this exact directive through its normal goal/assessment/Workpoint operations. Preserve accepted purpose/history and use the existing workset/task identity; do not create a parallel live trajectory store.
 
@@ -40,6 +40,21 @@ This is effective operator steering for the work. The live goal-update attempt w
 At this steering update the live repository issue query returned **109 open issues**. This is an observed baseline, not a permanent count or a claim that all future proposals are execution-authorized. Preserve the remaining backlog and reconcile new/closed issues through the actual issue owner. Every prior approved obligation must be accounted for; any genuinely consequential scope change or deferral needs its applicable authority.
 
 Do not ship a planning-only or partial release as fulfillment of this trajectory. A supported prerequisite recovery route must remain truthfully labeled and cannot silently redefine the requested full-release outcome.
+
+## Required session routes: project or goal-directed ad hoc
+
+The operator additionally requires **every session to have one of two explicit routes before meaningful execution**. Reuse the existing session, scope, approval, goal and presentation owners; #672 owns the ad hoc primitive. Orientation needed to identify a route is permitted, not a circular prerequisite that stops all work.
+
+1. **Project route:** reuse the verified established project and its accepted full trajectory. If setup is missing, complete canonical bootstrap/goal preparation and required admission. Do not repeatedly bootstrap an already-valid project, discard its accepted purpose or manufacture a project binding from cwd alone.
+2. **Ad hoc route:** explicitly label the session ad hoc and retain a useful working objective. It is lighter than full project setup, **not goal-less, aimless or permission-free**. Its exact target/effect grants, budget, execution and evidence rules still apply.
+
+For ad hoc work, intelligently infer a provisional objective and a small set of useful goal/trajectory candidates from the **complete current request**, verified permitted context, accepted choices and available evidence. Keep inferred candidates visibly distinct from operator-confirmed direction. If the requested bounded work is obvious and already authorized, use that working objective and continue without another confirmation ritual. If a consequential direction is ambiguous, offer two or three useful choices, including custom direction and project promotion, and ask only the unresolved consequential question. A casual goal suggestion is not a durable project-goal change.
+
+Present the selected route and working objective through the existing agent awareness/Canvas surfaces (for example, “Project — repair checkout” or “Ad hoc — investigate deployment failures”). Do not create a new UI authority, tracker or separate memory system. Mode, objective, current activity, accepted choices, evidence and valid grant references must survive compaction/restart; fresh steering wins. A session cannot resume as goal-less merely because it is ad hoc.
+
+Missing full project setup must not falsely block permitted lightweight read-only/exploratory work. Conversely, an ad hoc label never grants ambient cross-project writes, credentials, publication or infrastructure changes. Each consequential operation still resolves the exact applicable target, owner, authority and executor. When the operator chooses to turn the work into a project, use the existing bootstrap/trajectory owners, link accepted ad hoc goals/evidence and revalidate permissions; do not restart the history or silently promote an inferred purpose.
+
+FLOW-18/FLOW-R19 make both routes and their continuation/promotion behavior a required part of this release, not an optional future convenience or a shortcut around existing protections.
 
 ## 1. What this is — and is not
 
@@ -61,9 +76,9 @@ Avoid a repair circularity: authoring, source verification and the already-autho
 
 ## 3. Completion contract and issue boundary
 
-All 18 requirements in `contracts/spec187/requirements.v1.json` are required; a native Workset may settle only after its canonical dispositions are `met` with linked evidence. Each requirement needs versioned contract, producer, actual consumer, claimed cross-version and installed end-to-end proof. Structural validation alone does not prove dispatch or installation.
+All 19 requirements in `contracts/spec187/requirements.v1.json` are required; a native Workset may settle only after its canonical dispositions are `met` with linked evidence. Each requirement needs versioned contract, producer, actual consumer, claimed cross-version and installed end-to-end proof. Structural validation alone does not prove dispatch or installation.
 
-The 15 closure candidates are:
+The 16 closure candidates are:
 
 | Issue | Flow failure | Owning implementation steps |
 |---|---|---|
@@ -82,8 +97,9 @@ The 15 closure candidates are:
 | #410 | Restored renewable MFA connector passes without functional readiness | FLOW-08 |
 | #417 | Vault access depends on hardcoded credential material | FLOW-07 |
 | #590 | Supported signed-authority renewal is broken | FLOW-09 |
+| #672 | Lightweight sessions lack an explicit goal-directed ad hoc route and safe project promotion | FLOW-18 |
 
-This is a **closure candidate list, not a promise to paper-close 15 tickets**. Audit every original acceptance criterion, related approved spec requirement and remaining consumer/device/provider scope. #299/#526 are one credential delivery lane but separate tickets; #261 is broader than one error message. If a bounded flow slice passes while their remaining approved scope is unmet, keep the issue open and record exact remaining work. #101/#252/#253 do not close automatically. Existing installer, device-poll, native-platform, quota, backup and entitlement issues become explicit dependencies if the actual claimed consumer path requires them; they are not silently waived or imported as unrelated work.
+This is a **closure candidate list, not a promise to paper-close 16 tickets**. Audit every original acceptance criterion, related approved spec requirement and remaining consumer/device/provider scope. #299/#526 are one credential delivery lane but separate tickets; #261 is broader than one error message. If a bounded flow slice passes while their remaining approved scope is unmet, keep the issue open and record exact remaining work. #101/#252/#253 do not close automatically. Existing installer, device-poll, native-platform, quota, backup and entitlement issues become explicit dependencies if the actual claimed consumer path requires them; they are not silently waived or imported as unrelated work.
 
 ## 4. Dependency-ordered workset
 
@@ -101,10 +117,11 @@ The authoring JSON is the single machine-readable source for exact task IDs, sco
 | FLOW-07 | Approved vault route, no hardcoded login, value-free injection | 06 |
 | FLOW-08 | Functional restored connector and renewable one-use MFA injection | 06 |
 | FLOW-09 | Provider-issued renewal and preserved existing rights | 02 |
-| FLOW-10 | Native post-compaction/restart continuation without another prompt | 03,04,05,06 |
-| FLOW-11 | Effective capability selection and typed bounded recovery | 02,04,06,09 |
-| FLOW-12 | Existing docs, skill registry/mirrors and Pi guidance converge | 03–11 |
-| FLOW-13 | Actual candidate-agent reference mission and negative matrix | 01,07,08,09,10,11 |
+| FLOW-18 | Explicit project/ad hoc route, inferred goals, choices and safe promotion | 02,03 |
+| FLOW-10 | Native post-compaction/restart continuation without another prompt | 03,04,05,06,18 |
+| FLOW-11 | Effective capability selection and typed bounded recovery | 02,04,06,09,18 |
+| FLOW-12 | Existing docs, skill registry/mirrors and Pi guidance converge | 03–11,18 |
+| FLOW-13 | Actual candidate-agent reference mission and negative matrix | 01,07,08,09,10,11,18 |
 | FLOW-14 | Whole-issue evidence audit and all mandatory release readiness | 12,13 |
 | FLOW-15 | Canonical full signed stable release and approved deployment | 14 |
 | FLOW-16 | Installed real-agent proof and whole-issue closure | 15 |
@@ -132,7 +149,7 @@ Provider authority/entitlement renewal is distinct from secret transport. Preser
 
 Use an approved isolated candidate environment first, then the actual approved installed destinations and each harness/device/provider profile claiming this capability. A real model, actual native SDK/session, real tool execution and protected approved broker use are required for positive end-to-end acceptance. Synthetic contracts/fixtures prove boundaries; they do not prove live access, delivery or model consumption.
 
-**Reference mission:** start one sufficiently specified, pre-approved bounded task with dependencies, an authenticated external operation, independent ready work, consumer verification and an authorized delivery destination. Complete the eligible stages without another continue prompt. Force two successive native compactions, one session/process restart and a model/session transition. Inject transient tool/transport and broker-readiness failures. Reconcile effects, revalidate valid grants and continue. Then prove explicit correction, consent and budget pauses work correctly and resume only after their condition is legitimately resolved.
+**Reference mission:** exercise both the established-project and goal-directed-ad-hoc variants, including an explicit ad hoc-to-project promotion. Start one sufficiently specified, pre-approved bounded task with dependencies, an authenticated external operation, independent ready work, consumer verification and an authorized delivery destination. Complete the eligible stages without another continue prompt. Force two successive native compactions, one session/process restart and a model/session transition. Inject transient tool/transport and broker-readiness failures. Reconcile effects, revalidate valid grants and continue. Then prove explicit correction, consent and budget pauses work correctly and resume only after their condition is legitimately resolved.
 
 The implementation adds/extends tests in the existing owning suites; FLOW-13 selects exact supported SDK/provider/harness/device profiles from live capability contracts and records revisions. Do not replace the model with an echo fixture or count filtered zero-test targets as execution.
 
@@ -160,6 +177,9 @@ The implementation adds/extends tests in the existing owning suites; FLOW-13 sel
 | FLOW-T20 | Optional reporting outage cannot form a repair deadlock; mandatory authority/quality failures remain blocking |
 | FLOW-T21 | Docs/skills/generated mirrors/runtime contracts agree; native reload plus actual running-agent consumption |
 | FLOW-T22 | Full release matrix, signatures, trust/install, installed mission, complete issue acceptance and canonical settlement |
+| FLOW-T23 | Existing project reused without repeated bootstrap; missing setup uses canonical preparation; lightweight ad hoc is explicit and goal-directed |
+| FLOW-T24 | Ad hoc goal inference uses complete current intent; useful choices resolve consequential ambiguity, while obvious bounded work proceeds without redundant prompts; inferred goals never become authority |
+| FLOW-T25 | Both routes retain mode/objective/activity/grants across compaction and fresh corrections; explicit project promotion links history/evidence and does not expand permissions |
 
 Record observed start/end/elapsed time, eligible work completed, actual external/consumer outcomes, avoidable human re-prompts, false reply-stops, false blockers, duplicate effects, leakage-canary hits, unauthorized actions, recovery duration, waiting/accounting and legitimate pauses. Desired counts for avoidable re-prompts/stops, false completion, duplicate effects, leaked values and unauthorized actions are **zero** in the approved reference run. Report actual values and denominators; do not invent duration, urgency, throughput or a performance regression threshold before measuring the canonical comparable baseline.
 

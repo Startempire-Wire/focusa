@@ -884,7 +884,8 @@
           "FLOW-R04",
           "FLOW-R07",
           "FLOW-R08",
-          "FLOW-R17"
+          "FLOW-R17",
+          "FLOW-R19"
         ],
         "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
       }
@@ -967,7 +968,8 @@
           "FLOW-R13",
           "FLOW-R14",
           "FLOW-R15",
-          "FLOW-R17"
+          "FLOW-R17",
+          "FLOW-R19"
         ],
         "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
       }
@@ -1047,7 +1049,8 @@
         "acceptance_atoms": [
           "FLOW-R13",
           "FLOW-R16",
-          "FLOW-R18"
+          "FLOW-R18",
+          "FLOW-R19"
         ],
         "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
       }
@@ -1125,7 +1128,8 @@
       },
       "acceptance": {
         "acceptance_atoms": [
-          "FLOW-R18"
+          "FLOW-R18",
+          "FLOW-R19"
         ],
         "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
       }
@@ -1360,7 +1364,8 @@
       },
       "acceptance": {
         "acceptance_atoms": [
-          "FLOW-R18"
+          "FLOW-R18",
+          "FLOW-R19"
         ],
         "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
       }
@@ -1439,6 +1444,84 @@
       "acceptance": {
         "acceptance_atoms": [
           "FLOW-R18"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-18",
+      "name": "Route every session to goal-directed project or ad hoc work",
+      "purpose": "The actual session/admission owner explicitly uses an existing valid or fully bootstrapped project trajectory, or a labelled ad hoc route with a retained inferred working objective. Offer useful goal choices for consequential ambiguity without blocking obvious bounded approved work. Preserve mode/goals/choices and exact grants across compaction, corrections and explicit project promotion; no goal-less or authority-bypass route is allowed.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.19"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "The actual session/admission owner explicitly uses an existing valid or fully bootstrapped project trajectory, or a labelled ad hoc route with a retained inferred working objective. Offer useful goal choices for consequential ambiguity without blocking obvious bounded approved work. Preserve mode/goals/choices and exact grants across compaction, corrections and explicit project promotion; no goal-less or authority-bypass route is allowed.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R19"
         ],
         "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
       }
@@ -1537,6 +1620,13 @@
       "join_policy": "all"
     },
     {
+      "edge_id": "FLOW-18--FLOW-10",
+      "from_frame_id": "FLOW-18",
+      "to_frame_id": "FLOW-10",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
       "edge_id": "FLOW-02--FLOW-11",
       "from_frame_id": "FLOW-02",
       "to_frame_id": "FLOW-11",
@@ -1560,6 +1650,13 @@
     {
       "edge_id": "FLOW-09--FLOW-11",
       "from_frame_id": "FLOW-09",
+      "to_frame_id": "FLOW-11",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-18--FLOW-11",
+      "from_frame_id": "FLOW-18",
       "to_frame_id": "FLOW-11",
       "kind": "await",
       "join_policy": "all"
@@ -1628,6 +1725,13 @@
       "join_policy": "all"
     },
     {
+      "edge_id": "FLOW-18--FLOW-12",
+      "from_frame_id": "FLOW-18",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
       "edge_id": "FLOW-01--FLOW-13",
       "from_frame_id": "FLOW-01",
       "to_frame_id": "FLOW-13",
@@ -1670,6 +1774,13 @@
       "join_policy": "all"
     },
     {
+      "edge_id": "FLOW-18--FLOW-13",
+      "from_frame_id": "FLOW-18",
+      "to_frame_id": "FLOW-13",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
       "edge_id": "FLOW-12--FLOW-14",
       "from_frame_id": "FLOW-12",
       "to_frame_id": "FLOW-14",
@@ -1703,6 +1814,20 @@
       "to_frame_id": "FLOW-17",
       "kind": "await",
       "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-02--FLOW-18",
+      "from_frame_id": "FLOW-02",
+      "to_frame_id": "FLOW-18",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-03--FLOW-18",
+      "from_frame_id": "FLOW-03",
+      "to_frame_id": "FLOW-18",
+      "kind": "await",
+      "join_policy": "all"
     }
   ],
   "policies": {

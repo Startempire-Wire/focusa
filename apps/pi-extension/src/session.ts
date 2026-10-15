@@ -529,6 +529,7 @@ type TrajectoryGoalDraft = {
   short_term_goal?: string;
   current_state?: string;
   goal_source?: string;
+  supersession_evidence_refs?: string[];
 };
 
 function projectNameFromRoot(projectRoot: string): string {
@@ -633,13 +634,8 @@ function trajectoryDraftOptions(
     {
       // Spec 125 §8.3: restore previous valid HLT — preferred when available.
       label: `D) Restore previous valid HLT — preferred when available`,
-      draft: {
-        long_term_goal: repoGoal,
-        desired_end_state: `${projectName} is maintained and improved within verified scope`,
-        short_term_goal: short,
-        current_state: current,
-        goal_source: "previous_valid_fallback",
-      },
+      // The history owner supplies the accepted wording only after selection.
+      draft: null,
     },
     {
       // Spec 125 §8.3: custom HLT / desired end state.
@@ -947,7 +943,10 @@ async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason:
   return Boolean(getActiveWorkpointPacket());
 }
 
-async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<void> {
+async function promptForTrajectoryIfNeeded(
+  ctx: any, projectRoot: string, reason: string, lifecycleIsCurrent: () => boolean
+): Promise<void> {
+  if (!lifecycleIsCurrent()) return;
   const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
   if (
     !vitalPromptSurfaceEnabled("trajectory") ||
@@ -982,13 +981,60 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   if (!unclear || getAttachmentRuntime().vitalInfoPrompted[key]) return;
   getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
   persistState();
+  const promptRuntime = getAttachmentRuntime();
+  const promptAsk = promptRuntime.currentAsk;
+  const promptAskText = String(promptAsk?.text || "");
+  const promptContinuity = getContinuityId();
+  const promptSession = promptRuntime.sessionFrameKey;
+  const promptStillCurrent = () =>
+    lifecycleIsCurrent() &&
+    getAttachmentRuntime() === promptRuntime &&
+    getAttachmentRuntime().currentAsk === promptAsk &&
+    String(getAttachmentRuntime().currentAsk?.text || "") === promptAskText &&
+    getAttachmentRuntime().sessionFrameKey === promptSession &&
+    getContinuityId() === promptContinuity;
   const options = trajectoryDraftOptions(projectRoot);
   const choice = await ctx.ui.select(
     "Focusa trajectory is not set — choose a draft",
     options.map((option) => option.label)
   );
-  if (!choice || String(choice).startsWith("D)")) return;
+  if (!choice || !promptStillCurrent()) return;
   let parsed = options.find((option) => option.label === choice)?.draft || null;
+  if (String(choice).startsWith("D)")) {
+    if (!promptContinuity) {
+      ctx.ui.notify("The previous goal cannot be read before this project's session is verified. Nothing was changed.", "warning");
+      return;
+    }
+    const query = new URLSearchParams({ project_root: projectRoot, continuity_id: promptContinuity, limit: "50" });
+    const history = await focusaFetch(`/hlt/history?${query}`).catch(() => null);
+    if (!promptStillCurrent()) return;
+    if (history?.status !== "completed") {
+      ctx.ui.notify("The previous goal could not be read. Nothing was changed.", "warning");
+      return;
+    }
+    const previous = Array.isArray(history.entries) ? history.entries[0] : null;
+    if (!previous) {
+      ctx.ui.notify("No previous accepted goal was found for this project. Nothing was changed.", "warning");
+      return;
+    }
+    if (
+      history.project_root !== projectRoot || history.continuity_id !== promptContinuity ||
+      previous.project_root !== projectRoot || previous.continuity_id !== promptContinuity ||
+      typeof previous.event_id !== "string" || !previous.event_id.trim() ||
+      typeof previous.new_hlt !== "string" || !previous.new_hlt.trim() ||
+      history.latest_valid_for_continuity !== previous.new_hlt
+    ) {
+      ctx.ui.notify("The previous-goal history does not match this project's latest accepted goal. Nothing was changed.", "warning");
+      return;
+    }
+    parsed = {
+      long_term_goal: previous.new_hlt,
+      // HLT history stores the accepted goal, not an invented end-state template.
+      desired_end_state: previous.new_hlt,
+      goal_source: "previous_valid_fallback",
+      supersession_evidence_refs: [`hlt-history-event:${previous.event_id}`],
+    };
+  }
   if (String(choice).startsWith("E)")) {
     const seed = options[0]?.draft;
     const template = [
@@ -1012,15 +1058,18 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
     session_id: getAttachmentRuntime().sessionFrameKey,
     goal_source: parsed.goal_source || "operator_selected_inference",
     operator_confirmed: true,
+    current_ask: promptAskText || String(choice),
     session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", {
       continuityId: ensureContinuityId(projectRoot),
       sessionId: getAttachmentRuntime().sessionFrameKey,
     }),
   };
+  if (!promptStillCurrent()) return;
   const res = await focusaFetch("/trajectory/define-goal", {
     method: "POST",
     body: JSON.stringify(body),
   }).catch(() => null);
+  if (!promptStillCurrent()) return;
   if (res?.canonical === true || res?.persisted === true) {
     ctx.ui.notify("Focusa trajectory defined for this project.", "info");
     await refreshTrajectoryClarityLifecycle(`${reason}_trajectory_defined`, projectRoot);
@@ -1682,7 +1731,9 @@ export function registerSession(pi: ExtensionAPI) {
     // A Workpoint loaded before trajectory refresh can be canonical for a stale
     // saved ask while lacking authority for the current session.
     await refreshTrajectoryClarityLifecycle("session_start", projectRoot);
-    await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start");
+    if (!healthLifecycleIsCurrent()) return;
+    await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start", healthLifecycleIsCurrent);
+    if (!healthLifecycleIsCurrent()) return;
     await refreshSessionWorkpointPacket("session_start");
     if (!getActiveWorkpointPacket()) {
       await refreshTrajectoryClarityLifecycle("session_start_genesis", projectRoot);

@@ -41,7 +41,7 @@ class FlowAuthoringContract(unittest.TestCase):
 
     def test_exact_issue_boundary_and_no_automatic_program_closure(self):
         self.assertEqual(set(PROFILE["selected_issue_numbers"]),
-            {685,660,657,679,683,684,261,680,682,686,299,526,410,417,590})
+            {685,660,657,679,683,684,261,680,682,686,299,526,410,417,590,672})
         self.assertEqual(PROFILE["related_program_issue_numbers"], [101,252,253])
         self.assertTrue(set(PROFILE["selected_issue_numbers"]).isdisjoint(PROFILE["related_program_issue_numbers"]))
         self.assertIn("keep the issue open", SPEC)
@@ -50,7 +50,7 @@ class FlowAuthoringContract(unittest.TestCase):
         reqs = REQUIREMENTS["requirements"]
         ids = [r["id"] for r in reqs]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(ids, [f"FLOW-R{n:02d}" for n in range(1,19)])
+        self.assertEqual(ids, [f"FLOW-R{n:02d}" for n in range(1,20)])
         self.assertEqual(PROFILE["completion_contract"]["required_requirement_ids"], ids)
         for row in reqs:
             self.assertTrue(row["owner_refs"])
@@ -59,7 +59,7 @@ class FlowAuthoringContract(unittest.TestCase):
 
     def test_all_scoped_tasks_have_real_provider_refs_and_full_contracts(self):
         rows = PROFILE["work_items"]
-        self.assertEqual(len(rows), 18)
+        self.assertEqual(len(rows), 19)
         self.assertEqual(len({r["work_item_ref"] for r in rows}), len(rows))
         known = set(PROFILE["completion_contract"]["required_requirement_ids"])
         for row in rows:
@@ -102,7 +102,7 @@ class FlowAuthoringContract(unittest.TestCase):
 
     def test_all_scenarios_defined_and_referenced(self):
         scenarios = {s for r in REQUIREMENTS["requirements"] for s in r["scenarios"]}
-        self.assertEqual(scenarios, {f"FLOW-T{n:02d}" for n in range(1,23)})
+        self.assertEqual(scenarios, {f"FLOW-T{n:02d}" for n in range(1,26)})
         for scenario in scenarios:
             self.assertIn("| " + scenario + " |", SPEC)
 
@@ -123,6 +123,18 @@ class FlowAuthoringContract(unittest.TestCase):
         self.assertIn("requires explicit verified", result.stderr)
         with self.assertRaises(ValueError):
             compiler.compile_graph(PROFILE, "relative", "", "fixture", "fixture")
+
+    def test_project_and_ad_hoc_routes_are_both_goal_directed_and_safe(self):
+        row = next(r for r in REQUIREMENTS["requirements"] if r["id"] == "FLOW-R19")
+        self.assertEqual(row["issues"], [672])
+        text = " ".join(row["acceptance"])
+        for invariant in ["working objective", "not goal-less", "inferred candidates", "without a redundant", "exact permitted target", "compaction/restart", "promotion"]:
+            self.assertIn(invariant, text)
+        route = next(r for r in PROFILE["work_items"] if r["step"] == "FLOW-18")
+        self.assertEqual(route["work_item_ref"], "focusa-ak5sv.19")
+        for step in ["FLOW-10", "FLOW-11", "FLOW-12", "FLOW-13"]:
+            self.assertIn("FLOW-18", next(r for r in PROFILE["work_items"] if r["step"] == step)["deps"])
+        self.assertIn("Required session routes", SPEC)
 
     def test_proof_and_safety_boundaries_are_preserved(self):
         text = " ".join(a for r in REQUIREMENTS["requirements"] for a in r["acceptance"])
