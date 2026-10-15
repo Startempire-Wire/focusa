@@ -39,7 +39,7 @@
     {
       "failure_class": "stable_updater_channel_resolution",
       "lesson_ref": "metacog:cap-1785271955342546491",
-      "command": ["cargo", "test", "-p", "focusa-cli", "release_channel_tests"]
+      "command": ["cargo", "test", "-p", "focusa-cli", "--bin", "focusa", "release_channel_tests"]
     },
     {
       "failure_class": "journal_publisher_scope_auth",
