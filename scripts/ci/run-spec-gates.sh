@@ -26,6 +26,9 @@ trap 'exit 143' TERM
 python3 "$ROOT_DIR/tests/spec_gate_git_fixture_test.py"
 python3 "$ROOT_DIR/tests/route_module_wiring_regression_test.py"
 python3 "$ROOT_DIR/tests/spec178_provider_parity_audit_test.py"
+# Spec187 authoring cohesion only; native graph/Workset types are also tested by Cargo.
+python3 "$ROOT_DIR/tests/187_autonomous_flow_workset_contract_test.py"
+python3 "$ROOT_DIR/scripts/compile-flow-workset.py" --check-fixture
 # Static source-contract gate: authority HTTP bounded-response transport.
 # It asserts security properties (no unbounded .bytes(), checked_add overflow
 # guard, limit enforcement) by reading Rust source, so it needs no daemon and

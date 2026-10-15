@@ -1,0 +1,1739 @@
+{
+  "schema": "focusa.callgraph.v1",
+  "graph_id": "synthetic-spec187-structural-fixture-only",
+  "revision": 1,
+  "scope": {
+    "project_root": "/tmp/focusa-spec187-structural-fixture",
+    "continuity_id": "synthetic-spec187-fixture-only"
+  },
+  "mission_ref": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md",
+  "trajectory_ref": null,
+  "workpoint_refs": [],
+  "title": "Autonomous Agentic Flow State — source workset dependency projection",
+  "description": "SYNTHETIC STRUCTURAL FIXTURE ONLY; NEVER ADMIT OR DISPATCH",
+  "entry_frame_ids": [
+    "FLOW-00"
+  ],
+  "frames": [
+    {
+      "frame_id": "FLOW-00",
+      "name": "Compile the autonomous agentic Flow State release contract and task graph",
+      "purpose": "Source authoring profile, full requirements/issue traceability, dependency graph, task records and contract tests agree; no runtime admission or installed support is fabricated.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.1"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Source authoring profile, full requirements/issue traceability, dependency graph, task records and contract tests agree; no runtime admission or installed support is fabricated.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R18"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-01",
+      "name": "Prove replay-safe runtime recovery and storage readiness",
+      "purpose": "Candidate replay preserves event identities, ownership, sequences and durable state; resource/quota pressure is reported truthfully before failed writes; restore/backup evidence survives; supported recovery has an exact bounded next action.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.2"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Candidate replay preserves event identities, ownership, sequences and durable state; resource/quota pressure is reported truthfully before failed writes; restore/backup evidence survives; supported recovery has an exact bounded next action.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R07",
+          "FLOW-R15"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-02",
+      "name": "Repair scope, lifecycle and retained approval continuity",
+      "purpose": "Valid project/workstream/frontier inputs admit the requested operation; genuine migration has a supported typed repair; persisted pre-approval is automatically revalidated, not erased or expanded after recovery; foreign/revoked/expired grants remain denied.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.3"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Valid project/workstream/frontier inputs admit the requested operation; genuine migration has a supported typed repair; persisted pre-approval is automatically revalidated, not erased or expanded after recovery; foreign/revoked/expired grants remain denied.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R03",
+          "FLOW-R04",
+          "FLOW-R14",
+          "FLOW-R17"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-03",
+      "name": "Preserve complete instructions and restore the actual accepted goal",
+      "purpose": "Full source-turn instruction and restrictions survive storage, compaction and restart; previews never become authority; accepted HLT restoration uses actual history and retains lineage; fresh operator corrections win without generic-goal substitution.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.4"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Full source-turn instruction and restrictions survive storage, compaction and restart; previews never become authority; accepted HLT restoration uses actual history and retains lineage; fresh operator corrections win without generic-goal substitution.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R01",
+          "FLOW-R02"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-04",
+      "name": "Attach the work loop to a real executor and stop idle budget drain",
+      "purpose": "Enabled execution proves a current attached writer/transport and advances eligible work; missing transport is not running autonomy; execution/wait/resource accounting follows Spec137, has explicit bounds and never silently renews an exhausted budget.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.5"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Enabled execution proves a current attached writer/transport and advances eligible work; missing transport is not running autonomy; execution/wait/resource accounting follows Spec137, has explicit bounds and never silently renews an exhausted budget.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R05",
+          "FLOW-R06"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-05",
+      "name": "Deliver and observe real Silent Session work",
+      "purpose": "Exact session/run/generation receives start and steering through the protected runner; real output and terminal receipts prove execution; queued/202 is not started; duplicate delivery, restart, cancellation and stale-generation cases remain safe.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.6"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Exact session/run/generation receives start and steering through the protected runner; real output and terminal receipts prove execution; queued/202 is not started; duplicate delivery, restart, cancellation and stale-generation cases remain safe.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R05",
+          "FLOW-R07",
+          "FLOW-R17"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-06",
+      "name": "Connect scoped credential requirements, grants and protected use",
+      "purpose": "Actual broker enforcement resolves approved credential references for exact operation/consumer/target/generation, distinguishes use from reveal and verifies provenance, expiry, revocation and challenge support; advisory grant verification alone never authorizes use.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.7"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Actual broker enforcement resolves approved credential references for exact operation/consumer/target/generation, distinguishes use from reveal and verifies provenance, expiry, revocation and challenge support; advisory grant verification alone never authorizes use.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R04",
+          "FLOW-R09",
+          "FLOW-R10"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-07",
+      "name": "Remove hardcoded vault access and prove value-free secret injection",
+      "purpose": "The approved vault route supplies exact fields to bound consumers without model/log/argv leakage or hardcoded login material; existing renewable access is reused; retries reconcile effects; fixture secret canaries prove redaction without retrieving real values into evidence.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.8"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "The approved vault route supplies exact fields to bound consumers without model/log/argv leakage or hardcoded login material; existing renewable access is reused; retries reconcile effects; fixture secret canaries prove redaction without retrieving real values into evidence.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R09",
+          "FLOW-R10"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-08",
+      "name": "Make renewable MFA and restored connector readiness truthful",
+      "purpose": "A restored encrypted connector proves functional challenge delivery and injection, not route/title readiness; grants are provider/target/consumer/window bound, values remain outside model context, duplicates and expiry are rejected, supported mobile boundaries are preserved and teardown is verified.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.9"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "A restored encrypted connector proves functional challenge delivery and injection, not route/title readiness; grants are provider/target/consumer/window bound, values remain outside model context, duplicates and expiry are rejected, supported mobile boundaries are preserved and teardown is verified.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R11"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-09",
+      "name": "Repair renewable signed authority and entitlement continuity",
+      "purpose": "Provider-issued renewal uses the supported renewable route and exact node/account scope, preserves existing customer/lifetime/developer rights and reports required consent precisely; no local self-issued lease, copied trust root or fabricated entitlement is permitted.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.10"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Provider-issued renewal uses the supported renewable route and exact node/account scope, preserves existing customer/lifetime/developer rights and reports required consent precisely; no local self-issued lease, copied trust root or fabricated entitlement is permitted.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R12"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-10",
+      "name": "Resume authorized work automatically after compaction and restart",
+      "purpose": "Actual native agent/SDK runs cross successive compactions, a process restart and model/session transition, automatically revalidate retained grants and perform the next eligible action without a new continue prompt; exact anchors, source turns, delivered context and execution effects are fenced and deduplicated.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.11"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Actual native agent/SDK runs cross successive compactions, a process restart and model/session transition, automatically revalidate retained grants and perform the next eligible action without a new continue prompt; exact anchors, source turns, delivered context and execution effects are fenced and deduplicated.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R01",
+          "FLOW-R02",
+          "FLOW-R04",
+          "FLOW-R07",
+          "FLOW-R08",
+          "FLOW-R17"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-11",
+      "name": "Select effective tools and recover from genuine failures without false blockers",
+      "purpose": "Current capabilities, permissions and consumer health drive point-of-need tool selection and typed bounded recovery; unavailable introspection is not stale-contract proof, read-only independent work continues, and optional reporting outages do not create repair circularity or bypass mandatory security/quality gates.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.12"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Current capabilities, permissions and consumer health drive point-of-need tool selection and typed bounded recovery; unavailable introspection is not stale-contract proof, read-only independent work continues, and optional reporting outages do not create repair circularity or bypass mandatory security/quality gates.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R03",
+          "FLOW-R06",
+          "FLOW-R13",
+          "FLOW-R14",
+          "FLOW-R15",
+          "FLOW-R17"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-12",
+      "name": "Align documentation, existing skills and Pi guidance with proven flow behavior",
+      "purpose": "Existing owning guides/runbooks/skill mirrors and plugin guidance describe the same verified continuation, credential and recovery contract; generators/parity tests pass, native reload and actual agent consumption are proved, and periodic review uses the existing maintenance owner without new paid automation.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.13"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Existing owning guides/runbooks/skill mirrors and plugin guidance describe the same verified continuation, credential and recovery contract; generators/parity tests pass, native reload and actual agent consumption are proved, and periodic review uses the existing maintenance owner without new paid automation.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R13",
+          "FLOW-R16",
+          "FLOW-R18"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-13",
+      "name": "Prove sustained candidate flow and hostile-boundary failures end to end",
+      "purpose": "Real admitted candidate harnesses execute the reference mission and fault matrix with a model, actual tools, protected broker use and consumer verification; zero avoidable re-prompts, unauthorized actions, leaked values, duplicated effects or false completion; unsupported environments are not claimed passed.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.14"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Real admitted candidate harnesses execute the reference mission and fault matrix with a model, actual tools, protected broker use and consumer verification; zero avoidable re-prompts, unauthorized actions, leaked values, duplicated effects or false completion; unsupported environments are not claimed passed.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R18"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-14",
+      "name": "Audit complete issue acceptance, release evidence and repair-outage handling",
+      "purpose": "Every selected issue criterion maps to passing evidence or remains explicitly open; no umbrella closure by subset proof; required benchmarks, security gates, exact-candidate CI, cross-version and release-matrix obligations are complete; outage behavior is tested and never fabricates success.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.15"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Every selected issue criterion maps to passing evidence or remains explicitly open; no umbrella closure by subset proof; required benchmarks, security gates, exact-candidate CI, cross-version and release-matrix obligations are complete; outage behavior is tested and never fabricates success.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "local",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R14",
+          "FLOW-R18"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-15",
+      "name": "Publish and deploy the complete signed stable Flow State candidate",
+      "purpose": "Canonical version selection, strict preflight, exact-source CI, immutable tag, every required signed platform asset, public Latest, trust verification and approved installer/rollout complete without bypasses; earlier releases, customer data and rights remain intact.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.16"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Canonical version selection, strict preflight, exact-source CI, immutable tag, every required signed platform asset, public Latest, trust verification and approved installer/rollout complete without bypasses; earlier releases, customer data and rights remain intact.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "external",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R18"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-16",
+      "name": "Verify installed autonomous flow and close only fully accepted issues",
+      "purpose": "Installed reference mission and negative matrix pass after native reload, including real post-compaction next action, retained authority, broker injection, tool recovery and visible truthful pauses; only issues whose entire done-condition is proven close, with linked receipts and measured outcomes.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.17"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Installed reference mission and negative matrix pass after native reload, including real post-compaction next action, retained authority, broker injection, tool recovery and visible truthful pauses; only issues whose entire done-condition is proven close, with linked receipts and measured outcomes.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "external",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R18"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    },
+    {
+      "frame_id": "FLOW-17",
+      "name": "Settle the admitted workset and preserve continuous documentation upkeep",
+      "purpose": "Canonical runtime admission/bindings and evidence are reconciled without retroactive authority; all required dispositions are met before settlement; actual outcomes/benchmark lessons and a resumable exact next step are retained; remaining program work stays open and no new scheduler/store is introduced.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "work_item_ref",
+          "scope_ref",
+          "authority_ref"
+        ],
+        "properties": {
+          "work_item_ref": {
+            "const": "focusa-ak5sv.18"
+          },
+          "scope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "return_schema": {
+        "type": "object",
+        "required": [
+          "evidence_refs",
+          "remaining_requirements"
+        ],
+        "properties": {
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "remaining_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "preconditions": [
+        "Current exact scope, operation, writer, approval and budget must be verified by their existing owners",
+        "Required execution bindings are resolved before dispatch; this source definition grants none"
+      ],
+      "postconditions": [
+        "Canonical runtime admission/bindings and evidence are reconciled without retroactive authority; all required dispositions are met before settlement; actual outcomes/benchmark lessons and a resumable exact next step are retained; remaining program work stays open and no new scheduler/store is introduced.",
+        "Source readiness does not settle installed requirements"
+      ],
+      "side_effect_class": "external",
+      "capability_refs": [],
+      "authority_requirement": {
+        "authority_kind": "existing_scoped_operation_authority",
+        "reference": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0,
+        "jitter": false
+      },
+      "failure_boundary": {
+        "kind": "scoped",
+        "unwind_policy": "preserve evidence; reconcile effects; use supported repair or truthful bounded pause"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "FLOW-R18"
+        ],
+        "verifier": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#6-reference-mission-and-measurable-acceptance"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "FLOW-00--FLOW-01",
+      "from_frame_id": "FLOW-00",
+      "to_frame_id": "FLOW-01",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-01--FLOW-02",
+      "from_frame_id": "FLOW-01",
+      "to_frame_id": "FLOW-02",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-00--FLOW-03",
+      "from_frame_id": "FLOW-00",
+      "to_frame_id": "FLOW-03",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-02--FLOW-04",
+      "from_frame_id": "FLOW-02",
+      "to_frame_id": "FLOW-04",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-02--FLOW-05",
+      "from_frame_id": "FLOW-02",
+      "to_frame_id": "FLOW-05",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-02--FLOW-06",
+      "from_frame_id": "FLOW-02",
+      "to_frame_id": "FLOW-06",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-06--FLOW-07",
+      "from_frame_id": "FLOW-06",
+      "to_frame_id": "FLOW-07",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-06--FLOW-08",
+      "from_frame_id": "FLOW-06",
+      "to_frame_id": "FLOW-08",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-02--FLOW-09",
+      "from_frame_id": "FLOW-02",
+      "to_frame_id": "FLOW-09",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-03--FLOW-10",
+      "from_frame_id": "FLOW-03",
+      "to_frame_id": "FLOW-10",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-04--FLOW-10",
+      "from_frame_id": "FLOW-04",
+      "to_frame_id": "FLOW-10",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-05--FLOW-10",
+      "from_frame_id": "FLOW-05",
+      "to_frame_id": "FLOW-10",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-06--FLOW-10",
+      "from_frame_id": "FLOW-06",
+      "to_frame_id": "FLOW-10",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-02--FLOW-11",
+      "from_frame_id": "FLOW-02",
+      "to_frame_id": "FLOW-11",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-04--FLOW-11",
+      "from_frame_id": "FLOW-04",
+      "to_frame_id": "FLOW-11",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-06--FLOW-11",
+      "from_frame_id": "FLOW-06",
+      "to_frame_id": "FLOW-11",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-09--FLOW-11",
+      "from_frame_id": "FLOW-09",
+      "to_frame_id": "FLOW-11",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-03--FLOW-12",
+      "from_frame_id": "FLOW-03",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-04--FLOW-12",
+      "from_frame_id": "FLOW-04",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-05--FLOW-12",
+      "from_frame_id": "FLOW-05",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-06--FLOW-12",
+      "from_frame_id": "FLOW-06",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-07--FLOW-12",
+      "from_frame_id": "FLOW-07",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-08--FLOW-12",
+      "from_frame_id": "FLOW-08",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-09--FLOW-12",
+      "from_frame_id": "FLOW-09",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-10--FLOW-12",
+      "from_frame_id": "FLOW-10",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-11--FLOW-12",
+      "from_frame_id": "FLOW-11",
+      "to_frame_id": "FLOW-12",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-01--FLOW-13",
+      "from_frame_id": "FLOW-01",
+      "to_frame_id": "FLOW-13",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-07--FLOW-13",
+      "from_frame_id": "FLOW-07",
+      "to_frame_id": "FLOW-13",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-08--FLOW-13",
+      "from_frame_id": "FLOW-08",
+      "to_frame_id": "FLOW-13",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-09--FLOW-13",
+      "from_frame_id": "FLOW-09",
+      "to_frame_id": "FLOW-13",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-10--FLOW-13",
+      "from_frame_id": "FLOW-10",
+      "to_frame_id": "FLOW-13",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-11--FLOW-13",
+      "from_frame_id": "FLOW-11",
+      "to_frame_id": "FLOW-13",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-12--FLOW-14",
+      "from_frame_id": "FLOW-12",
+      "to_frame_id": "FLOW-14",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-13--FLOW-14",
+      "from_frame_id": "FLOW-13",
+      "to_frame_id": "FLOW-14",
+      "kind": "await",
+      "join_policy": "all"
+    },
+    {
+      "edge_id": "FLOW-14--FLOW-15",
+      "from_frame_id": "FLOW-14",
+      "to_frame_id": "FLOW-15",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-15--FLOW-16",
+      "from_frame_id": "FLOW-15",
+      "to_frame_id": "FLOW-16",
+      "kind": "await",
+      "join_policy": null
+    },
+    {
+      "edge_id": "FLOW-16--FLOW-17",
+      "from_frame_id": "FLOW-16",
+      "to_frame_id": "FLOW-17",
+      "kind": "await",
+      "join_policy": null
+    }
+  ],
+  "policies": {
+    "max_depth": 32,
+    "default_cycle_policy": "deny"
+  },
+  "required_evidence": [
+    {
+      "evidence_type": "versioned_contract",
+      "min_count": 1
+    },
+    {
+      "evidence_type": "producer_test",
+      "min_count": 1
+    },
+    {
+      "evidence_type": "consumer_test",
+      "min_count": 1
+    },
+    {
+      "evidence_type": "cross_version_interop",
+      "min_count": 1
+    },
+    {
+      "evidence_type": "installed_e2e",
+      "min_count": 1
+    }
+  ],
+  "created_at": "2026-10-15T00:00:00Z",
+  "created_by": {
+    "authority_kind": "synthetic_fixture",
+    "reference": "fixture-only-never-runtime-authority"
+  }
+}

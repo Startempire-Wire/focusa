@@ -74,6 +74,14 @@ A matching resume still does not establish effect admission: require the exact s
 
 After compaction/reload/model or project transitions, read back canonical scoped state through the actual active native adapter. Use current steering rather than an old next-slice mentioning completed work. Changed files or another process's reload do not prove this agent refreshed.
 
+## Authorized continuity and Autonomous Agentic Flow State
+
+[Spec 187](../187-focusa-autonomous-agentic-flow-state-release-workset-spec.md) is the source workset and release acceptance contract, not a claim that all required behavior is installed. It reuses this journey and the existing loop, scope, credential, recovery and completion owners.
+
+Preserve complete intent and accepted purpose; automatically revalidate still-valid durable pre-approval after compaction rather than trusting cached permission or demanding another approval ritual. Discover existing approved credential/tool routes at the point of need. Advance eligible work and verify its actual consumer outcome; queued requests, a model-turn ending, source parity and written context are not mission completion or model-consumption proof. Use suitable capabilities, not every tool indiscriminately.
+
+A real consent, safety, ownership, provider or exhausted-budget boundary pauses the affected operation with an exact durable next action. Independent authorized work may continue. Never fabricate authority, hide required failures or reset budgets to appear uninterrupted. The installed reference mission must prove native post-compaction continuation, protected secret injection, bounded recovery and zero avoidable re-prompts before Flow State completion is claimed.
+
 ## Recovery without surrender or bypass
 
 1. Classify the actual response: pending observation, reporting failure, input mismatch, stale binding, missing dependency/proof, authority denial, conflict, resource pressure or uncertain effect.

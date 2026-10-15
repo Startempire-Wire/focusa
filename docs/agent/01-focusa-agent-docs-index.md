@@ -14,6 +14,10 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 
 **Project Foreman, Radar, and Ambient Operator are now current primitives.** Spec 182 defines one Workstream's persistent project-intelligence role projection, Spec 183 proactive scoped attention, and Spec 184 the paired mobile/wearable/meeting surface. Historical `Radar Spec 164` and `135M` are proposal provenance only; current Spec 164 remains Workstream-rooted runtime.
 
+## Autonomous Agentic Flow State release workset
+
+[Spec 187](../187-focusa-autonomous-agentic-flow-state-release-workset-spec.md) composes the existing execution, intent, credential, compaction, recovery and documentation owners into one next-stable acceptance contract. Its tracked workset is source preparation, not a new authority/scheduler or proof of installed autonomy. Use its dependency order and actual end-to-end/issue-closure gates; preserve genuine safety, consent and budget pauses.
+
 ## 2. Architecture map
 
 | Layer | Purpose | Key locations |

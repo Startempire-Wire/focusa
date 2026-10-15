@@ -16,6 +16,10 @@ python3 scripts/audit-agent-first-tool-surfaces.py --json /tmp/focusa-agent-firs
 
 Follow the [owning documentation-maintenance runbook](../../.pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md) for behavior-change, release and periodic between-release reviews of public documentation, deep skills/runbooks and Pi extension consumers. Generated parity is only one check: examples, permissions, recovery instructions and actual installed/native-reload behavior must also agree. Use the existing maintenance queue; this guide does not create or prove an unattended schedule.
 
+## Autonomous Agentic Flow State acceptance
+
+[Spec 187](../187-focusa-autonomous-agentic-flow-state-release-workset-spec.md) tracks the next-stable cohesion workset: complete intent and goal retention, automatic valid-grant revalidation, real runner delivery, protected secret use, native post-compaction continuation and truthful recovery. It is source work, not installed capability proof. Reuse the existing owning skills and registry; do not create a second flow-policy skill or scheduler. Installed completion includes native reload and actual agent/tool behavior, not only generated-file parity.
+
 ## Current locations
 
 - Pi extension source: `apps/pi-extension/`

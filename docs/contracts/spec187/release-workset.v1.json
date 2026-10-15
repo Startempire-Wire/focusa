@@ -1,0 +1,527 @@
+{
+  "schema": "focusa.spec187.release_workset_authoring.v1",
+  "spec_ref": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md",
+  "profile_id": "focusa-autonomous-agentic-flow-next-stable",
+  "source_authoring_only": true,
+  "project_root": "/home/wirebot/focusa",
+  "continuity_id_strategy": "resolve_and_verify_current_authorized_workstream_at_admission",
+  "workset_id_strategy": "generated_by_existing_Spec149_confirmed_creation",
+  "epic_ref": "focusa-ak5sv",
+  "operator_request_ref": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#operator-outcome-and-authority",
+  "requirements_ref": "docs/contracts/spec187/requirements.v1.json",
+  "selected_issue_numbers": [
+    685,
+    660,
+    657,
+    679,
+    683,
+    684,
+    261,
+    680,
+    682,
+    686,
+    299,
+    526,
+    410,
+    417,
+    590
+  ],
+  "related_program_issue_numbers": [
+    101,
+    252,
+    253
+  ],
+  "completion_contract": {
+    "required_requirement_ids": [
+      "FLOW-R01",
+      "FLOW-R02",
+      "FLOW-R03",
+      "FLOW-R04",
+      "FLOW-R05",
+      "FLOW-R06",
+      "FLOW-R07",
+      "FLOW-R08",
+      "FLOW-R09",
+      "FLOW-R10",
+      "FLOW-R11",
+      "FLOW-R12",
+      "FLOW-R13",
+      "FLOW-R14",
+      "FLOW-R15",
+      "FLOW-R16",
+      "FLOW-R17",
+      "FLOW-R18"
+    ],
+    "release_gate_ref": "docs/current/RELEASE_RULES_2026-08-19.md"
+  },
+  "work_items": [
+    {
+      "step": "FLOW-00",
+      "title": "Compile the autonomous agentic Flow State release contract and task graph",
+      "deps": [],
+      "issues": [
+        252,
+        253
+      ],
+      "scope": [
+        "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md",
+        "docs/contracts/spec187/",
+        "scripts/compile-flow-workset.py",
+        "tests/187_autonomous_flow_workset_contract_test.py"
+      ],
+      "done": "Source authoring profile, full requirements/issue traceability, dependency graph, task records and contract tests agree; no runtime admission or installed support is fabricated.",
+      "work_item_ref": "focusa-ak5sv.1",
+      "requirement_ids": [
+        "FLOW-R18"
+      ]
+    },
+    {
+      "step": "FLOW-01",
+      "title": "Prove replay-safe runtime recovery and storage readiness",
+      "deps": [
+        "FLOW-00"
+      ],
+      "issues": [
+        685,
+        680
+      ],
+      "scope": [
+        "crates/focusa-core/src/types.rs",
+        "crates/focusa-core/src/runtime/",
+        "crates/focusa-api/src/routes/health.rs",
+        "scripts/check-release-resource-gate.py"
+      ],
+      "done": "Candidate replay preserves event identities, ownership, sequences and durable state; resource/quota pressure is reported truthfully before failed writes; restore/backup evidence survives; supported recovery has an exact bounded next action.",
+      "work_item_ref": "focusa-ak5sv.2",
+      "requirement_ids": [
+        "FLOW-R07",
+        "FLOW-R15"
+      ]
+    },
+    {
+      "step": "FLOW-02",
+      "title": "Repair scope, lifecycle and retained approval continuity",
+      "deps": [
+        "FLOW-01"
+      ],
+      "issues": [
+        660,
+        261,
+        253
+      ],
+      "scope": [
+        "crates/focusa-api/src/routes/project.rs",
+        "crates/focusa-api/src/routes/workpoint.rs",
+        "apps/pi-extension/src/north-star.ts",
+        "apps/pi-extension/src/workpoint-request-binding.ts"
+      ],
+      "done": "Valid project/workstream/frontier inputs admit the requested operation; genuine migration has a supported typed repair; persisted pre-approval is automatically revalidated, not erased or expanded after recovery; foreign/revoked/expired grants remain denied.",
+      "work_item_ref": "focusa-ak5sv.3",
+      "requirement_ids": [
+        "FLOW-R03",
+        "FLOW-R04",
+        "FLOW-R14",
+        "FLOW-R17"
+      ]
+    },
+    {
+      "step": "FLOW-03",
+      "title": "Preserve complete instructions and restore the actual accepted goal",
+      "deps": [
+        "FLOW-00"
+      ],
+      "issues": [
+        683,
+        684
+      ],
+      "scope": [
+        "apps/pi-extension/src/state.ts",
+        "apps/pi-extension/src/session.ts",
+        "apps/pi-extension/src/turns.ts",
+        "apps/pi-extension/src/persistence.ts",
+        "apps/pi-extension/src/workpoint-request-binding.ts",
+        "crates/focusa-api/src/routes/trajectory.rs"
+      ],
+      "done": "Full source-turn instruction and restrictions survive storage, compaction and restart; previews never become authority; accepted HLT restoration uses actual history and retains lineage; fresh operator corrections win without generic-goal substitution.",
+      "work_item_ref": "focusa-ak5sv.4",
+      "requirement_ids": [
+        "FLOW-R01",
+        "FLOW-R02"
+      ]
+    },
+    {
+      "step": "FLOW-04",
+      "title": "Attach the work loop to a real executor and stop idle budget drain",
+      "deps": [
+        "FLOW-02"
+      ],
+      "issues": [
+        657
+      ],
+      "scope": [
+        "docs/79-focusa-governed-continuous-work-loop.md",
+        "apps/pi-extension/src/",
+        "crates/focusa-api/src/routes/work_loop.rs",
+        "crates/focusa-core/src/"
+      ],
+      "done": "Enabled execution proves a current attached writer/transport and advances eligible work; missing transport is not running autonomy; execution/wait/resource accounting follows Spec137, has explicit bounds and never silently renews an exhausted budget.",
+      "work_item_ref": "focusa-ak5sv.5",
+      "requirement_ids": [
+        "FLOW-R05",
+        "FLOW-R06"
+      ]
+    },
+    {
+      "step": "FLOW-05",
+      "title": "Deliver and observe real Silent Session work",
+      "deps": [
+        "FLOW-02"
+      ],
+      "issues": [
+        679
+      ],
+      "scope": [
+        "crates/focusa-core/src/silent_sessions/",
+        "crates/focusa-session-runner/src/",
+        "crates/focusa-api/src/routes/silent_sessions_create.rs",
+        "crates/focusa-api/src/routes/silent_sessions_input.rs",
+        "apps/pi-extension/src/"
+      ],
+      "done": "Exact session/run/generation receives start and steering through the protected runner; real output and terminal receipts prove execution; queued/202 is not started; duplicate delivery, restart, cancellation and stale-generation cases remain safe.",
+      "work_item_ref": "focusa-ak5sv.6",
+      "requirement_ids": [
+        "FLOW-R05",
+        "FLOW-R07",
+        "FLOW-R17"
+      ]
+    },
+    {
+      "step": "FLOW-06",
+      "title": "Connect scoped credential requirements, grants and protected use",
+      "deps": [
+        "FLOW-02"
+      ],
+      "issues": [
+        299,
+        526
+      ],
+      "scope": [
+        "docs/156-focusa-project-scoped-credential-authority-secret-broker-delegated-autonomy-mfa-totp-and-cross-surface-injection-spec.md",
+        "crates/focusa-core/src/credential_authority.rs",
+        "crates/focusa-api/src/routes/credentials.rs",
+        "apps/pi-extension/src/"
+      ],
+      "done": "Actual broker enforcement resolves approved credential references for exact operation/consumer/target/generation, distinguishes use from reveal and verifies provenance, expiry, revocation and challenge support; advisory grant verification alone never authorizes use.",
+      "work_item_ref": "focusa-ak5sv.7",
+      "requirement_ids": [
+        "FLOW-R04",
+        "FLOW-R09",
+        "FLOW-R10"
+      ]
+    },
+    {
+      "step": "FLOW-07",
+      "title": "Remove hardcoded vault access and prove value-free secret injection",
+      "deps": [
+        "FLOW-06"
+      ],
+      "issues": [
+        417,
+        299,
+        526
+      ],
+      "scope": [
+        "Agent-KB canonical vault-reference adapter",
+        "Spec156 approved vault/injection adapters",
+        "crates/focusa-core/src/credential_authority.rs"
+      ],
+      "done": "The approved vault route supplies exact fields to bound consumers without model/log/argv leakage or hardcoded login material; existing renewable access is reused; retries reconcile effects; fixture secret canaries prove redaction without retrieving real values into evidence.",
+      "work_item_ref": "focusa-ak5sv.8",
+      "requirement_ids": [
+        "FLOW-R09",
+        "FLOW-R10"
+      ]
+    },
+    {
+      "step": "FLOW-08",
+      "title": "Make renewable MFA and restored connector readiness truthful",
+      "deps": [
+        "FLOW-06"
+      ],
+      "issues": [
+        410,
+        299,
+        526
+      ],
+      "scope": [
+        "crates/focusa-api/src/routes/sms.rs",
+        "apps/pi-extension/src/sms-tools.ts",
+        "scripts/focusa-sms-appliance.py",
+        "Spec156 challenge/injection adapters"
+      ],
+      "done": "A restored encrypted connector proves functional challenge delivery and injection, not route/title readiness; grants are provider/target/consumer/window bound, values remain outside model context, duplicates and expiry are rejected, supported mobile boundaries are preserved and teardown is verified.",
+      "work_item_ref": "focusa-ak5sv.9",
+      "requirement_ids": [
+        "FLOW-R11"
+      ]
+    },
+    {
+      "step": "FLOW-09",
+      "title": "Repair renewable signed authority and entitlement continuity",
+      "deps": [
+        "FLOW-02"
+      ],
+      "issues": [
+        590,
+        261
+      ],
+      "scope": [
+        "crates/focusa-license/src/",
+        "crates/focusa-cli/src/commands/activation_flow.rs",
+        "crates/focusa-cli/src/commands/license.rs",
+        "crates/focusa-api/src/middleware/entitlement.rs"
+      ],
+      "done": "Provider-issued renewal uses the supported renewable route and exact node/account scope, preserves existing customer/lifetime/developer rights and reports required consent precisely; no local self-issued lease, copied trust root or fabricated entitlement is permitted.",
+      "work_item_ref": "focusa-ak5sv.10",
+      "requirement_ids": [
+        "FLOW-R12"
+      ]
+    },
+    {
+      "step": "FLOW-10",
+      "title": "Resume authorized work automatically after compaction and restart",
+      "deps": [
+        "FLOW-03",
+        "FLOW-04",
+        "FLOW-05",
+        "FLOW-06"
+      ],
+      "issues": [
+        683,
+        684,
+        657,
+        660
+      ],
+      "scope": [
+        "apps/pi-extension/src/auto-compaction.ts",
+        "apps/pi-extension/src/compaction.ts",
+        "apps/pi-extension/src/compaction-resume-safety.ts",
+        "apps/pi-extension/src/compaction-resume-projection.ts",
+        "apps/pi-extension/src/persistence.ts",
+        "apps/pi-extension/src/session.ts",
+        "apps/pi-extension/src/turns.ts"
+      ],
+      "done": "Actual native agent/SDK runs cross successive compactions, a process restart and model/session transition, automatically revalidate retained grants and perform the next eligible action without a new continue prompt; exact anchors, source turns, delivered context and execution effects are fenced and deduplicated.",
+      "work_item_ref": "focusa-ak5sv.11",
+      "requirement_ids": [
+        "FLOW-R01",
+        "FLOW-R02",
+        "FLOW-R04",
+        "FLOW-R07",
+        "FLOW-R08",
+        "FLOW-R17"
+      ]
+    },
+    {
+      "step": "FLOW-11",
+      "title": "Select effective tools and recover from genuine failures without false blockers",
+      "deps": [
+        "FLOW-02",
+        "FLOW-04",
+        "FLOW-06",
+        "FLOW-09"
+      ],
+      "issues": [
+        261,
+        682,
+        686
+      ],
+      "scope": [
+        "apps/pi-extension/src/tools.ts",
+        "apps/pi-extension/src/tool-discovery-visible.ts",
+        "apps/pi-extension/src/tool-contracts.ts",
+        "crates/focusa-core/src/capability_truth.rs",
+        "crates/focusa-core/src/utility_card.rs",
+        "scripts/canonical-release-journal.py"
+      ],
+      "done": "Current capabilities, permissions and consumer health drive point-of-need tool selection and typed bounded recovery; unavailable introspection is not stale-contract proof, read-only independent work continues, and optional reporting outages do not create repair circularity or bypass mandatory security/quality gates.",
+      "work_item_ref": "focusa-ak5sv.12",
+      "requirement_ids": [
+        "FLOW-R03",
+        "FLOW-R06",
+        "FLOW-R13",
+        "FLOW-R14",
+        "FLOW-R15",
+        "FLOW-R17"
+      ]
+    },
+    {
+      "step": "FLOW-12",
+      "title": "Align documentation, existing skills and Pi guidance with proven flow behavior",
+      "deps": [
+        "FLOW-03",
+        "FLOW-04",
+        "FLOW-05",
+        "FLOW-06",
+        "FLOW-07",
+        "FLOW-08",
+        "FLOW-09",
+        "FLOW-10",
+        "FLOW-11"
+      ],
+      "issues": [
+        101,
+        252,
+        253
+      ],
+      "scope": [
+        "config/agent-skills-v2.json",
+        "scripts/generate-agent-skills.py",
+        "docs/agent/",
+        "docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md",
+        "apps/pi-extension/README.md",
+        "apps/pi-extension/AGENTS.md"
+      ],
+      "done": "Existing owning guides/runbooks/skill mirrors and plugin guidance describe the same verified continuation, credential and recovery contract; generators/parity tests pass, native reload and actual agent consumption are proved, and periodic review uses the existing maintenance owner without new paid automation.",
+      "work_item_ref": "focusa-ak5sv.13",
+      "requirement_ids": [
+        "FLOW-R13",
+        "FLOW-R16",
+        "FLOW-R18"
+      ]
+    },
+    {
+      "step": "FLOW-13",
+      "title": "Prove sustained candidate flow and hostile-boundary failures end to end",
+      "deps": [
+        "FLOW-01",
+        "FLOW-07",
+        "FLOW-08",
+        "FLOW-09",
+        "FLOW-10",
+        "FLOW-11"
+      ],
+      "issues": [
+        252,
+        253,
+        299,
+        526,
+        261
+      ],
+      "scope": [
+        "apps/pi-extension/tests/",
+        "crates/focusa-core/tests/",
+        "crates/focusa-api/tests/",
+        "tests/",
+        "approved isolated candidate proof environments"
+      ],
+      "done": "Real admitted candidate harnesses execute the reference mission and fault matrix with a model, actual tools, protected broker use and consumer verification; zero avoidable re-prompts, unauthorized actions, leaked values, duplicated effects or false completion; unsupported environments are not claimed passed.",
+      "work_item_ref": "focusa-ak5sv.14",
+      "requirement_ids": [
+        "FLOW-R18"
+      ]
+    },
+    {
+      "step": "FLOW-14",
+      "title": "Audit complete issue acceptance, release evidence and repair-outage handling",
+      "deps": [
+        "FLOW-12",
+        "FLOW-13"
+      ],
+      "issues": [
+        686,
+        261,
+        299,
+        526
+      ],
+      "scope": [
+        "scripts/canonical-release-journal.py",
+        "scripts/create-dev-release-tag.sh",
+        "docs/current/RELEASE_RULES_2026-08-19.md",
+        "scripts/release-deploy-proof.py",
+        "all selected issue acceptance criteria"
+      ],
+      "done": "Every selected issue criterion maps to passing evidence or remains explicitly open; no umbrella closure by subset proof; required benchmarks, security gates, exact-candidate CI, cross-version and release-matrix obligations are complete; outage behavior is tested and never fabricates success.",
+      "work_item_ref": "focusa-ak5sv.15",
+      "requirement_ids": [
+        "FLOW-R14",
+        "FLOW-R18"
+      ]
+    },
+    {
+      "step": "FLOW-15",
+      "title": "Publish and deploy the complete signed stable Flow State candidate",
+      "deps": [
+        "FLOW-14"
+      ],
+      "issues": [
+        252,
+        253
+      ],
+      "scope": [
+        "canonical full-release controller and published assets",
+        "approved KH/OVH installed Focusa/Pi surfaces"
+      ],
+      "done": "Canonical version selection, strict preflight, exact-source CI, immutable tag, every required signed platform asset, public Latest, trust verification and approved installer/rollout complete without bypasses; earlier releases, customer data and rights remain intact.",
+      "work_item_ref": "focusa-ak5sv.16",
+      "requirement_ids": [
+        "FLOW-R18"
+      ]
+    },
+    {
+      "step": "FLOW-16",
+      "title": "Verify installed autonomous flow and close only fully accepted issues",
+      "deps": [
+        "FLOW-15"
+      ],
+      "issues": [
+        685,
+        660,
+        657,
+        679,
+        683,
+        684,
+        261,
+        680,
+        682,
+        686,
+        299,
+        526,
+        410,
+        417,
+        590
+      ],
+      "scope": [
+        "approved installed runtime and fresh native Pi/claimed harnesses",
+        "canonical issue acceptance and evidence owners"
+      ],
+      "done": "Installed reference mission and negative matrix pass after native reload, including real post-compaction next action, retained authority, broker injection, tool recovery and visible truthful pauses; only issues whose entire done-condition is proven close, with linked receipts and measured outcomes.",
+      "work_item_ref": "focusa-ak5sv.17",
+      "requirement_ids": [
+        "FLOW-R18"
+      ]
+    },
+    {
+      "step": "FLOW-17",
+      "title": "Settle the admitted workset and preserve continuous documentation upkeep",
+      "deps": [
+        "FLOW-16"
+      ],
+      "issues": [
+        101,
+        252,
+        253
+      ],
+      "scope": [
+        "canonical Spec149 requirement settlement",
+        "existing Spec138 learning and release journal",
+        "existing Spec141 documentation-maintenance owner"
+      ],
+      "done": "Canonical runtime admission/bindings and evidence are reconciled without retroactive authority; all required dispositions are met before settlement; actual outcomes/benchmark lessons and a resumable exact next step are retained; remaining program work stays open and no new scheduler/store is introduced.",
+      "work_item_ref": "focusa-ak5sv.18",
+      "requirement_ids": [
+        "FLOW-R18"
+      ]
+    }
+  ]
+}
