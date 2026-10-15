@@ -15,6 +15,32 @@ This request is the source of the workset assembly and release-outcome scope. Ex
 
 “Never stopping” means **no avoidable loss of momentum**, not bypassing safety, legality, ownership, consent, explicit stop, genuine unavailable authority or an exhausted budget. A real pause is correct behavior when it is specific, truthful, durable and resumable.
 
+## Current full release trajectory and retained unfinished work
+
+The operator's subsequent explicit steering makes this workset the **current full release objective**, not an optional side project or a replacement that discards earlier work:
+
+- **Ultimate goal:** bring this repository to truthful zero open issues. Each closure requires full acceptance or a truthful explicit owner-approved disposition; hiding issues, bulk paper closure or renaming unfinished work is not zero.
+- **Current release goal:** complete the entire Flow State workset **and all unfinished previously authorized release obligations**, then deliver and verify the complete canonical signed stable release on the approved destinations.
+- **Immediate focus:** reconcile current exact-source CI and prior release carryover; restore reliable runtime/admission and complete instruction/accepted-goal continuity; advance the next eligible dependency frontier.
+- **After release or workset settlement:** assess the remaining issue/task queue and advance the next ready authorized repository work toward truthful zero without a routine continue prompt. A completed release is not a reason to abandon the remaining outcome; real authority, consent and budget boundaries still apply. The 15 Flow State closure candidates do not replace the full repository backlog.
+
+This is effective operator steering for the work. The live goal-update attempt was blocked while the runtime was unavailable; source text does not pretend that the live tracker accepted a mutation. Restore and verify that existing owner, then reconcile this exact directive through its normal goal/assessment/Workpoint operations. Preserve accepted purpose/history and use the existing workset/task identity; do not create a parallel live trajectory store.
+
+### Mandatory carryover audit
+
+| Retained obligation | Current evidence / next action | Existing owner |
+|---|---|---|
+| Prior replay, complete-instruction, scoped-preload, native-anchor, startup-fencing and contract-diagnostic repairs | Source/test evidence is retained; prove current exact candidate and installed consumers rather than treating a prior passing source test as deployment | FLOW-01/03/10/11/16 and original issues |
+| Unfinished exact-source CI | At source `d612935350bff6cf02160ba85a06b5d5df55757c`, run `38675367368` failed the Pi compaction/session-recovery gate and workspace Clippy; reconcile effects and diagnose/fix actual consumer failures, then rerun exact-source gates | FLOW-01/14 and original source repair owners |
+| Pending canonical release candidate/stamps/proofs | Preserve the unpublished 0.9.208 candidate, prior source commits and uncommitted canonical manifest work; reconcile tag/push/publication/install effects before retry and let the canonical selector/controller establish the final candidate | FLOW-14/15 |
+| Deferred journal, benchmarks and outcomes | Reconcile real measurements/reporting without invented lessons, performance, success or mandatory-gate bypass | FLOW-11/14/17; #686 |
+| Full required platform, trust, installer and native consumer acceptance | Retain Windows cold/native, device-poll, developer-origin, fleet and installed SDK/Pi proof obligations where required by the accepted release; do not erase them because one packaging/install route passed | FLOW-09/13/14/15/16 and original issues including #681/#676/#678 |
+| Earlier approved specifications and unfinished program scope | Keep complete original criteria and existing dependency/task/issue owners. The Flow State slice does not narrow earlier accepted specifications or silently absorb unrelated projects | FLOW-00/14/17; #101/#252/#253 and original owners |
+
+At this steering update the live repository issue query returned **109 open issues**. This is an observed baseline, not a permanent count or a claim that all future proposals are execution-authorized. Preserve the remaining backlog and reconcile new/closed issues through the actual issue owner. Every prior approved obligation must be accounted for; any genuinely consequential scope change or deferral needs its applicable authority.
+
+Do not ship a planning-only or partial release as fulfillment of this trajectory. A supported prerequisite recovery route must remain truthfully labeled and cannot silently redefine the requested full-release outcome.
+
 ## 1. What this is — and is not
 
 Human flow research emphasizes clear goals, timely feedback and a suitable challenge/capability relationship: [A Scoping Review of Flow Research](https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2022.815665/full). Here the term is an operational quality contract, not a claim about an agent's subjective experience.

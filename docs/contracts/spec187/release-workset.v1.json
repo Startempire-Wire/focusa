@@ -3,6 +3,15 @@
   "spec_ref": "docs/187-focusa-autonomous-agentic-flow-state-release-workset-spec.md",
   "profile_id": "focusa-autonomous-agentic-flow-next-stable",
   "source_authoring_only": true,
+  "operator_directed_trajectory": {
+    "instruction_source": "direct operator steering on 2026-10-15",
+    "ultimate_goal": "Bring the Focusa repository to truthful zero open issues with complete acceptance or an explicit truthful owner-approved disposition.",
+    "current_full_release_goal": "Finish the entire Autonomous Agentic Flow State workset and all unfinished previously authorized release obligations, then publish, install and verify the complete canonical signed stable release.",
+    "immediate_focus": "Reconcile failed exact-source CI and retained prior release work; restore reliable runtime/admission and complete instruction/accepted-goal continuity; advance the ready dependency frontier.",
+    "carryover_policy": "Preserve all unfinished prior approved obligations, acceptance, history and evidence with their existing owners; no silent dropping, paper completion, unapproved deferral or scope expansion.",
+    "remaining_repository_work": "After release or workset settlement, assess the remaining issue/task queue and advance the next ready authorized work toward truthful zero without a routine continue prompt; current release completion is not repository completion and real authority, consent and budget limits still apply.",
+    "live_tracker_update": "Pending restoration and verification of the existing canonical runtime; this source directive is not a claimed live trajectory mutation."
+  },
   "project_root": "/home/wirebot/focusa",
   "continuity_id_strategy": "resolve_and_verify_current_authorized_workstream_at_admission",
   "workset_id_strategy": "generated_by_existing_Spec149_confirmed_creation",

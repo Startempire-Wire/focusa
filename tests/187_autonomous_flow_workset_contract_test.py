@@ -24,6 +24,21 @@ class FlowAuthoringContract(unittest.TestCase):
         self.assertNotIn("workset_id", PROFILE)
         self.assertIn("authoritative daemon is unavailable", SPEC)
 
+    def test_current_full_release_retains_prior_work_and_truthful_zero_goal(self):
+        directive = PROFILE["operator_directed_trajectory"]
+        self.assertIn("truthful zero", directive["ultimate_goal"])
+        self.assertIn("entire Autonomous Agentic Flow State", directive["current_full_release_goal"])
+        self.assertIn("unfinished previously authorized", directive["current_full_release_goal"])
+        self.assertIn("no silent dropping", directive["carryover_policy"])
+        self.assertIn("Pending restoration", directive["live_tracker_update"])
+        self.assertIn("next ready authorized work", directive["remaining_repository_work"])
+        self.assertIn("without a routine continue prompt", directive["remaining_repository_work"])
+        self.assertIn("Mandatory carryover audit", SPEC)
+        self.assertIn("Current full release trajectory", SPEC)
+        self.assertIn("failed the Pi compaction/session-recovery gate", SPEC)
+        r18 = next(r for r in REQUIREMENTS["requirements"] if r["id"] == "FLOW-R18")
+        self.assertTrue(any("unfinished previously authorized release obligations" in text for text in r18["acceptance"]))
+
     def test_exact_issue_boundary_and_no_automatic_program_closure(self):
         self.assertEqual(set(PROFILE["selected_issue_numbers"]),
             {685,660,657,679,683,684,261,680,682,686,299,526,410,417,590})
