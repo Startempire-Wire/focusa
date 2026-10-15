@@ -8,9 +8,11 @@ const accepted = 'Complete the operator-approved checkout repair while preservin
 
 function history() {
   return { status: 'completed', project_root: root, continuity_id: continuity,
-    latest_valid_for_continuity: accepted,
+    latest_valid_for_continuity: accepted, entries_order: 'newest_first',
     entries: [{ event_id: 'synthetic-accepted-event', project_root: root,
-      continuity_id: continuity, new_hlt: accepted, source: 'operator' }] };
+      continuity_id: continuity, new_hlt: accepted, source: 'operator' },
+    { event_id: 'synthetic-older-event', project_root: root,
+      continuity_id: continuity, new_hlt: 'Superseded checkout objective', source: 'operator' }] };
 }
 
 function harness({ choice = 'D)', response = history(), onSelect, onHistory, onIdentity, onPost } = {}) {
@@ -72,7 +74,7 @@ test('actual restore selection reads scoped history and preserves the complete a
 });
 
 test('missing or unreadable history reports a nonmutation rather than inventing a goal', async () => {
-  for (const response of [null, { status: 'blocked' }, { ...history(), entries: [] }]) {
+  for (const response of [null, { status: 'blocked' }, { ...history(), entries: null }, { ...history(), entries: [] }]) {
     const value = harness({ response });
     await value.run();
     assert.equal(mutations(value).length, 0);
@@ -94,6 +96,8 @@ test('foreign or superseded history cannot be adopted', async () => {
     (data) => { data.entries[0].continuity_id = 'foreign-continuity'; },
     (data) => { data.latest_valid_for_continuity = 'A newer accepted goal'; },
     (data) => { data.entries[0].event_id = ''; },
+    (data) => { delete data.entries_order; },
+    (data) => { data.entries_order = 'oldest_first'; },
   ]) {
     const response = history();
     mutate(response);

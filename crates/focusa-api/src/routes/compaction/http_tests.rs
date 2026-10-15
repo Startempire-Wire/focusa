@@ -492,12 +492,14 @@ async fn durable_prepare_survives_reader_reload_and_rejects_changed_scoped_sourc
     )
     .unwrap();
     assert_eq!(semantic_digest(&stored), prepared["semantic_digest"]);
-    let mut goal = focusa_core::types::TrajectoryProjectionRecord::default();
-    goal.project_root = Some(ROOT.into());
-    goal.continuity_id = Some(CONTINUITY.into());
-    goal.canonical = true;
-    goal.trajectory_id = "changed-scoped-goal".into();
-    goal.long_term_goal = "Changed owner scope".into();
+    let goal = focusa_core::types::TrajectoryProjectionRecord {
+        project_root: Some(ROOT.into()),
+        continuity_id: Some(CONTINUITY.into()),
+        canonical: true,
+        trajectory_id: "changed-scoped-goal".into(),
+        long_term_goal: "Changed owner scope".into(),
+        ..Default::default()
+    };
     let mut source = state.focusa.write().await;
     source.trajectory.records.push(goal);
     source.version += 1;

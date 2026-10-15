@@ -8,7 +8,7 @@ use crate::runtime::persistence_sqlite::SqlitePersistence;
 use crate::types::{EventLogEntry, FocusaState};
 use serde::Serialize;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Instant;
 use tokio::sync::{mpsc, oneshot};
 
@@ -22,6 +22,7 @@ pub struct PersistenceActorMetrics {
     batches_total: AtomicU64,
     requests_coalesced_total: AtomicU64,
     failures_total: AtomicU64,
+    last_write_failed: AtomicBool,
     saturation_total: AtomicU64,
     last_write_duration_ms: AtomicU64,
     max_write_duration_ms: AtomicU64,
@@ -37,6 +38,8 @@ pub struct PersistenceActorMetricsSnapshot {
     pub batches_total: u64,
     pub requests_coalesced_total: u64,
     pub failures_total: u64,
+    /// Whether the last completed batch failed; failure history remains cumulative.
+    pub last_write_failed: bool,
     pub saturation_total: u64,
     pub last_write_duration_ms: u64,
     pub max_write_duration_ms: u64,
@@ -55,6 +58,7 @@ impl PersistenceActorMetrics {
             batches_total: self.batches_total.load(Ordering::Acquire),
             requests_coalesced_total: self.requests_coalesced_total.load(Ordering::Acquire),
             failures_total: self.failures_total.load(Ordering::Acquire),
+            last_write_failed: self.last_write_failed.load(Ordering::Acquire),
             saturation_total: self.saturation_total.load(Ordering::Acquire),
             last_write_duration_ms: self.last_write_duration_ms.load(Ordering::Acquire),
             max_write_duration_ms: self.max_write_duration_ms.load(Ordering::Acquire),
@@ -164,7 +168,6 @@ impl PersistenceActor {
                 actor_metrics
                     .max_write_duration_ms
                     .fetch_max(duration_ms, Ordering::AcqRel);
-                actor_metrics.batches_total.fetch_add(1, Ordering::AcqRel);
                 if let Ok((snapshot_bytes, database_bytes, wal_bytes)) = &result {
                     actor_metrics
                         .snapshot_bytes
@@ -176,6 +179,10 @@ impl PersistenceActor {
                 } else {
                     actor_metrics.failures_total.fetch_add(1, Ordering::AcqRel);
                 }
+                actor_metrics
+                    .last_write_failed
+                    .store(result.is_err(), Ordering::Release);
+                actor_metrics.batches_total.fetch_add(1, Ordering::AcqRel);
                 if result.is_ok() {
                     if snapshot_written {
                         ordinary_events_since_snapshot = 0;
@@ -321,6 +328,38 @@ mod tests {
         assert_eq!(metrics.failures_total, 0);
         assert!(metrics.snapshot_bytes > 0);
         assert!(metrics.database_bytes >= metrics.snapshot_bytes);
+        assert!(!metrics.last_write_failed);
+
+        // Exercise a real SQLite write denial and recovery on the same actor.
+        persistence
+            .with_connection_mut(|conn| Ok(conn.pragma_update(None, "query_only", true)?))
+            .expect("deny writes in the isolated fixture");
+        let failed_state = FocusaState {
+            version: 26,
+            ..FocusaState::default()
+        };
+        assert!(
+            actor
+                .persist_checkpoint(Vec::new(), failed_state)
+                .await
+                .is_err()
+        );
+        assert!(actor.metrics().last_write_failed);
+        assert_eq!(actor.metrics().failures_total, 1);
+        persistence
+            .with_connection_mut(|conn| Ok(conn.pragma_update(None, "query_only", false)?))
+            .expect("restore fixture writes");
+        let recovered_state = FocusaState {
+            version: 27,
+            ..FocusaState::default()
+        };
+        actor
+            .persist_checkpoint(Vec::new(), recovered_state)
+            .await
+            .expect("acknowledge recovered write");
+        assert!(!actor.metrics().last_write_failed);
+        assert_eq!(actor.metrics().failures_total, 1, "retain failure history");
+        assert_eq!(persistence.load_state().unwrap().unwrap().version, 27);
         let _ = std::fs::remove_dir_all(root);
     }
 

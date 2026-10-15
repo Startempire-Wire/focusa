@@ -3141,7 +3141,7 @@ pub struct HltHistoryRequest {
 }
 
 async fn hlt_history(
-    _scope: ScopeContext,
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     Query(query): Query<HltHistoryRequest>,
 ) -> Json<Value> {
@@ -3168,23 +3168,49 @@ async fn hlt_history(
             Some(r.as_str())
         }
     });
-    // Spec 125 §7.6: session_id="current" resolves to active session, never to "any".
-    let session_filter = query.session_id.as_ref().and_then(|r| {
-        if r.trim().is_empty() || r == "current" {
-            None // "current" is resolved by caller before reaching this API
-        } else {
-            Some(r.as_str())
-        }
-    });
+    // An unresolved current session must never broaden into all sessions.
+    let session_filter = query
+        .session_id
+        .as_deref()
+        .and_then(|session| match session {
+            "current" => scope
+                .session_id
+                .as_deref()
+                .filter(|id| !id.trim().is_empty() && *id != "current"),
+            "" => None,
+            session => Some(session),
+        });
+    if query.session_id.as_deref() == Some("current") && session_filter.is_none() {
+        return Json(json!({
+            "status": "blocked",
+            "failure_class": "session_scope_unresolved",
+            "message": "Current session identity is required; history was not broadened to other sessions",
+        }));
+    }
     let include_generic = query.include_generic.unwrap_or(false);
     let include_cross_session = query.include_cross_session_fallbacks.unwrap_or(false);
-    let entries = state
-        .persistence
-        .read_hlt_ledger_entries(project_root, continuity_id, limit)
-        .unwrap_or_default();
-    // Spec 125 §7.4: filter by session if provided.
-    let filtered: Vec<_> = entries
-        .into_iter()
+    // Read once so every latest/fallback view uses the same ledger snapshot.
+    let project_entries =
+        match state
+            .persistence
+            .read_hlt_ledger_entries(project_root, None, usize::MAX)
+        {
+            Ok(entries) => entries,
+            Err(_) => {
+                return Json(json!({
+                    "status": "blocked",
+                    "failure_class": "hlt_history_unavailable",
+                    "message": "HLT history could not be read or decoded; no goal was changed",
+                    "project_root": project_root,
+                    "continuity_id": continuity_id,
+                }));
+            }
+        };
+    let filtered: Vec<_> = project_entries
+        .iter()
+        .rev()
+        .filter(|entry| continuity_id.is_none_or(|cid| entry.continuity_id.as_deref() == Some(cid)))
+        .take(limit)
         .filter(|e| {
             session_filter
                 .map(|sid| e.session_id.as_deref() == Some(sid))
@@ -3226,16 +3252,16 @@ async fn hlt_history(
             .unwrap_or(false)
             && !is_generic_bootstrap_hlt(e.new_hlt.as_str())
     });
-    let latest_valid_for_continuity = filtered
+    let latest_valid_for_continuity = project_entries
         .iter()
+        .rev()
+        .filter(|entry| continuity_id.is_none_or(|cid| entry.continuity_id.as_deref() == Some(cid)))
+        .take(limit)
         .find(|e| !is_generic_bootstrap_hlt(e.new_hlt.as_str()));
-    // For project-level, fetch all entries across continuities.
-    let project_entries = state
-        .persistence
-        .read_hlt_ledger_entries(project_root, None, limit)
-        .unwrap_or_default();
     let latest_valid_for_project = project_entries
         .iter()
+        .rev()
+        .take(limit)
         .find(|e| !is_generic_bootstrap_hlt(e.new_hlt.as_str()));
     // Spec 125 §7.3: fallback candidates.
     let mut fallback_candidates = Vec::new();
@@ -3287,6 +3313,7 @@ async fn hlt_history(
         "continuity_id": continuity_id,
         "session_id": session_filter,
         "count": entries_json.len(),
+        "entries_order": "newest_first",
         "entries": entries_json,
         "fallback_candidates": fallback_candidates,
         "latest_valid_for_session": latest_valid_for_session.map(|e| e.new_hlt.clone()),
@@ -3320,6 +3347,114 @@ mod tests {
         WorkpointCheckpointReason, WorkpointConfidence, WorkpointRecord, WorkpointStatus,
     };
     use uuid::Uuid;
+
+    #[tokio::test]
+    async fn hlt_history_preserves_latest_scope_and_reports_unreadable_ledger() {
+        use std::io::Write;
+        let (state, persistence) = crate::routes::turn::tests::setup_state(None).await;
+        let root = "/synthetic/hlt-history-fixture";
+        let query = || {
+            serde_json::from_value::<HltHistoryRequest>(json!({
+                "project_root": root, "continuity_id": "history-fixture", "limit": 50,
+            }))
+            .unwrap()
+        };
+        let empty = hlt_history(
+            ScopeContext::default(),
+            State(state.clone()),
+            Query(query()),
+        )
+        .await
+        .0;
+        assert_eq!(empty["status"], "completed");
+        assert_eq!(empty["count"], 0);
+        for (clock, goal, session) in [
+            (
+                1,
+                "Deliver a trusted desktop update without losing customer history",
+                "older-session",
+            ),
+            (
+                2,
+                "Restore accepted deployment goals and verify actual installed behavior",
+                "newer-session",
+            ),
+        ] {
+            let mut entry = focusa_core::types::HltLedgerEntry::new(
+                root.into(),
+                goal.into(),
+                "operator",
+                clock,
+            );
+            entry.continuity_id = Some("history-fixture".into());
+            entry.session_id = Some(session.into());
+            persistence.append_hlt_ledger_entry(&entry).unwrap();
+        }
+        let latest = hlt_history(
+            ScopeContext::default(),
+            State(state.clone()),
+            Query(query()),
+        )
+        .await
+        .0;
+        assert_eq!(latest["entries_order"], "newest_first");
+        assert_eq!(latest["entries"][0]["lamport_ts"], 2);
+        assert_eq!(
+            latest["latest_valid_for_continuity"],
+            latest["entries"][0]["new_hlt"]
+        );
+        let mut current = query();
+        current.session_id = Some("current".into());
+        let unresolved = hlt_history(
+            ScopeContext::default(),
+            State(state.clone()),
+            Query(current),
+        )
+        .await
+        .0;
+        assert_eq!(unresolved["failure_class"], "session_scope_unresolved");
+        let mut current = query();
+        current.session_id = Some("current".into());
+        let scoped = hlt_history(
+            ScopeContext {
+                session_id: Some("older-session".into()),
+                ..ScopeContext::default()
+            },
+            State(state.clone()),
+            Query(current),
+        )
+        .await
+        .0;
+        assert_eq!(scoped["count"], 1);
+        assert_eq!(scoped["entries"][0]["lamport_ts"], 1);
+        assert_eq!(
+            scoped["latest_valid_for_continuity"],
+            latest["latest_valid_for_continuity"]
+        );
+        let ledger = persistence.hlt_ledger_path_for_project(root);
+        std::fs::OpenOptions::new()
+            .append(true)
+            .open(&ledger)
+            .unwrap()
+            .write_all(b"not-a-valid-ledger-entry\n")
+            .unwrap();
+        let corrupt = hlt_history(
+            ScopeContext::default(),
+            State(state.clone()),
+            Query(query()),
+        )
+        .await
+        .0;
+        assert_eq!(corrupt["status"], "blocked");
+        assert_eq!(corrupt["failure_class"], "hlt_history_unavailable");
+        assert!(corrupt.get("latest_valid_for_continuity").is_none());
+        std::fs::rename(&ledger, ledger.with_extension("preserved-jsonl")).unwrap();
+        std::fs::create_dir(&ledger).unwrap();
+        let unreadable = hlt_history(ScopeContext::default(), State(state), Query(query()))
+            .await
+            .0;
+        assert_eq!(unreadable["failure_class"], "hlt_history_unavailable");
+    }
 
     fn scope_anchored_trajectory(
         claimed_root: &str,

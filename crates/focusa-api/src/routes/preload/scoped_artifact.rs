@@ -329,7 +329,7 @@ fn delivered_file(artifact: &Value, target: &str) -> Result<Value, Error> {
     if bytes != expected.as_bytes() {
         return Err(blocked("delivered_content_mismatch"));
     }
-    Ok(delivery_descriptor(artifact, target)?)
+    delivery_descriptor(artifact, target)
 }
 fn delivery_descriptor(artifact: &Value, target: &str) -> Result<Value, Error> {
     let rendered = artifact["packet"]["rendered"]

@@ -8,6 +8,8 @@ focusa status
 systemctl status focusa-daemon --no-pager -l
 ```
 
+Health `ok` proves liveness, not writable storage. Check `persistence_readiness` in health or doctor: `unknown` means no completed write was observed; `blocked` means the latest write failed; `ready` means the last observed write succeeded, not guaranteed future capacity. Cumulative failure counts remain after recovery. Restore verified quota/storage headroom or repair the actual write error, then verify the requested operation's durable acknowledgement. Health does not write a probe or restart anything.
+
 ## Skill loading problems
 
 If Pi reports `description is required`, the skill is missing YAML frontmatter. Validate with:

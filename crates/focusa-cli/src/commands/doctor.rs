@@ -647,6 +647,19 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
         .and_then(|check| check.pointer("/details/readiness_categories"))
         .cloned()
         .unwrap_or_else(|| json!({}));
+    let persistence_status = match api_readiness
+        .pointer("/persistence_readiness/status")
+        .and_then(Value::as_str)
+    {
+        Some("ready") => "completed",
+        Some("blocked") => "blocked",
+        _ => "degraded",
+    };
+    let status = if status_rank(persistence_status) > status_rank(status) {
+        persistence_status
+    } else {
+        status
+    };
     let source_blocked = checks.iter().any(|check| {
         check.get("status").and_then(Value::as_str) == Some("blocked")
             && check
@@ -690,6 +703,7 @@ pub async fn run(json_mode: bool, args: DoctorArgs) -> anyhow::Result<()> {
     };
     let readiness_categories = json!({
         "runtime_readiness": runtime_readiness,
+        "persistence_readiness": api_readiness.get("persistence_readiness").cloned().unwrap_or_else(|| json!({"status":"unknown", "reason":"the daemon did not report persistence readiness"})),
         "project_scope_readiness": api_readiness.get("project_scope_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"project scope is checked by project identity/verify routes"})),
         "workpoint_readiness": api_readiness.get("workpoint_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"workpoint current check is advisory in CLI doctor"})),
         "trajectory_readiness": api_readiness.get("trajectory_readiness").cloned().unwrap_or_else(|| json!({"status":"not_checked", "reason":"trajectory view is not required for CLI runtime doctor"})),

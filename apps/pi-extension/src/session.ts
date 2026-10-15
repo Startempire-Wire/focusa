@@ -1008,8 +1008,12 @@ async function promptForTrajectoryIfNeeded(
     const query = new URLSearchParams({ project_root: projectRoot, continuity_id: promptContinuity, limit: "50" });
     const history = await focusaFetch(`/hlt/history?${query}`).catch(() => null);
     if (!promptStillCurrent()) return;
-    if (history?.status !== "completed") {
+    if (history?.status !== "completed" || !Array.isArray(history.entries)) {
       ctx.ui.notify("The previous goal could not be read. Nothing was changed.", "warning");
+      return;
+    }
+    if (Array.isArray(history.entries) && history.entries.length > 1 && history.entries_order !== "newest_first") {
+      ctx.ui.notify("The daemon cannot confirm newest-first goal history. Nothing was changed.", "warning");
       return;
     }
     const previous = Array.isArray(history.entries) ? history.entries[0] : null;

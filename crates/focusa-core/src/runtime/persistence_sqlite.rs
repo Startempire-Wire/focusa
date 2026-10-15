@@ -2063,18 +2063,18 @@ impl SqlitePersistence {
     ) -> anyhow::Result<Vec<HltLedgerEntry>> {
         let ledger_dir = hlt_ledger_dir_for_project(&self.data_dir, project_root);
         let ledger_file = ledger_dir.join("hlt.jsonl");
-        if !ledger_file.exists() {
-            return Ok(Vec::new());
+        let content = match std::fs::read_to_string(&ledger_file) {
+            Ok(content) => content,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(error) => return Err(error.into()),
+        };
+        let mut entries = Vec::new();
+        for line in content.lines().filter(|line| !line.trim().is_empty()) {
+            let entry: HltLedgerEntry = serde_json::from_str(line)?;
+            if continuity_id.is_none_or(|cid| entry.continuity_id.as_deref() == Some(cid)) {
+                entries.push(entry);
+            }
         }
-        let content = std::fs::read_to_string(&ledger_file)?;
-        let entries: Vec<HltLedgerEntry> = content
-            .lines()
-            .filter_map(|line| serde_json::from_str(line).ok())
-            .filter(|entry: &HltLedgerEntry| match continuity_id {
-                Some(cid) => entry.continuity_id.as_deref() == Some(cid),
-                None => true,
-            })
-            .collect();
         // Return most recent `limit` entries
         let start = entries.len().saturating_sub(limit);
         Ok(entries[start..].to_vec())

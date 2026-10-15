@@ -4,10 +4,33 @@ use crate::routes::bounded::resource_mode_status;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
+use focusa_core::runtime::persistence_actor::PersistenceActorMetricsSnapshot;
 use serde_json::{Value, json};
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
+
+fn persistence_readiness(metrics: Option<&PersistenceActorMetricsSnapshot>) -> Value {
+    let (status, reason) = match metrics {
+        Some(metrics) if metrics.last_write_failed => (
+            "blocked",
+            "latest persistence write failed; restore storage/quota headroom or repair the reported write error",
+        ),
+        Some(metrics) if metrics.batches_total > 0 => (
+            "ready",
+            "last observed persistence write succeeded; each mutation still requires its durable acknowledgement",
+        ),
+        _ => (
+            "unknown",
+            "no completed persistence write has been observed",
+        ),
+    };
+    json!({
+        "status": status,
+        "reason": reason,
+        "failure_class": if status == "blocked" { Some("persistence_write_failed") } else { None },
+    })
+}
 
 async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let data_dir = std::path::PathBuf::from(&state.config.data_dir);
@@ -15,13 +38,18 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         tokio::task::spawn_blocking(move || super::events_retention::retention_health(&data_dir))
             .await
             .unwrap_or_else(|error| json!({"status":"unavailable", "error":error.to_string()}));
+    let persistence = state
+        .persistence_actor
+        .as_ref()
+        .map(|actor| actor.metrics());
     Json(json!({
         "ok": true,
         "status": "ok",
         "version": env!("CARGO_PKG_VERSION"),
         "daemon": &state.daemon_runtime_identity.process,
         "uptime_ms": state.started_at.elapsed().as_millis() as u64,
-        "persistence": state.persistence_actor.as_ref().map(|actor| actor.metrics()),
+        "persistence_readiness": persistence_readiness(persistence.as_ref()),
+        "persistence": persistence,
         "event_retention": retention,
     }))
 }
@@ -203,6 +231,11 @@ fn portability_doctor_payload() -> Value {
 }
 
 async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    let persistence = state
+        .persistence_actor
+        .as_ref()
+        .map(|actor| actor.metrics());
+    let persistence_readiness = persistence_readiness(persistence.as_ref());
     let resource_mode = resource_mode_status();
     let portability = portability_doctor_payload();
     let s = state.focusa.read().await;
@@ -245,6 +278,13 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     let base_mutations_allowed = base_product
         .as_ref()
         .is_some_and(|projection| projection.permits_base_mutations);
+    let runtime_status = if !base_mutations_allowed {
+        "blocked"
+    } else {
+        persistence_readiness["status"]
+            .as_str()
+            .unwrap_or("unknown")
+    };
     let project_scope_ready = base_mutations_allowed
         && active_workpoint.is_some_and(|record| {
             record.canonical
@@ -259,13 +299,14 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         });
     let readiness_categories = json!({
         "runtime_readiness": {
-            "status": if base_mutations_allowed { "ready" } else { "blocked" },
-            "reason": if base_mutations_allowed { "daemon is reachable and base mutations are allowed" } else { "daemon is reachable but signed authority blocks base mutations" },
+            "status": runtime_status,
+            "reason": if !base_mutations_allowed { "daemon is reachable but signed authority blocks base mutations" } else { persistence_readiness["reason"].as_str().unwrap_or("persistence readiness is unknown") },
             "scope": "runtime",
             "process": &state.daemon_runtime_identity.process,
             "data_store": crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir),
             "base_product": base_product,
         },
+        "persistence_readiness": persistence_readiness,
         "project_scope_readiness": {
             "status": if project_scope_ready { "ready" } else { "blocked" },
             "reason": if project_scope_ready { "canonical Workpoint, project root, continuity, and write authority agree" } else { "project readiness requires write authority plus one canonical Workpoint with project root and continuity" },
@@ -305,8 +346,8 @@ async fn doctor(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
         },
     });
     Json(json!({
-        "status": if base_mutations_allowed { "ok" } else { "blocked" },
-        "summary": if base_mutations_allowed { "Focusa daemon is reachable and permits base mutations" } else { "Focusa daemon is reachable but not operational for governed work" },
+        "status": if runtime_status == "ready" { "ok" } else { runtime_status },
+        "summary": if runtime_status == "ready" { "Focusa daemon is reachable, permits base mutations and last observed a successful persistence write" } else if !base_mutations_allowed { "Focusa daemon is reachable but not operational for governed work" } else { "Focusa daemon is reachable but persistence readiness is not confirmed; inspect persistence_readiness" },
         "readiness_categories": readiness_categories,
         "daemon": {
             "ok": true,
@@ -416,6 +457,36 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn persistence_readiness_tracks_failure_and_recovery_without_erasing_history() {
+        let fresh =
+            focusa_core::runtime::persistence_actor::PersistenceActorMetrics::default().snapshot();
+        let failed = PersistenceActorMetricsSnapshot {
+            batches_total: 1,
+            failures_total: 1,
+            last_write_failed: true,
+            ..fresh.clone()
+        };
+        let recovered = PersistenceActorMetricsSnapshot {
+            batches_total: 2,
+            last_write_failed: false,
+            ..failed.clone()
+        };
+        for (metrics, expected) in [
+            (None, "unknown"),
+            (Some(&fresh), "unknown"),
+            (Some(&failed), "blocked"),
+            (Some(&recovered), "ready"),
+        ] {
+            assert_eq!(persistence_readiness(metrics)["status"], expected);
+        }
+        assert_eq!(
+            persistence_readiness(Some(&failed))["failure_class"],
+            "persistence_write_failed"
+        );
+        assert!(persistence_readiness(Some(&recovered))["failure_class"].is_null());
+    }
 
     #[test]
     fn doctor_contract_count_matches_bundled_registry() {

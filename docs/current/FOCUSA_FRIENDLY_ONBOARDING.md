@@ -10,7 +10,7 @@ Use [the cohesive project journey](../agent/02-focusa-cohesive-project-flow.md).
 
 ## Goal continuity and session routes
 
-The source restore-goal action reads the latest applicable accepted HLT from the existing scoped history owner; it does not substitute an “improve this repository” draft. Missing/unreadable or mismatched history changes nothing and explains why. Cancel/skip stay nonmutating, and a fresh request or superseded session fences an in-flight prompt. Native installed acceptance remains separate from source tests.
+The source restore-goal action reads the latest applicable accepted HLT from the existing scoped history owner; it does not substitute an “improve this repository” draft. Missing/unreadable or mismatched history changes nothing and explains why. Malformed history is unavailable, not empty; multiple entries must carry the daemon's newest-first guarantee before automatic restoration, including when an older daemon is used. Cancel/skip stay nonmutating, and a fresh request or superseded session fences an in-flight prompt. Native installed acceptance remains separate from source tests.
 
 [Spec187's session-routing requirement](../187-focusa-autonomous-agentic-flow-state-release-workset-spec.md#required-session-routes-project-or-goal-directed-ad-hoc) requires either reuse/completion of a full project trajectory or a labelled ad hoc session with a retained working objective. Ad hoc must intelligently suggest goals when useful, not become goal-less or interrupt an obvious authorized task with another approval ritual. These route/admission changes are release work, not a claim that an ad hoc label already bypasses current setup or permission requirements.
 
