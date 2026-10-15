@@ -4,6 +4,7 @@ import { readFileSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import ts from 'typescript';
 import { loadPureTypeScript, loadRegisteredTool } from './helpers/registered-tool-harness.mjs';
 import { loadSourceSection } from './helpers/source-section-harness.mjs';
@@ -635,7 +636,7 @@ test('missing exact text does not reconstruct request authority from a frame goa
 // retired recoverably by the owning runner rather than recursively deleted.
 function withRealSidecar(callback) {
   const previous = process.env.FOCUSA_DATA_DIR;
-  process.env.FOCUSA_DATA_DIR = mkdtempSync(join(process.cwd(), '.sidecar-regression-'));
+  process.env.FOCUSA_DATA_DIR = mkdtempSync(join(tmpdir(), 'focusa-sidecar-regression-'));
   try { callback(process.env.FOCUSA_DATA_DIR); }
   finally {
     if (previous === undefined) delete process.env.FOCUSA_DATA_DIR;

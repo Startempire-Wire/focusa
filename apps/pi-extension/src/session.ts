@@ -594,9 +594,7 @@ function trajectoryDraftOptions(
   const projectName = projectNameFromRoot(projectRoot);
   const ask = currentAskForProject(projectRoot);
   const workpointMission = scopedWorkpointSeed(projectRoot);
-  const frameGoal = "";
-  const focus = "";
-  const seed = workpointMission || ask || `Improve ${projectName}`;
+  const seed = ask || workpointMission || `Improve ${projectName}`;
   const short = ask || workpointMission || `Continue ${projectName} work`;
   const current = "Current verified state unclear";
   const repoGoal = `Improve and verify ${projectName} as the active project`;

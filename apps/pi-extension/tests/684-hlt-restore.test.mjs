@@ -22,7 +22,7 @@ function harness({ choice = 'D)', response = history(), onSelect, onHistory, onI
   const lifecycle = { current: true };
   const options = loadSourceSection('session.ts', 'function trajectoryDraftOptions(', 'function workpointDraftOptions(', {
     projectNameFromRoot: () => 'fixture-project', currentAskForProject: () => runtime.currentAsk.text,
-    scopedWorkpointSeed: () => '',
+    scopedWorkpointSeed: () => runtime.savedWorkpointMission || '',
   }, 'trajectoryDraftOptions');
   const prompt = loadSourceSection('session.ts', 'async function promptForTrajectoryIfNeeded(', 'function seedCurrentAskFromPersistedState(', {
     getAttachmentRuntime: () => runtime, getContinuityId: () => continuity,
@@ -55,6 +55,9 @@ const mutations = (value) => value.calls.filter((call) => call.opts?.method === 
 
 test('actual restore selection reads scoped history and preserves the complete accepted goal', async () => {
   const value = harness();
+  value.runtime.savedWorkpointMission = 'Previous scoped work, not the current operator objective.';
+  assert.equal(value.options(root).find((option) => option.label.startsWith('B)')).draft.long_term_goal,
+    value.runtime.currentAsk.text, 'the current-ask candidate must not be replaced by an older mission');
   assert.equal(value.options(root).find((option) => option.label.startsWith('D)')).draft, null);
   await value.run();
   const query = new URL('http://fixture.invalid' + value.calls[0].path).searchParams;

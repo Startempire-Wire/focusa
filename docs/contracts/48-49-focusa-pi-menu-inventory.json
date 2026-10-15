@@ -1,7 +1,7 @@
 {
   "schema": "focusa.pi_menu_inventory.v1",
   "generated": true,
-  "source_sha256": "b84289c1526e03de639be5266503964543854f7089d4b0dcb1982178979b6e84",
+  "source_sha256": "b9f7a9f99cdc6061a5b9d14c2a92ba3c319ac67aefc0a1c404ed759a8983cc09",
   "baseline": {
     "top_level_commands": 9,
     "simple_settings": 11,
