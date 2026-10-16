@@ -84,6 +84,13 @@ command `run a` is
 
 ## Local compile/verify CLI contract
 
+`procedure describe --json` exposes `focusa.procedure_capabilities.v1` from
+this binary: exact definition/preview/verification/digest schema references,
+binary version and local-only, non-canonical, non-dispatching capability flags.
+Consumers probe this contract instead of inferring support from a package
+version or a generated tool alias. It is a projection of the compiler's own
+constants, not another registry or an installed-daemon capability claim.
+
 The source CLI exposes `procedure compile --definition <json-file>` and
 `procedure verify --definition <json-file> --plan <preview-json-file>`.
 These reuse the core compiler and verifier; they neither contact/start a

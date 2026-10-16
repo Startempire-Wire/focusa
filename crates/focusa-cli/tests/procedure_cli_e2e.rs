@@ -64,6 +64,7 @@ fn actual_cli_discovery_comes_from_the_native_parser() {
     let commands = help["native_commands"].as_array().unwrap();
     for command in [
         "focusa procedure",
+        "focusa procedure describe",
         "focusa procedure compile",
         "focusa procedure verify",
     ] {
@@ -71,6 +72,30 @@ fn actual_cli_discovery_comes_from_the_native_parser() {
     }
     assert!(help["agent_commands"].is_array());
     assert_eq!(help["schema"], "focusa.command_help.v1");
+}
+
+#[test]
+fn actual_binary_describes_exact_supported_contracts_without_authority() {
+    let output = Command::new(BIN)
+        .args(["--json", "procedure", "describe"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let descriptor: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let f = Fixture::new();
+    let preview: Value = serde_json::from_slice(&f.compile().stdout).unwrap();
+    assert_eq!(descriptor["schema"], "focusa.procedure_capabilities.v1");
+    assert_eq!(descriptor["definition_schema"], "focusa.procedure.v1");
+    assert_eq!(descriptor["preview_schema"], preview["schema"]);
+    assert_eq!(descriptor["digest_schema"], preview["digest_schema"]);
+    assert_eq!(
+        descriptor["verification_schema"],
+        "focusa.procedure_verification.v1"
+    );
+    assert_eq!(descriptor["canonical"], false);
+    assert_eq!(descriptor["execution_authorized"], false);
+    assert_eq!(descriptor["dispatch_supported"], false);
+    assert_eq!(descriptor["daemon_required"], false);
 }
 
 #[test]

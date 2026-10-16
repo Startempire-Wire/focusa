@@ -74,11 +74,16 @@ actual parser paths through `focusa --json help all` → `native_commands`;
 these are derived from Clap, separately from generated `agent_commands` aliases:
 
 ```bash
+focusa --json procedure describe
 focusa --json procedure compile --definition "$DEFINITION" > "$PREVIEW"
 focusa --json procedure verify --definition "$DEFINITION" --plan "$PREVIEW"
 ```
 
-Both commands are local and advisory: no daemon startup, dispatch, activation,
+`describe` reports the exact input/output/digest contracts supported by this
+binary, with explicit non-dispatch/authority flags. Use that handshake rather
+than assuming support from a version number.
+
+Compile and verify are local and advisory: no daemon startup, dispatch, activation,
 canonical state or execution grant. Compile uses `focusa.procedure.v1` input
 and emits `focusa.procedure_preview.v1` with the complete v2 plan digest,
 `canonical:false` and `execution_authorized:false`. Verify consumes that exact
