@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const PROCEDURE_SCHEMA: &str = "focusa.procedure.v1";
+/// Domain-separated identity contract; legacy unframed digests are not v2.
+pub const PROCEDURE_DIGEST_SCHEMA: &str = "focusa.procedure-plan.digest.v2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -107,12 +109,16 @@ pub fn compile_plan(procedure: &Procedure) -> Result<ExecutionPlan, String> {
             rollback_of: step.rollback_step.clone(),
         });
     }
+    // Hash the typed source, not only the display IDs/commands. Struct field
+    // order and Vec step order are deterministic; JSON frames every string.
+    // This binds version, step kind, effect, explicit confirmation and rollback
+    // meaning, including distinctions that derived plan projections can omit.
+    let canonical = serde_json::to_vec(procedure)
+        .map_err(|_| "procedure digest serialization failed".to_string())?;
     let mut hasher = Sha256::new();
-    hasher.update(procedure.procedure_id.as_bytes());
-    for step in &procedure.steps {
-        hasher.update(step.step_id.as_bytes());
-        hasher.update(step.command.as_bytes());
-    }
+    hasher.update(PROCEDURE_DIGEST_SCHEMA.as_bytes());
+    hasher.update([0]);
+    hasher.update(&canonical);
     let digest = format!("sha256:{}", hex(&hasher.finalize()));
     Ok(ExecutionPlan {
         procedure_id: procedure.procedure_id.clone(),
@@ -130,6 +136,93 @@ fn hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn digest_fixture() -> Procedure {
+        Procedure {
+            schema: PROCEDURE_SCHEMA.to_string(),
+            procedure_id: "digest-fixture".to_string(),
+            version: 1,
+            steps: vec![step("a", StepKind::Shell, EffectClass::Local, None)],
+        }
+    }
+
+    #[test]
+    fn digest_v2_matches_independent_golden_and_rejects_legacy_alias() {
+        let procedure = digest_fixture();
+        let plan = compile_plan(&procedure).unwrap();
+        // Independently generated from the published compact JSON field order
+        // plus the versioned domain separator, not from this compiler helper.
+        assert_eq!(
+            plan.digest,
+            "sha256:5f068c6abb4a2d2f67231fcda8aa108e05cc31aa5da1b6922177fd0af6290cec"
+        );
+        assert_ne!(
+            plan.digest,
+            "sha256:8b27f6e482ed735abf012d1f457b52edbd236569efbfa07f891bc320c8bbde65"
+        );
+        let mut unsupported = procedure;
+        unsupported.schema = "focusa.procedure.unsupported".to_string();
+        assert!(compile_plan(&unsupported).is_err());
+    }
+
+    #[test]
+    fn digest_binds_every_governed_input() {
+        let base = digest_fixture();
+        let digest = compile_plan(&base).unwrap().digest;
+        let mut variants = Vec::new();
+        let mut p = base.clone();
+        p.version += 1;
+        variants.push(("version", p));
+        let mut p = base.clone();
+        p.steps[0].kind = StepKind::Api;
+        variants.push(("kind", p));
+        let mut p = base.clone();
+        p.steps[0].effect_class = EffectClass::Financial;
+        variants.push(("effect", p));
+        let mut p = base.clone();
+        p.steps[0].require_confirmation = true;
+        variants.push(("confirmation", p));
+        let mut p = base.clone();
+        p.steps[0].rollback_step = Some("undo-a".to_string());
+        variants.push(("rollback", p));
+        let mut p = base.clone();
+        p.steps[0].command = "different operation".to_string();
+        variants.push(("command", p));
+        let mut p = base.clone();
+        p.steps[0].step_id = "different-id".to_string();
+        variants.push(("step identity", p));
+        let mut p = base.clone();
+        p.procedure_id = "another-procedure".to_string();
+        variants.push(("procedure identity", p));
+        for (meaning, changed) in variants {
+            assert_ne!(
+                digest,
+                compile_plan(&changed).unwrap().digest,
+                "{meaning} disappeared from plan identity"
+            );
+        }
+        let mut ordered = base;
+        ordered
+            .steps
+            .push(step("b", StepKind::Agent, EffectClass::None, None));
+        let before = compile_plan(&ordered).unwrap().digest;
+        ordered.steps.reverse();
+        assert_ne!(before, compile_plan(&ordered).unwrap().digest);
+    }
+
+    #[test]
+    fn digest_does_not_alias_unframed_step_strings() {
+        let mut left = digest_fixture();
+        left.steps[0].step_id = "a".to_string();
+        left.steps[0].command = "bc".to_string();
+        let mut right = left.clone();
+        right.steps[0].step_id = "ab".to_string();
+        right.steps[0].command = "c".to_string();
+        assert_ne!(
+            compile_plan(&left).unwrap().digest,
+            compile_plan(&right).unwrap().digest
+        );
+    }
 
     fn step(id: &str, kind: StepKind, effect: EffectClass, rollback: Option<&str>) -> Step {
         Step {

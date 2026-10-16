@@ -47,6 +47,28 @@ pack := { pack_id, procedures: ProcedureRef[], owner_ref, digest }
 3. A pack runs identically on the CLI, Pi, and Cockpit (one compiler).
 4. Procedure digests verify before execution.
 
+## Core plan identity contract
+
+`PROCEDURE_DIGEST_SCHEMA = focusa.procedure-plan.digest.v2` identifies
+this encoding: SHA-256 over its UTF-8 bytes, one zero byte, then
+`serde_json::to_vec(Procedure)`. Typed struct field order and step order
+are part of the contract. The complete source includes schema, procedure
+identity/version and every step's identity, kind, effect, explicit
+confirmation, rollback reference and command. Output remains
+`sha256:<lowercase hex>`.
+
+Legacy concatenated-ID/command digests do not qualify v2 plans; callers
+must recompile and review rather than reuse old approval/cache identity.
+The procedure wire schema remains v1. Unsupported schemas remain rejected.
+This core correction does not implement dispatch, admit a run, or grant
+execution authority. Runtime migration and cross-surface acceptance remain
+required for the later slices below.
+
+The independently generated test vector for procedure `digest-fixture`,
+version 1, shell/local step `a`, confirmation false, null rollback and
+command `run a` is
+`sha256:5f068c6abb4a2d2f67231fcda8aa108e05cc31aa5da1b6922177fd0af6290cec`.
+
 ## Slices (IR2+)
 
 1. Core: Procedure/Step/Pack types + deterministic plan compiler +
