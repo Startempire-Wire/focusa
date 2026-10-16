@@ -1,7 +1,7 @@
 //! Consumer boundary: persisted plans are untrusted even when their digest is retained.
 use focusa_core::procedure_compiler::{
-    compile_plan, verify_plan, EffectClass, ExecutionPlan, Procedure, Step, StepKind,
-    PROCEDURE_SCHEMA,
+    EffectClass, ExecutionPlan, PROCEDURE_SCHEMA, Procedure, Step, StepKind, compile_plan,
+    verify_plan,
 };
 
 fn source() -> Procedure {
