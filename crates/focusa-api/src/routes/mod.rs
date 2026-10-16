@@ -26,6 +26,7 @@ mod callgraph_validation_test;
 pub mod capabilities;
 pub mod capabilities_extra;
 pub mod clt;
+pub mod procedure;
 // Compiled for consumer validation; HTTP registration awaits scoped acceptance.
 pub mod cockpit;
 pub mod commands;

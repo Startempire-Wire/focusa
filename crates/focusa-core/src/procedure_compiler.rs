@@ -9,6 +9,8 @@ use sha2::{Digest, Sha256};
 pub const PROCEDURE_SCHEMA: &str = "focusa.procedure.v1";
 /// Domain-separated identity contract; legacy unframed digests are not v2.
 pub const PROCEDURE_DIGEST_SCHEMA: &str = "focusa.procedure-plan.digest.v2";
+pub const PROCEDURE_PREVIEW_SCHEMA: &str = "focusa.procedure_preview.v1";
+pub const PROCEDURE_VERIFICATION_SCHEMA: &str = "focusa.procedure_verification.v1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -63,6 +65,59 @@ pub struct ExecutionPlan {
     pub digest: String,
 }
 
+/// Shared transport contract: a preview never represents admission or a grant.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProcedurePreview {
+    pub schema: String,
+    pub digest_schema: String,
+    pub canonical: bool,
+    pub execution_authorized: bool,
+    pub plan: ExecutionPlan,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProcedureVerification {
+    pub schema: String,
+    pub verified: bool,
+    pub digest_schema: String,
+    pub canonical: bool,
+    pub execution_authorized: bool,
+}
+
+pub fn compile_preview(procedure: &Procedure) -> Result<ProcedurePreview, String> {
+    Ok(ProcedurePreview {
+        schema: PROCEDURE_PREVIEW_SCHEMA.into(),
+        digest_schema: PROCEDURE_DIGEST_SCHEMA.into(),
+        canonical: false,
+        execution_authorized: false,
+        plan: compile_plan(procedure)?,
+    })
+}
+
+pub fn verify_preview(
+    procedure: &Procedure,
+    preview: &ProcedurePreview,
+) -> Result<ProcedureVerification, String> {
+    if preview.schema != PROCEDURE_PREVIEW_SCHEMA
+        || preview.digest_schema != PROCEDURE_DIGEST_SCHEMA
+    {
+        return Err("unsupported procedure preview or digest schema".into());
+    }
+    if preview.canonical || preview.execution_authorized {
+        return Err("procedure preview cannot claim canonical or execution authority".into());
+    }
+    verify_plan(procedure, &preview.plan)?;
+    Ok(ProcedureVerification {
+        schema: PROCEDURE_VERIFICATION_SCHEMA.into(),
+        verified: true,
+        digest_schema: PROCEDURE_DIGEST_SCHEMA.into(),
+        canonical: false,
+        execution_authorized: false,
+    })
+}
+
 /// Deterministic plan compile: confirmation flags (explicit OR
 /// effect-class-mandated), handoff markers, digest, and reverse
 /// rollback ordering over steps that declare a rollback step.
@@ -99,7 +154,7 @@ pub fn compile_plan(procedure: &Procedure) -> Result<ExecutionPlan, String> {
             step.require_confirmation || step.effect_class.requires_confirmation();
         let handoff_required = matches!(step.kind, StepKind::HumanHandoff | StepKind::Approval);
         if step.rollback_step.is_some() {
-            rollback_order.insert(0, step.step_id.clone());
+            rollback_order.push(step.step_id.clone());
         }
         plan_steps.push(PlanStep {
             step_id: step.step_id.clone(),
@@ -109,6 +164,8 @@ pub fn compile_plan(procedure: &Procedure) -> Result<ExecutionPlan, String> {
             rollback_of: step.rollback_step.clone(),
         });
     }
+    // Reverse once: preserve exact compensation order without quadratic inserts.
+    rollback_order.reverse();
     // Hash the typed source, not only the display IDs/commands. Struct field
     // order and Vec step order are deterministic; JSON frames every string.
     // This binds version, step kind, effect, explicit confirmation and rollback

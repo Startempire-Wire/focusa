@@ -234,6 +234,16 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
     if path.starts_with("/v1/release") || path.starts_with("/v1/commands") {
         return "admin:service";
     }
+    // Only these exact stateless compiler POSTs are read projections. Future
+    // procedure execution routes retain the default service-admin boundary.
+    if method == Method::POST
+        && matches!(
+            path,
+            "/v1/procedures/preview" | "/v1/procedures/verify-preview"
+        )
+    {
+        return "read:*";
+    }
     if method == Method::GET {
         "read:*"
     } else {
@@ -260,6 +270,26 @@ pub async fn route_scope_layer(req: Request, next: Next) -> Result<Response, Sta
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_exact_stateless_procedure_previews_use_read_scope() {
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/procedures/preview"),
+            "read:*"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/procedures/verify-preview"),
+            "read:*"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/procedures/execute"),
+            "admin:service"
+        );
+        assert_eq!(
+            route_scope(&Method::DELETE, "/v1/procedures/preview"),
+            "admin:service"
+        );
+    }
 
     #[test]
     fn mutation_routes_require_write_or_control_scopes() {

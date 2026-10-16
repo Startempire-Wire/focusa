@@ -639,6 +639,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::trajectory::router())
         .merge(routes::call_stack::router())
         .merge(routes::callgraph::router())
+        .merge(routes::procedure::router())
         .merge(routes::context_cognition::router())
         .merge(routes::context_sources::router())
         .merge(routes::context_claims::router())

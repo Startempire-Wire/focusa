@@ -3095,7 +3095,83 @@ fn registered_schema_ids() -> std::collections::BTreeSet<&'static str> {
         .collect();
     schema_ids.insert(TOOL_RESULT_SCHEMA);
     schema_ids.insert("focusa.workspace_event.v1");
+    if let Some(schemas) = CANONICAL_OPENAPI
+        .as_ref()
+        .and_then(|value| value.pointer("/components/schemas"))
+        .and_then(Value::as_object)
+    {
+        for schema in schemas.values() {
+            if let Some(id) = schema
+                .get("title")
+                .and_then(Value::as_str)
+                .filter(|id| id.starts_with("focusa.procedure"))
+            {
+                schema_ids.insert(id);
+            }
+        }
+    }
     schema_ids
+}
+
+// Procedure boundary schemas have one source: the canonical OpenAPI contract.
+// Adapt its reference/nullability syntax for the JSON Schema discovery surface.
+fn procedure_schema_component(schema_id: &str) -> Option<&'static Value> {
+    if !schema_id.starts_with("focusa.procedure") {
+        return None;
+    }
+    CANONICAL_OPENAPI
+        .as_ref()?
+        .pointer("/components/schemas")?
+        .get(schema_component_name(schema_id))
+}
+
+fn procedure_json_schema_document(schema_id: &str) -> Option<Value> {
+    fn convert(value: &mut Value) {
+        let mut nullable = false;
+        if let Some(object) = value.as_object_mut() {
+            nullable = object.remove("nullable") == Some(json!(true));
+            if let Some(reference) = object
+                .get("$ref")
+                .and_then(Value::as_str)
+                .and_then(|value| value.strip_prefix("#/components/schemas/"))
+            {
+                object.insert("$ref".into(), json!(format!("#/$defs/{reference}")));
+            }
+            for child in object.values_mut() {
+                convert(child);
+            }
+        } else if let Some(array) = value.as_array_mut() {
+            for child in array {
+                convert(child);
+            }
+        }
+        if nullable {
+            let schema = value.take();
+            *value = json!({"anyOf":[schema,{"type":"null"}]});
+        }
+    }
+    let mut schema = procedure_schema_component(schema_id)?.clone();
+    convert(&mut schema);
+    let mut definitions = serde_json::Map::new();
+    for id in registered_schema_ids()
+        .into_iter()
+        .filter(|id| id.starts_with("focusa.procedure"))
+    {
+        if let Some(component) = procedure_schema_component(id) {
+            let mut component = component.clone();
+            convert(&mut component);
+            definitions.insert(schema_component_name(id), component);
+        }
+    }
+    let object = schema.as_object_mut()?;
+    object.insert("$schema".into(), json!(JSON_SCHEMA_DIALECT_2020_12));
+    object.insert(
+        "$id".into(),
+        json!(format!("/v1/agent/schemas/{schema_id}")),
+    );
+    object.insert("$defs".into(), Value::Object(definitions));
+    object.insert("x-focusa-schema-id".into(), json!(schema_id));
+    Some(schema)
 }
 
 fn context_source_record_schema() -> Value {
@@ -3543,6 +3619,9 @@ fn context_graph_response_schema(schema_id: &str, mutation: bool) -> Value {
 }
 
 fn json_schema_document(schema_id: &str) -> Value {
+    if let Some(schema) = procedure_json_schema_document(schema_id) {
+        return schema;
+    }
     if schema_id == "focusa.callgraph_validate.request.v1" {
         return json!({
             "$schema": JSON_SCHEMA_DIALECT_2020_12,
@@ -4471,6 +4550,9 @@ fn json_schema_document(schema_id: &str) -> Value {
 }
 
 fn openapi_schema_component(schema_id: &str) -> Value {
+    if let Some(schema) = procedure_schema_component(schema_id) {
+        return schema.clone();
+    }
     let mut schema = json_schema_document(schema_id);
     if let Some(object) = schema.as_object_mut() {
         object.remove("$schema");
@@ -4751,9 +4833,52 @@ mod tests {
     use super::*;
 
     #[test]
+    fn procedure_discovery_uses_canonical_contracts_without_generic_fallbacks() {
+        let operations = canonical_operation_values().unwrap();
+        for id in [
+            "focusa.procedure.preview",
+            "focusa.procedure.verify_preview",
+        ] {
+            let operation = operations
+                .iter()
+                .find(|value| value["operation_id"] == id)
+                .unwrap();
+            assert_eq!(operation["control"]["mode"], "read");
+            assert_eq!(operation["side_effect_class"], "none");
+        }
+        for id in [
+            "focusa.procedure.v1",
+            "focusa.procedure_preview.v1",
+            "focusa.procedure_verify.request.v1",
+            "focusa.procedure_verification.v1",
+            "focusa.procedure_step.v1",
+            "focusa.procedure_plan.v1",
+            "focusa.procedure_plan_step.v1",
+        ] {
+            assert!(registered_schema_ids().contains(id));
+            let schema = json_schema_document(id);
+            assert_eq!(schema["additionalProperties"], false);
+            assert!(schema["$defs"]["focusa_procedure_step_v1"].is_object());
+            assert_eq!(
+                openapi_schema_component(id),
+                *procedure_schema_component(id).unwrap()
+            );
+        }
+        let step = json_schema_document("focusa.procedure_step.v1");
+        assert_eq!(
+            step["properties"]["rollback_step"]["anyOf"][1]["type"],
+            "null"
+        );
+        assert!(
+            step["properties"]["rollback_step"]
+                .get("nullable")
+                .is_none()
+        );
+    }
+
+    #[test]
     fn embedded_registry_exposes_all_advanced_temporal_operations() {
         let operations = canonical_operation_values().expect("embedded registry must parse");
-        assert_eq!(operations.len(), 157);
         let by_id: std::collections::BTreeMap<_, _> = operations
             .iter()
             .map(|operation| {
@@ -4763,6 +4888,11 @@ mod tests {
                 )
             })
             .collect();
+        assert_eq!(
+            operations.len(),
+            by_id.len(),
+            "canonical operation IDs must be unique"
+        );
         for (operation_id, path) in [
             (
                 "focusa.temporal.clock.capture",

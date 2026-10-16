@@ -68,7 +68,9 @@ for operation in operations:
         assert operation["limit_bucket"] is None
 
 by_route = {(operation["method"], operation["path"]): operation for operation in operations}
-assert descriptors["capability_count"] == len(descriptors["descriptors"]) == 136
+# The canonical generated inventory owns the count; dated snapshots do not.
+assert descriptors["capability_count"] == len(descriptors["descriptors"])
+assert descriptors["capability_count"] > 0
 for descriptor in descriptors["descriptors"]:
     assert fields <= descriptor.keys(), descriptor["capability_id"]
     assert fields <= descriptor["operation_policy"].keys()

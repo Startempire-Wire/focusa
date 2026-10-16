@@ -13137,6 +13137,282 @@
             "type": "boolean"
           }
         }
+      },
+      "focusa_procedure_step_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "step_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "shell",
+              "api",
+              "agent",
+              "human_handoff",
+              "approval"
+            ]
+          },
+          "effect_class": {
+            "type": "string",
+            "enum": [
+              "none",
+              "local",
+              "external",
+              "destructive",
+              "financial",
+              "security"
+            ]
+          },
+          "require_confirmation": {
+            "type": "boolean"
+          },
+          "rollback_step": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "nullable": true
+          },
+          "command": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
+        "required": [
+          "step_id",
+          "kind",
+          "effect_class",
+          "require_confirmation",
+          "command"
+        ],
+        "title": "focusa.procedure_step.v1"
+      },
+      "focusa_procedure_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema": {
+            "type": "string",
+            "enum": [
+              "focusa.procedure.v1"
+            ]
+          },
+          "procedure_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 18446744073709551615
+          },
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/focusa_procedure_step_v1"
+            }
+          }
+        },
+        "required": [
+          "schema",
+          "procedure_id",
+          "version",
+          "steps"
+        ],
+        "title": "focusa.procedure.v1"
+      },
+      "focusa_procedure_plan_step_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "step_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "effect_class": {
+            "type": "string",
+            "enum": [
+              "none",
+              "local",
+              "external",
+              "destructive",
+              "financial",
+              "security"
+            ]
+          },
+          "confirmation_required": {
+            "type": "boolean"
+          },
+          "handoff_required": {
+            "type": "boolean"
+          },
+          "rollback_of": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "nullable": true
+          }
+        },
+        "required": [
+          "step_id",
+          "effect_class",
+          "confirmation_required",
+          "handoff_required",
+          "rollback_of"
+        ],
+        "title": "focusa.procedure_plan_step.v1"
+      },
+      "focusa_procedure_plan_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "procedure_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 18446744073709551615
+          },
+          "plan_steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/focusa_procedure_plan_step_v1"
+            }
+          },
+          "rollback_order": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "procedure_id",
+          "version",
+          "plan_steps",
+          "rollback_order",
+          "digest"
+        ],
+        "title": "focusa.procedure_plan.v1"
+      },
+      "focusa_procedure_preview_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema": {
+            "type": "string",
+            "enum": [
+              "focusa.procedure_preview.v1"
+            ]
+          },
+          "digest_schema": {
+            "type": "string",
+            "enum": [
+              "focusa.procedure-plan.digest.v2"
+            ]
+          },
+          "canonical": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "execution_authorized": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "plan": {
+            "$ref": "#/components/schemas/focusa_procedure_plan_v1"
+          }
+        },
+        "required": [
+          "schema",
+          "digest_schema",
+          "canonical",
+          "execution_authorized",
+          "plan"
+        ],
+        "title": "focusa.procedure_preview.v1"
+      },
+      "focusa_procedure_verification_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema": {
+            "type": "string",
+            "enum": [
+              "focusa.procedure_verification.v1"
+            ]
+          },
+          "verified": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "digest_schema": {
+            "type": "string",
+            "enum": [
+              "focusa.procedure-plan.digest.v2"
+            ]
+          },
+          "canonical": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "execution_authorized": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          }
+        },
+        "required": [
+          "schema",
+          "verified",
+          "digest_schema",
+          "canonical",
+          "execution_authorized"
+        ],
+        "title": "focusa.procedure_verification.v1"
+      },
+      "focusa_procedure_verify_request_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/focusa_procedure_v1"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/focusa_procedure_preview_v1"
+          }
+        },
+        "required": [
+          "definition",
+          "preview"
+        ],
+        "title": "focusa.procedure_verify.request.v1"
       }
     }
   },
@@ -28526,6 +28802,156 @@
           "limit_bucket": null,
           "recovery_allowance": "read_projection",
           "source_owner": "prediction_authority",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        }
+      }
+    },
+    "/v1/procedures/preview": {
+      "post": {
+        "operationId": "focusa.procedure.preview",
+        "summary": "Compile a local advisory procedure preview",
+        "tags": [
+          "procedure"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_procedure_v1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Advisory result; never admission or execution authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_procedure_preview_v1"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unsupported source, preview or integrity; no automatic retry"
+          }
+        },
+        "x-focusa-subsystem": "procedure_compiler",
+        "x-focusa-core-action": "focusa_core.procedure_compiler.compile_preview",
+        "x-focusa-scope-keys": [],
+        "x-focusa-permissions": [
+          "read:*"
+        ],
+        "x-focusa-capabilities": [
+          "procedure_preview"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": false,
+        "x-focusa-plain-label": "Compile a local advisory procedure preview",
+        "x-focusa-advanced-only": true,
+        "x-focusa-sensitive": "scoped_read",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "procedure",
+          "canonical": true,
+          "budget_profile": "standard_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_procedure_preview",
+          "supports_side_effect_policy": [],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "procedure_compiler",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        }
+      }
+    },
+    "/v1/procedures/verify-preview": {
+      "post": {
+        "operationId": "focusa.procedure.verify_preview",
+        "summary": "Verify procedure preview integrity without execution authority",
+        "tags": [
+          "procedure"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_procedure_verify_request_v1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Advisory result; never admission or execution authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_procedure_verification_v1"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unsupported source, preview or integrity; no automatic retry"
+          }
+        },
+        "x-focusa-subsystem": "procedure_compiler",
+        "x-focusa-core-action": "focusa_core.procedure_compiler.verify_preview",
+        "x-focusa-scope-keys": [],
+        "x-focusa-permissions": [
+          "read:*"
+        ],
+        "x-focusa-capabilities": [
+          "procedure_preview"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": false,
+        "x-focusa-plain-label": "Verify procedure preview integrity without execution authority",
+        "x-focusa-advanced-only": true,
+        "x-focusa-sensitive": "scoped_read",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "procedure",
+          "canonical": true,
+          "budget_profile": "standard_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_procedure_verify_preview",
+          "supports_side_effect_policy": [],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "procedure_compiler",
           "policy_owner": "entitlement_policy_resolver",
           "product_owner": "focusa",
           "side_effect_class": "none"

@@ -75,7 +75,13 @@ for operation_id, descriptor in operations.items():
     assert descriptor["control"]["mode"] in {"read", "preview", "commit"}
     assert descriptor["control"]["confirmation"] in {"none", "simple", "consequential"}
     assert descriptor["ui"]["default_label"]
-    if descriptor["method"] != "GET":
+    if operation_id in {"focusa.procedure.preview", "focusa.procedure.verify_preview"}:
+        # Method alone does not imply a mutation: these pure POST computations
+        # return advisory integrity data without persisting receipts or grants.
+        assert descriptor["control"]["mode"] == "read"
+        assert descriptor["side_effect_class"] == "none"
+        assert descriptor["control"]["receipt_required"] is False
+    elif descriptor["method"] != "GET":
         assert descriptor["control"]["receipt_required"] is True
 
 assert bindings["schema"] == "focusa.ui_action_binding_index.v1"

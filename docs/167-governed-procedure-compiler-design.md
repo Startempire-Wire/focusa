@@ -1,7 +1,8 @@
 # Governed procedure compiler — #298 slice 0 (design)
 
-Status: design (IR0). Multi-surface execution routing with human
-handoffs and reusable workflow packs.
+Status: umbrella design (IR0). Bounded core integrity and local preview
+transports are source-qualified below; native execution routing, admission,
+handoffs and reusable workflow packs still require their remaining proofs.
 
 ## Problem
 
@@ -109,6 +110,33 @@ closed rather than silently dropping undeclared meaning.
 This is integrity qualification, not resolution of arbitrary role, operation,
 input/output or policy references. Native dispatch and all execution grants
 remain outside these commands; content review cannot substitute for either.
+
+## HTTP preview contract (source; installation is separate)
+
+The planned API slice exposes only these stateless operations:
+
+- `POST /v1/procedures/preview`: `focusa.procedure.v1` body →
+  `focusa.procedure_preview.v1`.
+- `POST /v1/procedures/verify-preview`: `focusa.procedure_verify.request.v1`
+  body (`definition`, `preview`) → `focusa.procedure_verification.v1`.
+
+HTTP and CLI use the same Core `compile_preview` / `verify_preview` functions
+and DTOs. Responses never grant canonical or execution authority; invalid
+semantics return a bounded validation envelope. Every response, including
+JSON rejection, carries `Cache-Control: no-store`. These handlers do not read
+project/runtime stores, call providers, persist run/dispatch records or start
+processes. Existing global node authentication and entitlement middleware stay
+in force; only these exact two POSTs receive read scope, while future procedure
+execution paths retain the service-admin default.
+
+The existing canonical Operation Registry owns the two descriptors
+(`focusa.procedure.preview`, `focusa.procedure.verify_preview`). Its paired
+OpenAPI boundary schemas are also the source for strict procedure-schema
+discovery; JSON Schema views adapt references/nullability rather than serving
+permissive placeholders or maintaining a second schema registry. Independent
+REST-contract tests include actual CLI serialization interchange. These are
+published-source contracts, not proof that an installed daemon exposes them,
+that operation references resolve, or that a routine may execute.
 
 ## Slices (IR2+)
 

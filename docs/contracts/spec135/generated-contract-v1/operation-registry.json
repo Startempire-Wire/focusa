@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-08-02T14:32:52.996466+00:00",
-  "operation_count": 157,
+  "operation_count": 159,
   "operations": [
     {
       "alias_of": null,
@@ -8159,6 +8159,172 @@
       "source_owner": "temporal",
       "policy_owner": "entitlement_policy_resolver",
       "spec172_family": "manual_basic_evidence",
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.procedure.v1",
+        "output_schema_ref": "focusa.procedure_preview.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "procedure_preview"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "read:*"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/167-governed-procedure-compiler-design.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "procedure",
+      "label": "Compile a local advisory procedure preview",
+      "materialization_mode": "advisory_read",
+      "method": "POST",
+      "operation_id": "focusa.procedure.preview",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa_core.procedure_compiler.compile_preview",
+        "subsystem": "procedure_compiler"
+      },
+      "path": "/v1/procedures/preview",
+      "permissions_required": [
+        "read:*"
+      ],
+      "request_schema_ref": "focusa.procedure.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.procedure_preview.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.procedure.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": false,
+        "workstream_scoped": false,
+        "required_keys": []
+      },
+      "side_effect_profile": "read_procedure_preview",
+      "supports_side_effect_policy": [],
+      "ui": {
+        "advanced_only": true,
+        "allowed_in_generated_ui": false,
+        "default_label": "Compile a local advisory procedure preview",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Compile a local advisory procedure preview",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_read"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "procedure_compiler",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.procedure_verify.request.v1",
+        "output_schema_ref": "focusa.procedure_verification.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "procedure_preview"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "read:*"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/167-governed-procedure-compiler-design.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "procedure",
+      "label": "Verify procedure preview integrity without execution authority",
+      "materialization_mode": "advisory_read",
+      "method": "POST",
+      "operation_id": "focusa.procedure.verify_preview",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa_core.procedure_compiler.verify_preview",
+        "subsystem": "procedure_compiler"
+      },
+      "path": "/v1/procedures/verify-preview",
+      "permissions_required": [
+        "read:*"
+      ],
+      "request_schema_ref": "focusa.procedure_verify.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.procedure_verification.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.procedure_verify.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": false,
+        "workstream_scoped": false,
+        "required_keys": []
+      },
+      "side_effect_profile": "read_procedure_verify_preview",
+      "supports_side_effect_policy": [],
+      "ui": {
+        "advanced_only": true,
+        "allowed_in_generated_ui": false,
+        "default_label": "Verify procedure preview integrity without execution authority",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Verify procedure preview integrity without execution authority",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_read"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "procedure_compiler",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
       "product_owner": "focusa",
       "side_effect_class": "none"
     },

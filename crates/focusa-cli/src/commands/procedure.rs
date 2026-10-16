@@ -1,14 +1,12 @@
 //! Stateless procedure preview and integrity qualification; never dispatches work.
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use focusa_core::procedure_compiler::{
-    ExecutionPlan, PROCEDURE_DIGEST_SCHEMA, PROCEDURE_SCHEMA, Procedure, compile_plan, verify_plan,
+    PROCEDURE_DIGEST_SCHEMA, PROCEDURE_PREVIEW_SCHEMA as PREVIEW_SCHEMA, PROCEDURE_SCHEMA,
+    PROCEDURE_VERIFICATION_SCHEMA as VERIFICATION_SCHEMA, Procedure, ProcedurePreview as Preview,
+    compile_preview, verify_preview,
 };
-use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-
-const PREVIEW_SCHEMA: &str = "focusa.procedure_preview.v1";
-const VERIFICATION_SCHEMA: &str = "focusa.procedure_verification.v1";
 
 #[derive(Args, Debug)]
 pub struct ProcedureArgs {
@@ -33,16 +31,6 @@ pub enum ProcedureCmd {
         #[arg(long)]
         plan: PathBuf,
     },
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Preview {
-    schema: String,
-    digest_schema: String,
-    canonical: bool,
-    execution_authorized: bool,
-    plan: ExecutionPlan,
 }
 
 fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
@@ -73,14 +61,7 @@ pub fn run(cmd: ProcedureCmd, json_mode: bool) -> Result<()> {
         }
         ProcedureCmd::Compile { definition } => {
             let source: Procedure = read_json(&definition)?;
-            let plan = compile_plan(&source).map_err(anyhow::Error::msg)?;
-            let preview = Preview {
-                schema: PREVIEW_SCHEMA.into(),
-                digest_schema: PROCEDURE_DIGEST_SCHEMA.into(),
-                canonical: false,
-                execution_authorized: false,
-                plan,
-            };
+            let preview = compile_preview(&source).map_err(anyhow::Error::msg)?;
             if json_mode {
                 println!("{}", serde_json::to_string(&preview)?);
             } else {
@@ -90,17 +71,7 @@ pub fn run(cmd: ProcedureCmd, json_mode: bool) -> Result<()> {
         ProcedureCmd::Verify { definition, plan } => {
             let source: Procedure = read_json(&definition)?;
             let preview: Preview = read_json(&plan)?;
-            if preview.schema != PREVIEW_SCHEMA || preview.digest_schema != PROCEDURE_DIGEST_SCHEMA
-            {
-                bail!("unsupported procedure preview or digest schema");
-            }
-            if preview.canonical || preview.execution_authorized {
-                bail!("procedure preview cannot claim canonical or execution authority");
-            }
-            verify_plan(&source, &preview.plan).map_err(anyhow::Error::msg)?;
-            let result = serde_json::json!({"schema":VERIFICATION_SCHEMA,
-                "verified":true,"digest_schema":PROCEDURE_DIGEST_SCHEMA,
-                "canonical":false,"execution_authorized":false});
+            let result = verify_preview(&source, &preview).map_err(anyhow::Error::msg)?;
             if json_mode {
                 println!("{}", serde_json::to_string(&result)?);
             } else {
