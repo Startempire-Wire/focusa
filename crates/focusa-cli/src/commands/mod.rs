@@ -58,6 +58,7 @@ pub mod pairing_wizard;
 pub mod pi_launch;
 pub mod predict;
 pub mod preload;
+pub mod procedure;
 pub mod project;
 pub mod proposals;
 pub mod rebuild_state;

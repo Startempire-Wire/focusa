@@ -73,6 +73,27 @@ version 1, shell/local step `a`, confirmation false, null rollback and
 command `run a` is
 `sha256:5f068c6abb4a2d2f67231fcda8aa108e05cc31aa5da1b6922177fd0af6290cec`.
 
+## Local compile/verify CLI contract
+
+The source CLI exposes `procedure compile --definition <json-file>` and
+`procedure verify --definition <json-file> --plan <preview-json-file>`.
+These reuse the core compiler and verifier; they neither contact/start a
+daemon nor dispatch work. Installed availability requires a release that
+contains these commands; this document does not assert an installed binding.
+
+With global `--json`, compilation returns `focusa.procedure_preview.v1`:
+`schema`, `digest_schema`, `canonical:false`, `execution_authorized:false`,
+and the typed `plan`. Verification consumes that same saved envelope,
+requires its exact supported schemas and false authority claims, and emits
+`focusa.procedure_verification.v1` with `verified:true` and the same
+non-authority flags. Failure exits nonzero. Unsupported input fields,
+blank identities/commands/rollback references and nonpositive versions fail
+closed rather than silently dropping undeclared meaning.
+
+This is integrity qualification, not resolution of arbitrary role, operation,
+input/output or policy references. Native dispatch and all execution grants
+remain outside these commands; content review cannot substitute for either.
+
 ## Slices (IR2+)
 
 1. Core: Procedure/Step/Pack types + deterministic plan compiler +

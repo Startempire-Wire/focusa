@@ -41,6 +41,7 @@ impl EffectClass {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Step {
     pub step_id: String,
     pub kind: StepKind,
@@ -51,6 +52,7 @@ pub struct Step {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Procedure {
     pub schema: String,
     pub procedure_id: String,
@@ -59,6 +61,7 @@ pub struct Procedure {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlanStep {
     pub step_id: String,
     pub effect_class: EffectClass,
@@ -68,6 +71,7 @@ pub struct PlanStep {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExecutionPlan {
     pub procedure_id: String,
     pub version: u64,
@@ -83,11 +87,24 @@ pub fn compile_plan(procedure: &Procedure) -> Result<ExecutionPlan, String> {
     if procedure.schema != PROCEDURE_SCHEMA {
         return Err(format!("unexpected schema {}", procedure.schema));
     }
+    if procedure.procedure_id.trim().is_empty() || procedure.version == 0 {
+        return Err("procedure identity and positive version required".to_string());
+    }
     if procedure.steps.is_empty() {
         return Err("at least one step required".to_string());
     }
     let mut ids = std::collections::HashSet::new();
     for step in &procedure.steps {
+        if step.step_id.trim().is_empty() || step.command.trim().is_empty() {
+            return Err("step identity and command required".to_string());
+        }
+        if step
+            .rollback_step
+            .as_ref()
+            .is_some_and(|id| id.trim().is_empty())
+        {
+            return Err("declared rollback reference must not be blank".to_string());
+        }
         if !ids.insert(step.step_id.clone()) {
             return Err(format!("duplicate step_id {}", step.step_id));
         }

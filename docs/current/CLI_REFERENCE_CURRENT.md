@@ -67,6 +67,23 @@ Commands:
 
 Options:
 
+## Local procedure previews and integrity verification
+
+Source contract (installed availability requires a matching release):
+
+```bash
+focusa --json procedure compile --definition "$DEFINITION" > "$PREVIEW"
+focusa --json procedure verify --definition "$DEFINITION" --plan "$PREVIEW"
+```
+
+Both commands are local and advisory: no daemon startup, dispatch, activation,
+canonical state or execution grant. Compile uses `focusa.procedure.v1` input
+and emits `focusa.procedure_preview.v1` with the complete v2 plan digest,
+`canonical:false` and `execution_authorized:false`. Verify consumes that exact
+saved preview and its source, rejecting legacy digests, changed safety/rollback
+projections, unsupported schemas/fields and claimed authority. A verified result
+means integrity only, not permission or native operation-binding acceptance.
+
 ## Context Authority commands
 
 ### `focusa action preflight`

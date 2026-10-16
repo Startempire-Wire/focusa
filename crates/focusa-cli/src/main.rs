@@ -254,6 +254,9 @@ enum Commands {
     /// CallGraph export projections.
     Callgraph(commands::callgraph::CallgraphArgs),
 
+    /// Compile and verify local advisory procedure previews; never executes work.
+    Procedure(commands::procedure::ProcedureArgs),
+
     /// Launch the focusa-tui dashboard or run a headless self-test snapshot.
     Tui(commands::tui::TuiArgs),
 
@@ -1169,6 +1172,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Infra(args) => commands::infra::run(args.cmd, cli.json).await,
         Commands::RebuildState(args) => commands::rebuild_state::run(args, cli.json).await,
         Commands::Callgraph(args) => commands::callgraph::run(args.cmd, cli.json).await,
+        Commands::Procedure(args) => commands::procedure::run(args.cmd, cli.json),
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Init(args) => commands::init::run(args, cli.json).await,
         Commands::Walkthrough(args) => {
