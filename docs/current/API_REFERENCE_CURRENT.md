@@ -2,8 +2,8 @@
 
 Generated from current Axum route declarations plus the Spec135/Spec141 operation registry. Explicit inline cfg(test) modules are excluded. This source inventory does not prove HTTP mounting, permissions, or installed availability. It is release-gated; do not edit route rows manually.
 
-- Classified paths: `680`
-- Agent eligible: `164`
+- Classified paths: `682`
+- Agent eligible: `166`
 - Operator only: `504`
 - Public health/pairing: `6`
 - Internal: `6`
@@ -3175,6 +3175,22 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/preload.rs`
 - Agent operations: none
+
+### `/v1/procedures/preview`
+
+- Methods: `POST /v1/procedures/preview`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/procedure.rs`
+- Agent operations: `focusa.procedure.preview`
+
+### `/v1/procedures/verify-preview`
+
+- Methods: `POST /v1/procedures/verify-preview`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/procedure.rs`
+- Agent operations: `focusa.procedure.verify_preview`
 
 ### `/v1/progress/record`
 
