@@ -1,6 +1,6 @@
 //! Spec124 command hierarchy and migration help.
 
-use clap::{Args, Subcommand};
+use clap::{Args, CommandFactory, Subcommand};
 use serde_json::{Value, json};
 
 const SPEC141_CLI_PROJECTION: &str =
@@ -176,6 +176,24 @@ pub fn warn_alias(old: &str, new: &str) {
     eprintln!("Deprecated alias. Use: {new} (called: {old})");
 }
 
+/// Actual native parser paths, distinct from generated agent-tool aliases.
+/// Derive this projection rather than maintaining another command registry.
+fn native_commands() -> Vec<String> {
+    fn collect(command: &clap::Command, path: String, out: &mut Vec<String>) {
+        out.push(path.clone());
+        for child in command
+            .get_subcommands()
+            .filter(|child| !child.is_hide_set())
+        {
+            collect(child, format!("{path} {}", child.get_name()), out);
+        }
+    }
+    let root = crate::Cli::command();
+    let mut paths = Vec::new();
+    collect(&root, root.get_name().to_string(), &mut paths);
+    paths
+}
+
 pub fn run(args: HelpArgs, json_output: bool) -> anyhow::Result<()> {
     let topic = args.topic.unwrap_or(HelpTopic::All);
     if json_output {
@@ -189,6 +207,7 @@ pub fn run(args: HelpArgs, json_output: bool) -> anyhow::Result<()> {
             "status": "completed",
             "topic": format!("{:?}", topic),
             "inventory": inventory_lines(),
+            "native_commands": native_commands(),
             "agent_capability_registry_digest": generated.get("registry_digest"),
             "agent_command_count": generated.get("commands").and_then(Value::as_array).map(Vec::len).unwrap_or_default(),
             "agent_commands": generated.get("commands").cloned().unwrap_or_else(|| json!([])),

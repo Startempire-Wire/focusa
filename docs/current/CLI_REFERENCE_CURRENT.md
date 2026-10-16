@@ -69,7 +69,9 @@ Options:
 
 ## Local procedure previews and integrity verification
 
-Source contract (installed availability requires a matching release):
+Source contract (installed availability requires a matching release). Discover
+actual parser paths through `focusa --json help all` → `native_commands`;
+these are derived from Clap, separately from generated `agent_commands` aliases:
 
 ```bash
 focusa --json procedure compile --definition "$DEFINITION" > "$PREVIEW"

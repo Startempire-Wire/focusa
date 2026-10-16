@@ -103,7 +103,10 @@ pub enum SideEffectClass {
 impl SideEffectClass {
     /// Native confirmation floor; explicit confirmation may only strengthen it.
     pub fn requires_confirmation(&self) -> bool {
-        matches!(self, Self::Destructive | Self::Financial | Self::Security)
+        match self {
+            Self::None | Self::Local | Self::External => false,
+            Self::Destructive | Self::Financial | Self::Security => true,
+        }
     }
 }
 
