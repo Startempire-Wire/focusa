@@ -84,9 +84,8 @@ jobs:
               --limit 10 --json status,conclusion,headSha | \
               jq -e --arg sha "$candidate" 'any(.[]; .headSha == $sha and .status == "completed" and .conclusion == "success")'
             if [ -n "$RELEASE_REASON" ]; then
-              # The canonical override records an editorial exception in the tag;
-              # independently require substantive release/version gates first.
-              FOCUSA_RELEASE_CHANNEL=stable python3 scripts/release-gate.py
+              # The canonical helper owns editorial gating and records its reason
+              # in the tag; independently retain the strict version check here.
               python3 scripts/next-version.py --tag "$APPROVED_TAG" --json | \
                 jq -e '(.violations | type == "array") and (.violations | length == 0)'
               args+=(--force-release --release-reason "$RELEASE_REASON")

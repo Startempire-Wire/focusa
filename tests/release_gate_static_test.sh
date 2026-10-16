@@ -51,4 +51,7 @@ grep -q 'Blocked: --force-release requires --release-reason' "$HELPER" || fail "
 grep -q 'ReleaseGate override accepted' "$HELPER" || fail "override must be explicit/auditable"
 pass "create-dev-release-tag enforces ReleaseGate with explicit override reason"
 
+python3 "$ROOT_DIR/tests/release_controller_editorial_override_test.py"
+pass "controller delegates editorial exceptions without weakening CI/version checks"
+
 echo "✓ release_gate_static_test passed"

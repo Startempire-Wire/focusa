@@ -96,7 +96,8 @@ class ReleasePublicationRegressionTests(unittest.TestCase):
         run = step["run"]
         self.assertIn('if [ -n "$RELEASE_REASON" ]; then', run)
         override = run.index("--force-release")
-        self.assertLess(run.index("scripts/release-gate.py"), override)
+        self.assertNotIn("scripts/release-gate.py", run)
+        self.assertLess(run.index("gh run list"), override)
         self.assertLess(run.index("scripts/next-version.py"), override)
         self.assertIn('(.violations | length == 0)', run)
         self.assertIn('scripts/create-dev-release-tag.sh "${args[@]}" --push', run)
