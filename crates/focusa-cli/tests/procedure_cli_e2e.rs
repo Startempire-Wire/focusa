@@ -108,6 +108,40 @@ fn actual_cli_rejects_legacy_or_wrong_digest_contract() {
 }
 
 #[test]
+fn actual_cli_never_executes_a_destructive_shell_preview() {
+    let f = Fixture::new();
+    let file = f.source();
+    let canary = f.0.join("must-not-exist");
+    let mut source: Value = serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
+    source["steps"][0]["kind"] = json!("shell");
+    source["steps"][0]["effect_class"] = json!("destructive");
+    source["steps"][0]["command"] = json!(format!("touch \"{}\"", canary.display()));
+    let file = f.write("destructive.json", &source);
+    let compiled = Command::new(BIN)
+        .args(["--json", "procedure", "compile", "--definition"])
+        .arg(&file)
+        .output()
+        .unwrap();
+    assert!(compiled.status.success());
+    let preview: Value = serde_json::from_slice(&compiled.stdout).unwrap();
+    assert_eq!(preview["execution_authorized"], false);
+    assert_eq!(
+        preview["plan"]["plan_steps"][0]["confirmation_required"],
+        true
+    );
+    assert!(!canary.exists());
+    let verified = Command::new(BIN)
+        .args(["--json", "procedure", "verify", "--definition"])
+        .arg(file)
+        .arg("--plan")
+        .arg(f.write("preview.json", &preview))
+        .output()
+        .unwrap();
+    assert!(verified.status.success());
+    assert!(!canary.exists());
+}
+
+#[test]
 fn actual_cli_rejects_unsupported_meaning_in_source() {
     let f = Fixture::new();
     let source = f.source();
