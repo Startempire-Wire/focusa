@@ -60,6 +60,10 @@ confirmation, rollback reference and command. Output remains
 Legacy concatenated-ID/command digests do not qualify v2 plans; callers
 must recompile and review rather than reuse old approval/cache identity.
 The procedure wire schema remains v1. Unsupported schemas remain rejected.
+Consumers qualify received/persisted plans with `verify_plan(source, plan)`,
+which compares the complete recompiled result, including safety/handoff and
+rollback projections: retaining a correct digest cannot conceal altered
+confirmation flags. Legacy plans still decode but fail v2 qualification.
 This core correction does not implement dispatch, admit a run, or grant
 execution authority. Runtime migration and cross-surface acceptance remain
 required for the later slices below.

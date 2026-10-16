@@ -129,6 +129,19 @@ pub fn compile_plan(procedure: &Procedure) -> Result<ExecutionPlan, String> {
     })
 }
 
+/// Qualify a received/persisted plan against its exact typed source.
+///
+/// A digest alone does not authenticate the derived safety projection: callers
+/// must reject altered confirmation, handoff and rollback fields as well as
+/// legacy identities. This verifies integrity only, never execution authority.
+pub fn verify_plan(procedure: &Procedure, plan: &ExecutionPlan) -> Result<(), String> {
+    let expected = compile_plan(procedure)?;
+    if plan != &expected {
+        return Err("compiled procedure plan does not match its v2 source".to_string());
+    }
+    Ok(())
+}
+
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
