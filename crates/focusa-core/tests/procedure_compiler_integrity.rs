@@ -72,6 +72,32 @@ fn matching_digest_cannot_hide_tampered_safety_or_rollback_projection() {
 }
 
 #[test]
+fn compiler_uses_native_effect_types_and_cannot_lower_confirmation_floors() {
+    use focusa_core::callgraph::SideEffectClass;
+    for effect in [
+        SideEffectClass::None,
+        SideEffectClass::Local,
+        SideEffectClass::External,
+        SideEffectClass::Destructive,
+        SideEffectClass::Financial,
+        SideEffectClass::Security,
+    ] {
+        let native: EffectClass = effect;
+        let mut procedure = source();
+        procedure.steps[0].effect_class = native;
+        procedure.steps[0].require_confirmation = false;
+        let plan = compile_plan(&procedure).unwrap();
+        assert_eq!(plan.plan_steps[0].effect_class, effect);
+        assert_eq!(
+            plan.plan_steps[0].confirmation_required,
+            effect.requires_confirmation()
+        );
+        procedure.steps[0].require_confirmation = true;
+        assert!(compile_plan(&procedure).unwrap().plan_steps[0].confirmation_required);
+    }
+}
+
+#[test]
 fn legacy_wire_plan_still_decodes_but_cannot_qualify_v2() {
     let source = source();
     let mut plan = compile_plan(&source).unwrap();

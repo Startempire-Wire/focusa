@@ -47,6 +47,15 @@ pack := { pack_id, procedures: ProcedureRef[], owner_ref, digest }
 3. A pack runs identically on the CLI, Pi, and Cockpit (one compiler).
 4. Procedure digests verify before execution.
 
+## Native effect semantics
+
+The procedure `EffectClass` is a compatibility re-export of CallGraph's
+`SideEffectClass`, not another effect-policy enum. The native confirmation
+floor requires destructive, financial and security steps to confirm; an
+explicit confirmation flag can only strengthen that floor. This does not
+prove that a declared class matches an operation: exact operation resolution
+and dispatch authority remain separate requirements.
+
 ## Core plan identity contract
 
 `PROCEDURE_DIGEST_SCHEMA = focusa.procedure-plan.digest.v2` identifies

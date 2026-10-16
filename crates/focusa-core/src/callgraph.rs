@@ -100,6 +100,13 @@ pub enum SideEffectClass {
     Security,
 }
 
+impl SideEffectClass {
+    /// Native confirmation floor; explicit confirmation may only strengthen it.
+    pub fn requires_confirmation(&self) -> bool {
+        matches!(self, Self::Destructive | Self::Financial | Self::Security)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorityRequirement {
     pub authority_kind: String,

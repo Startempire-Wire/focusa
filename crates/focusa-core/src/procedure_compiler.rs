@@ -20,25 +20,8 @@ pub enum StepKind {
     Approval,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EffectClass {
-    None,
-    Local,
-    External,
-    Destructive,
-    Financial,
-    Security,
-}
-
-impl EffectClass {
-    pub fn requires_confirmation(&self) -> bool {
-        matches!(
-            self,
-            EffectClass::Destructive | EffectClass::Financial | EffectClass::Security
-        )
-    }
-}
+// One native effect vocabulary and confirmation floor, not a second policy enum.
+pub use crate::callgraph::SideEffectClass as EffectClass;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
