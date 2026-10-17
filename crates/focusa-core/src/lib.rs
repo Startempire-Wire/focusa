@@ -93,6 +93,7 @@ pub mod epistemic_memory_lifecycle;
 pub mod epistemic_primitives;
 pub mod epistemic_security;
 pub mod error_envelope;
+mod event_log_entry_serde;
 pub mod expression;
 pub mod focus;
 pub mod gate;

@@ -220,6 +220,26 @@ Minimal required telemetry:
 
 ---
 
+### Durable JSON context compatibility
+
+`EventLogEntry` decodes the event payload independently from ingress attribution.
+A flattened payload `session_id`, `project_root`, `continuity_id`, `instance_id`,
+`thread_id` or correlation field cannot be consumed as envelope identity first.
+The event retains its flat fields. Overlapping, explicitly captured envelope
+attributes serialize separately as:
+
+```json
+{"event_log_context":{"schema":"focusa.event_log_context.v1","attributes":{"session_id":"<ingress-session-uuid>"}}}
+```
+
+A legacy flat overlapping field belongs to its event payload; missing ingress
+attribution stays unknown, not borrowed from the payload. Distinct current
+ingress/payload identities both round-trip. Unknown context versions, unknown
+attributes and non-overlapping context overrides are rejected. Missing legacy
+temporal context retains the unavailable sentinel; replay never recaptures time.
+This is a native codec correction, not permission to rewrite immutable history,
+clear checkpoints, fabricate identities or suppress failed events.
+
 ## 7. UI/TUI Requirements
 
 ### Menubar must show:

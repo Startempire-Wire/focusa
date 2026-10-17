@@ -4785,39 +4785,32 @@ pub struct ReductionResult {
 // ─── Event Log Entry (from G1-detail-03-runtime-daemon.md) ──────────────────
 
 /// Persisted event log entry (JSONL).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// The native wire adapter separates overlapping event and ingress fields;
+/// legacy payload identity never fabricates envelope attribution.
+#[derive(Debug, Clone)]
 pub struct EventLogEntry {
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
     /// Universal evidence-backed wall-clock and causal-time context captured once at action ingress.
     /// Legacy entries deserialize to an explicit unavailable sentinel; replay never recaptures time.
-    #[serde(default)]
     pub temporal: crate::temporal_clock::TemporalActionEnvelope,
-    #[serde(flatten)]
     pub event: FocusaEvent,
     pub correlation_id: Option<String>,
     pub origin: SignalOrigin,
 
     /// Multi-device sync fields (docs/40 + docs/43).
     /// These are duplicated into indexed SQLite columns for efficient sync.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub machine_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub instance_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub session_id: Option<SessionId>,
     /// Request-local project/workstream scope for durable attribution.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_root: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub continuity_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub thread_id: Option<Uuid>,
 
     /// Policy #2: observations-only import (docs/43).
     /// Remote events imported from peers are tagged as observations.
     /// Observations are recorded but do not mutate canonical Focus Stack/State.
-    #[serde(default)]
     pub is_observation: bool,
 }
 

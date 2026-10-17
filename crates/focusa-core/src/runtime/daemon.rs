@@ -5981,6 +5981,55 @@ mod tests {
     }
 
     #[test]
+    fn session_event_replays_through_native_persistence_without_history_rewrite() {
+        let mut config = FocusaConfig::default();
+        let data_dir =
+            std::env::temp_dir().join(format!("focusa-session-replay-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(&data_dir).expect("create isolated replay fixture");
+        config.data_dir = data_dir.to_string_lossy().into_owned();
+        let persistence = Persistence::new(&config).expect("fixture persistence");
+        persistence
+            .save_state(&FocusaState::default())
+            .expect("fixture checkpoint");
+        let session_id = Uuid::now_v7();
+        persistence
+            .append_event(&EventLogEntry::captured(
+                FocusaEvent::SessionStarted {
+                    session_id,
+                    adapter_id: Some("fixture-adapter".into()),
+                    workspace_id: None,
+                    project_root: Some(data_dir.to_string_lossy().into_owned()),
+                    continuity_id: Some("fixture-continuity".into()),
+                },
+                SignalOrigin::Adapter,
+                None,
+            ))
+            .expect("durable session event");
+        let (state, cursor) = persistence
+            .load_state_with_event_sequence()
+            .unwrap()
+            .unwrap();
+        let machine = persistence.machine_id().unwrap();
+        let (state, cursor, count) = replay_durable_tail(&persistence, &machine, state, cursor)
+            .expect("actual startup replay must retain the session payload field");
+        assert_eq!(count, 1);
+        assert_eq!(cursor, 1);
+        persistence
+            .save_state(&state)
+            .expect("checkpoint successful replay");
+        let (state, cursor) = persistence
+            .load_state_with_event_sequence()
+            .unwrap()
+            .unwrap();
+        let (_, cursor, count) =
+            replay_durable_tail(&persistence, &machine, state, cursor).unwrap();
+        assert_eq!(cursor, 1);
+        assert_eq!(count, 0);
+        drop(persistence);
+        std::fs::remove_dir_all(data_dir).expect("only owned fixture cleanup");
+    }
+
+    #[test]
     fn durable_tail_replays_once_after_checkpoint_and_cursor_advances() {
         let mut config = FocusaConfig::default();
         let data_dir =
