@@ -9,6 +9,8 @@ fn source() -> Procedure {
         schema: PROCEDURE_SCHEMA.into(),
         procedure_id: "consumer-integrity".into(),
         version: 1,
+        dependencies: None,
+        owner_contract_digest: None,
         steps: vec![
             Step {
                 step_id: "transfer".into(),

@@ -1,8 +1,8 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 682,
+  "route_count": 683,
   "classification_counts": {
-    "agent_eligible": 166,
+    "agent_eligible": 167,
     "internal": 6,
     "operator_only": 504,
     "public_pairing": 6
@@ -4943,6 +4943,20 @@
       ],
       "operation_refs": [
         "focusa.procedure.preview"
+      ]
+    },
+    {
+      "path": "/v1/procedures/resolve-dependencies",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/procedure.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.procedure.resolve_dependencies"
       ]
     },
     {

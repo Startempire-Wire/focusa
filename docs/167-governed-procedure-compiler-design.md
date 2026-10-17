@@ -138,6 +138,33 @@ REST-contract tests include actual CLI serialization interchange. These are
 published-source contracts, not proof that an installed daemon exposes them,
 that operation references resolve, or that a routine may execute.
 
+## Semantic dependency resolution (R03 source slice)
+
+The existing compiler owns `procedure resolve --requirements <file>` and
+`POST /v1/procedures/resolve-dependencies`. Both call the same Core resolver,
+using the existing canonical Operation Registry and OpenAPI artifacts—not a
+second registry. Each explicit role requirement pins its operation, version,
+input schema, return schema and declared policy references. Unsupported versions,
+aliases, inactive policy, missing/unqualified schemas and incompatible returns
+remain unresolved; a choice/preview cannot substitute for a blueprint draft.
+
+The result preserves the complete requirement and a domain-separated,
+length-framed digest of both exact owner artifacts, including schemas behind
+references. Catalogue changes conservatively invalidate the snapshot. This
+source-contract fingerprint is not permission, handler availability, a frozen
+instance or executable admission; those require their existing owners and live
+proof. Caller-declared role requirements are not independently trusted grants.
+Canonical, permission-verified and execution-authorized flags remain false.
+
+A procedure may carry `dependencies` with an exact `owner_contract_digest`.
+They must occur together: compilation rechecks that snapshot, requires one
+matching role for every native API step, rejects unrelated/unused roles and
+requires exact native operation and CallGraph effect identity. Shell/model
+bindings cannot masquerade as native API bindings. The existing full-source
+plan digest includes both fields; unchanged legacy definitions retain their
+independent v2 golden identity and remain advisory, not qualified instances.
+These checks are part of ordinary compile/verify, not a parallel compiler.
+
 ## Slices (IR2+)
 
 1. Core: Procedure/Step/Pack types + deterministic plan compiler +

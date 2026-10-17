@@ -10,6 +10,7 @@ use axum::{
 use focusa_core::procedure_compiler::{
     Procedure, ProcedurePreview, compile_preview, verify_preview,
 };
+use focusa_core::procedure_resolution::{DependencyRequest, resolve_dependencies};
 use focusa_core::tool_result::{FailureClass, ToolResultV1, ToolStatus};
 use serde::{Deserialize, Serialize};
 
@@ -24,7 +25,15 @@ pub fn router<S: Clone + Send + Sync + 'static>() -> Router<S> {
     Router::new()
         .route("/v1/procedures/preview", post(preview))
         .route("/v1/procedures/verify-preview", post(verify))
+        .route("/v1/procedures/resolve-dependencies", post(resolve))
         .layer(middleware::map_response(private_response))
+}
+
+async fn resolve(body: Result<Json<DependencyRequest>, JsonRejection>) -> Response {
+    match body {
+        Ok(Json(request)) => compiler_response(resolve_dependencies(&request)),
+        Err(rejection) => rejected_json(rejection),
+    }
 }
 
 async fn private_response(mut response: Response) -> Response {
@@ -129,6 +138,37 @@ mod tests {
         assert_eq!(result["verified"], true);
         assert_eq!(result["canonical"], false);
         assert_eq!(result["execution_authorized"], false);
+    }
+
+    #[tokio::test]
+    async fn dependency_resolution_is_exact_and_never_a_grant() {
+        let mut input = json!({"requirements":[{"role_ref":"integrity","operation_ref":"focusa.procedure.preview","operation_version":"1.0.0","input_schema_ref":"focusa.procedure.v1","output_schema_ref":"focusa.procedure_preview.v1","required_policy_refs":["read:*"]}]});
+        let (status, result) = request("/v1/procedures/resolve-dependencies", input.clone()).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(result["contract_compatible"], true);
+        assert_eq!(result["permission_verified"], false);
+        assert_eq!(result["execution_authorized"], false);
+        assert_eq!(result["canonical"], false);
+        assert_eq!(result["owner_contract_digest"].as_str().unwrap().len(), 71);
+        let mut definition = json!({"schema":"focusa.procedure.v1","procedure_id":"bound-http-fixture","version":1,
+            "steps":[{"step_id":"integrity","kind":"api","effect_class":"none","require_confirmation":false,"rollback_step":null,"command":"focusa.procedure.preview"}],
+            "dependencies":input.clone(),"owner_contract_digest":result["owner_contract_digest"].clone()});
+        let (status, compiled) = request("/v1/procedures/preview", definition.clone()).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(compiled["execution_authorized"], false);
+        definition["steps"][0]["command"] = json!("unrelated.operation");
+        let (status, _) = request("/v1/procedures/preview", definition).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+        input["requirements"][0]["output_schema_ref"] = json!("operator.routine_blueprint.v1");
+        let (status, result) = request("/v1/procedures/resolve-dependencies", input).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(result["contract_compatible"], false);
+        let (status, _) = request(
+            "/v1/procedures/resolve-dependencies",
+            json!({"requirements":[]}),
+        )
+        .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     }
 
     #[tokio::test]

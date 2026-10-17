@@ -128,6 +128,7 @@ pub mod prediction_profiles;
 pub mod prediction_scoring;
 pub mod prediction_scoring_algorithms;
 pub mod procedure_compiler;
+pub mod procedure_resolution;
 pub mod project_marker;
 pub mod provider_execution;
 pub mod reducer;

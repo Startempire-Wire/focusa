@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Independent REST-contract consumer, including real native CLI interchange."""
 import copy
+import hashlib
+import struct
 import json
 import os
 from pathlib import Path
@@ -40,12 +42,31 @@ def definition():
 
 
 class ProcedureContracts(unittest.TestCase):
+    def test_native_dependency_contract_and_independent_owner_snapshot(self):
+        binary = os.environ.get("TEST_NATIVE_FOCUSA_BIN")
+        if not binary:
+            self.skipTest("explicit native binary required")
+        request = {"requirements": [{"role_ref": "integrity", "operation_ref": "focusa.procedure.preview", "operation_version": "1.0.0", "input_schema_ref": "focusa.procedure.v1", "output_schema_ref": "focusa.procedure_preview.v1", "required_policy_refs": ["read:*"]}]}
+        json_schema("focusa.procedure_dependency_request.v1").validate(request)
+        digest = hashlib.sha256(b"focusa.procedure_owner_contracts.digest.v1\0")
+        for artifact in [BASE / "operation-registry.json", BASE / "openapi-3.0.3.json"]:
+            data = artifact.read_bytes(); digest.update(struct.pack(">Q", len(data))); digest.update(data)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "requirements.json"; path.write_text(json.dumps(request))
+            output = subprocess.run([binary, "--json", "procedure", "resolve", "--requirements", str(path)], check=True, text=True, capture_output=True)
+        result = json.loads(output.stdout)
+        json_schema("focusa.procedure_dependencies.v1").validate(result)
+        self.assertEqual(result["owner_contract_digest"], "sha256:" + digest.hexdigest())
+        self.assertTrue(result["contract_compatible"])
+        self.assertFalse(result["canonical"] or result["permission_verified"] or result["execution_authorized"])
+
     def test_exact_registered_operations_are_nonexecuting_reads(self):
         by_id = {entry["operation_id"]: entry for entry in REGISTRY["operations"]}
         self.assertEqual(len(by_id), REGISTRY["operation_count"])
         for name, path, request, response in [
             ("preview", "/v1/procedures/preview", "focusa.procedure.v1", "focusa.procedure_preview.v1"),
-            ("verify_preview", "/v1/procedures/verify-preview", "focusa.procedure_verify.request.v1", "focusa.procedure_verification.v1")]:
+            ("verify_preview", "/v1/procedures/verify-preview", "focusa.procedure_verify.request.v1", "focusa.procedure_verification.v1"),
+            ("resolve_dependencies", "/v1/procedures/resolve-dependencies", "focusa.procedure_dependency_request.v1", "focusa.procedure_dependencies.v1")]:
             entry = by_id["focusa.procedure." + name]
             self.assertEqual(entry["path"], path)
             self.assertEqual(entry["control"]["mode"], "read")

@@ -43,6 +43,10 @@ pub struct Procedure {
     pub procedure_id: String,
     pub version: u64,
     pub steps: Vec<Step>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dependencies: Option<crate::procedure_resolution::DependencyRequest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner_contract_digest: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -147,6 +151,7 @@ pub fn compile_plan(procedure: &Procedure) -> Result<ExecutionPlan, String> {
             return Err(format!("duplicate step_id {}", step.step_id));
         }
     }
+    crate::procedure_resolution::validate_procedure_dependencies(procedure)?;
     let mut plan_steps = Vec::new();
     let mut rollback_order = Vec::new();
     for step in &procedure.steps {
@@ -212,6 +217,8 @@ mod tests {
             schema: PROCEDURE_SCHEMA.to_string(),
             procedure_id: "digest-fixture".to_string(),
             version: 1,
+            dependencies: None,
+            owner_contract_digest: None,
             steps: vec![step("a", StepKind::Shell, EffectClass::Local, None)],
         }
     }
@@ -311,6 +318,8 @@ mod tests {
             schema: PROCEDURE_SCHEMA.to_string(),
             procedure_id: "p1".to_string(),
             version: 1,
+            dependencies: None,
+            owner_contract_digest: None,
             steps: vec![
                 step("s1", StepKind::Shell, EffectClass::None, None),
                 step("s2", StepKind::Shell, EffectClass::Security, None),
@@ -331,6 +340,8 @@ mod tests {
             schema: PROCEDURE_SCHEMA.to_string(),
             procedure_id: "p2".to_string(),
             version: 1,
+            dependencies: None,
+            owner_contract_digest: None,
             steps: vec![
                 step("a", StepKind::Shell, EffectClass::Local, Some("ra")),
                 step("b", StepKind::Shell, EffectClass::Local, Some("rb")),
@@ -347,6 +358,8 @@ mod tests {
             schema: PROCEDURE_SCHEMA.to_string(),
             procedure_id: "p3".to_string(),
             version: 1,
+            dependencies: None,
+            owner_contract_digest: None,
             steps: vec![
                 step("h", StepKind::HumanHandoff, EffectClass::External, None),
                 step("a", StepKind::Approval, EffectClass::Security, None),
@@ -362,6 +375,8 @@ mod tests {
             schema: PROCEDURE_SCHEMA.to_string(),
             procedure_id: "p4".to_string(),
             version: 1,
+            dependencies: None,
+            owner_contract_digest: None,
             steps: vec![
                 step("a", StepKind::Shell, EffectClass::None, None),
                 step("a", StepKind::Shell, EffectClass::None, None),
@@ -378,6 +393,8 @@ mod tests {
             schema: PROCEDURE_SCHEMA.to_string(),
             procedure_id: "p5".to_string(),
             version: 1,
+            dependencies: None,
+            owner_contract_digest: None,
             steps: vec![step("a", StepKind::Shell, EffectClass::None, None)],
         };
         let plan1 = compile_plan(&procedure).unwrap();

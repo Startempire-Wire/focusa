@@ -75,7 +75,7 @@ for operation_id, descriptor in operations.items():
     assert descriptor["control"]["mode"] in {"read", "preview", "commit"}
     assert descriptor["control"]["confirmation"] in {"none", "simple", "consequential"}
     assert descriptor["ui"]["default_label"]
-    if operation_id in {"focusa.procedure.preview", "focusa.procedure.verify_preview"}:
+    if operation_id in {"focusa.procedure.preview", "focusa.procedure.verify_preview", "focusa.procedure.resolve_dependencies"}:
         # Method alone does not imply a mutation: these pure POST computations
         # return advisory integrity data without persisting receipts or grants.
         assert descriptor["control"]["mode"] == "read"

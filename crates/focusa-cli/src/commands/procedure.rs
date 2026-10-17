@@ -18,6 +18,11 @@ pub struct ProcedureArgs {
 pub enum ProcedureCmd {
     /// Describe this binary's exact local compiler contracts; no daemon or execution.
     Describe,
+    /// Resolve exact role operation/version/schema/policy contracts, never grants.
+    Resolve {
+        #[arg(long)]
+        requirements: PathBuf,
+    },
     /// Compile a local typed procedure into an advisory plan; no execution or grants.
     Compile {
         #[arg(long)]
@@ -41,12 +46,39 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
 
 pub fn run(cmd: ProcedureCmd, json_mode: bool) -> Result<()> {
     match cmd {
+        ProcedureCmd::Resolve { requirements } => {
+            let request = read_json(&requirements)?;
+            let resolution = focusa_core::procedure_resolution::resolve_dependencies(&request)
+                .map_err(anyhow::Error::msg)?;
+            if !resolution.contract_compatible {
+                let reasons = resolution
+                    .roles
+                    .iter()
+                    .flat_map(|role| role.reasons.iter().map(String::as_str))
+                    .collect::<std::collections::BTreeSet<_>>();
+                anyhow::bail!(
+                    "procedure dependencies unresolved: {}; no native execution authorized",
+                    reasons.into_iter().collect::<Vec<_>>().join(", ")
+                );
+            }
+            println!(
+                "{}",
+                if json_mode {
+                    serde_json::to_string(&resolution)?
+                } else {
+                    serde_json::to_string_pretty(&resolution)?
+                }
+            );
+        }
         ProcedureCmd::Describe => {
             let descriptor = serde_json::json!({
                 "schema":"focusa.procedure_capabilities.v1",
                 "binary_version":env!("CARGO_PKG_VERSION"),
                 "definition_schema":PROCEDURE_SCHEMA,"preview_schema":PREVIEW_SCHEMA,
                 "verification_schema":VERIFICATION_SCHEMA,"digest_schema":PROCEDURE_DIGEST_SCHEMA,
+                "dependency_request_schema":"focusa.procedure_dependency_request.v1",
+                "dependency_result_schema":"focusa.procedure_dependencies.v1",
+                "dependency_resolution_supported":true,"dependency_binding_supported":true,
                 "transport":"local_cli","daemon_required":false,
                 "canonical":false,"execution_authorized":false,"dispatch_supported":false
             });

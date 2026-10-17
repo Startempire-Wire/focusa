@@ -239,7 +239,9 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
     if method == Method::POST
         && matches!(
             path,
-            "/v1/procedures/preview" | "/v1/procedures/verify-preview"
+            "/v1/procedures/preview"
+                | "/v1/procedures/verify-preview"
+                | "/v1/procedures/resolve-dependencies"
         )
     {
         return "read:*";
@@ -279,6 +281,10 @@ mod tests {
         );
         assert_eq!(
             route_scope(&Method::POST, "/v1/procedures/verify-preview"),
+            "read:*"
+        );
+        assert_eq!(
+            route_scope(&Method::POST, "/v1/procedures/resolve-dependencies"),
             "read:*"
         );
         assert_eq!(

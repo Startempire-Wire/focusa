@@ -54,6 +54,53 @@ impl Drop for Fixture {
 }
 
 #[test]
+fn actual_role_dependency_resolution_pins_owner_contracts_not_grants() {
+    let fixture = Fixture::new();
+    let mut request = json!({"requirements":[{"role_ref":"integrity","operation_ref":"focusa.procedure.preview","operation_version":"1.0.0","input_schema_ref":"focusa.procedure.v1","output_schema_ref":"focusa.procedure_preview.v1","required_policy_refs":["read:*"]}]});
+    let run = |value: &Value| {
+        Command::new(BIN)
+            .args(["--json", "procedure", "resolve", "--requirements"])
+            .arg(fixture.write("requirements.json", value))
+            .output()
+            .unwrap()
+    };
+    let output = run(&request);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(result["contract_compatible"], true);
+    assert_eq!(result["canonical"], false);
+    assert_eq!(result["permission_verified"], false);
+    assert_eq!(result["execution_authorized"], false);
+    assert_eq!(result["owner_contract_digest"].as_str().unwrap().len(), 71);
+    let mut bound = json!({"schema":"focusa.procedure.v1","procedure_id":"bound-cli","version":1,
+        "steps":[{"step_id":"integrity","kind":"api","effect_class":"none","require_confirmation":false,"rollback_step":null,"command":"focusa.procedure.preview"}],
+        "dependencies":request.clone(),"owner_contract_digest":result["owner_contract_digest"].clone()});
+    let compile = |value: &Value| {
+        Command::new(BIN)
+            .args(["--json", "procedure", "compile", "--definition"])
+            .arg(fixture.write("bound.json", value))
+            .output()
+            .unwrap()
+    };
+    assert!(compile(&bound).status.success());
+    bound["steps"][0]["effect_class"] = json!("financial");
+    assert!(!compile(&bound).status.success());
+    request["requirements"][0]["output_schema_ref"] = json!("operator.routine_blueprint.v1");
+    let output = run(&request);
+    assert!(!output.status.success());
+    let result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(
+        serde_json::to_string(&result)
+            .unwrap()
+            .contains("output_schema_mismatch")
+    );
+}
+
+#[test]
 fn actual_cli_discovery_comes_from_the_native_parser() {
     let output = Command::new(BIN)
         .args(["--json", "help", "all"])
@@ -67,6 +114,7 @@ fn actual_cli_discovery_comes_from_the_native_parser() {
         "focusa procedure describe",
         "focusa procedure compile",
         "focusa procedure verify",
+        "focusa procedure resolve",
     ] {
         assert!(commands.iter().any(|value| value == command));
     }
