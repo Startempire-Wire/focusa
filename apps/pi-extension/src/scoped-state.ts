@@ -158,6 +158,26 @@ export function buildProjectWorkstreamKey(
   return { root_scope: { ...scope }, continuity_id: continuity };
 }
 
+/** Project only the verified invocation key into a private child environment.
+ * This transports identity; the daemon still decides execution authority.
+ */
+export function projectAttachmentEnvironment(
+  key: AttachmentKey | undefined,
+  base: NodeJS.ProcessEnv = process.env
+): NodeJS.ProcessEnv | null {
+  if (!key || !isWorkstreamKey(key.workstream) ||
+      key.workstream.root_scope.scope_kind !== "project" ||
+      key.workstream.continuity_id.trim() === "extension-bootstrap" ||
+      !nonempty(key.instance_id) || !nonempty(key.session_id) || !nonempty(key.attachment_id)) {
+    return null;
+  }
+  const verified = verifiedScopeRefForRoot(key.workstream.root_scope.root_path);
+  if (!verified || !sameRootScope(verified, key.workstream.root_scope)) {
+    return null;
+  }
+  return { ...base, FOCUSA_ATTACHMENT_KEY_V1: JSON.stringify(key) };
+}
+
 export function scopedQueryParams(scope: WorkstreamKey): URLSearchParams {
   const query = new URLSearchParams();
   query.set("scope_kind", scope.root_scope.scope_kind);

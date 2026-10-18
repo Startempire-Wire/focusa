@@ -74,12 +74,21 @@ assert.throws(
     error instanceof BackgroundJobToolError && error.failureClass === "dispatch_receipt_invalid"
 );
 
+// Process-boundary fixture only: these tests stub execFile; the real verified
+// projection and registered consumers are exercised by Spec188's regression.
+const childEnv = { FOCUSA_ATTACHMENT_KEY_V1: JSON.stringify({
+  workstream: { root_scope: { scope_kind: "project", scope_id: "project:fixture",
+    root_path: "/work/fixture", canonical_name: "Fixture", fingerprint: "fixture" },
+    continuity_id: "fixture-continuity" },
+  instance_id: "fixture-instance", session_id: "fixture-session", attachment_id: "fixture-attachment",
+}) };
 let captured;
 const receipt = await dispatchBackgroundJob(
   {
     name: "quoted job",
     command: "printf '%s' 'a b'",
     cwd: "/tmp",
+    env: childEnv,
   },
   (file, args, options, callback) => {
     captured = { file, args, options };
@@ -101,6 +110,9 @@ assert.equal(captured.file, "focusa");
 assert.deepEqual(captured.args.slice(0, 4), ["bg", "--json", "run", "--detach"]);
 assert.deepEqual(captured.args.slice(-3), ["/bin/sh", "-lc", "printf '%s' 'a b'"]);
 assert.equal(captured.options.cwd, "/tmp");
+assert.equal(captured.options.env?.FOCUSA_ATTACHMENT_KEY_V1, childEnv.FOCUSA_ATTACHMENT_KEY_V1);
+assert.equal(Object.keys(captured.options.env || {}).length, 1);
+assert.ok(captured.options.env !== childEnv, "dispatch must snapshot the provided environment");
 
 await assert.rejects(
   dispatchBackgroundJob({ name: "", command: "true", cwd: "/tmp" }),
@@ -110,7 +122,7 @@ await assert.rejects(
 
 await assert.rejects(
   dispatchBackgroundJob(
-    { name: "blocked", command: "true", cwd: "/tmp" },
+    { name: "blocked", command: "true", cwd: "/tmp", env: childEnv },
     (_file, _args, _options, callback) => {
       const error = Object.assign(new Error("process failed"), { code: 1 });
       callback(error, "", "ENTITLEMENT_BASE_REQUIRED: recovery_only");

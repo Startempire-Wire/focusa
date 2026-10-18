@@ -6,6 +6,8 @@ Focusa Pi Bridge is the Pi coding-agent extension that registers Focusa tools, l
 
 Use [the shared project journey](../../docs/agent/02-focusa-cohesive-project-flow.md). Discover the current process's tool count and registry digest rather than assume a historical inventory. Source registration and generated projections do not prove the installed package or another harness loaded them. Startup/reload now renders the Focusa Utility Card; recovery composes `focusa_tool_doctor`, project identity, Trajectory, Workpoint checkpoint/resume, evidence capture/linking, prediction evaluation, metacognition, and work-loop routes. Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, and Tool Discovery remain available through the same scope and operator-steering boundary.
 
+Project background dispatch must carry the current invocation's verified attachment in a private child environment, not infer it from cwd or inherit a process-global startup identity. Both single and batch tools fail closed before spawning when that context is missing or mismatched; daemon admission and existing receipts remain controlling. See [Spec188 and its dependency graph](../../docs/188-focusa-invocation-bound-background-dispatch-repair-spec.md). Source implementation alone does not establish installed activation or issue closure.
+
 ## North Star diagnostics
 
 A saved trajectory can remain current while the saved action needs reconciliation

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -274,8 +274,15 @@ try {
   for (const route of ["metacognition", "turn", "snapshots"]) {
     assert(detailed.includes("scopeHeaders"), `${route} mocked requests use shared scoped headers`);
   }
-  const repoRoot = fileURLToPath(new URL("../../..", import.meta.url)).replace(/\/$/, "");
-  scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: "project:focusa", root_path: repoRoot, canonical_name: "Focusa", fingerprint: "fingerprint:focusa-test" });
+  // Recovery needs project evidence and an existing task. Own those fixtures;
+  // never depend on or auto-create a task in the actual source checkout.
+  const repoRoot = join(outDir, "frame-project");
+  mkdirSync(join(repoRoot, ".git"), { recursive: true });
+  mkdirSync(join(repoRoot, ".beads"), { recursive: true });
+  writeFileSync(join(repoRoot, ".beads", "issues.jsonl"), JSON.stringify({
+    id: "fixture-frame-recovery", title: "Frame recovery fixture", status: "open", priority: 0,
+  }) + "\n");
+  scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: "project:frame-fixture", root_path: repoRoot, canonical_name: "Frame fixture", fingerprint: "fingerprint:frame-fixture" });
   const recoveryKey = state.makeAttachmentKey({
     projectRoot: repoRoot,
     continuityId: "cont-frame-recovery",

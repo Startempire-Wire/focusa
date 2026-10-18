@@ -6,7 +6,7 @@ type ExecError = Error & { code?: number | string | null };
 type ExecFileLike = (
   file: string,
   args: string[],
-  options: { cwd: string; timeout: number; maxBuffer: number; encoding: "utf8" },
+  options: { cwd: string; env: NodeJS.ProcessEnv; timeout: number; maxBuffer: number; encoding: "utf8" },
   callback: (error: ExecError | null, stdout: string, stderr: string) => void
 ) => unknown;
 
@@ -98,7 +98,7 @@ export function parseBackgroundJobDispatchReceipt(
 }
 
 export async function dispatchBackgroundJob(
-  input: { name: string; command: string; cwd: string },
+  input: { name: string; command: string; cwd: string; env: NodeJS.ProcessEnv | null },
   executor: ExecFileLike = execFile as unknown as ExecFileLike
 ): Promise<BackgroundJobDispatchReceipt> {
   if (!input.name.trim() || !input.command.trim() || !input.cwd.trim()) {
@@ -107,7 +107,14 @@ export async function dispatchBackgroundJob(
       "validation_rejected"
     );
   }
-  const cli = String(process.env.FOCUSA_CLI_BIN || "focusa").trim() || "focusa";
+  if (!input.env?.FOCUSA_ATTACHMENT_KEY_V1) {
+    throw new BackgroundJobToolError(
+      "Background dispatch requires a verified invocation attachment",
+      "attachment_scope_missing"
+    );
+  }
+  const env = { ...input.env };
+  const cli = String(env.FOCUSA_CLI_BIN || "focusa").trim() || "focusa";
   const args = [
     "bg",
     "--json",
@@ -125,7 +132,7 @@ export async function dispatchBackgroundJob(
       executor(
         cli,
         args,
-        { cwd: input.cwd, timeout: 10_000, maxBuffer: 256 * 1024, encoding: "utf8" },
+        { cwd: input.cwd, env, timeout: 10_000, maxBuffer: 256 * 1024, encoding: "utf8" },
         (error, childStdout, childStderr) => {
           if (error) {
             const detail = boundedText(childStderr) || boundedText(childStdout);

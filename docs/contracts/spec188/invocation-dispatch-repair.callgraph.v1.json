@@ -1,0 +1,210 @@
+{
+  "schema": "focusa.callgraph.v1",
+  "graph_id": "focusa-invocation-dispatch-repair-188",
+  "revision": 1,
+  "scope": {
+    "project_root": "/home/wirebot/focusa",
+    "continuity_id": "focusa-cont-root-b6cf3fbe-4a81-4456-8853-f6091625409f"
+  },
+  "mission_ref": "docs/188-focusa-invocation-bound-background-dispatch-repair-spec.md",
+  "trajectory_ref": "trajectory-f1ffd0dea22c1a2a5b92",
+  "workpoint_refs": [
+    "01a15031-d993-7ab2-9acc-48e17903fb7f"
+  ],
+  "title": "Repair invocation identity propagation without weakening admission",
+  "description": "Bounded refinement of Spec187 FLOW02/11; structural validation alone does not admit execution or close issue682.",
+  "entry_frame_ids": [
+    "SPEC"
+  ],
+  "frames": [
+    {
+      "frame_id": "SPEC",
+      "name": "Verify repair contract and dependencies",
+      "purpose": "Pin source, preserve shared work, validate repair graph against existing owners.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object"
+      },
+      "return_schema": {
+        "type": "object"
+      },
+      "side_effect_class": "local",
+      "authority_requirement": {
+        "authority_kind": "operator",
+        "reference": "current-repair-spec-implementation-instruction"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "Spec188 INV01-08 name exact scope and proof boundaries",
+          "Canonical graph validator accepts definition"
+        ]
+      }
+    },
+    {
+      "frame_id": "RED",
+      "name": "Reproduce the missing invocation handoff",
+      "purpose": "Run actual registered-tool regression on approved OVH executor; no fabricated attachment or admission.",
+      "kind": "tool",
+      "input_schema": {
+        "type": "object"
+      },
+      "return_schema": {
+        "type": "object"
+      },
+      "preconditions": [
+        "Supported executor admission",
+        "Source preimages and dependencies verified"
+      ],
+      "side_effect_class": "local",
+      "timeout_policy": {
+        "timeout_ms": 120000,
+        "on_timeout": "stop_and_preserve_receipt"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0
+      },
+      "failure_boundary": {
+        "kind": "source_verification",
+        "unwind_policy": "preserve_source_and_evidence"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "Expected behavior fails for the invocation handoff, not setup failure"
+        ],
+        "verifier": "node tests/188-invocation-dispatch.test.mjs"
+      }
+    },
+    {
+      "frame_id": "IMPLEMENT",
+      "name": "Repair canonical per-invocation transport",
+      "purpose": "Use existing scope owner and current accessor; both registered tools use private child snapshots.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object"
+      },
+      "return_schema": {
+        "type": "object"
+      },
+      "side_effect_class": "local",
+      "preconditions": [
+        "Expected RED evidence or explicit unresolved executor block",
+        "Operator source-repair instruction remains current"
+      ],
+      "failure_boundary": {
+        "kind": "source_patch",
+        "unwind_policy": "compare_and_swap_own_hunks_only"
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "INV01-06 implemented within named three source files",
+          "No global environment, daemon, policy, prompt, marker or provider mutation"
+        ]
+      }
+    },
+    {
+      "frame_id": "SOURCE-PROOF",
+      "name": "Verify source producer and actual registered consumers",
+      "purpose": "Run targeted isolation and existing regressions on OVH and retain terminal results.",
+      "kind": "tool",
+      "input_schema": {
+        "type": "object"
+      },
+      "return_schema": {
+        "type": "object"
+      },
+      "preconditions": [
+        "Supported executor admission",
+        "No unknown prior test effect"
+      ],
+      "side_effect_class": "local",
+      "timeout_policy": {
+        "timeout_ms": 120000,
+        "on_timeout": "stop_and_preserve_receipt"
+      },
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 0
+      },
+      "acceptance": {
+        "acceptance_atoms": [
+          "INV07 actual producer/registered consumers pass",
+          "Existing receipt, scoped routing and contract regressions pass",
+          "Source hashes and exit statuses recorded"
+        ]
+      }
+    },
+    {
+      "frame_id": "CONSUMER-ACCEPTANCE",
+      "name": "Verify installed handoff before closure",
+      "purpose": "Retain original issue682 and Spec187 full acceptance; do not infer installation from source tests.",
+      "kind": "agent",
+      "input_schema": {
+        "type": "object"
+      },
+      "return_schema": {
+        "type": "object"
+      },
+      "preconditions": [
+        "Canonical signed delivery and supported install authorized",
+        "All original applicable issue and workset requirements satisfied"
+      ],
+      "side_effect_class": "none",
+      "acceptance": {
+        "acceptance_atoms": [
+          "INV08 separate release/install/native lifecycle and consumer evidence",
+          "No issue or requirement settled on producer/source proof alone"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "spec-red",
+      "from_frame_id": "SPEC",
+      "to_frame_id": "RED",
+      "kind": "call"
+    },
+    {
+      "edge_id": "red-implement",
+      "from_frame_id": "RED",
+      "to_frame_id": "IMPLEMENT",
+      "kind": "call"
+    },
+    {
+      "edge_id": "implement-proof",
+      "from_frame_id": "IMPLEMENT",
+      "to_frame_id": "SOURCE-PROOF",
+      "kind": "call"
+    },
+    {
+      "edge_id": "proof-accept",
+      "from_frame_id": "SOURCE-PROOF",
+      "to_frame_id": "CONSUMER-ACCEPTANCE",
+      "kind": "call"
+    }
+  ],
+  "policies": {
+    "max_depth": 5,
+    "default_cycle_policy": "deny"
+  },
+  "required_evidence": [
+    {
+      "evidence_type": "versioned_contract",
+      "min_count": 1
+    },
+    {
+      "evidence_type": "producer_consumer_regression",
+      "min_count": 1
+    },
+    {
+      "evidence_type": "installed_consumer_acceptance",
+      "min_count": 1
+    }
+  ],
+  "created_at": "2026-10-18T18:04:49Z",
+  "created_by": {
+    "authority_kind": "operator_instruction",
+    "reference": "current-repair-spec-implementation-instruction"
+  }
+}

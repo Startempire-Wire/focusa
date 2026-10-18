@@ -135,6 +135,7 @@ import {
 } from "./tool-contracts.js";
 import {
   buildProjectWorkstreamKey,
+  projectAttachmentEnvironment,
   renderScopedResultHuman,
   scopedQueryParams,
   isWorkstreamKey,
@@ -4933,6 +4934,7 @@ pi.registerTool({
         name: String(params.name),
         command: String(params.command),
         cwd,
+        env: projectAttachmentEnvironment(currentAttachmentKey()),
       });
       return toolResult(
         true,
@@ -5012,12 +5014,13 @@ pi.registerTool({
       });
     }
     const outcomes = await Promise.allSettled(
-      jobs.map((job: any) => {
+      jobs.map(async (job: any) => {
         const cwd = job.cwd || runtime?.sessionCwd || process.cwd();
         return dispatchBackgroundJob({
           name: String(job.name),
           command: String(job.command),
           cwd,
+          env: projectAttachmentEnvironment(currentAttachmentKey()),
         }).then((receipt) => ({ receipt, cwd }));
       })
     );
