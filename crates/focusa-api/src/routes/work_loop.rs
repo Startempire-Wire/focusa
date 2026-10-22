@@ -706,7 +706,15 @@ fn temporal_context_for_scope(scope: &WorkLoopScope) -> Value {
     })
 }
 
-fn writer_claim_key_for_partition(
+fn writer_claim_scope_prefix(project_root: &str, continuity_id: &str) -> String {
+    format!(
+        "project:{}|workstream:{}|work_item:",
+        normalize_partition_segment(project_root, "blocked"),
+        normalize_partition_segment(continuity_id, "blocked"),
+    )
+}
+
+pub(crate) fn writer_claim_key_for_partition(
     project_root: &str,
     continuity_id: &str,
     work_item_id: &str,
@@ -718,11 +726,29 @@ fn writer_claim_key_for_partition(
         return "blocked:active_work_item_required".to_string();
     }
     format!(
-        "project:{}|workstream:{}|work_item:{}",
-        normalize_partition_segment(project_root, "blocked"),
-        normalize_partition_segment(continuity_id, "blocked"),
+        "{}{}",
+        writer_claim_scope_prefix(project_root, continuity_id),
         normalize_partition_segment(work_item_id, "blocked"),
     )
+}
+
+/// Read-only presence check at the existing writer-key owner; never renews,
+/// releases or transfers a claim, and never borrows another workstream's lease.
+pub(crate) fn has_live_workstream_writer(
+    claims: &std::collections::HashMap<String, WriterLease>,
+    scope: &WorkstreamKey,
+    now: DateTime<Utc>,
+) -> bool {
+    if scope.validate().is_err() {
+        return true;
+    }
+    let prefix = writer_claim_scope_prefix(
+        scope.root_scope.root_path.to_string_lossy().as_ref(),
+        &scope.continuity_id,
+    );
+    claims
+        .iter()
+        .any(|(key, lease)| key.starts_with(&prefix) && lease.expires_at > now)
 }
 
 fn writer_claim_key_from_scope(

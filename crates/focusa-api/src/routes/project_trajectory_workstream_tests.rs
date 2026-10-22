@@ -1,6 +1,6 @@
 // Focused two-workstream marker regression; synthetic records only.
 
-fn workstream_marker_fixture(
+pub(crate) fn workstream_marker_fixture(
     trajectory_id: &str,
     continuity_id: &str,
 ) -> (TrajectoryProjectionRecord, Vec<TrajectoryLadderEvent>) {

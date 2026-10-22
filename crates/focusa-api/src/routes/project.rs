@@ -6137,7 +6137,7 @@ mod project_liveness_tests;
 
 #[cfg(test)]
 #[allow(clippy::field_reassign_with_default)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     include!("project_trajectory_workstream_tests.rs");

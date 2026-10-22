@@ -1704,7 +1704,85 @@ pub(crate) async fn materialize_workpoint_events(
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
 ) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
+    materialize_workpoint_events_with_prepare(scope, state, events, correlation_id, None).await
+}
+
+async fn materialize_workpoint_events_with_prepare(
+    scope: ScopeContext,
+    state: &Arc<AppState>,
+    events: Vec<FocusaEvent>,
+    correlation_id: &'static str,
+    expected_unbound_linkage: Option<&Value>,
+) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
     let guard = state.write_serial_lock.lock().await;
+    // Keep the existing transaction owner and writer-key owner. Hold the read
+    // guard through durable acknowledgement so a claim cannot race preparation.
+    let prepare_claims = if expected_unbound_linkage.is_some() {
+        Some(state.writer_claims.read().await)
+    } else {
+        None
+    };
+    if let Some(expected) = expected_unbound_linkage {
+        let workstream = scope.require_workstream_key().map_err(|error| (
+            StatusCode::CONFLICT,
+            Json(json!({"status":"blocked","canonical":false,"code":"WORKPOINT_PREPARE_SCOPE_REQUIRED","error":error})),
+        ))?;
+        if crate::routes::work_loop::has_live_workstream_writer(
+            prepare_claims.as_deref().expect("prepare claim guard"),
+            &workstream,
+            Utc::now(),
+        ) {
+            return Err((
+                StatusCode::CONFLICT,
+                Json(json!({
+                    "status":"blocked","canonical":false,"code":"WORKPOINT_PREPARE_WRITER_ACTIVE",
+                    "failure_class":"writer_conflict","next_step_hint":"use the existing writer owner; fresh preparation never takes over a live writer"
+                })),
+            ));
+        }
+        let root = workstream
+            .root_scope
+            .root_path
+            .to_string_lossy()
+            .to_string();
+        let (guard_status, Json(guard_reply)) = crate::routes::project::trajectory_guard(
+            scope.clone(),
+            State(state.clone()),
+            Json(crate::routes::project::TrajectoryGuardRequest {
+                action: Some("verify".into()),
+                project_root: Some(root.clone()),
+                continuity_id: Some(workstream.continuity_id.clone()),
+                ..Default::default()
+            }),
+        )
+        .await;
+        if !guard_status.is_success()
+            || guard_reply
+                .pointer("/trajectory_integrity_guard/status")
+                .and_then(Value::as_str)
+                != Some("READY")
+            || guard_reply.pointer("/trajectory_integrity_guard/expected_trajectory_id")
+                != expected.get("trajectory_id")
+        {
+            return Err((StatusCode::CONFLICT, Json(guard_reply)));
+        }
+        let current_linkage = {
+            let focusa = state.focusa.read().await;
+            crate::routes::project::north_star_workpoint_linkage(
+                &focusa,
+                &root,
+                Some(&workstream.continuity_id),
+            )
+        };
+        if &current_linkage != expected {
+            return Err((
+                StatusCode::CONFLICT,
+                Json(json!({
+                    "status":"blocked","canonical":false,"code":"WORKPOINT_PREPARE_CONTEXT_CHANGED"
+                })),
+            ));
+        }
+    }
     let mut current = { state.focusa.read().await.clone() };
     let mut entries = Vec::new();
     let temporal = focusa_core::temporal_clock::capture_operator_temporal_action_envelope();
@@ -2265,6 +2343,49 @@ fn validate_workpoint_checkpoint_request(
     }
 }
 
+fn first_prepare_checkpoint_eligible(req: &WorkpointCheckpointRequest, linkage: &Value) -> bool {
+    req.canonical.unwrap_or(true)
+        && req.promote.unwrap_or(true)
+        && !req.repair_missing_lifecycle_stage
+        && req.workpoint_id.is_none()
+        && req.frame_id.is_none()
+        && req
+            .mission
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && req
+            .next_slice
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        && req.checkpoint_reason.as_deref() == Some("operator_checkpoint")
+        && req
+            .work_item_id
+            .as_deref()
+            .is_some_and(|id| !id.trim().is_empty())
+        && req
+            .source_turn_id
+            .as_deref()
+            .is_some_and(|id| !id.trim().is_empty())
+        && req
+            .verification_records
+            .as_ref()
+            .is_none_or(|records| records.is_empty())
+        && req.action_intent.as_ref().is_some_and(|intent| {
+            intent.lifecycle_stage == WorkpointLifecycleStage::Prepare
+                && !intent.action_type.trim().is_empty()
+                && intent.target_ref.as_deref() == req.project_root.as_deref()
+        })
+        && linkage.get("status").and_then(Value::as_str) == Some("missing")
+        && linkage.get("reason").and_then(Value::as_str) == Some("trajectory_workpoint_unbound")
+        && linkage.get("frontier_status").and_then(Value::as_str) == Some("missing")
+        && linkage
+            .get("trajectory_id")
+            .and_then(Value::as_str)
+            .is_some_and(|id| !id.trim().is_empty())
+        && linkage.get("project_root").and_then(Value::as_str) == req.project_root.as_deref()
+        && linkage.get("continuity_id").and_then(Value::as_str) == req.continuity_id.as_deref()
+}
+
 fn legacy_lifecycle_repair_eligible(
     req: &WorkpointCheckpointRequest,
     previous: &WorkpointRecord,
@@ -2451,7 +2572,7 @@ async fn checkpoint(
             ));
         }
     }
-    let previous = if promote && requested_canonical {
+    let mut previous = if promote && requested_canonical {
         let focusa = state.focusa.read().await;
         active_workpoint_for_scope(
             &focusa,
@@ -2462,6 +2583,23 @@ async fn checkpoint(
     } else {
         None
     };
+    let mut first_prepare_linkage = None;
+    if promote && requested_canonical && previous.is_some() {
+        let linkage = {
+            let focusa = state.focusa.read().await;
+            crate::routes::project::north_star_workpoint_linkage(
+                &focusa,
+                req.project_root.as_deref().unwrap_or_default(),
+                req.continuity_id.as_deref(),
+            )
+        };
+        if first_prepare_checkpoint_eligible(&req, &linkage) {
+            // This is only a candidate: the existing persistence owner rechecks
+            // scope, goal, linkage and live writers before applying any events.
+            first_prepare_linkage = Some(linkage);
+            previous = None;
+        }
+    }
     if promote && requested_canonical {
         if req.repair_missing_lifecycle_stage {
             // Verify the existing marker/Trajectory through its canonical owner;
@@ -2575,8 +2713,14 @@ async fn checkpoint(
         });
     }
 
-    let materialized_state =
-        materialize_workpoint_events(scope.clone(), &state, events, "workpoint_checkpoint").await?;
+    let materialized_state = materialize_workpoint_events_with_prepare(
+        scope.clone(),
+        &state,
+        events,
+        "workpoint_checkpoint",
+        first_prepare_linkage.as_ref(),
+    )
+    .await?;
     let promoted_record = if promote && canonical {
         materialized_state
             .workpoint
@@ -4064,6 +4208,8 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    include!("workpoint_unbound_checkpoint_tests.rs");
 
     #[test]
     fn legacy_stage_recovery_is_confirmed_exact_scoped_and_append_only() {
