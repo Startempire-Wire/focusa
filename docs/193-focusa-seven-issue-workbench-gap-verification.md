@@ -156,3 +156,35 @@ no production database, history, quota or lock is changed.
   verification. The retained release/customer-mutation restrictions cannot be
   silently erased to satisfy that checklist. An explicit boundary decision is
   required; source fixtures do not substitute for that installed outcome.
+
+## Continued source and integration work
+
+- A new canonical checkpoint and exact-ask resume were accepted for the current
+  seven-issue mission. This supersedes the earlier degraded continuation; it does
+  not prove that execution uses that same scope. A native job attempt still
+  returned409 before an accepted receipt. The published child environment names
+  a different continuity from the ready saved work; do not infer the current
+  invocation's typed attachment solely from that process-global environment, or
+  manually rewrite it to manufacture admission. Explicit continue resumed target
+  metadata but did not republish the process environment. The invocation-bound
+  dispatch repair remains necessary, and installed acceptance remains unproved.
+- Attempts1797–1799 found and corrected another actual request-starvation path in
+  the trajectory guard. The original FIFO gate test failed as expected. The same
+  bounded worker owner now covers guard filesystem/SQLite work; failures establish
+  no execution authority and running work retains its slot after timeout. A first
+  positive run passed134 API cases; final isolated-budget checks passed55 project
+  cases, actual A/B acceptance, strict lint, structural and route inventory.
+  See Spec189 for exact scope and remaining customer-proof limits.
+- Source-push safety was inspected over all26 candidate workflows and registered
+  runner metadata, not guessed from the CI workflow alone. Hosted matrix switches
+  are absent in successful repository/organization metadata reads; the historical
+  Ubuntu docs-closure workflow's path filter does not match this batch. Release
+  and deployment are manual/tag lanes, not source-push actions. Existing scheduled
+  work was not started, stopped or reconfigured.
+- Three applicable source-validation jobs had unqualified self-hosted selectors,
+  eligible for the online production/deploy runner. Their selectors now match the
+  existing OVH build lane. Canonical workflow validation rejects a recurrence;
+  actual-file, old-routing and preserved explicit production-delivery controls
+  passed. No provider switch, runner restart, service or credential changed.
+  The offline builder may leave CI queued: source integration is not CI success,
+  release, installation or closure of the remaining five issues.
