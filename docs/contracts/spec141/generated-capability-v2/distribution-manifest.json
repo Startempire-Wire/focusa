@@ -1,12 +1,12 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.209",
-  "source_commit": "c343a45560e",
-  "generated_at": "2026-10-16T04:39:46.503256Z",
+  "source_commit": "f84bbb91",
+  "generated_at": "2026-10-22T22:21:56.809683Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:7afea4d9ae5d6dfed8e61c1578ede76a00cc506f27f82737752ef9eeeff4ef3b",
-    "apps/pi-extension/package.json": "sha256:b1487747a931d222d382f156959443e08615075600e4519fdc4fefb3d8170c23",
+    "apps/pi-extension/package.json": "sha256:999775c4780ffdda09c5f1aab396668f45a8fd0be821bf48f19a3973546ad65f",
     "crates/focusa-core/src/hlt_extrapolation.rs": "sha256:2155f36bc42db7be22d2a2895e3cfa8e9fafcaa1744ffb5e84be669bfe175ba8",
     "crates/focusa-core/src/lib.rs": "sha256:2db43071bb500d7b16895a05f62cb6ad6fb572969c228d4e7f22f6e6b1b7dc59",
     "docs/contracts/spec141/generated-capability-v2/agent-card.json": "sha256:e6ffa1fdd8ec4f8b21e1e7d6d2bdcd2aa5475d2001eea74c276d0e9a1233fd63",
@@ -16,8 +16,8 @@
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:df0049a1001823eb071e533cf983a941a478248996d68b22da518e9665e715c1",
-      "file_count": 851,
+      "sha256": "sha256:c50866fb9ef157eaa56ccb158a907f20caab46756f972b142cbc2a984dea03bb",
+      "file_count": 861,
       "source_paths": [
         "Cargo.toml",
         "Cargo.lock",
@@ -26,8 +26,8 @@
     },
     "pi_extension": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:1e4e3131aea32e9599558d467fff397133566f5e81c1cf867120cd2c74a8e905",
-      "file_count": 215,
+      "sha256": "sha256:fd16dcc200974a91c0e89a8fcaa4e0af18b87944ea9addbc47a2f13721f010b5",
+      "file_count": 218,
       "source_paths": [
         "apps/pi-extension"
       ]
@@ -77,7 +77,7 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:4cec05c43f830e8e5724e870a36ae8cfab79e2c95c174b23169e64b9e62c051d",
+      "sha256": "sha256:e95dd03aae9cb1adc8db6e214a5ae0f3ae0e3176c7c6712a30fb908eb2afdc35",
       "file_count": 41,
       "source_paths": [
         ".appveyor.yml",
