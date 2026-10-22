@@ -716,6 +716,7 @@ This spec does **not** require:
 | ID | Surface | File:line | Current behavior | Failure mode | Target design | Phase | Acceptance test |
 |---|---|---:|---|---|---|---|---|
 | INF-01 | bounded runtime | `crates/focusa-api/src/routes/bounded.rs:14` | `TEST_PRESSURE_THRESHOLD_KB` | runtime pressure globals remain unclassified | explicit infra-only classification | P3 | static audit marks this as allowlisted infra |
+| INF-02 | bounded project inspection | `crates/focusa-api/src/routes/project.rs` | `PROJECT_INSPECTION_SLOTS` | slow filesystem or ledger inspection can exhaust request workers | shared infrastructure semaphore limits worker count only; no identity, cognition, scope routing or execution authority is stored in it | P1 | project liveness cases prove capacity refusal, four-second deadline and retained permits until actual worker exit; rejection grants no verification authority |
 | INF-02 | bounded runtime | `.../bounded.rs:16` | `RUNTIME_RESOURCE_MODE_OVERRIDE` | could become hidden authority if reused | explicit runtime service, never canonical scope source | P3 | resource-mode override never changes project identity result |
 | INF-03 | bounded runtime | `.../bounded.rs:18` | `RESOURCE_MODE_LAST_OBSERVED` | global observation memory | infra-only | P3 | canonical packets don’t vary due to prior mode observation |
 | INF-04 | bounded runtime | `.../bounded.rs:20` | `RESOURCE_MODE_TRANSITIONS` | transition ring global | infra-only | P3 | no canonical route consumes transition ring as authority |

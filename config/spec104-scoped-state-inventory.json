@@ -183,6 +183,16 @@
       "acceptance_test": "record/recent/evaluate/outcome/stats isolate project and workstream"
     },
     {
+      "annex_id": "INF-02",
+      "path": "crates/focusa-api/src/routes/project.rs",
+      "symbol": "PROJECT_INSPECTION_SLOTS",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Shared bounded inspection-worker capacity only; semaphore carries no identity, cognition or execution authority",
+      "acceptance_test": "project liveness tests prove capacity refusal, deadline and permit retention; rejected workers confer no verification authority"
+    },
+    {
       "annex_id": "API-02",
       "path": "crates/focusa-api/src/routes/project.rs",
       "symbol": "PROJECT_IDENTITY_PAYLOAD_CACHE",
