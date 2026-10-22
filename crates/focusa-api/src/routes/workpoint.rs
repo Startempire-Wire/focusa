@@ -4210,6 +4210,7 @@ mod tests {
     use super::*;
 
     include!("workpoint_unbound_checkpoint_tests.rs");
+    include!("workpoint_workstream_acceptance_tests.rs");
 
     #[test]
     fn legacy_stage_recovery_is_confirmed_exact_scoped_and_append_only() {
