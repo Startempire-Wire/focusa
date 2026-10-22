@@ -77,6 +77,13 @@ fn production() { router.route("/real", get(handler)); }
         self.assertNotIn('/v1/state/permission-probe', result)
         self.assertIn('pub async fn auth_layer', result)
 
+    def test_actual_project_liveness_fixture_is_not_an_api_surface(self):
+        body = (ROOT / 'crates/focusa-api/src/routes/project_liveness_tests.rs').read_text(encoding='utf-8')
+        self.assertIn('/unrelated-health-probe', body)
+        result = module.without_inline_test_modules(body)
+        self.assertNotIn('/unrelated-health-probe', result)
+        self.assertNotIn('.route(', result)
+
 
 if __name__ == '__main__':
     unittest.main()
