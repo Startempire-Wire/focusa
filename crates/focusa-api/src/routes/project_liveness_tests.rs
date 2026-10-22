@@ -174,4 +174,84 @@ mod tests {
         assert_eq!(result["error"]["code"], "PROJECT_INSPECTION_WORKER_FAILED");
         assert!(result.get("verification").is_none());
     }
+
+    #[tokio::test]
+    async fn hung_inspection_is_bounded_and_keeps_its_slot_until_real_completion() {
+        use std::sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        };
+        use std::time::Duration;
+        let slots = Arc::new(tokio::sync::Semaphore::new(1));
+        let worker_slots = slots.clone();
+        let (release, wait) = std::sync::mpsc::channel();
+        let (started, started_rx) = tokio::sync::oneshot::channel();
+        let inspection = tokio::spawn(async move {
+            super::super::project_inspection_response_with_limits(
+                move || {
+                    started.send(()).unwrap();
+                    // A finite independent fixture release prevents a broken test
+                    // from keeping a blocking worker alive indefinitely.
+                    let _ = wait.recv_timeout(Duration::from_secs(2));
+                    axum::Json(serde_json::json!({"status":"ok","canonical":true}))
+                },
+                Duration::from_millis(100),
+                worker_slots,
+            )
+            .await
+        });
+        tokio::time::timeout(Duration::from_secs(1), started_rx)
+            .await
+            .unwrap()
+            .unwrap();
+        let axum::Json(result) = tokio::time::timeout(Duration::from_secs(1), inspection)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(result["status"], "error");
+        assert_eq!(result["ok"], false);
+        assert_eq!(result["canonical"], false);
+        assert_eq!(result["failure_class"], "hot_path_timeout");
+        assert_eq!(result["error"]["code"], "PROJECT_INSPECTION_TIMED_OUT");
+        assert!(result.get("verification").is_none());
+        assert_eq!(
+            slots.available_permits(),
+            0,
+            "timeout must not release a running read's slot"
+        );
+        let entered = Arc::new(AtomicBool::new(false));
+        let called = entered.clone();
+        let axum::Json(busy) = super::super::project_inspection_response_with_limits(
+            move || {
+                called.store(true, Ordering::SeqCst);
+                axum::Json(serde_json::json!({"status":"ok"}))
+            },
+            Duration::from_millis(100),
+            slots.clone(),
+        )
+        .await;
+        assert_eq!(
+            busy["error"]["code"],
+            "PROJECT_INSPECTION_CAPACITY_EXHAUSTED"
+        );
+        assert_eq!(busy["canonical"], false);
+        assert!(
+            !entered.load(Ordering::SeqCst),
+            "a saturated read must not start another worker"
+        );
+        release.send(()).unwrap();
+        let permit = tokio::time::timeout(Duration::from_secs(1), slots.acquire())
+            .await
+            .unwrap()
+            .unwrap();
+        drop(permit);
+        let axum::Json(recovered) = super::super::project_inspection_response_with_limits(
+            || axum::Json(serde_json::json!({"status":"ambiguous","canonical":false})),
+            Duration::from_millis(100),
+            slots,
+        )
+        .await;
+        assert_eq!(recovered["status"], "ambiguous");
+        assert_eq!(recovered["canonical"], false);
+    }
 }

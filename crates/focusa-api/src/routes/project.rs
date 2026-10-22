@@ -2606,34 +2606,77 @@ fn build_project_dashboard(
     })
 }
 
-// Workspace inspection performs synchronous filesystem reads. Keep the entire
-// inspection off HTTP workers, including root resolution and marker parsing.
+// This is a process resource limit, not project or execution authority. Timed-out
+// filesystem calls keep their slot until they really exit; Tokio cannot cancel a
+// running blocking read. Repeated requests therefore cannot grow workers forever.
+static PROJECT_INSPECTION_SLOTS: std::sync::LazyLock<std::sync::Arc<tokio::sync::Semaphore>> =
+    std::sync::LazyLock::new(|| std::sync::Arc::new(tokio::sync::Semaphore::new(8)));
+
+fn project_inspection_failure(code: &str, class: FailureClass, message: &str) -> Json<Value> {
+    let mut failure =
+        ToolResultV1::failure(ToolStatus::Error, class, message).with_error(code, message);
+    failure.family = Some("project".to_string());
+    failure.recovery_hint = Some(
+        "Inspect daemon diagnostics before retrying the read; no project verification is established by this failure".to_string(),
+    );
+    Json(serde_json::to_value(failure).expect("canonical failure envelope must serialize"))
+}
+
 async fn project_inspection_response<F>(inspect: F) -> Json<Value>
 where
     F: FnOnce() -> Json<Value> + Send + 'static,
 {
+    // Return before the Pi client's default five-second transport timeout.
+    project_inspection_response_with_limits(
+        inspect,
+        std::time::Duration::from_secs(4),
+        PROJECT_INSPECTION_SLOTS.clone(),
+    )
+    .await
+}
+
+async fn project_inspection_response_with_limits<F>(
+    inspect: F,
+    deadline: std::time::Duration,
+    slots: std::sync::Arc<tokio::sync::Semaphore>,
+) -> Json<Value>
+where
+    F: FnOnce() -> Json<Value> + Send + 'static,
+{
+    let Ok(permit) = slots.try_acquire_owned() else {
+        return project_inspection_failure(
+            "PROJECT_INSPECTION_CAPACITY_EXHAUSTED",
+            FailureClass::ResourceExhausted,
+            "Project inspection workers are occupied; no new read was started",
+        );
+    };
     let span = tracing::Span::current();
-    match tokio::task::spawn_blocking(move || span.in_scope(inspect)).await {
-        Ok(payload) => payload,
-        Err(error) => {
+    let mut worker = tokio::task::spawn_blocking(move || {
+        let _permit = permit;
+        span.in_scope(inspect)
+    });
+    match tokio::time::timeout(deadline, &mut worker).await {
+        Ok(Ok(payload)) => payload,
+        Ok(Err(error)) => {
             tracing::error!(
                 worker_panicked = error.is_panic(),
                 "project inspection worker did not complete"
             );
-            let mut failure = ToolResultV1::failure(
-                ToolStatus::Error,
-                FailureClass::NullResponse,
-                "Project inspection did not produce a result",
-            )
-            .with_error(
+            project_inspection_failure(
                 "PROJECT_INSPECTION_WORKER_FAILED",
+                FailureClass::NullResponse,
                 "The project inspection worker stopped before returning a result",
-            );
-            failure.family = Some("project".to_string());
-            failure.recovery_hint = Some(
-                "Inspect daemon diagnostics before retrying the read; no project verification is established by this failure".to_string(),
-            );
-            Json(serde_json::to_value(failure).expect("canonical failure envelope must serialize"))
+            )
+        }
+        Err(_) => {
+            // Abort queued work if it has not started. A running read keeps its
+            // permit until completion; returning an error does not cancel it.
+            worker.abort();
+            project_inspection_failure(
+                "PROJECT_INSPECTION_TIMED_OUT",
+                FailureClass::HotPathTimeout,
+                "The project inspection worker exceeded its response deadline",
+            )
         }
     }
 }
