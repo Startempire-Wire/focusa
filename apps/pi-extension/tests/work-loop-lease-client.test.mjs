@@ -20,8 +20,8 @@ assert.match(tools, /current scoped writer lease is missing, expired, or owned b
 const writerLeaseCalls = tools.match(/requiredWriterLeaseHeaders\(\)/g) ?? [];
 assert.equal(
   writerLeaseCalls.length,
-  4,
-  "only the lease helper plus three true Work Loop mutations may require writer authority"
+  3,
+  "only the lease helper plus checkpoint/select-next require preexisting writer authority"
 );
 for (const [toolName, nextToolName] of [
   ["focusa_session_transfer", "focusa_project_verify"],
@@ -42,7 +42,6 @@ for (const [toolName, nextToolName] of [
   );
 }
 for (const [toolName, nextToolName] of [
-  ["focusa_work_loop_context", "focusa_work_loop_checkpoint"],
   ["focusa_work_loop_checkpoint", "focusa_work_loop_select_next"],
   ["focusa_work_loop_select_next", "focusa_state_hygiene_doctor"],
 ]) {
@@ -91,10 +90,11 @@ assert.match(
   /compatibleWorkLoopStatusState\(body\)/,
   "tool lease cache must reject unknown typed states"
 );
-for (const [name, source] of [
-  ["commands", commands],
-  ["turns", turns],
-]) {
+assert.doesNotMatch(commands, /commandWorkLoopWriterHeaders/, "unused duplicate lease adapter is retired");
+const contextTool = tools.slice(tools.indexOf('name: "focusa_work_loop_context"'), tools.indexOf('name: "focusa_work_loop_checkpoint"'));
+assert.doesNotMatch(contextTool, /requiredWriterLeaseHeaders\(\)/);
+assert.match(contextTool, /writerLeaseHeaders\(localWriterId, await currentWorkLoopLease\(\)\)/);
+for (const [name, source] of [["turns", turns]]) {
   assert.match(source, /currentWorkLoopWriterLease\(status, writerId\)/, `${name} must use the shared lease projection`);
   assert.match(state, /focusa\.work_loop_status\.v3/, `${name} must reject unsupported status schemas`);
   assert.match(state, /lease_freshness !== "current"/, `${name} must reject stale leases through the owner`);

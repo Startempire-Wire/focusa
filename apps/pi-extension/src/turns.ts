@@ -140,17 +140,14 @@ const CACHE_SAFE_DEGRADED_RETAINED_SECTIONS = new Set([
 // Pi is Adapter 1; the daemon owns the canonical ring buffer. Other agents
 // (Claude Code, Aider, Cursor, Cline, Gemini, Codex) implement the same contract.
 
-async function turnWorkLoopWriterHeaders(): Promise<Record<string, string>> {
+async function turnWorkLoopContextHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
   const status = await focusaFetch("/work-loop/status?summary_only=true");
   const lease = currentWorkLoopWriterLease(status, writerId);
-  if (!lease) {
-    throw new Error("current scoped Work Loop lease is missing, expired, or owned by another Pi writer");
-  }
-  return {
-    "x-focusa-writer-id": writerId,
-    "x-focusa-fencing-token": String(lease.fencingToken),
-  };
+  const headers: Record<string, string> = { "x-focusa-writer-id": writerId };
+  if (lease) headers["x-focusa-fencing-token"] = String(lease.fencingToken);
+  // Context-only metadata: existing ownership remains daemon-validated, never acquired here.
+  return headers;
 }
 
 const ADAPTER_KIND = "pi-extension";
@@ -2030,7 +2027,7 @@ export function registerTurns(pi: ExtensionAPI) {
     };
 
     if (getAttachmentRuntime().focusaAvailable) {
-      turnWorkLoopWriterHeaders()
+      turnWorkLoopContextHeaders()
         .then((headers) =>
           focusaFetch("/work-loop/context", {
             method: "POST",
@@ -2339,7 +2336,7 @@ export function registerTurns(pi: ExtensionAPI) {
     }
 
     if (getAttachmentRuntime().focusaAvailable) {
-      void turnWorkLoopWriterHeaders()
+      void turnWorkLoopContextHeaders()
         .then((headers) =>
           focusaFetch("/work-loop/context", {
             method: "POST",

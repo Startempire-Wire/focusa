@@ -9,7 +9,6 @@ import {
   currentAttachmentKey,
   getAttachmentRuntime,
   focusaFetch,
-  currentWorkLoopWriterLease,
   getFocusState,
   getEffectiveFocusSnapshot,
   getEcsArtifact,
@@ -51,19 +50,6 @@ import {
 } from "./mission-canvas-model.js";
 import { projectSessionInventory, sessionInventoryLabel } from "./mission-canvas-session-inventory.js";
 import { rehydrateHandle } from "./rehydrate.js";
-
-async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
-  const writerId = `pi-${process.pid}`;
-  const status = await focusaFetch("/work-loop/status?summary_only=true");
-  const lease = currentWorkLoopWriterLease(status, writerId);
-  if (!lease) {
-    throw new Error("current scoped Work Loop lease is missing, expired, or owned by another Pi writer");
-  }
-  return {
-    "x-focusa-writer-id": writerId,
-    "x-focusa-fencing-token": String(lease.fencingToken),
-  };
-}
 
 type RolloverReplacementContext = {
   ui: { notify(message: string, level: "info" | "warning" | "error"): void };

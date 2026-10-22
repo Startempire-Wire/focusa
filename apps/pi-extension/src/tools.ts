@@ -3895,7 +3895,8 @@ pi.registerTool({
           authorship_mode: body.authorship_mode,
           preflight: {
             mutates: false,
-            writer_required_for: ["resume", "context", "checkpoint", "select_next"],
+            writer_required_for: ["resume", "checkpoint", "select_next"],
+            unclaimed_metadata_context: "daemon checks scope and existing claims",
             recovery_controls: ["pause", "stop"],
             recovery_authority: "daemon checks exact scope and any live writer",
           },
@@ -4207,7 +4208,8 @@ pi.registerTool({
       }
       const res = await focusaFetchDetailed("/work-loop/context", {
         method: "POST",
-        headers: await requiredWriterLeaseHeaders(),
+        // Metadata does not acquire execution ownership; the daemon checks any existing claim.
+        headers: writerLeaseHeaders(localWriterId, await currentWorkLoopLease()),
         body: JSON.stringify({
           current_ask: p.current_ask.slice(0, 240),
           ask_kind: p.ask_kind,
