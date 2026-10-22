@@ -17,7 +17,7 @@ import {
   nativeSessionAllowsNonessentialPersistence,
   focusaFetch,
   focusaPost,
-  compatibleWorkLoopStatusState,
+  currentWorkLoopWriterLease,
   extractText,
   getFocusState,
   getCachedFocusState,
@@ -143,22 +143,13 @@ const CACHE_SAFE_DEGRADED_RETAINED_SECTIONS = new Set([
 async function turnWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
   const status = await focusaFetch("/work-loop/status?summary_only=true");
-  const partition = status?.execution_partition;
-  const token = Number(partition?.fencing_token);
-  const expiresAt = Date.parse(String(partition?.lease_expires_at || ""));
-  if (
-    compatibleWorkLoopStatusState(status) === "unsupported" ||
-    partition?.writer_key !== writerId ||
-    partition?.lease_freshness !== "current" ||
-    !Number.isSafeInteger(token) ||
-    token <= 0 ||
-    !(expiresAt > Date.now())
-  ) {
+  const lease = currentWorkLoopWriterLease(status, writerId);
+  if (!lease) {
     throw new Error("current scoped Work Loop lease is missing, expired, or owned by another Pi writer");
   }
   return {
     "x-focusa-writer-id": writerId,
-    "x-focusa-fencing-token": String(token),
+    "x-focusa-fencing-token": String(lease.fencingToken),
   };
 }
 

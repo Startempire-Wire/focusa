@@ -9,7 +9,7 @@ import {
   currentAttachmentKey,
   getAttachmentRuntime,
   focusaFetch,
-  compatibleWorkLoopStatusState,
+  currentWorkLoopWriterLease,
   getFocusState,
   getEffectiveFocusSnapshot,
   getEcsArtifact,
@@ -55,22 +55,13 @@ import { rehydrateHandle } from "./rehydrate.js";
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
   const status = await focusaFetch("/work-loop/status?summary_only=true");
-  const partition = status?.execution_partition;
-  const token = Number(partition?.fencing_token);
-  const expiresAt = Date.parse(String(partition?.lease_expires_at || ""));
-  if (
-    compatibleWorkLoopStatusState(status) === "unsupported" ||
-    partition?.writer_key !== writerId ||
-    partition?.lease_freshness !== "current" ||
-    !Number.isSafeInteger(token) ||
-    token <= 0 ||
-    !(expiresAt > Date.now())
-  ) {
+  const lease = currentWorkLoopWriterLease(status, writerId);
+  if (!lease) {
     throw new Error("current scoped Work Loop lease is missing, expired, or owned by another Pi writer");
   }
   return {
     "x-focusa-writer-id": writerId,
-    "x-focusa-fencing-token": String(token),
+    "x-focusa-fencing-token": String(lease.fencingToken),
   };
 }
 

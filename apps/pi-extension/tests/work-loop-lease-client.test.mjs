@@ -95,9 +95,9 @@ for (const [name, source] of [
   ["commands", commands],
   ["turns", turns],
 ]) {
-  assert.match(source, /compatibleWorkLoopStatusState\(status\)/, `${name} must reject unknown typed states`);
+  assert.match(source, /currentWorkLoopWriterLease\(status, writerId\)/, `${name} must use the shared lease projection`);
   assert.match(state, /focusa\.work_loop_status\.v3/, `${name} must reject unsupported status schemas`);
-  assert.match(source, /lease_freshness !== "current"/, `${name} must reject stale leases`);
+  assert.match(state, /lease_freshness !== "current"/, `${name} must reject stale leases through the owner`);
   assert.match(source, /x-focusa-fencing-token/, `${name} must send fencing authority`);
 }
 console.log("work-loop scoped lease client contract passed");

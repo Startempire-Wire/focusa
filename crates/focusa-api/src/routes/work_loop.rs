@@ -36,6 +36,9 @@ use tokio::process::{Child, Command};
 use tokio::time::{Duration, sleep, timeout};
 use uuid::Uuid;
 
+#[path = "work_loop_recovery.rs"]
+mod recovery;
+
 const WRITER_HEADER: &str = "x-focusa-writer-id";
 const FENCING_HEADER: &str = "x-focusa-fencing-token";
 // Leave enough bounded time for provider discovery and one atomic CLI mutation.
@@ -870,14 +873,14 @@ fn acquire_writer_for_key(
     Ok(lease)
 }
 
-fn validate_and_renew_writer_for_key(
-    claims: &mut std::collections::HashMap<String, WriterLease>,
+fn validate_writer_for_key(
+    claims: &std::collections::HashMap<String, WriterLease>,
     key: &str,
     writer_id: &str,
     fencing_token: u64,
     now: DateTime<Utc>,
 ) -> Result<WriterLease, (StatusCode, Json<Value>)> {
-    let Some(lease) = claims.get_mut(key) else {
+    let Some(lease) = claims.get(key) else {
         return Err(conflict(
             "continuous work loop partition has no active writer lease",
             None,
@@ -895,6 +898,20 @@ fn validate_and_renew_writer_for_key(
             Some(lease.writer_id.clone()),
         ));
     }
+    Ok(lease.clone())
+}
+
+fn validate_and_renew_writer_for_key(
+    claims: &mut std::collections::HashMap<String, WriterLease>,
+    key: &str,
+    writer_id: &str,
+    fencing_token: u64,
+    now: DateTime<Utc>,
+) -> Result<WriterLease, (StatusCode, Json<Value>)> {
+    validate_writer_for_key(claims, key, writer_id, fencing_token, now)?;
+    let lease = claims
+        .get_mut(key)
+        .expect("validated writer remains borrowed");
     lease.renewed_at = now;
     lease.expires_at = writer_lease_expiry(now);
     Ok(lease.clone())
@@ -953,19 +970,6 @@ async fn ensure_writer_claim(
     let key = require_authoritative_claim_key(writer_claim_key(scope, state).await)?;
     let mut claims = state.writer_claims.write().await;
     validate_and_renew_writer_for_key(&mut claims, &key, &writer_id, fencing_token, Utc::now())
-}
-
-async fn release_writer_claim(
-    scope: &WorkLoopScope,
-    state: &Arc<AppState>,
-    headers: &HeaderMap,
-) -> Result<Option<WriterLease>, (StatusCode, Json<Value>)> {
-    let writer_id = writer_id_from_headers(headers)?;
-    let fencing_token = fencing_token_from_headers(headers)?;
-    let key = require_authoritative_claim_key(writer_claim_key(scope, state).await)?;
-    let mut claims = state.writer_claims.write().await;
-    validate_and_renew_writer_for_key(&mut claims, &key, &writer_id, fencing_token, Utc::now())?;
-    Ok(claims.remove(&key))
 }
 
 async fn ensure_claimed_writer_matches_for_context(
@@ -3269,20 +3273,23 @@ async fn pause(
         return Err(forbid("work-loop:write"));
     }
 
-    let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
-
-    send_work_loop_action(
+    let writer_lease = recovery::control(
+        &scope,
         &state,
-        "work_loop_pause",
+        &headers,
         Action::PauseContinuousWork {
             reason: payload.reason.unwrap_or_default(),
         },
     )
     .await?;
 
-    Ok(Json(
-        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at, "temporal_context":temporal_context_for_scope(&scope) }),
-    ))
+    Ok(Json(json!({
+        "ok": true,
+        "writer_id": writer_lease.as_ref().map(|lease| lease.writer_id.as_str()),
+        "fencing_token": writer_lease.as_ref().map(|lease| lease.fencing_token),
+        "lease_expires_at": writer_lease.as_ref().map(|lease| lease.expires_at),
+        "temporal_context": temporal_context_for_scope(&scope),
+    })))
 }
 
 async fn resume(
@@ -4650,10 +4657,10 @@ async fn stop(
         return Err(forbid("work-loop:write"));
     }
 
-    let released_writer = release_writer_claim(&scope, &state, &headers).await?;
-    send_work_loop_action(
+    let released_writer = recovery::control(
+        &scope,
         &state,
-        "work_loop_stop",
+        &headers,
         Action::StopContinuousWork {
             reason: payload.reason.unwrap_or_default(),
         },

@@ -801,6 +801,24 @@ export function compatibleWorkLoopStatusState(payload: any): string {
     : "unsupported";
 }
 
+// One status-to-lease projection for tools, commands and turn hooks. This reads
+// daemon authority; it never acquires, renews or adopts another writer's lease.
+export function currentWorkLoopWriterLease(payload: any, writerId: string, now = Date.now()) {
+  const partition = payload?.execution_partition;
+  const fencingToken = partition?.fencing_token;
+  const expiresAt = String(partition?.lease_expires_at || "");
+  if (
+    compatibleWorkLoopStatusState(payload) === "unsupported" ||
+    typeof fencingToken !== "number" ||
+    partition?.writer_key !== writerId ||
+    partition?.lease_freshness !== "current" ||
+    !Number.isSafeInteger(fencingToken) ||
+    fencingToken <= 0 ||
+    !(Date.parse(expiresAt) > now)
+  ) return null;
+  return { writerId, fencingToken, expiresAt };
+}
+
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 export async function focusaFetch(path: string, opts: RequestInit = {}): Promise<any> {
   // Settings callbacks can run outside Pi's attachment async context. Global routes

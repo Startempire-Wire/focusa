@@ -98,13 +98,22 @@ def main() -> None:
             fail(f"work-loop authority helper missing {needle}")
     for needle in [
         "ensure_writer_claim",
-        "release_writer_claim",
+        "recovery::control",
         "ensure_claimed_writer_matches_for_context",
         "x-focusa-writer-id",
         "x-focusa-approval",
     ]:
         if needle not in work_loop:
             fail(f"work-loop writer/operator guard missing {needle}")
+    recovery = WORK_LOOP.with_name("work_loop_recovery.rs").read_text()
+    for needle in [
+        "require_authoritative_claim_key", "validate_writer_for_key",
+        "validate_recovery_partition", "state.writer_claims.write().await",
+    ]:
+        if needle not in recovery:
+            fail(f"work-loop recovery lost canonical writer guard {needle}")
+    if recovery.index("dispatch.await?;") > recovery.index("claims.remove(key)"):
+        fail("stop must not remove its claim before successful dispatch")
     if work_loop.count('"authority": bounded_orchestration_authority_payload()') < 3:
         fail(
             "work-loop health/summary/deep status payloads must expose authority metadata"

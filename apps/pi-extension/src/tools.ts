@@ -83,6 +83,7 @@ import {
   focusaFetch,
   focusaPost,
   compatibleWorkLoopStatusState,
+  currentWorkLoopWriterLease,
   ensurePiFrame,
   getFocusState,
   ensureContinuityId,
@@ -3830,8 +3831,9 @@ pi.registerTool({
     if (cached && cached.writerId === localWriterId && Date.parse(cached.expiresAt) > Date.now())
       return cached;
     const status = await focusaFetchDetailed("/work-loop/status?summary_only=true");
-    const lease = rememberWorkLoopLease(status.body);
-    return lease?.writerId === localWriterId && Date.parse(lease.expiresAt) > Date.now() ? lease : null;
+    const lease = currentWorkLoopWriterLease(status.body, localWriterId);
+    if (lease) workLoopLeases.set(workLoopLeaseKey(), lease);
+    return lease;
   }
 
   function writerLeaseHeaders(writerId: string, lease: WorkLoopWriterLease | null): Record<string, string> {
@@ -3893,7 +3895,9 @@ pi.registerTool({
           authorship_mode: body.authorship_mode,
           preflight: {
             mutates: false,
-            writer_required_for: ["control", "context", "checkpoint", "select_next"],
+            writer_required_for: ["resume", "context", "checkpoint", "select_next"],
+            recovery_controls: ["pause", "stop"],
+            recovery_authority: "daemon checks exact scope and any live writer",
           },
           response: compactApiEcho(body),
         },
@@ -4094,7 +4098,9 @@ pi.registerTool({
       }
 
       const lease = await currentWorkLoopLease();
-      if (!lease) {
+      // Recovery is not progression: the daemon rechecks the exact scope and
+      // any live owner before accepting pause/stop. Never fabricate a fence.
+      if (!lease && action === "resume") {
         return {
           content: [
             {

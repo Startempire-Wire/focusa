@@ -13,7 +13,8 @@ export function loadPureTypeScript(url) {
   return exports;
 }
 
-export function loadRegisteredTool(name, dependencies, helperSections = []) {
+export function loadRegisteredTool(name, dependencies, helperSections = [], sourceOverride = source) {
+  const source = sourceOverride;
   const anchor = source.indexOf(`name: "${name}"`);
   const start = source.lastIndexOf('pi.registerTool({', anchor);
   const end = source.indexOf('pi.registerTool({', anchor);
