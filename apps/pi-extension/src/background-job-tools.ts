@@ -75,6 +75,8 @@ export function parseBackgroundJobDispatchReceipt(
     }
   }
 
+  const failure = backgroundJobApiFailure(candidate, 200, "dispatch_receipt_invalid");
+  if (failure) throw failure;
   const status = candidate?.status;
   const jobId = typeof candidate?.job_id === "string" ? candidate.job_id.trim() : "";
   const logPath = typeof candidate?.log_path === "string" ? candidate.log_path.trim() : "";
@@ -169,6 +171,7 @@ function apiFailureSummary(body: unknown, status: number): string {
   if (body && typeof body === "object") {
     const value = body as Record<string, unknown>;
     const error = value.error;
+    if (typeof error === "string" && error.trim()) return boundedText(error);
     if (error && typeof error === "object") {
       const message = (error as Record<string, unknown>).message;
       if (typeof message === "string" && message.trim()) return boundedText(message);
@@ -178,6 +181,16 @@ function apiFailureSummary(body: unknown, status: number): string {
     }
   }
   return `Focusa background-job API returned HTTP ${status}`;
+}
+
+function backgroundJobApiFailure(body: unknown, status: number, fallback: string): BackgroundJobToolError | null {
+  const value = body && typeof body === "object" && !Array.isArray(body)
+    ? body as Record<string, unknown> : null;
+  const failed = value?.ok === false || ["failed", "error", "blocked", "unavailable"].includes(String(value?.status));
+  if (status >= 200 && status < 300 && !failed) return null;
+  const failureClass = typeof value?.failure_class === "string" && value.failure_class.trim()
+    ? boundedText(value.failure_class, 80) : fallback;
+  return new BackgroundJobToolError(apiFailureSummary(body, status), failureClass, status);
 }
 
 export async function readBackgroundJobs(
@@ -207,13 +220,8 @@ export async function readBackgroundJobs(
       "background_job_status_invalid"
     );
   }
-  if (!response.ok) {
-    throw new BackgroundJobToolError(
-      apiFailureSummary(body, response.status),
-      "background_job_status_failed",
-      response.status
-    );
-  }
+  const failure = backgroundJobApiFailure(body, response.status, "background_job_status_failed");
+  if (failure) throw failure;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     throw new BackgroundJobToolError(
       "Focusa background-job API returned an invalid envelope",

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
 
-const moduleSourcePath = fileURLToPath(new URL("../src/background-job-tools.ts", import.meta.url));
+const moduleSourcePath = process.env.FOCUSA_TEST_BG_SOURCE || fileURLToPath(new URL("../src/background-job-tools.ts", import.meta.url));
 const compiledModulePath = join(tmpdir(), `focusa-background-job-tools-${process.pid}.mjs`);
 const compiledModule = ts.transpileModule(readFileSync(moduleSourcePath, "utf8"), {
   compilerOptions: {
@@ -216,6 +216,27 @@ await assert.rejects(
   (error) =>
     error instanceof BackgroundJobToolError && error.failureClass === "background_job_not_found"
 );
+
+// Legacy daemons can return a canonical storage failure with HTTP 200. Preserve
+// its cause instead of inventing a missing-job or missing-array diagnosis.
+for (const jobId of [undefined, "known-job"]) {
+  await assert.rejects(readBackgroundJobs("http://127.0.0.1:8787", jobId, async () => ({
+    ok: true, status: 200, async json() { return {
+      schema: "focusa.error_envelope.v1", status: "failed",
+      failure_class: "persistence_unavailable", error: "Disk quota exceeded (os error 122)",
+    }; },
+  })), error => error instanceof BackgroundJobToolError &&
+    error.failureClass === "persistence_unavailable" && /Disk quota exceeded/.test(error.message));
+}
+assert.throws(() => parseBackgroundJobDispatchReceipt(JSON.stringify({
+  schema: "focusa.error_envelope.v1", status: "failed",
+  failure_class: "persistence_unavailable", error: "database or disk is full",
+}), "storage failure"), error => error instanceof BackgroundJobToolError &&
+  error.failureClass === "persistence_unavailable" && /disk is full/.test(error.message));
+const failedJob = await readBackgroundJobs("http://127.0.0.1:8787", "job", async () => ({
+  ok: true, status: 200, async json() { return { status: "ok", job: { status: "failed", job_id: "job" } }; },
+}));
+assert.equal(failedJob.job.status, "failed", "a failed job is still a successfully read record");
 
 const toolsSource = readFileSync(
   fileURLToPath(new URL("../src/tools.ts", import.meta.url)),

@@ -18,7 +18,8 @@ let deferChild = false;
 const callbacks = [];
 const { dispatchBackgroundJob, BackgroundJobToolError } = loadSourceSection(
   'background-job-tools.ts', 'export const BACKGROUND_JOB_DISPATCH_SCHEMA',
-  'export function backgroundJobsApiOrigin',
+  // Include the shared API-error helpers now used by dispatch receipt parsing.
+  'export async function readBackgroundJobs',
   { execFile(file, args, options, callback) {
     spawned.push({ file, args, options });
     const finish = () => childFailure

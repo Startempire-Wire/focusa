@@ -36,6 +36,22 @@ fn redact_error_json(value: &mut Value) {
         _ => {}
     }
 }
+// Older daemons can return their canonical error envelope with HTTP 200.
+// Reject that envelope here, before command-specific job/list parsing hides it.
+fn checked_api_body(mut body: Value, url: &str) -> anyhow::Result<Value> {
+    if body.get("schema").and_then(Value::as_str)
+        == Some(focusa_core::error_envelope::ERROR_ENVELOPE_SCHEMA)
+    {
+        redact_error_json(&mut body);
+        anyhow::bail!("[API_RESPONSE_ERROR] url={} body={}", url, body);
+    }
+    Ok(body)
+}
+
+#[cfg(test)]
+#[path = "api_client_error_tests.rs"]
+mod error_tests;
+
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
@@ -248,9 +264,11 @@ impl ApiClient {
                 safe_body
             );
         }
-        resp.json()
+        let body = resp
+            .json()
             .await
-            .map_err(|err| classify_reqwest_error(err, &url))
+            .map_err(|err| classify_reqwest_error(err, &url))?;
+        checked_api_body(body, &url)
     }
 
     pub async fn post(&self, path: &str, body: &Value) -> anyhow::Result<Value> {
@@ -296,9 +314,11 @@ impl ApiClient {
                 safe_body
             );
         }
-        resp.json()
+        let body = resp
+            .json()
             .await
-            .map_err(|err| classify_reqwest_error(err, &url))
+            .map_err(|err| classify_reqwest_error(err, &url))?;
+        checked_api_body(body, &url)
     }
 
     /// Blocking POST using curl - for use before process exit.
