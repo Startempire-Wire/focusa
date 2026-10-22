@@ -3409,6 +3409,26 @@ async fn select_next(
     ))
 }
 
+async fn persist_work_loop_update(
+    state: &Arc<AppState>,
+    entry: &EventLogEntry,
+    snapshot: &FocusaState,
+    operation: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    state
+        .persist_events_checkpoint(vec![entry.clone()], snapshot.clone())
+        .await
+        .map_err(|error| {
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(focusa_core::error_envelope::persistence_error(
+                    operation,
+                    &error.to_string(),
+                )),
+            )
+        })
+}
+
 async fn set_decision_context(
     scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
@@ -3461,9 +3481,7 @@ async fn set_decision_context(
     );
     entry.machine_id = machine_id;
     entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
-    let _ = state
-        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
-        .await;
+    persist_work_loop_update(&state, &entry, &new_state, "work_loop_context").await?;
     if let Ok(serialized) = serde_json::to_string(&entry) {
         let _ = state.events_tx.send(serialized);
     }
@@ -4062,9 +4080,7 @@ async fn attach_session(
     );
     entry.machine_id = machine_id;
     entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
-    let _ = state
-        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
-        .await;
+    persist_work_loop_update(&state, &entry, &new_state, "work_loop_attach_session").await?;
     if let Ok(serialized) = serde_json::to_string(&entry) {
         let _ = state.events_tx.send(serialized);
     }
@@ -4121,9 +4137,7 @@ async fn abort_session(
     );
     entry.machine_id = machine_id;
     entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
-    let _ = state
-        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
-        .await;
+    persist_work_loop_update(&state, &entry, &new_state, "work_loop_abort_session").await?;
     if let Ok(serialized) = serde_json::to_string(&entry) {
         let _ = state.events_tx.send(serialized);
     }
@@ -4244,9 +4258,7 @@ async fn set_pause_flags(
     );
     entry.machine_id = machine_id;
     entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
-    let _ = state
-        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
-        .await;
+    persist_work_loop_update(&state, &entry, &new_state, "work_loop_pause_flags").await?;
     if let Ok(serialized) = serde_json::to_string(&entry) {
         let _ = state.events_tx.send(serialized);
     }
@@ -4618,17 +4630,7 @@ async fn checkpoint(
     entry.id = checkpoint_id;
     entry.machine_id = machine_id;
     entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
-    state
-        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
-        .await
-        .map_err(|error| {
-            work_loop_failure(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "work_loop_checkpoint",
-                "persistence_failed",
-                format!("atomic checkpoint commit failed: {error}"),
-            )
-        })?;
+    persist_work_loop_update(&state, &entry, &new_state, "work_loop_checkpoint").await?;
     if let Ok(serialized) = serde_json::to_string(&entry) {
         let _ = state.events_tx.send(serialized);
     }
@@ -4718,6 +4720,8 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::*;
     use focusa_core::scoped_state::ScopeRef;
+
+    include!("work_loop_persistence_tests.rs");
 
     #[test]
     fn read_only_status_can_inspect_a_different_active_execution_scope() {

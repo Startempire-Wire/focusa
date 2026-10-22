@@ -43,8 +43,8 @@ pub fn persistence_error(context: &str, error: &str) -> serde_json::Value {
     standard_error(
         "failed",
         "persistence_unavailable",
-        "safe_retry",
-        "retry after the persistence layer recovers; no state was lost",
+        "do_not_retry_unchanged",
+        "inspect durable records and current state before retrying; a missing acknowledgement does not prove that no commit occurred",
         &format!("{context}: {error}"),
     )
 }
@@ -81,11 +81,23 @@ mod tests {
     }
 
     #[test]
-    fn persistence_error_uses_safe_retry() {
+    fn persistence_error_requires_reconciliation_without_no_effect_guarantees() {
         let value = persistence_error("checkpoint", "disk full");
         assert_eq!(value["failure_class"], "persistence_unavailable");
-        assert_eq!(value["retry_posture"], "safe_retry");
+        assert_eq!(value["retry_posture"], "do_not_retry_unchanged");
         assert!(value["error"].as_str().unwrap().contains("checkpoint"));
+        assert!(
+            !value["safe_recovery"]
+                .as_str()
+                .unwrap()
+                .contains("no state was lost")
+        );
+        assert!(
+            value["safe_recovery"]
+                .as_str()
+                .unwrap()
+                .contains("inspect durable records")
+        );
     }
 
     #[test]
