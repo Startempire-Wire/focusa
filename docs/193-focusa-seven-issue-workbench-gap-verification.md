@@ -30,8 +30,9 @@ failure.
 - Hold the existing claim lock through bounded command-queue acceptance. Stop
   removes only that claim after successful dispatch; failed dispatch and pause
   do not release or renew it. Queue acceptance is not proof of completed action.
-- Share Pi status-to-lease validation across tools, commands and turn hooks in
-  `state.ts`; keep progress controls fenced.
+- Share Pi status-to-lease validation across tools and turn hooks in `state.ts`;
+  the unused commands wrapper is removed. Context-only metadata follows the
+  daemon's existing unclaimed-context policy; progress controls remain fenced.
 - #657 concerns absent transport/budget accounting and is not a duplicate fix.
   Silent Session writer leases have a distinct owner and are not consolidated
   with Work Loop claims.
@@ -111,3 +112,47 @@ no production database, history, quota or lock is changed.
 - None of the seven is closed by this document or by a test being present.
   Distinguish reported symptoms, demonstrated defects, tested fixes and remaining
   proof. Never invent a cause or mark a whole issue complete from partial proof.
+
+## Follow-up acceptance and newly demonstrated gap
+
+- Issues685 (saved-session replay) and686 (optional journal dependency deadlock)
+  were separately closed as code-fixed after pinning main at
+  `6cf15b2c2121ef567e267b25dad0fe0348432c2b` and comparing the complete decoder,
+  replay tests, journal, journal tests and wrapper byte-for-byte with the freshly
+  tested files. State and closure comments were read back. This is not a release
+  or installation claim; the other five issues remain open.
+- Attempt1787 passed repeated A/B verification, checkpoint and resume through
+  actual application handlers sharing one fixture state and database. Six actual
+  bounded `printf` children produced six durable completed job records, re-read
+  through a new SQLite connection. Goal ledger digests stayed unchanged; no new
+  marker backups appeared; unknown continuity was refused. Evidence is in
+  `1787-workstream-goal-digest-proof/accepted-scope-receipts.json`. Fixture
+  entitlement/identity is explicitly isolated test authority, not production
+  authority or proof of restored installed-tool operation.
+- Attempt1785 was a fixture refusal, not a product regression: a non-UUID session
+  was correctly rejected. Attempt1786 corrected that input and passed before the
+  stronger1787 proof; the refusal remains recorded.
+- Attempt1788 demonstrated a further #680 defect: a real SQLite trigger rejected
+  saving context, yet the route returned canonical accepted and materialized it.
+  Five Work Loop update paths now share guarded durable acknowledgement before
+  publishing memory/events. The canonical persistence envelope requires inspecting
+  durable effects before retry, without claiming no commit occurred or no data
+  was lost. Attempt1790 passed38 actual writer/persistence cases, seven recovery
+  cases, A/B acceptance, three envelope-owner and three CLI cases, five Pi
+  consumer scripts, the old-client negative control, no-emit typechecking,
+  strict API/CLI lint and structural guards. Attempt1791 then passed all53
+  project cases, seven replay and three publication cases, the journal contract
+  and route inventory. That is115 distinct passing Rust cases across the two
+  final runs, not a claim that the entire repository or installed runtime passed.
+- Context metadata has always been allowed by the daemon when the exact partition
+  has no claim. Pi now forwards that request without inventing a fence, while
+  existing/expired/foreign claims remain daemon-validated. Pause/Stop recovery
+  likewise acquires no authority; Resume, checkpoints and next-item selection
+  keep their required ownership. No writer, execution budget or scope is minted.
+- Read-only installed health at19:31UTC reported persistence ready and account
+  usage42517MiB of43008MiB. This does not prove future write success, native
+  governed dispatch or the newly guarded source paths are installed.
+- Issue696 explicitly requires approved delivery and installed affected-workflow
+  verification. The retained release/customer-mutation restrictions cannot be
+  silently erased to satisfy that checklist. An explicit boundary decision is
+  required; source fixtures do not substitute for that installed outcome.
