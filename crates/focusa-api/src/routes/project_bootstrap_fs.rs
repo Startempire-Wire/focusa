@@ -3,7 +3,7 @@ use super::project_bootstrap_support::reject;
 use axum::{Json, http::StatusCode};
 use serde_json::Value;
 use std::{
-    fs::{self, File},
+    fs,
     io::{self, Write},
     path::Path,
 };
@@ -152,14 +152,14 @@ fn publish_json(path: &Path, value: &Value, replace: bool) -> io::Result<()> {
         file.write_all(&bytes)?;
         file.write_all(b"\n")?;
         file.sync_all()?;
+        drop(file);
         if replace {
-            fs::rename(&temporary, path)?;
+            focusa_core::durable_fs::atomic_replace(&temporary, path)?;
         } else {
-            fs::hard_link(&temporary, path)?;
+            focusa_core::durable_fs::atomic_publish_new(&temporary, path)?;
         }
         Ok(())
     })();
-    drop(file);
     if let Err(cleanup) = fs::remove_file(&temporary)
         && cleanup.kind() != io::ErrorKind::NotFound
     {
@@ -174,13 +174,32 @@ fn publish_json(path: &Path, value: &Value, replace: bool) -> io::Result<()> {
             ),
         ));
     }
-    File::open(parent)?.sync_all()?;
-    result
+    result?;
+    focusa_core::durable_fs::sync_directory(parent)
 }
 
 #[cfg(test)]
 mod error_classification_tests {
     use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn publication_preserves_no_clobber_and_supports_explicit_replace() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("receipt.json");
+        publish_json(&path, &json!({"value": 1}), false).unwrap();
+        let error = publish_json(&path, &json!({"value": 2}), false).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(
+            serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap()["value"],
+            1
+        );
+        publish_json(&path, &json!({"value": 3}), true).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap()["value"],
+            3
+        );
+    }
 
     #[test]
     fn filesystem_denials_keep_distinct_http_failure_classes() {

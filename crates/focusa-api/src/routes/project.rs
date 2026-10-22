@@ -2363,10 +2363,10 @@ fn write_json_file_atomic<T: serde::Serialize>(path: &Path, value: &T) -> Result
             preserve_file_metadata(path, &temporary)?;
         }
         file.sync_all().map_err(|error| error.to_string())?;
-        fs::rename(&temporary, path).map_err(|error| error.to_string())?;
-        fs::File::open(parent)
-            .and_then(|directory| directory.sync_all())
+        drop(file);
+        focusa_core::durable_fs::atomic_replace(&temporary, path)
             .map_err(|error| error.to_string())?;
+        focusa_core::durable_fs::sync_directory(parent).map_err(|error| error.to_string())?;
         Ok(())
     })();
     if let Err(error) = write_result {
@@ -6093,6 +6093,10 @@ pub fn router() -> Router<Arc<AppState>> {
             get(project_settings_get).post(project_settings_update),
         )
 }
+
+#[cfg(test)]
+#[path = "project_atomic_tests.rs"]
+mod project_atomic_tests;
 
 #[cfg(test)]
 #[path = "project_liveness_tests.rs"]

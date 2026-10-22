@@ -156,8 +156,7 @@ pub(super) fn settle_after_receipt(root: &Path, digest: &str) -> Result<(), Reje
     }
     fs::remove_file(path(root)?)
         .map_err(|error| artifact_write_rejection("pre_root_settle", error))?;
-    fs::File::open(root.parent().unwrap())
-        .and_then(|dir| dir.sync_all())
+    focusa_core::durable_fs::sync_directory(root.parent().unwrap())
         .map_err(|error| artifact_write_rejection("pre_root_settle", error))
 }
 

@@ -129,10 +129,9 @@ pub(super) fn write_json_atomic(path: &Path, value: &Value) -> Result<(), String
     file.write_all(&bytes).map_err(|error| error.to_string())?;
     file.write_all(b"\n").map_err(|error| error.to_string())?;
     file.sync_all().map_err(|error| error.to_string())?;
-    fs::rename(&tmp, path).map_err(|error| error.to_string())?;
-    File::open(parent)
-        .and_then(|dir| dir.sync_all())
-        .map_err(|error| error.to_string())?;
+    drop(file);
+    focusa_core::durable_fs::atomic_replace(&tmp, path).map_err(|error| error.to_string())?;
+    focusa_core::durable_fs::sync_directory(parent).map_err(|error| error.to_string())?;
     Ok(())
 }
 
