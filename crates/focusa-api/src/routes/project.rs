@@ -5004,6 +5004,9 @@ fn projection_matches_ladder_events(
         && (event_waypoints.is_empty() || event_waypoints == projection_waypoints)
 }
 
+#[path = "project_trajectory_marker.rs"]
+mod project_trajectory_marker;
+
 fn build_trajectory_guard(
     project_root: &str,
     trajectory: Option<&TrajectoryProjectionRecord>,
@@ -5097,8 +5100,15 @@ fn build_trajectory_guard(
         freshness: json!({"verified_at": Utc::now()}),
         status: TrajectoryIntegrityStatus::Ready,
     };
-    let existing_binding = marker
-        .get("trajectory_binding")
+    let marker_projection = project_trajectory_marker::projection(
+        marker,
+        project_root,
+        trajectory.continuity_id.as_deref(),
+    );
+    let schema_supported = marker_projection.is_ok();
+    let existing_binding = marker_projection
+        .ok()
+        .and_then(|projection| projection.get("trajectory_binding"))
         .cloned()
         .and_then(|value| serde_json::from_value::<ProjectTrajectoryBindingRecord>(value).ok());
     let marker_matches = existing_binding.as_ref().is_some_and(|existing| {
@@ -5113,7 +5123,7 @@ fn build_trajectory_guard(
         TrajectoryIntegrityStatus::HltImpasse
     } else if !minimum_ladder_complete || !ladder_links_complete {
         TrajectoryIntegrityStatus::TrajectoryReviewRequired
-    } else if !causal_chain_valid || !projection_matches_ledger {
+    } else if !causal_chain_valid || !projection_matches_ledger || !schema_supported {
         TrajectoryIntegrityStatus::IntegrityRepairRequired
     } else if !marker_matches {
         TrajectoryIntegrityStatus::MigrationRequired
@@ -5134,7 +5144,7 @@ fn build_trajectory_guard(
         expected_ledger_digest: digest,
         minimum_ladder_complete,
         causal_chain_valid,
-        schema_supported: true,
+        schema_supported,
         no_placeholder_values,
         ladder_links_complete,
         projection_matches_ledger,
@@ -5253,8 +5263,17 @@ pub(crate) async fn trajectory_guard(
     }
     // A recomputed READY guard is not a durable no-op when the marker still
     // persists a stale red guard from a previously broken verifier.
-    let stored_guard_ready = marker
-        .pointer("/trajectory_integrity_guard/status")
+    let stored_guard_ready = trajectory
+        .as_ref()
+        .and_then(|trajectory| {
+            project_trajectory_marker::projection(
+                &marker,
+                &project_root,
+                trajectory.continuity_id.as_deref(),
+            )
+            .ok()
+        })
+        .and_then(|projection| projection.pointer("/trajectory_integrity_guard/status"))
         .and_then(Value::as_str)
         == Some("READY");
     if action == "preview" {
@@ -5319,6 +5338,17 @@ pub(crate) async fn trajectory_guard(
                 })),
             );
         }
+        let Some(canonical_continuity) = trajectory
+            .as_ref()
+            .and_then(|trajectory| trajectory.continuity_id.as_deref())
+            .filter(|value| !value.trim().is_empty())
+            .map(str::to_string)
+        else {
+            return (
+                axum::http::StatusCode::CONFLICT,
+                Json(json!({"status":"blocked","code":"WORKSTREAM_SCOPE_REQUIRED","guard":guard})),
+            );
+        };
         let original_marker = marker.clone();
         let backup = canonical_root.join(format!(".focusa-project.json.backup-{}", Uuid::now_v7()));
         if let Err(error) = fs::copy(&marker_path, &backup) {
@@ -5357,15 +5387,18 @@ pub(crate) async fn trajectory_guard(
         } else {
             guard.status
         };
-        if let Some(object) = marker.as_object_mut() {
-            object.insert("schema".to_string(), json!("focusa.project.v2"));
-            object.insert(
-                "trajectory_binding".to_string(),
-                serde_json::to_value(&binding).unwrap_or(Value::Null),
-            );
-            object.insert(
-                "trajectory_integrity_guard".to_string(),
-                serde_json::to_value(&guard).unwrap_or(Value::Null),
+        if let Err(error) = project_trajectory_marker::write_projection(
+            &mut marker,
+            &project_root,
+            &canonical_continuity,
+            &binding,
+            &guard,
+        ) {
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    json!({"status":"blocked","code":"MARKER_PROJECTION_FAILED","error":error,"backup_ref":backup_ref}),
+                ),
             );
         }
         if let Err(error) = write_json_file_atomic(&marker_path, &marker) {
@@ -5386,7 +5419,7 @@ pub(crate) async fn trajectory_guard(
             event_id: Uuid::now_v7().to_string(),
             trajectory_id: binding.active_trajectory_id.clone(),
             project_root: project_root.clone(),
-            continuity_id: request.continuity_id.clone(),
+            continuity_id: Some(canonical_continuity),
             session_id: None,
             hlt_version: binding.active_hlt_version,
             causal_parent_event_id: events.last().map(|event| event.event_id.clone()),
@@ -6106,6 +6139,8 @@ mod project_liveness_tests;
 #[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::*;
+
+    include!("project_trajectory_workstream_tests.rs");
 
     #[test]
     fn north_star_gate_marks_daemon_authority_without_advisory_fallback() {
