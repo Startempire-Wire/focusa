@@ -16,6 +16,7 @@ use axum::{
 use chrono::Utc;
 use focusa_core::scope_safety::classify_project_root;
 use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
+use focusa_core::tool_result::{FailureClass, ToolResultV1, ToolStatus};
 use focusa_core::types::{
     ProjectTrajectoryBindingRecord, TrajectoryIntegrityGuardRecord, TrajectoryIntegrityStatus,
     TrajectoryLadderEvent, TrajectoryLadderEventKind, TrajectoryLadderLevel,
@@ -2605,7 +2606,43 @@ fn build_project_dashboard(
     })
 }
 
+// Workspace inspection performs synchronous filesystem reads. Keep the entire
+// inspection off HTTP workers, including root resolution and marker parsing.
+async fn project_inspection_response<F>(inspect: F) -> Json<Value>
+where
+    F: FnOnce() -> Json<Value> + Send + 'static,
+{
+    let span = tracing::Span::current();
+    match tokio::task::spawn_blocking(move || span.in_scope(inspect)).await {
+        Ok(payload) => payload,
+        Err(error) => {
+            tracing::error!(
+                worker_panicked = error.is_panic(),
+                "project inspection worker did not complete"
+            );
+            let mut failure = ToolResultV1::failure(
+                ToolStatus::Error,
+                FailureClass::NullResponse,
+                "Project inspection did not produce a result",
+            )
+            .with_error(
+                "PROJECT_INSPECTION_WORKER_FAILED",
+                "The project inspection worker stopped before returning a result",
+            );
+            failure.family = Some("project".to_string());
+            failure.recovery_hint = Some(
+                "Inspect daemon diagnostics before retrying the read; no project verification is established by this failure".to_string(),
+            );
+            Json(serde_json::to_value(failure).expect("canonical failure envelope must serialize"))
+        }
+    }
+}
+
 async fn list_projects(Query(query): Query<ProjectListQuery>) -> Json<Value> {
+    project_inspection_response(move || list_projects_inspection(query)).await
+}
+
+fn list_projects_inspection(query: ProjectListQuery) -> Json<Value> {
     let runtime_root = query
         .project_root
         .as_deref()
@@ -2640,6 +2677,10 @@ async fn current_status(Query(query): Query<ProjectListQuery>) -> Json<Value> {
 }
 
 async fn discover_projects(Query(query): Query<ProjectDiscoverQuery>) -> Json<Value> {
+    project_inspection_response(move || discover_projects_inspection(query)).await
+}
+
+fn discover_projects_inspection(query: ProjectDiscoverQuery) -> Json<Value> {
     let from = query.from.as_deref().unwrap_or(".");
     if classify_project_root(from).reason().is_some() {
         return Json(json!({"status":"blocked","reason":"unsafe from path"}));
@@ -2946,6 +2987,10 @@ async fn project_settings_update(Json(body): Json<ProjectSettingsRequest>) -> Js
 }
 
 async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
+    project_inspection_response(move || project_identity_inspection(query)).await
+}
+
+fn project_identity_inspection(query: ProjectIdentityQuery) -> Json<Value> {
     let remote_hint = RemoteProjectHint::from_query(&query);
     let local_binding = query
         .remote_host
@@ -3016,6 +3061,10 @@ async fn verify(
     State(_state): State<Arc<AppState>>,
     Json(body): Json<ProjectVerifyRequest>,
 ) -> Json<Value> {
+    project_inspection_response(move || verify_project_inspection(body)).await
+}
+
+fn verify_project_inspection(body: ProjectVerifyRequest) -> Json<Value> {
     let mut payload = candidate_payload(
         discover_identity(
             body.cwd.as_deref(),
@@ -6044,6 +6093,10 @@ pub fn router() -> Router<Arc<AppState>> {
             get(project_settings_get).post(project_settings_update),
         )
 }
+
+#[cfg(test)]
+#[path = "project_liveness_tests.rs"]
+mod project_liveness_tests;
 
 #[cfg(test)]
 #[allow(clippy::field_reassign_with_default)]
