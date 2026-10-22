@@ -31,6 +31,29 @@ Quality receipt `ovh:/home/wirebot/build/focusa/189-stall-control/1734-quality/r
 5. Run affected formatting, lint, producer/consumer and compatibility checks, followed by the required full release gates for the changed candidate. The earlier strict preflight remains evidence for f7f65a only.
 6. Obtain safe customer revision/process diagnostics; delivery and actual installed macOS consumer proof are required before closing#696. Reproduce the reported workflow and preserve restart/lock ownership behavior.
 
+## Additional gate/ledger starvation regression
+
+Attempt1797 extended the actual gate route with the same owned FIFO fixture.
+The original guard blocked unrelated HTTP progress; the expected liveness
+assertion failed, rather than a launcher/fixture error. The owning guard still
+performed synchronous marker, SQLite and publication work on the async lane.
+
+The guard now uses the existing bounded inspection worker owner, not a second
+executor. Its snapshot uses `blocking_read` only inside that worker. Successful
+binding, migration/rollback, scope and ledger logic stay unchanged. Capacity or
+deadline failure returns503 without verification/admission authority; a timed-out
+running operation keeps its permit until completion. Recovery requires inspecting
+canonical state: timeout is not a guarantee that marker/ledger effects did not
+occur, and automatic unchanged retry remains forbidden.
+
+Attempt1798 passed55 project,34 checkpoint/scoped-acceptance,38 writer/persistence
+and seven recovery cases. Final1799 removed test interference by injecting an
+isolated capacity budget into the same guard boundary, then passed55 project
+cases, actual A/B acceptance, strict API lint, structural and route inventory
+checks. The actual FIFO gate test and failed-authority capacity case are included.
+These source checks still neither identify the customer's exact cause nor prove
+an installed macOS correction.
+
 ## Stop, rollback and delivery boundaries
 
 A synthetic regression establishes a source defect, not automatically the customer's cause. Refine the diagnosis when client evidence disagrees. Roll back only the new scoped source patch through ordinary reviewed history; preserve existing work and all forensic data. Use the canonical complete release/install path and approved destination; do not create a partial release, trigger paid providers or bypass daemon admission. Reuse the previously owner-approved isolated OVH source-test recovery route while the native dispatch defect remains unresolved; report it rather than presenting that exception as normal operation.

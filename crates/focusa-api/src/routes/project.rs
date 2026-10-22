@@ -2611,13 +2611,14 @@ fn build_project_dashboard(
 // running blocking read. Repeated requests therefore cannot grow workers forever.
 static PROJECT_INSPECTION_SLOTS: std::sync::LazyLock<std::sync::Arc<tokio::sync::Semaphore>> =
     std::sync::LazyLock::new(|| std::sync::Arc::new(tokio::sync::Semaphore::new(8)));
+const PROJECT_INSPECTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(4);
 
 fn project_inspection_failure(code: &str, class: FailureClass, message: &str) -> Json<Value> {
     let mut failure =
         ToolResultV1::failure(ToolStatus::Error, class, message).with_error(code, message);
     failure.family = Some("project".to_string());
     failure.recovery_hint = Some(
-        "Inspect daemon diagnostics before retrying the read; no project verification is established by this failure".to_string(),
+        "Inspect canonical state and daemon diagnostics before retrying; running work may finish after its deadline and this failure establishes no project verification".to_string(),
     );
     Json(serde_json::to_value(failure).expect("canonical failure envelope must serialize"))
 }
@@ -2629,7 +2630,7 @@ where
     // Return before the Pi client's default five-second transport timeout.
     project_inspection_response_with_limits(
         inspect,
-        std::time::Duration::from_secs(4),
+        PROJECT_INSPECTION_DEADLINE,
         PROJECT_INSPECTION_SLOTS.clone(),
     )
     .await
@@ -2643,12 +2644,26 @@ async fn project_inspection_response_with_limits<F>(
 where
     F: FnOnce() -> Json<Value> + Send + 'static,
 {
+    project_inspection_task_with_limits(inspect, deadline, slots)
+        .await
+        .unwrap_or_else(std::convert::identity)
+}
+
+async fn project_inspection_task_with_limits<T, F>(
+    inspect: F,
+    deadline: std::time::Duration,
+    slots: std::sync::Arc<tokio::sync::Semaphore>,
+) -> Result<T, Json<Value>>
+where
+    T: Send + 'static,
+    F: FnOnce() -> T + Send + 'static,
+{
     let Ok(permit) = slots.try_acquire_owned() else {
-        return project_inspection_failure(
+        return Err(project_inspection_failure(
             "PROJECT_INSPECTION_CAPACITY_EXHAUSTED",
             FailureClass::ResourceExhausted,
-            "Project inspection workers are occupied; no new read was started",
-        );
+            "Project inspection workers are occupied; no new work was started",
+        ));
     };
     let span = tracing::Span::current();
     let mut worker = tokio::task::spawn_blocking(move || {
@@ -2656,27 +2671,27 @@ where
         span.in_scope(inspect)
     });
     match tokio::time::timeout(deadline, &mut worker).await {
-        Ok(Ok(payload)) => payload,
+        Ok(Ok(payload)) => Ok(payload),
         Ok(Err(error)) => {
             tracing::error!(
                 worker_panicked = error.is_panic(),
                 "project inspection worker did not complete"
             );
-            project_inspection_failure(
+            Err(project_inspection_failure(
                 "PROJECT_INSPECTION_WORKER_FAILED",
                 FailureClass::NullResponse,
                 "The project inspection worker stopped before returning a result",
-            )
+            ))
         }
         Err(_) => {
             // Abort queued work if it has not started. A running read keeps its
             // permit until completion; returning an error does not cancel it.
             worker.abort();
-            project_inspection_failure(
+            Err(project_inspection_failure(
                 "PROJECT_INSPECTION_TIMED_OUT",
                 FailureClass::HotPathTimeout,
                 "The project inspection worker exceeded its response deadline",
-            )
+            ))
         }
     }
 }
@@ -5207,6 +5222,39 @@ pub(crate) async fn trajectory_guard(
     State(state): State<Arc<AppState>>,
     Json(request): Json<TrajectoryGuardRequest>,
 ) -> (axum::http::StatusCode, Json<Value>) {
+    trajectory_guard_with_limits(
+        state,
+        request,
+        PROJECT_INSPECTION_DEADLINE,
+        PROJECT_INSPECTION_SLOTS.clone(),
+    )
+    .await
+}
+
+async fn trajectory_guard_with_limits(
+    state: Arc<AppState>,
+    request: TrajectoryGuardRequest,
+    deadline: std::time::Duration,
+    slots: Arc<tokio::sync::Semaphore>,
+) -> (axum::http::StatusCode, Json<Value>) {
+    match project_inspection_task_with_limits(
+        move || trajectory_guard_inspection(state, request),
+        deadline,
+        slots,
+    )
+    .await
+    {
+        Ok(response) => response,
+        Err(failure) => (axum::http::StatusCode::SERVICE_UNAVAILABLE, failure),
+    }
+}
+
+// All guard filesystem/SQLite work, including the state snapshot lock, belongs
+// to the existing bounded blocking lane; no task-local authority is manufactured.
+fn trajectory_guard_inspection(
+    state: Arc<AppState>,
+    request: TrajectoryGuardRequest,
+) -> (axum::http::StatusCode, Json<Value>) {
     let action = request.action.as_deref().unwrap_or("verify");
     if !matches!(action, "verify" | "preview" | "migrate" | "repair") {
         return (
@@ -5263,7 +5311,7 @@ pub(crate) async fn trajectory_guard(
         );
     }
     let trajectory = {
-        let focusa = state.focusa.read().await;
+        let focusa = state.focusa.blocking_read();
         focusa
             .trajectory
             .records

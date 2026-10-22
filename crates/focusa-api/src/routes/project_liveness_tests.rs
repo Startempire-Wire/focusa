@@ -17,6 +17,11 @@ mod tests {
         };
         use tower::ServiceExt;
 
+        let guard_state = if endpoint == "/v1/project/north-star-gate" {
+            Some(crate::routes::turn::tests::setup_state(None).await.0)
+        } else {
+            None
+        };
         let fixture = tempfile::tempdir().unwrap();
         let project = fixture.path().join("synthetic-project");
         std::fs::create_dir_all(project.join(".git")).unwrap();
@@ -71,11 +76,17 @@ mod tests {
                 >| async move { super::super::discover_projects_inspection(query) },
             )
         };
-        let app = Router::new()
-            .route("/v1/project/discover", discovery_route)
-            .route("/v1/project/identity", get(super::super::identity))
-            .route("/v1/project/list", get(super::super::list_projects))
-            .route("/unrelated-health-probe", get(|| async { StatusCode::OK }));
+        let app = if let Some(state) = guard_state {
+            super::super::router()
+                .with_state(state)
+                .layer(axum::Extension(crate::scope::ScopeContext::default()))
+        } else {
+            Router::new()
+                .route("/v1/project/discover", discovery_route)
+                .route("/v1/project/identity", get(super::super::identity))
+                .route("/v1/project/list", get(super::super::list_projects))
+        }
+        .route("/unrelated-health-probe", get(|| async { StatusCode::OK }));
         let query = if endpoint == "/v1/project/discover" {
             format!(
                 "from={}&max_depth=0&max_results=1",
@@ -114,7 +125,12 @@ mod tests {
             "the selected handler did not exercise the synthetic slow read"
         );
         writer_result.unwrap();
-        assert_eq!(inspection_response.status(), StatusCode::OK);
+        let expected = if endpoint == "/v1/project/north-star-gate" {
+            StatusCode::CONFLICT // Empty synthetic marker establishes no authority.
+        } else {
+            StatusCode::OK
+        };
+        assert_eq!(inspection_response.status(), expected);
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(
             responsive_while_inspection_blocked, offload,
@@ -144,6 +160,48 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn slow_workspace_metadata_negative_control_detects_inline_inspection() {
         assert_slow_metadata_keeps_http_responsive("/v1/project/discover", false).await;
+    }
+
+    #[cfg(unix)]
+    #[tokio::test(flavor = "current_thread")]
+    async fn slow_guard_metadata_does_not_starve_unrelated_http_requests() {
+        assert_slow_metadata_keeps_http_responsive("/v1/project/north-star-gate", true).await;
+    }
+
+    #[tokio::test]
+    async fn saturated_guard_never_establishes_execution_authority() {
+        use axum::{Json, http::StatusCode};
+        use std::{sync::Arc, time::Duration};
+
+        let (state, _persistence) = crate::routes::turn::tests::setup_state(None).await;
+        let fixture = tempfile::tempdir().unwrap();
+        // Exercise the production guard boundary without stealing the process
+        // budget from unrelated tests that may run concurrently.
+        let slots = Arc::new(tokio::sync::Semaphore::new(1));
+        let held = slots.clone().acquire_owned().await.unwrap();
+        let request = serde_json::from_value(serde_json::json!({
+            "action": "verify",
+            "project_root": fixture.path(),
+        }))
+        .unwrap();
+        let (status, Json(body)) = super::super::trajectory_guard_with_limits(
+            state,
+            request,
+            Duration::from_millis(50),
+            slots,
+        )
+        .await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(body["canonical"], false);
+        assert_eq!(body["ok"], false);
+        assert_eq!(body["retry"]["safe"], false);
+        assert_eq!(
+            body["error"]["code"],
+            "PROJECT_INSPECTION_CAPACITY_EXHAUSTED"
+        );
+        assert!(body.get("trajectory_binding").is_none());
+        assert!(body.get("workpoint_linkage").is_none());
+        drop(held);
     }
 
     #[tokio::test]
