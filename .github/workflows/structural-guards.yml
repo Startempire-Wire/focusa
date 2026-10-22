@@ -3,10 +3,10 @@ on: [push, pull_request]
 jobs:
   guards:
     # The guard is already wired into pre-commit/pre-push and is read-only.
-    # Run trusted pushes on the self-hosted runner to avoid a hosted billing
-    # dependency; never execute untrusted pull-request code on that runner.
+    # Trusted source checks use the existing OVH build lane, never the KH
+    # production/deploy runner or a paid hosted runner.
     if: github.event_name == 'push'
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
       - name: Run structural guards (release failure-mode catalog)

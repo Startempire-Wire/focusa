@@ -29,7 +29,7 @@ permissions:
 jobs:
   consistency:
     name: Licensing and onboarding docs
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
       - name: Verify self-hosted Python runtime

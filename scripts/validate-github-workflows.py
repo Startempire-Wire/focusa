@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate GitHub workflow job dependency graphs.
+"""Validate GitHub workflow job dependency graphs and source-runner scope.
 
 This is intentionally lightweight and dependency-free enough for CI/static guards.
 It catches workflow-file failures GitHub otherwise reports opaquely as
@@ -17,6 +17,13 @@ try:
 except Exception as exc:  # pragma: no cover - CI image provides PyYAML
     print(f"validate-github-workflows: PyYAML unavailable: {exc}", file=sys.stderr)
     sys.exit(2)
+
+
+SOURCE_VALIDATION_WORKFLOWS = {
+    "ci.yml",
+    "spec152-documentation-consistency.yml",
+    "structural-guards.yml",
+}
 
 
 def as_list(value: Any) -> list[str]:
@@ -43,6 +50,14 @@ def validate(path: Path) -> list[str]:
         if not isinstance(job, dict):
             errors.append(f"{path}: job {job_id} is not a mapping")
             continue
+        runner = job.get("runs-on")
+        labels = as_list(runner) if isinstance(runner, (str, list)) else []
+        if (
+            path.name in SOURCE_VALIDATION_WORKFLOWS
+            and "self-hosted" in labels
+            and "ovh-build-2" not in labels
+        ):
+            errors.append(f"{path}: source job {job_id} must target the approved OVH build lane")
         needs = as_list(job.get("needs"))
         if not needs:
             runnable_without_needs.append(job_id)
