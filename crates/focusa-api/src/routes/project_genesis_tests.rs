@@ -280,3 +280,48 @@ fn marker_is_committed_only_after_ready_packet_in_source_contract() {
     assert!(source.contains("FocusaEvent::TrajectoryGoalDefined"));
     assert!(source.contains("FocusaEvent::WorkpointCheckpointPromoted"));
 }
+
+#[tokio::test]
+async fn resume_checks_marker_commit_point_before_reusing_ready_packet() {
+    let root = test_root("resume-marker-commit");
+    let marker_path = root.join(".focusa-project.json");
+    let mut marker = json!({
+        "schema":"focusa.project.v1", "project_id":"synthetic-genesis-resume",
+        "project_root":root.to_string_lossy()
+    });
+    write_json_atomic(&marker_path, &marker).unwrap();
+    let req = complete_request(&root);
+    let mut ready = build_staged_packet(&root, &req, None);
+    ready["status"] = json!("ready");
+    ready["first_workpoint"] = json!({"workpoint_id":"synthetic-workpoint", "canonical":true});
+    write_json_atomic(&packet_path(&root), &ready).unwrap();
+    let (state, _) = crate::routes::turn::tests::setup_state(None).await;
+    let Json(reply) = resume(State(state.clone()), Json(complete_request(&root)))
+        .await
+        .expect("uncommitted packet can return staged recovery");
+    assert_ne!(
+        reply["status"], "ready",
+        "resume trusted a ready journal without the marker commit point"
+    );
+    marker["genesis_binding"] = json!({
+        "status":"ready", "continuity_id":req.continuity_id,
+        "workpoint_id":"synthetic-workpoint"
+    });
+    write_json_atomic(&marker_path, &marker).unwrap();
+    write_json_atomic(&packet_path(&root), &ready).unwrap();
+    let before = std::fs::read(packet_path(&root)).unwrap();
+    let Json(replayed) = resume(State(state.clone()), Json(complete_request(&root)))
+        .await
+        .expect("matching committed marker remains replayable");
+    assert_eq!(replayed, ready);
+    assert_eq!(std::fs::read(packet_path(&root)).unwrap(), before);
+    marker["genesis_binding"]["continuity_id"] = json!("foreign-continuity");
+    write_json_atomic(&marker_path, &marker).unwrap();
+    assert!(
+        resume(State(state), Json(complete_request(&root)))
+            .await
+            .is_err(),
+        "resume ignored the committed foreign workstream"
+    );
+    assert_eq!(std::fs::read(packet_path(&root)).unwrap(), before);
+}

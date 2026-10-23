@@ -146,6 +146,13 @@ The guard runs at bootstrap commit, project switch, session start/resume, compac
 
 ## 6. Project Genesis transaction
 
+Resume reuses the existing start/readiness owner, including the committed project
+marker and exact continuity checks. A matching `ready` journal alone is not proof
+that the final marker publication succeeded. Uncommitted readiness returns to
+staged recovery; a foreign committed Workstream remains refused. Valid committed
+replays preserve their original receipt without new events. Marker-last commit
+ordering and the existing canonical constructor are unchanged.
+
 ```text
 DISCOVER PROJECT
 → VERIFY/CREATE IDENTITY

@@ -173,14 +173,8 @@ async fn resume(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ProjectGenesisRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let root = canonical_root(&req.project_root)?;
-    if let Some(packet) = read_json(&packet_path(&root))
-        && packet.get("idempotency_key").and_then(Value::as_str)
-            == Some(req.idempotency_key.as_str())
-        && packet.get("status").and_then(Value::as_str) == Some("ready")
-    {
-        return Ok(Json(packet));
-    }
+    // Reuse the existing marker/continuity readiness owner: a ready journal
+    // alone is not the final commit point and may belong to another Workstream.
     start(State(state), Json(req)).await
 }
 
