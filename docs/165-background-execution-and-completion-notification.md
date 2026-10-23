@@ -44,6 +44,12 @@ focusa bg status → ledger row + monitor-lost reaping (/proc pid check)
 ## Invariants
 
 1. Completion is recorded durably BEFORE the SSE broadcast (mirrors #311).
+   The existing ledger writer rejects contradictory receipt shapes before SQL:
+   `completed`/`failed` require `completed_at` and `exit_code`; `monitor_lost`
+   requires `completed_at` but may have no exit code; `queued`/`running` carry
+   neither completion field. Rejected updates preserve the saved row and emit no
+   success event, so the monitor can still publish its later valid result.
+   Legacy read projection remains unchanged; this does not rewrite stored rows.
 2. The CLI monitor owns the lifecycle. Every created row records its creator
    PID while queued, then the exact lifecycle-monitor PID before child spawn.
    `bg status`, `bg list`, and `bg wait` reconcile a dead/stale queued creator

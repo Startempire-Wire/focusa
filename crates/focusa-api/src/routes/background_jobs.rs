@@ -545,6 +545,8 @@ mod tests {
     use super::*;
     use focusa_core::scoped_state::{AttachmentKey, ScopeRef, WorkstreamKey};
 
+    include!("background_job_receipt_tests.rs");
+
     fn attachment() -> AttachmentKey {
         let root = std::env::temp_dir().join("focusa-bg-admission-project");
         let scope =

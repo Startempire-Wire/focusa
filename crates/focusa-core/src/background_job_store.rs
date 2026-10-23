@@ -116,6 +116,22 @@ pub fn ensure_schema(conn: &Connection) -> Result<()> {
 }
 
 pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()> {
+    // Reject contradictory receipts before an immutable terminal row can prevent
+    // the monitor from publishing its later, complete result.
+    match record.status {
+        BackgroundJobStatus::Queued | BackgroundJobStatus::Running => anyhow::ensure!(
+            record.completed_at.is_none() && record.exit_code.is_none(),
+            "nonterminal background job cannot carry completion fields"
+        ),
+        BackgroundJobStatus::Completed | BackgroundJobStatus::Failed => anyhow::ensure!(
+            record.completed_at.is_some() && record.exit_code.is_some(),
+            "terminal background job requires completed_at and exit_code"
+        ),
+        BackgroundJobStatus::MonitorLost => anyhow::ensure!(
+            record.completed_at.is_some(),
+            "monitor_lost background job requires completed_at"
+        ),
+    }
     let attachment_json = record
         .attachment
         .as_ref()
@@ -526,6 +542,7 @@ mod tests {
         job.status = BackgroundJobStatus::Failed;
         job.failure_class = Some(BackgroundJobFailureClass::LaunchFailed);
         job.exit_code = Some(126);
+        job.completed_at = Some("t1".into());
         job.output_tail = "compiler error".into();
         upsert_job(&conn, &job).unwrap();
         let current = load_job(&conn, "current-schema").unwrap().unwrap();
@@ -643,5 +660,69 @@ mod tests {
             load_job(&conn, "live").unwrap().unwrap().status,
             BackgroundJobStatus::Running
         );
+    }
+
+    #[test]
+    fn receipt_shape_rejects_terminal_status_without_durable_completion_fields() {
+        for status in [BackgroundJobStatus::Completed, BackgroundJobStatus::Failed] {
+            let conn = Connection::open_in_memory().unwrap();
+            ensure_schema(&conn).unwrap();
+            let mut running = sample("receipt-shape-terminal");
+            running.status = BackgroundJobStatus::Running;
+            upsert_job(&conn, &running).unwrap();
+            let mut incomplete = running.clone();
+            incomplete.status = status;
+            assert!(
+                upsert_job(&conn, &incomplete).is_err(),
+                "incomplete terminal job poisoned durable receipt: {status:?}"
+            );
+            assert_eq!(
+                load_job(&conn, &running.job_id).unwrap(),
+                Some(running.clone())
+            );
+            let mut completed = running;
+            completed.status = status;
+            completed.exit_code = Some(if status == BackgroundJobStatus::Completed {
+                0
+            } else {
+                1
+            });
+            completed.completed_at = Some("t1".into());
+            upsert_job(&conn, &completed).unwrap();
+            assert_eq!(load_job(&conn, &completed.job_id).unwrap(), Some(completed));
+        }
+    }
+
+    #[test]
+    fn receipt_shape_rejects_nonterminal_status_with_completion_fields() {
+        for status in [BackgroundJobStatus::Queued, BackgroundJobStatus::Running] {
+            let conn = Connection::open_in_memory().unwrap();
+            ensure_schema(&conn).unwrap();
+            let queued = sample("receipt-shape-nonterminal");
+            upsert_job(&conn, &queued).unwrap();
+            let mut contradictory = queued.clone();
+            contradictory.status = status;
+            contradictory.completed_at = Some("t1".into());
+            contradictory.exit_code = Some(0);
+            assert!(
+                upsert_job(&conn, &contradictory).is_err(),
+                "nonterminal job accepted a false completion receipt: {status:?}"
+            );
+            assert_eq!(load_job(&conn, &queued.job_id).unwrap(), Some(queued));
+        }
+    }
+
+    #[test]
+    fn receipt_shape_monitor_lost_retains_optional_exit_code_compatibility() {
+        let conn = Connection::open_in_memory().unwrap();
+        ensure_schema(&conn).unwrap();
+        let mut lost = sample("receipt-shape-monitor-lost");
+        lost.status = BackgroundJobStatus::MonitorLost;
+        assert!(upsert_job(&conn, &lost).is_err());
+        assert!(load_job(&conn, &lost.job_id).unwrap().is_none());
+        lost.completed_at = Some("t1".into());
+        upsert_job(&conn, &lost).unwrap();
+        assert_eq!(lost.exit_code, None);
+        assert_eq!(load_job(&conn, &lost.job_id).unwrap(), Some(lost));
     }
 }
