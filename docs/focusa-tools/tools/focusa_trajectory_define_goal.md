@@ -64,10 +64,10 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Authority, permissions, and side effects
 
-- Scope: `{"kind":"read","route_family":"auto"}`
-- Authority: `{"kind":"advisory_only"}`
-- Side effects: `advisory_projection`, `advisory_projection`
-- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
+- Scope: `{"kind":"write","route_family":"auto"}`
+- Authority: `{"kind":"canonical","path":"daemon:/v1/trajectory/define-goal"}`
+- Side effects: `canonical_trajectory_goal_write`, `canonical_trajectory_goal_write`
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
 - Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
@@ -99,4 +99,4 @@ Likely next: `focusa_trajectory_assess`, `focusa_trajectory_propose_workpoint`, 
 - CLI: `focusa trajectory define-goal`.
 - REST: `POST /v1/trajectory/define-goal`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3593029347de6d8b066949679940295613739fdf5ea496540ab3e27c3e1b904a`.
+- Descriptor digest: `sha256:b6d3ea4fe45e829ab9982f519eda379b92f7cbe4702d45e3af01acaf94c18b29`.

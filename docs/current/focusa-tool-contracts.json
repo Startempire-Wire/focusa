@@ -2492,27 +2492,28 @@
       "core_surface": "Spec96 per-project Trajectory Intelligence projection",
       "doc_path": "docs/focusa-tools/tools/focusa_trajectory_define_goal.md",
       "result_envelope": "tool_result_v1",
-      "side_effect_profile": "advisory_projection",
+      "side_effect_profile": "canonical_trajectory_goal_write",
       "parity_status": "domain",
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
+      "live_check": "Compare the write description with canonical goal policy and retained scoped history; persistence authority is not permission to change owner intent or execute a candidate.",
       "scope_requirement": {
-        "kind": "read",
+        "kind": "write",
         "route_family": "auto"
       },
       "authority_requirement": {
-        "kind": "advisory_only"
+        "kind": "canonical",
+        "path": "daemon:/v1/trajectory/define-goal"
       },
       "operation_policy": {
-        "operation_class": "read",
-        "capability_family": "read_projection",
-        "commercial_treatment": "read_allowance",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
-        "recovery_allowance": "read_projection",
+        "recovery_allowance": "none",
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }

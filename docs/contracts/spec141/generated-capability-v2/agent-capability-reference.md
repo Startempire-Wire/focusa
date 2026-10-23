@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:90acab46b6fbd1632174f8a79c89ba27a33a3c2f70e13f4001252b104b14f735`
+Registry digest: `sha256:869201d9423df243ec8a98cedea4cabb84c188e9ca5597c7af8e182a9d53ccf4`
 
 This file is generated. Use the descriptor registry for source schemas and machine metadata; generation is not installed or cross-harness behavioral proof.
 Shared conditional journey: docs/agent/02-focusa-cohesive-project-flow.md. Discover only the capabilities needed by the verified current action; next-tool lists are not execution dependencies.
@@ -1496,7 +1496,7 @@ Create an advisory per-project Trajectory goal candidate without changing task/e
 
 - Capability: `focusa.trajectory.define.goal`
 - Family: `trajectory`
-- Side effects: `advisory_projection`, `advisory_projection`
+- Side effects: `canonical_trajectory_goal_write`, `canonical_trajectory_goal_write`
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Advisory likely-next capabilities (not execution dependencies): `focusa_trajectory_assess`, `focusa_trajectory_propose_workpoint`, `focusa_trajectory_checkpoint`
 - Documentation: `docs/focusa-tools/tools/focusa_trajectory_define_goal.md`

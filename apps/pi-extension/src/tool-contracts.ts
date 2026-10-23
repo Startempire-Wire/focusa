@@ -958,12 +958,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     core_surface: "Spec96 per-project Trajectory Intelligence projection",
     doc_path: "docs/focusa-tools/tools/focusa_trajectory_define_goal.md",
     result_envelope: "tool_result_v1",
-    side_effect_profile: "advisory_projection",
+    side_effect_profile: "canonical_trajectory_goal_write",
     parity_status: "domain",
     exemptions: ["domain_cli_only"],
-    live_check: "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
-    scope_requirement: { kind: "read", route_family: "auto" },
-    authority_requirement: { kind: "advisory_only" },
+    live_check: "Compare the write description with canonical goal policy and retained scoped history; persistence authority is not permission to change owner intent or execute a candidate.",
+    scope_requirement: { kind: "write", route_family: "auto" },
+    authority_requirement: { kind: "canonical", path: "daemon:/v1/trajectory/define-goal" },
   },
 
   {

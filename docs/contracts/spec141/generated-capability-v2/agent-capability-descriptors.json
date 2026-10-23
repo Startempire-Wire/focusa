@@ -75558,17 +75558,18 @@
       },
       "result_envelope": "focusa.tool_result.v1",
       "scope": {
-        "kind": "read",
+        "kind": "write",
         "route_family": "auto"
       },
       "authority": {
-        "kind": "advisory_only"
+        "kind": "canonical",
+        "path": "daemon:/v1/trajectory/define-goal"
       },
       "permissions": [
         {
           "route": "POST /v1/trajectory/define-goal",
           "scope": {
-            "kind": "read",
+            "kind": "write",
             "route_family": "auto"
           }
         }
@@ -75576,12 +75577,12 @@
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": true,
+        "idempotentHint": false,
         "openWorldHint": false
       },
       "side_effects": [
-        "advisory_projection",
-        "advisory_projection"
+        "canonical_trajectory_goal_write",
+        "canonical_trajectory_goal_write"
       ],
       "confirmation": {
         "required": null,
@@ -75701,7 +75702,7 @@
         "snippet": "Use when the project trajectory is unclear or operator provides/changes the project goal.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:3593029347de6d8b066949679940295613739fdf5ea496540ab3e27c3e1b904a"
+      "descriptor_digest": "sha256:b6d3ea4fe45e829ab9982f519eda379b92f7cbe4702d45e3af01acaf94c18b29"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87772,5 +87773,5 @@
       "descriptor_digest": "sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae"
     }
   ],
-  "registry_digest": "sha256:90acab46b6fbd1632174f8a79c89ba27a33a3c2f70e13f4001252b104b14f735"
+  "registry_digest": "sha256:869201d9423df243ec8a98cedea4cabb84c188e9ca5597c7af8e182a9d53ccf4"
 }
