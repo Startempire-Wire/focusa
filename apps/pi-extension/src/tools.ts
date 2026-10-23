@@ -31,6 +31,7 @@ export function toolResult(
 }
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { canonicalDaemonNorthStarReadiness } from "./north-star.js";
 import { Type } from "@sinclair/typebox";
 import { createHash } from "crypto";
 import {
@@ -2376,7 +2377,7 @@ pi.registerTool({
       const trigger = String(params?.trigger || "manual_gate");
       const projection = String(params?.projection || "short");
       const projectRoot = await resolveFocusaToolProjectRoot();
-      const continuityId = getContinuityId() || ensureContinuityId(projectRoot);
+      const continuityId = getContinuityId();
       if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) {
         const blocked = {
           ok: false,
@@ -2405,20 +2406,20 @@ pi.registerTool({
       // "proportionate hot path"; #672). Read-only and non-consequential work
       // may continue; only consequential mutation requires the frontier to be
       // reconciled first.
-      const reconcile = body.status === "reconcile" && body.code === "WORKPOINT_FRONTIER_MISSING";
-      const ready = response.ok && (body.status === "completed" || reconcile) && guard.status === "ready";
+      const verification = canonicalDaemonNorthStarReadiness(response.ok, body, projectRoot, continuityId);
+      const { ready, reconcile } = verification;
       const status = ready
         ? reconcile
           ? "reconcile"
           : "ready"
-        : String(body.code || guard.status || body.status || `http_${response.status}`);
+        : String(body.code || verification.reason || guard.status || body.status || `http_${response.status}`);
       const details = {
         ...body,
         ok: ready,
         status,
-        canonical: body.canonical === true,
-        advisory: false,
-        authority: body.authority || "daemon_owned",
+        canonical: body.canonical === true && verification.scope_verified,
+        advisory: body.advisory === true,
+        authority: body.authority || "unverified",
         next_tools: ready
           ? ["focusa_workpoint_resume"]
           : ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],

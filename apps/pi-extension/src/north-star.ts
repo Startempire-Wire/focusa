@@ -5,7 +5,40 @@ import {
   getLastProjectVerify,
   getLastTrajectoryClarity,
   getScopedWorkpointPacket,
+  normalizeProjectRoot,
 } from "./state.js";
+
+// Projection qualification only: operation admission remains daemon-owned.
+export function canonicalDaemonNorthStarReadiness(
+  responseOk: boolean, body: any, projectRoot: string, continuityId: string,
+): { ready: boolean; reconcile: boolean; scope_verified: boolean; reason: string } {
+  const blocked = (reason: string, scope_verified = false) => ({ ready: false, reconcile: false, scope_verified, reason });
+  if (!responseOk) return blocked("daemon_response_rejected");
+  if (body?.canonical !== true || body.authority !== "daemon_owned" || body.advisory === true) {
+    return blocked("canonical_authority_unverified");
+  }
+  const expectedRoot = normalizeProjectRoot(projectRoot);
+  const rootValues = [body.project_root, body.projection?.project_root, body.workpoint_linkage?.project_root]
+    .filter(value => value !== undefined);
+  const continuityValues = [body.projection?.continuity_id, body.workpoint_linkage?.continuity_id]
+    .filter(value => value !== undefined);
+  if (!expectedRoot || !continuityId || typeof body.project_root !== "string" || !continuityValues.length) {
+    return blocked("scope_identity_missing");
+  }
+  if (rootValues.some(value => typeof value !== "string" || normalizeProjectRoot(value) !== expectedRoot) ||
+      continuityValues.some(value => typeof value !== "string" || value !== continuityId)) {
+    return blocked("scope_mismatch");
+  }
+  if (body.projection && (body.projection.schema !== "focusa.north_star_projection.v1" ||
+      !["complete", "incomplete"].includes(body.projection.status))) {
+    return blocked("projection_stale_or_unsupported");
+  }
+  const guardStatus = body.trajectory_integrity_guard?.status;
+  if (guardStatus !== "READY" && guardStatus !== "ready") return blocked("trajectory_guard_not_ready", true);
+  const reconcile = body.status === "reconcile" && body.code === "WORKPOINT_FRONTIER_MISSING";
+  if (body.status !== "completed" && !reconcile) return blocked("daemon_blocked", true);
+  return { ready: true, reconcile, scope_verified: true, reason: "" };
+}
 
 export type NorthStarSurfaceState = "current" | "stale" | "missing" | "mismatched" | "steered" | "blocked";
 

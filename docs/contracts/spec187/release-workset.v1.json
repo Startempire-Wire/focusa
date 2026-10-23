@@ -436,7 +436,11 @@
         "apps/pi-extension/src/tool-contracts.ts",
         "crates/focusa-core/src/capability_truth.rs",
         "crates/focusa-core/src/utility_card.rs",
-        "scripts/canonical-release-journal.py"
+        "scripts/canonical-release-journal.py",
+        "apps/pi-extension/src/north-star.ts",
+        "apps/pi-extension/tests/692-north-star-status.test.mjs",
+        "apps/pi-extension/tests/north-star-gate.test.mjs",
+        "docs/96-trajectory-projection-and-daemon-stability-spec.md"
       ],
       "done": "Current capabilities, permissions and consumer health drive point-of-need tool selection and typed bounded recovery; unavailable introspection is not stale-contract proof, read-only independent work continues, and optional reporting outages do not create repair circularity or bypass mandatory security/quality gates.",
       "work_item_ref": "focusa-ak5sv.12",

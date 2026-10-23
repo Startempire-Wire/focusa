@@ -27,7 +27,8 @@ test("north-star gate delegates exact-scope enforcement to daemon authority", ()
   assert.ok(start >= 0 && end > start);
   const block = tools.slice(start, end);
   assert.match(block, /resolveFocusaToolProjectRoot/);
-  assert.match(block, /getContinuityId\(\) \|\| ensureContinuityId/);
+  assert.match(block, /getContinuityId\(\)/);
+  assert.doesNotMatch(block, /ensureContinuityId/);
   assert.match(block, /\/project\/north-star-gate\?/);
   assert.match(block, /projection: Type\.Optional/);
   assert.match(block, /Type\.Literal\("short"\)/);
@@ -35,10 +36,11 @@ test("north-star gate delegates exact-scope enforcement to daemon authority", ()
   assert.match(block, /Type\.Literal\("full"\)/);
   assert.match(block, /projection,/);
   assert.match(block, /body\.canonical === true/);
-  assert.match(block, /body\.status === "completed"/);
-  assert.match(block, /guard\.status === "ready"/);
-  assert.match(block, /advisory: false/);
-  assert.match(block, /authority: body\.authority \|\| "daemon_owned"/);
+  assert.match(block, /canonicalDaemonNorthStarReadiness\(response\.ok, body, projectRoot, continuityId\)/);
+  assert.match(northStar, /guardStatus !== "READY" && guardStatus !== "ready"/);
+  assert.match(northStar, /body\.status !== "completed"/);
+  assert.match(block, /advisory: body\.advisory === true/);
+  assert.match(block, /authority: body\.authority \|\| "unverified"/);
   assert.doesNotMatch(block, /buildNorthStarSnapshot/);
   assert.doesNotMatch(block, /canonical: false,[\s\S]*advisory: true/);
 });
