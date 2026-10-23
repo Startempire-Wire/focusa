@@ -47,9 +47,9 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Authority, permissions, and side effects
 
-- Scope: `{"kind":"read","route_family":"auto"}`
-- Authority: `{"kind":"advisory_only"}`
-- Side effects: `advisory_checkpoint`, `advisory_checkpoint`
+- Scope: `{"kind":"write","route_family":"auto"}`
+- Authority: `{"kind":"canonical","path":"daemon:/v1/trajectory/checkpoint"}`
+- Side effects: `canonical_trajectory_checkpoint_write`, `canonical_trajectory_checkpoint_write`
 - Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
 - Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
@@ -82,4 +82,4 @@ Likely next: `focusa_workpoint_checkpoint`, `focusa_trajectory_resume`, `focusa_
 - CLI: `focusa trajectory checkpoint`.
 - REST: `POST /v1/trajectory/checkpoint`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:2535e6c45b6097aa7a15df8f9513b437b47f1ca82b30bb3a35019e69a5389ea8`.
+- Descriptor digest: `sha256:6e01cc328ef383849fac32fe7c9ef08eca1885166b18f1a476a8653e38454d7b`.

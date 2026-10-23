@@ -1021,12 +1021,12 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     core_surface: "Spec96 per-project Trajectory Intelligence projection",
     doc_path: "docs/focusa-tools/tools/focusa_trajectory_checkpoint.md",
     result_envelope: "tool_result_v1",
-    side_effect_profile: "advisory_checkpoint",
+    side_effect_profile: "canonical_trajectory_checkpoint_write",
     parity_status: "domain",
     exemptions: ["domain_cli_only"],
-    live_check: "contract_static plus /v1/trajectory/view safe probe and trajectory endpoint smoke test",
-    scope_requirement: { kind: "read", route_family: "auto" },
-    authority_requirement: { kind: "advisory_only" },
+    live_check: "Verify scoped checkpoint persistence acknowledgment and matching resume readback; saved advisory orientation grants no execution admission, and refusal is not canonical success.",
+    scope_requirement: { kind: "write", route_family: "auto" },
+    authority_requirement: { kind: "canonical", path: "daemon:/v1/trajectory/checkpoint" },
   },
 
   {

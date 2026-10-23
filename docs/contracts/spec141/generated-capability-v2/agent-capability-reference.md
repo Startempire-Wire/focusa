@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:d3048c2126d8d88c388cd8ff4a9accd2c4e8c4e29c3e122c216cd67b529ef885`
+Registry digest: `sha256:90acab46b6fbd1632174f8a79c89ba27a33a3c2f70e13f4001252b104b14f735`
 
 This file is generated. Use the descriptor registry for source schemas and machine metadata; generation is not installed or cross-harness behavioral proof.
 Shared conditional journey: docs/agent/02-focusa-cohesive-project-flow.md. Discover only the capabilities needed by the verified current action; next-tool lists are not execution dependencies.
@@ -1485,7 +1485,7 @@ Create an advisory Trajectory checkpoint packet before compaction/model switch; 
 
 - Capability: `focusa.trajectory.checkpoint`
 - Family: `trajectory`
-- Side effects: `advisory_checkpoint`, `advisory_checkpoint`
+- Side effects: `canonical_trajectory_checkpoint_write`, `canonical_trajectory_checkpoint_write`
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Advisory likely-next capabilities (not execution dependencies): `focusa_workpoint_checkpoint`, `focusa_trajectory_resume`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_trajectory_checkpoint.md`

@@ -74942,17 +74942,18 @@
       },
       "result_envelope": "focusa.tool_result.v1",
       "scope": {
-        "kind": "read",
+        "kind": "write",
         "route_family": "auto"
       },
       "authority": {
-        "kind": "advisory_only"
+        "kind": "canonical",
+        "path": "daemon:/v1/trajectory/checkpoint"
       },
       "permissions": [
         {
           "route": "POST /v1/trajectory/checkpoint",
           "scope": {
-            "kind": "read",
+            "kind": "write",
             "route_family": "auto"
           }
         }
@@ -74964,8 +74965,8 @@
         "openWorldHint": false
       },
       "side_effects": [
-        "advisory_checkpoint",
-        "advisory_checkpoint"
+        "canonical_trajectory_checkpoint_write",
+        "canonical_trajectory_checkpoint_write"
       ],
       "confirmation": {
         "required": null,
@@ -75082,7 +75083,7 @@
         "snippet": "Use before compaction/model switch alongside focusa_workpoint_checkpoint; this does not replace Workpoint.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2535e6c45b6097aa7a15df8f9513b437b47f1ca82b30bb3a35019e69a5389ea8"
+      "descriptor_digest": "sha256:6e01cc328ef383849fac32fe7c9ef08eca1885166b18f1a476a8653e38454d7b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87771,5 +87772,5 @@
       "descriptor_digest": "sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae"
     }
   ],
-  "registry_digest": "sha256:d3048c2126d8d88c388cd8ff4a9accd2c4e8c4e29c3e122c216cd67b529ef885"
+  "registry_digest": "sha256:90acab46b6fbd1632174f8a79c89ba27a33a3c2f70e13f4001252b104b14f735"
 }
