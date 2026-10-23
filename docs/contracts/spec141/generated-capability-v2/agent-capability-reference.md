@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:8143f1a9e662cc4e4d9380fdff61aa9b91e98adcb55618c8a5a995b1fa31c285`
+Registry digest: `sha256:d3048c2126d8d88c388cd8ff4a9accd2c4e8c4e29c3e122c216cd67b529ef885`
 
 This file is generated. Use the descriptor registry for source schemas and machine metadata; generation is not installed or cross-harness behavioral proof.
 Shared conditional journey: docs/agent/02-focusa-cohesive-project-flow.md. Discover only the capabilities needed by the verified current action; next-tool lists are not execution dependencies.
@@ -1705,7 +1705,7 @@ Create a typed Focusa Workpoint checkpoint before compaction, resume, context ov
 
 - Capability: `focusa.workpoint.checkpoint`
 - Family: `workpoint`
-- Side effects: `checkpoint`, `checkpoint`
+- Side effects: `canonical_workpoint_checkpoint_write`, `canonical_workpoint_checkpoint_write`
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Advisory likely-next capabilities (not execution dependencies): `focusa_workpoint_resume`, `focusa_active_object_resolve`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_workpoint_checkpoint.md`

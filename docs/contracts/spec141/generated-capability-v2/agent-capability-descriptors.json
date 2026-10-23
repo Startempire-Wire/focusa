@@ -86016,17 +86016,18 @@
       },
       "result_envelope": "focusa.tool_result.v1",
       "scope": {
-        "kind": "read",
+        "kind": "write",
         "route_family": "auto"
       },
       "authority": {
-        "kind": "advisory_only"
+        "kind": "canonical",
+        "path": "daemon:/v1/workpoint/checkpoint"
       },
       "permissions": [
         {
           "route": "POST /v1/workpoint/checkpoint",
           "scope": {
-            "kind": "read",
+            "kind": "write",
             "route_family": "auto"
           }
         }
@@ -86034,12 +86035,12 @@
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
+        "idempotentHint": true,
         "openWorldHint": false
       },
       "side_effects": [
-        "checkpoint",
-        "checkpoint"
+        "canonical_workpoint_checkpoint_write",
+        "canonical_workpoint_checkpoint_write"
       ],
       "confirmation": {
         "required": null,
@@ -86162,7 +86163,7 @@
           "If canonical=false, treat as degraded fallback and reconcile when Focusa is healthy."
         ]
       },
-      "descriptor_digest": "sha256:a17d6fbb8e56870a8195e314febcb3ec9939ae0e0b9346502995dacb8a139265"
+      "descriptor_digest": "sha256:42001912a64f1dfca7144d5dc445a3d9e785d772f2857a2758044b8d5b1a6421"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87770,5 +87771,5 @@
       "descriptor_digest": "sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae"
     }
   ],
-  "registry_digest": "sha256:8143f1a9e662cc4e4d9380fdff61aa9b91e98adcb55618c8a5a995b1fa31c285"
+  "registry_digest": "sha256:d3048c2126d8d88c388cd8ff4a9accd2c4e8c4e29c3e122c216cd67b529ef885"
 }

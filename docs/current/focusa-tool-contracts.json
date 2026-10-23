@@ -4474,25 +4474,26 @@
       "core_surface": "Workpoint reducer/state",
       "doc_path": "docs/focusa-tools/tools/focusa_workpoint_checkpoint.md",
       "result_envelope": "tool_result_v1",
-      "side_effect_profile": "checkpoint",
+      "side_effect_profile": "canonical_workpoint_checkpoint_write",
       "parity_status": "full",
       "exemptions": [],
-      "live_check": "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
+      "live_check": "contract_static plus live scoped persistence and readback; refused admission or persistence is not canonical success",
       "scope_requirement": {
-        "kind": "read",
+        "kind": "write",
         "route_family": "auto"
       },
       "authority_requirement": {
-        "kind": "advisory_only"
+        "kind": "canonical",
+        "path": "daemon:/v1/workpoint/checkpoint"
       },
       "operation_policy": {
-        "operation_class": "read",
-        "capability_family": "read_projection",
-        "commercial_treatment": "read_allowance",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
-        "recovery_allowance": "read_projection",
+        "recovery_allowance": "none",
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       }

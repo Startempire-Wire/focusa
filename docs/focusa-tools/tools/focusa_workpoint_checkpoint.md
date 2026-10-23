@@ -63,10 +63,10 @@ Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/t
 
 ## Authority, permissions, and side effects
 
-- Scope: `{"kind":"read","route_family":"auto"}`
-- Authority: `{"kind":"advisory_only"}`
-- Side effects: `checkpoint`, `checkpoint`
-- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `false`; open-world `false`. Verify selected action/schema/policy separately.
+- Scope: `{"kind":"write","route_family":"auto"}`
+- Authority: `{"kind":"canonical","path":"daemon:/v1/workpoint/checkpoint"}`
+- Side effects: `canonical_workpoint_checkpoint_write`, `canonical_workpoint_checkpoint_write`
+- Advisory source hints (not dispatch/replay guarantees): read-only `false`; destructive `false`; idempotent `true`; open-world `false`. Verify selected action/schema/policy separately.
 - Confirmation required: `unknown (null)`; preview supported: `unknown (null)`. Inspect the selected action, strict installed schema and policy; unknown is not permission.
 
 ## Failure and recovery
@@ -98,4 +98,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_active_object_resolve`, `focusa_
 - CLI: `focusa workpoint checkpoint`.
 - REST: `POST /v1/workpoint/checkpoint`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a17d6fbb8e56870a8195e314febcb3ec9939ae0e0b9346502995dacb8a139265`.
+- Descriptor digest: `sha256:42001912a64f1dfca7144d5dc445a3d9e785d772f2857a2758044b8d5b1a6421`.

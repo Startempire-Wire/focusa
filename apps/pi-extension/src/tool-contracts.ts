@@ -1937,13 +1937,13 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = ([
     core_surface: "Workpoint reducer/state",
     doc_path: "docs/focusa-tools/tools/focusa_workpoint_checkpoint.md",
     result_envelope: "tool_result_v1",
-    side_effect_profile: "checkpoint",
+    side_effect_profile: "canonical_workpoint_checkpoint_write",
     parity_status: "full",
     exemptions: [],
     live_check:
-      "contract_static plus bounded hot-path live checks; degraded results remain noncanonical and nonblocking",
-    scope_requirement: { kind: "read", route_family: "auto" },
-    authority_requirement: { kind: "advisory_only" },
+      "contract_static plus live scoped persistence and readback; refused admission or persistence is not canonical success",
+    scope_requirement: { kind: "write", route_family: "auto" },
+    authority_requirement: { kind: "canonical", path: "daemon:/v1/workpoint/checkpoint" },
   },
   {
     name: "focusa_workpoint_link_evidence",

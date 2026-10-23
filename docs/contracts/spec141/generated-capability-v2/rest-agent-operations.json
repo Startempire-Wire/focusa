@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:8143f1a9e662cc4e4d9380fdff61aa9b91e98adcb55618c8a5a995b1fa31c285",
+  "registry_digest": "sha256:d3048c2126d8d88c388cd8ff4a9accd2c4e8c4e29c3e122c216cd67b529ef885",
   "operations": [
     {
       "method": "POST",
@@ -122089,13 +122089,14 @@
         }
       },
       "authority": {
-        "kind": "advisory_only"
+        "kind": "canonical",
+        "path": "daemon:/v1/workpoint/checkpoint"
       },
       "permissions": [
         {
           "route": "POST /v1/workpoint/checkpoint",
           "scope": {
-            "kind": "read",
+            "kind": "write",
             "route_family": "auto"
           }
         }
