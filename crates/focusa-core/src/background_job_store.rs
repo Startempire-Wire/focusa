@@ -156,7 +156,8 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
             schema = excluded.schema,
             process_start_token = excluded.process_start_token
          WHERE background_jobs.completed_at IS NULL
-           AND background_jobs.status IN ('queued', 'running')",
+           AND background_jobs.status IN ('queued', 'running')
+           AND (background_jobs.status != 'running' OR excluded.status != 'queued')",
         params![
             record.job_id,
             record.name,
@@ -181,7 +182,7 @@ pub fn upsert_job(conn: &Connection, record: &BackgroundJobRecord) -> Result<()>
         let existing = load_job(conn, &record.job_id)?;
         anyhow::ensure!(
             existing.as_ref().is_some_and(|saved| { saved == record }),
-            "background job {} already has a terminal receipt; conflicting update rejected",
+            "background job {} has a terminal receipt or newer lifecycle state; conflicting update rejected",
             record.job_id
         );
     }
@@ -724,5 +725,33 @@ mod tests {
         upsert_job(&conn, &lost).unwrap();
         assert_eq!(lost.exit_code, None);
         assert_eq!(load_job(&conn, &lost.job_id).unwrap(), Some(lost));
+    }
+
+    #[test]
+    fn running_job_rejects_stale_queued_update_before_terminal_receipt() {
+        let conn = Connection::open_in_memory().unwrap();
+        ensure_schema(&conn).unwrap();
+        let queued = sample("stale-queued-update");
+        upsert_job(&conn, &queued).unwrap();
+        upsert_job(&conn, &queued).unwrap();
+        let mut running = queued.clone();
+        running.status = BackgroundJobStatus::Running;
+        running.pid = Some(42);
+        running.process_start_token = Some("monitor-start-token".into());
+        upsert_job(&conn, &running).unwrap();
+        upsert_job(&conn, &running).unwrap();
+        assert!(
+            upsert_job(&conn, &queued).is_err(),
+            "late queued write replaced the running monitor lifecycle"
+        );
+        assert_eq!(
+            load_job(&conn, &queued.job_id).unwrap(),
+            Some(running.clone())
+        );
+        running.status = BackgroundJobStatus::Completed;
+        running.exit_code = Some(0);
+        running.completed_at = Some("t1".into());
+        upsert_job(&conn, &running).unwrap();
+        assert_eq!(load_job(&conn, &queued.job_id).unwrap(), Some(running));
     }
 }

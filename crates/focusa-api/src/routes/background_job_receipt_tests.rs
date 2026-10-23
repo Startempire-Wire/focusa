@@ -26,7 +26,12 @@ async fn receipt_shape_handlers_preserve_running_job_until_real_durable_completi
     };
     focusa_core::background_job_store::upsert_job(&conn, &running).unwrap();
     let mut events = state.events_tx.subscribe();
-    for status in ["completed", "failed"] {
+    for (status, expected_cause) in [
+        ("completed", "requires completed_at and exit_code"),
+        ("failed", "requires completed_at and exit_code"),
+        ("queued", "newer lifecycle state"),
+        ("unknown-status", "newer lifecycle state"),
+    ] {
         let Json(reply) = update_job(
             State(state.clone()),
             axum::extract::Path(running.job_id.clone()),
@@ -38,11 +43,7 @@ async fn receipt_shape_handlers_preserve_running_job_until_real_durable_completi
         )
         .await;
         assert!(reply.get("job").is_none(), "false update success: {reply}");
-        assert!(
-            reply
-                .to_string()
-                .contains("requires completed_at and exit_code")
-        );
+        assert!(reply.to_string().contains(expected_cause), "{reply}");
         assert_eq!(
             focusa_core::background_job_store::load_job(&conn, &running.job_id).unwrap(),
             Some(running.clone())

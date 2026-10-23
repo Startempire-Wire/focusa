@@ -56,6 +56,9 @@ focusa bg status → ledger row + monitor-lost reaping (/proc pid check)
    as terminal `failed` with `failure_class=launch_failed`; a dead running
    monitor becomes terminal `monitor_lost`. Both receive `completed_at` and
    broadcast the normal completion envelope after durable settlement.
+   Late queued replays cannot overwrite a running monitor's lifecycle or process
+   identity: the existing ledger writer rejects that regression atomically while
+   retaining exact same-phase replay and later terminal settlement.
 3. Job output streams to the job's log file (reported in every envelope).
    The completing monitor also sends the bounded `output_tail`, which the
    ledger stores durably before broadcast. Consumers never depend on the
