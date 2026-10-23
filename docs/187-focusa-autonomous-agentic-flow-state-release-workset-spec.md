@@ -11,6 +11,8 @@ On 2026-10-15 the operator requested a cohesive workset for the next release: co
 
 This request is the source of the workset assembly and release-outcome scope. Existing full-stable-release and approved KH/OVH rollout grants remain bounded to their actual destinations. Issue authorship, this document, a stored secret, a tool listing or a model-generated plan is not a new grant. No new provider/account, secret reveal, dependency installation, paid automation, demo disruption, foreign writer takeover or unlimited budget is implied.
 
+**2026-10-23 scope amendment:** the operator expanded the former seven-issue priority batch to a larger pre-release batch. The existing authoring profile now defines the canonical `priority_issue_numbers` and cumulative `selected_issue_numbers`; all original selected issues, 19 requirements, task owners and accepted history remain. Newly linked defects reuse those owners rather than creating another workset authority. Source/candidate qualification precedes release; required native/installed issue acceptance follows delivery and cannot become a circular prerequisite to build the fixed candidate. This amendment grants no external customer contact, paid probes, worker repair, release/install, package/security-root changes or weakened fencing.
+
 **Flow invariant:** while an eligible, authorized, in-scope action and execution budget exist, advance it and verify its result without an unnecessary human restart. Preserve the purpose and exact next action across compaction, crashes, temporary failures and legitimate pauses. A model turn ending is not a mission-ending decision.
 
 “Never stopping” means **no avoidable loss of momentum**, not bypassing safety, legality, ownership, consent, explicit stop, genuine unavailable authority or an exhausted budget. A real pause is correct behavior when it is specific, truthful, durable and resumable.
@@ -22,7 +24,7 @@ The operator's subsequent explicit steering makes this workset the **current ful
 - **Ultimate goal:** bring this repository to truthful zero open issues. Each closure requires full acceptance or a truthful explicit owner-approved disposition; hiding issues, bulk paper closure or renaming unfinished work is not zero.
 - **Current release goal:** complete the entire Flow State workset **and all unfinished previously authorized release obligations**, then deliver and verify the complete canonical signed stable release on the approved destinations.
 - **Immediate focus:** reconcile current exact-source CI and prior release carryover; restore reliable runtime/admission and complete instruction/accepted-goal continuity; advance the next eligible dependency frontier.
-- **After release or workset settlement:** assess the remaining issue/task queue and advance the next ready authorized repository work toward truthful zero without a routine continue prompt. A completed release is not a reason to abandon the remaining outcome; real authority, consent and budget boundaries still apply. The 16 Flow State closure candidates do not replace the full repository backlog.
+- **After release or workset settlement:** assess the remaining issue/task queue and advance the next ready authorized repository work toward truthful zero without a routine continue prompt. A completed release is not a reason to abandon the remaining outcome; real authority, consent and budget boundaries still apply. The retained Flow State closure candidates and current priority batch do not replace the full repository backlog.
 
 This is effective operator steering for the work. The live goal-update attempt was blocked while the runtime was unavailable; source text does not pretend that the live tracker accepted a mutation. Restore and verify that existing owner, then reconcile this exact directive through its normal goal/assessment/Workpoint operations. Preserve accepted purpose/history and use the existing workset/task identity; do not create a parallel live trajectory store.
 
@@ -78,7 +80,7 @@ Avoid a repair circularity: authoring, source verification and the already-autho
 
 All 19 requirements in `contracts/spec187/requirements.v1.json` are required; a native Workset may settle only after its canonical dispositions are `met` with linked evidence. Each requirement needs versioned contract, producer, actual consumer, claimed cross-version and installed end-to-end proof. Structural validation alone does not prove dispatch or installation.
 
-The 16 closure candidates are:
+The following original closure candidates are retained. The expanded cumulative issue boundary and current priority batch are defined once in the normative authoring profile (`selected_issue_numbers` and `priority_issue_numbers`); the table below preserves the original ownership/history rather than limiting the amended scope:
 
 | Issue | Flow failure | Owning implementation steps |
 |---|---|---|

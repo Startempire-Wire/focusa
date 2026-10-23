@@ -41,10 +41,31 @@ class FlowAuthoringContract(unittest.TestCase):
 
     def test_exact_issue_boundary_and_no_automatic_program_closure(self):
         self.assertEqual(set(PROFILE["selected_issue_numbers"]),
-            {685,660,657,679,683,684,261,680,682,686,299,526,410,417,590,672})
+            {685,660,657,679,683,684,261,680,682,686,299,526,410,417,590,672,
+             687,688,689,691,692,693,694,695,696})
         self.assertEqual(PROFILE["related_program_issue_numbers"], [101,252,253])
         self.assertTrue(set(PROFILE["selected_issue_numbers"]).isdisjoint(PROFILE["related_program_issue_numbers"]))
         self.assertIn("keep the issue open", SPEC)
+
+    def test_operator_expanded_priority_preserves_prior_membership_and_acceptance_order(self):
+        prior = {685,660,657,679,683,684,261,680,682,686,299,526,410,417,590,672}
+        priority = PROFILE["priority_issue_numbers"]
+        self.assertEqual(len(priority), 15)
+        self.assertEqual(len(priority), len(set(priority)))
+        self.assertEqual(set(priority),
+            {696,680,660,695,691,694,692,693,687,688,689,683,684,685,686})
+        self.assertTrue(prior <= set(PROFILE["selected_issue_numbers"]))
+        self.assertTrue(set(priority) <= set(PROFILE["selected_issue_numbers"]))
+        amendment = PROFILE["operator_directed_trajectory"]["scope_amendments"][-1]
+        self.assertEqual(set(amendment["retained_selected_issue_numbers"]), prior)
+        self.assertEqual(set(amendment["added_issue_numbers"]),
+            {687,688,689,691,692,693,694,695,696})
+        gate = PROFILE["completion_contract"]["pre_release_priority_source_qualification"]
+        self.assertEqual(gate["issue_numbers_ref"], "priority_issue_numbers")
+        self.assertTrue(gate["all_priority_issues_source_qualified"])
+        self.assertIn("native/installed", gate["acceptance_order"])
+        self.assertIn("circular", gate["acceptance_order"])
+        self.assertIn("grants no release/install", gate["release_authority"])
 
     def test_required_requirements_are_complete_and_unique(self):
         reqs = REQUIREMENTS["requirements"]

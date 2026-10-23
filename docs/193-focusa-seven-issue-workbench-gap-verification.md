@@ -1,9 +1,21 @@
-# Seven-issue workbench gap verification
+# Expanded issue workbench gap verification
 
-## Scope
+## Current scope — operator amendment, 2026-10-23
 
-Continue issues #696, #685, #680, #660, #695, #691 and #686, retaining all 19
-Spec187 requirements and accepted history. This is software diagnosis and focused
+The former seven-issue limit is superseded by the operator's expanded repository
+issue scope. The canonical priority batch and cumulative issue membership live in
+[the existing Spec187 authoring profile](contracts/spec187/release-workset.v1.json),
+not a parallel list here. All original selected issues, 19 requirements, matching
+Beads owners and accepted history remain. Qualify the priority source/candidate
+fixes before release; complete required native/installed acceptance after delivery
+without falsely closing issues or creating a circular pre-release closure gate.
+Existing source proof remains bounded to its exact revision. The original seven
+and their proof below remain historical carryover, not the new scope ceiling.
+
+## Retained original workbench
+
+Continue the retained original issues #696, #685, #680, #660, #695, #691 and #686,
+retaining all 19 Spec187 requirements and accepted history. This is software diagnosis and focused
 regression testing, not release, provider restoration, package production,
 installation, customer-machine access or permission to spend.
 
