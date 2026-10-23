@@ -7013,11 +7013,16 @@ pi.registerTool({
           },
         };
       }
-      const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
+      const continuityId = String(
+        params.continuity_id || getContinuityId() ||
+          (action === "status" ? "" : ensureContinuityId(projectRoot))
+      ).trim();
       let result: any;
       if (action === "status") {
+        const continuityQuery = continuityId
+          ? `&continuity_id=${encodeURIComponent(continuityId)}` : "";
         result = await focusaFetchDetailed(
-          `/project/genesis/status?project_root=${encodeURIComponent(projectRoot)}`
+          `/project/genesis/status?project_root=${encodeURIComponent(projectRoot)}${continuityQuery}`
         );
       } else {
         result = await focusaFetchDetailed(`/project/genesis/${encodeURIComponent(action)}`, {
@@ -7033,26 +7038,63 @@ pi.registerTool({
         });
       }
       const body = result.body || {};
-      const status = String(body.status || (result.ok ? "completed" : "blocked"));
-      const nextAction = String(body.next_action || "inspect the Genesis packet and repair missing links");
+      const responseStatus = String(body.status || (result.ok ? "completed" : "blocked"));
+      const responseRoot = (value: any) => typeof value === "string" ? normalizeProjectRoot(value) : null;
+      const actualRoot = responseRoot(
+        body.resolved_scope?.project_root || body.authority?.scope || body.project_identity?.project_root
+      );
+      const actualContinuity = String(
+        body.resolved_scope?.continuity_id || body.authority?.continuity_id || ""
+      ).trim();
+      const projected = body.status_projection_schema === "focusa.project_genesis_status.v1";
+      const requestMatches = responseRoot(body.requested_scope?.project_root) === projectRoot &&
+        String(body.requested_scope?.continuity_id || "").trim() === continuityId;
+      const projectionMatches = responseRoot(body.resolved_scope?.project_root) === actualRoot &&
+        String(body.resolved_scope?.continuity_id || "").trim() === actualContinuity;
+      const rootMatches = actualRoot === projectRoot ||
+        (projected && requestMatches && body.scope_validation?.status === "verified" &&
+          responseRoot(body.scope_validation?.canonical_project_root) === actualRoot);
+      const scopeMatches = Boolean(actualRoot && actualContinuity && continuityId && rootMatches &&
+        actualContinuity === continuityId &&
+        responseRoot(body.authority?.scope) === actualRoot &&
+        String(body.authority?.continuity_id || "").trim() === actualContinuity &&
+        responseRoot(body.project_identity?.project_root) === actualRoot && body.project_identity?.verified === true);
+      const qualified = action === "status"
+        ? projected && requestMatches && projectionMatches && body.canonical === true && body.scope_validation?.status === "verified" &&
+          body.scope_validation?.scope_kind === "project_workstream_record" && body.scope_validation?.execution_admission === false
+        : Boolean(body.readiness_receipt?.receipt_id && body.first_workpoint?.canonical === true);
+      const canonical = Boolean(result.ok && responseStatus === "ready" && scopeMatches && qualified &&
+        body.schema === "focusa.project_genesis.v1");
+      const unqualifiedReady = responseStatus === "ready" && !canonical;
+      const status = unqualifiedReady
+        ? (scopeMatches ? "unqualified_readiness" : "scope_mismatch") : responseStatus;
+      const staged = ["staged", "incomplete", "hlt_impasse"].includes(responseStatus) && scopeMatches;
+      const useGuidance = canonical || (staged && (action !== "status" || projected));
+      const nextAction = useGuidance
+        ? String(body.next_action || "inspect the scoped Genesis packet")
+        : "Inspect existing saved work in the requested scope; historical Genesis does not authorize initialization or takeover.";
       return {
-        content: [
-          {
-            type: "text",
-            text: `project genesis ${action} → ${status}\nnext: ${nextAction}`,
-          },
-        ],
+        content: [{ type: "text", text: `project genesis ${action} → ${status}\nnext: ${nextAction}` }],
         details: {
-          ok: result.ok,
+          ok: Boolean(result.ok && scopeMatches && !unqualifiedReady),
           status,
-          canonical: status === "ready",
-          project_root: projectRoot,
-          continuity_id: continuityId,
+          canonical,
+          execution_admission: false,
+          project_root: actualRoot || null,
+          continuity_id: actualContinuity || null,
+          requested_scope: { project_root: projectRoot, continuity_id: continuityId || null },
+          resolved_scope: {
+            ...body.resolved_scope,
+            project_root: actualRoot || null,
+            continuity_id: actualContinuity || null,
+          },
+          failure_class: canonical ? null : (scopeMatches ? "genesis_status_unqualified" : "scope_mismatch"),
           genesis_packet: compactApiEcho(body),
-          next_tools:
-            status === "ready"
-              ? ["focusa_workpoint_resume", "focusa_trajectory_view"]
-              : ["focusa_project_genesis", "focusa_project_verify", "focusa_trajectory_view"],
+          next_tools: canonical
+            ? ["focusa_workpoint_resume", "focusa_trajectory_view"]
+            : action !== "status" && staged
+              ? ["focusa_project_genesis", "focusa_project_verify", "focusa_trajectory_view"]
+              : ["focusa_workpoint_resume", "focusa_project_verify", "focusa_trajectory_view"],
         },
       } as any;
     },

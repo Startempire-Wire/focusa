@@ -53,6 +53,8 @@ pub(super) struct ProjectGenesisRequest {
 #[derive(Debug, Clone, Default, Deserialize)]
 pub(super) struct ProjectGenesisStatusQuery {
     pub project_root: String,
+    #[serde(default)]
+    pub continuity_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

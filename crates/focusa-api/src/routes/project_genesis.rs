@@ -156,17 +156,14 @@ pub(super) async fn start(
     Ok(Json(packet))
 }
 
+#[path = "project_genesis_status.rs"]
+mod status_projection;
+
 async fn status(
+    scope: ScopeContext,
     Query(query): Query<ProjectGenesisStatusQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let root = canonical_root(&query.project_root)?;
-    read_json(&packet_path(&root)).map(Json).ok_or_else(|| {
-        reject(
-            StatusCode::NOT_FOUND,
-            "genesis_not_started",
-            "call project genesis start",
-        )
-    })
+    status_projection::read(scope, query).await
 }
 
 async fn resume(

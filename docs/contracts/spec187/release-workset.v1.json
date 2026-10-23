@@ -194,7 +194,12 @@
         "crates/focusa-api/src/routes/project_trajectory_marker.rs",
         "crates/focusa-api/src/routes/project_liveness_tests.rs",
         "crates/focusa-api/src/routes/project_guard_transaction_tests.rs",
-        "apps/pi-extension/src/tools.ts"
+        "apps/pi-extension/src/tools.ts",
+        "crates/focusa-api/src/routes/project_genesis_status.rs",
+        "crates/focusa-api/src/routes/project_genesis_status_tests.rs",
+        "apps/pi-extension/tests/694-genesis-status-scope.test.mjs",
+        "crates/focusa-cli/src/commands/project.rs",
+        "crates/focusa-cli/tests/694-genesis-status-scope.rs"
       ],
       "done": "Valid project/workstream/frontier inputs admit the requested operation; genuine migration has a supported typed repair; persisted pre-approval is automatically revalidated, not erased or expanded after recovery; foreign/revoked/expired grants remain denied.",
       "work_item_ref": "focusa-ak5sv.3",

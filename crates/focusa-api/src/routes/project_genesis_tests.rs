@@ -325,3 +325,5 @@ async fn resume_checks_marker_commit_point_before_reusing_ready_packet() {
     );
     assert_eq!(std::fs::read(packet_path(&root)).unwrap(), before);
 }
+
+include!("project_genesis_status_tests.rs");

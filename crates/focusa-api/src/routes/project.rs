@@ -2627,8 +2627,19 @@ async fn project_inspection_response<F>(inspect: F) -> Json<Value>
 where
     F: FnOnce() -> Json<Value> + Send + 'static,
 {
-    // Return before the Pi client's default five-second transport timeout.
-    project_inspection_response_with_limits(
+    project_inspection_task(inspect)
+        .await
+        .unwrap_or_else(std::convert::identity)
+}
+
+pub(super) async fn project_inspection_task<T, F>(inspect: F) -> Result<T, Json<Value>>
+where
+    T: Send + 'static,
+    F: FnOnce() -> T + Send + 'static,
+{
+    // One bounded owner for project/Genesis filesystem reads; permits still
+    // follow actual blocking-worker lifetime, not the response deadline.
+    project_inspection_task_with_limits(
         inspect,
         PROJECT_INSPECTION_DEADLINE,
         PROJECT_INSPECTION_SLOTS.clone(),
@@ -2636,6 +2647,7 @@ where
     .await
 }
 
+#[cfg(test)]
 async fn project_inspection_response_with_limits<F>(
     inspect: F,
     deadline: std::time::Duration,

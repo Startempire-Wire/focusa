@@ -153,6 +153,19 @@ staged recovery; a foreign committed Workstream remains refused. Valid committed
 replays preserve their original receipt without new events. Marker-last commit
 ordering and the existing canonical constructor are unchanged.
 
+Genesis status uses the existing journal/marker read owner with explicit
+`continuity_id` forwarding from CLI and Pi. Its versioned
+`focusa.project_genesis_status.v1` projection reports `requested_scope` and
+`resolved_scope` separately. Matching supported record identity and current
+marker/receipt references are required for canonical Workstream setup readiness.
+Foreign, missing, ambiguous, legacy-only or stale readiness is noncanonical;
+header/query disagreement is refused. Unqualified project reads retain the saved
+record under `project_history`, never as current Workstream readiness. Reads do
+not initialize a continuity, replace a record, take over work or rewrite history.
+Canonical setup-record status is not native session, writer or dispatch admission;
+requested temporal context never becomes resolved authority by being echoed.
+The existing bounded project I/O lane also owns status filesystem work.
+
 ```text
 DISCOVER PROJECT
 → VERIFY/CREATE IDENTITY

@@ -340,10 +340,12 @@ pub enum ProjectGenesisCmd {
         #[command(flatten)]
         args: ProjectGenesisMutationArgs,
     },
-    /// Read the durable Genesis packet.
+    /// Read qualified Workstream Genesis status or explicit legacy project history.
     Status {
         #[arg(long)]
         project_root: String,
+        #[arg(long)]
+        continuity_id: Option<String>,
     },
     /// Atomically commit Trajectory, first Workpoint, coordination, and readiness.
     Commit {
@@ -581,6 +583,54 @@ fn print_summary(label: &str, resp: &Value) {
         .and_then(Value::as_str)
     {
         println!("  recovery: {next}");
+    }
+}
+
+fn qualify_genesis_status_response(
+    response: &mut Value,
+    requested_root: &str,
+    canonical_root: &str,
+    requested_continuity: Option<&str>,
+) {
+    let actual_root = response["resolved_scope"]["project_root"]
+        .as_str()
+        .or_else(|| response["authority"]["scope"].as_str())
+        .or_else(|| response["project_identity"]["project_root"].as_str())
+        .map(str::to_string);
+    let actual_continuity = response["resolved_scope"]["continuity_id"]
+        .as_str()
+        .or_else(|| response["authority"]["continuity_id"].as_str())
+        .map(str::to_string);
+    let qualified = requested_continuity.is_some()
+        && actual_root.as_deref() == Some(canonical_root)
+        && actual_continuity.as_deref() == requested_continuity
+        && response["resolved_scope"]["project_root"].as_str() == actual_root.as_deref()
+        && response["resolved_scope"]["continuity_id"].as_str() == actual_continuity.as_deref()
+        && response["schema"] == "focusa.project_genesis.v1"
+        && response["status_projection_schema"] == "focusa.project_genesis_status.v1"
+        && response["status"] == "ready"
+        && response["canonical"] == true
+        && response["project_identity"]["verified"] == true
+        && response["project_identity"]["project_root"].as_str() == actual_root.as_deref()
+        && response["authority"]["scope"].as_str() == actual_root.as_deref()
+        && response["authority"]["continuity_id"].as_str() == actual_continuity.as_deref()
+        && response["requested_scope"]["project_root"].as_str() == Some(requested_root)
+        && response["requested_scope"]["continuity_id"].as_str() == requested_continuity
+        && response["scope_validation"]["status"] == "verified"
+        && response["scope_validation"]["scope_kind"] == "project_workstream_record"
+        && response["scope_validation"]["execution_admission"] == false;
+    if response["status"] == "ready" && !qualified {
+        let receipt = response["readiness_receipt"]["receipt_id"].clone();
+        *response = json!({
+            "schema":"focusa.project_genesis_status.v1", "status":"unqualified_readiness",
+            "canonical":false,
+            "requested_scope":{"project_root":requested_root,"continuity_id":requested_continuity},
+            "resolved_scope":{"project_root":actual_root,"continuity_id":actual_continuity},
+            "historical_project_receipt":{"receipt_id":receipt},
+            "next_action":"inspect existing scoped saved work; historical Genesis does not authorize initialization or takeover"
+        });
+    } else {
+        response["canonical"] = json!(qualified);
     }
 }
 
@@ -969,12 +1019,49 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             }
         },
         ProjectCmd::Genesis { cmd } => match cmd {
-            ProjectGenesisCmd::Status { project_root } => {
-                let root = resolve_input_project_root(None, Some(project_root.as_str()))?;
+            ProjectGenesisCmd::Status {
+                project_root,
+                continuity_id,
+            } => {
+                let resolved =
+                    scope_resolver::resolve_project_scope(Some(project_root.as_str()), None, None)?;
+                let address_root = resolved.active_worktree_root.as_str();
+                ensure_project_root_scope_safe(Some(address_root), "project genesis status")?;
+                let mut continuity = continuity_id;
+                let mut scope_warning = None;
+                if continuity.is_none() {
+                    match scope_resolver::resolve_active_workstream_scope(Some(address_root)) {
+                        Ok(active)
+                            if active.canonical_parent_root == resolved.canonical_parent_root =>
+                        {
+                            continuity = active.continuity_id;
+                        }
+                        _ => {
+                            scope_warning = Some(
+                                "No matching active workstream was resolved; preserve project history without current readiness.",
+                            )
+                        }
+                    }
+                }
                 let mut query = Vec::new();
-                push_query(&mut query, "project_root", Some(root.as_str()));
+                push_query(&mut query, "project_root", Some(address_root));
+                push_query(&mut query, "continuity_id", continuity.as_deref());
                 let path = format!("/v1/project/genesis/status?{}", query.join("&"));
-                ("genesis status", api.get(&path).await?)
+                let mut response = if let Some(continuity) = continuity.as_deref() {
+                    api.get_scoped(&path, address_root, continuity).await?
+                } else {
+                    api.get(&path).await?
+                };
+                qualify_genesis_status_response(
+                    &mut response,
+                    address_root,
+                    &resolved.canonical_parent_root,
+                    continuity.as_deref(),
+                );
+                if let Some(warning) = scope_warning {
+                    response["scope_resolution_warning"] = json!(warning);
+                }
+                ("genesis status", response)
             }
             ProjectGenesisCmd::Start { mut args } => {
                 args.project_root =
