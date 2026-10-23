@@ -1,6 +1,6 @@
 # Focusa Agent Intelligence Evals
 
-Focusa's “makes agents smarter” claim is measured with bounded, repeatable eval cases. The eval suite checks whether agents preserve scope, continuation, proof, context, execution structure, learning, and safety.
+**Current status: unmeasured.** The existing runner checks scenario definitions; it does not execute agents or measure whether Focusa makes them more effective. Issue353 remains open for execution-backed comparative evaluation.
 
 ## Categories
 
@@ -15,29 +15,21 @@ Focusa's “makes agents smarter” claim is measured with bounded, repeatable e
 ## Runner
 
 ```bash
-scripts/run-agent-intelligence-evals.sh
+ARM=on scripts/run-agent-intelligence-evals.sh
+ARM=off scripts/run-agent-intelligence-evals.sh
+ARM=candidate scripts/run-agent-intelligence-evals.sh
 ```
 
-The runner is intentionally local/static for the first version. It reads `tests/evals/agent_intelligence_cases.json`, validates the schema and category coverage, computes aggregate scores from fixture expectations, and fails if any required category is missing or below threshold.
+The existing `tests/evals/agent_intelligence_cases.json` is the single scenario-definition owner. Its v1 schema contains categories, goals, input signals, expected behavior, required references, metric names and expected thresholds—not observed `score` fields. Repository references and declared tool names are checked without executing them. Missing references, self-supplied scores, invalid arms and malformed definitions fail with exit1.
 
-## Case schema
+Valid definitions return **exit78 / UNMEASURED**, not PASS. ARM is a validated requested label, not proof that configurations executed or state was isolated. No aggregate score is computed from definitions; lowering a threshold cannot manufacture observations. No model, provider, installation or build is invoked by these definition checks.
 
-Each case declares:
+## Acceptance still required
 
-- `id`
-- `category`
-- `goal`
-- `input_signal`
-- `expected_behavior`
-- `required_refs`
-- `metric`
-- `score`
-- `threshold`
+A future measured case may apply `score >= threshold` only to metrics independently derived from captured outcomes. Aggregate score and comparative acceptance additionally require isolated ON, OFF/baseline and candidate executions; exact source/runtime/model/harness/configuration provenance; immutable evidence; adequate samples; and hard-safety non-inferiority. None is established by the current definition checker.
 
-## Promotion rule
+## Release-journal boundary
 
-A benchmark case passes when `score >= threshold`. The suite passes only when every required category has at least one passing case and the aggregate score is at least `0.80`.
+The canonical release journal stops at unavailable agent observations, before unrelated build/release checks. Runner exit0 alone is also insufficient. It cannot publish a newly passed benchmark or treat a historical fixture-derived v1 benchmark as current comparative evidence. Existing append-only records and prior releases are preserved, not edited or revoked.
 
-## Proof boundary
-
-The benchmark is advisory. It never mutates Focus State and does not replace Workpoint evidence. Failing evals create backlog work; passing evals can support release proof, project card outcome learning, and metacognition capture.
+The benchmark remains advisory and never mutates Focus State. Definition checks and refusal regressions are not model/harness efficacy measurements and do not close353 or comparative acceptance under265.

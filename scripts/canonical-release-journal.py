@@ -708,36 +708,24 @@ def cmd_plan(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def run_benchmark(tag: str) -> dict[str, Any]:
-    started = time.monotonic()
-    agent_run = command(["bash", "scripts/run-agent-intelligence-evals.sh"])
-    cases = json.loads((ROOT / "tests/evals/agent_intelligence_cases.json").read_text())
-    aggregate = sum(float(row["score"]) for row in cases["cases"]) / len(cases["cases"])
-    live_run = command([sys.executable, "scripts/spec135-live-performance-proof.py"])
-    live = json.loads(live_run.stdout)
-    gap = command(["bash", "tests/final_release_gap_gate.sh"])
-    gate = command([sys.executable, "scripts/release-gate.py"])
-    version = command([sys.executable, "scripts/verify-version-surfaces.py", tag])
-    gate_score_match = re.search(r"score=(\d+)", gate.stdout + gate.stderr)
-    return {
-        "status": "passed",
-        "elapsed_seconds": round(time.monotonic() - started, 3),
-        "agent_intelligence": {
-            "status": "passed", "case_count": len(cases["cases"]),
-            "category_count": len(cases["required_categories"]),
-            "aggregate_score": round(aggregate, 6), "threshold": cases["aggregate_threshold"],
-            "result": agent_run.stdout.strip()[-240:],
-        },
-        "live_performance": live,
-        "final_release_gap_gate": {"status": "passed", "result": gap.stdout.strip()[-240:]},
-        "release_gate": {"status": "passed", "score": int(gate_score_match.group(1)) if gate_score_match else None},
-        "version_surfaces": {"status": "passed", "tag": tag, "result": version.stdout.strip()[-240:]},
-    }
+    # This runner currently checks definitions, not observed agent behavior.
+    # Its exit78 must stop benchmark publication before unrelated build gates.
+    command(["bash", "scripts/run-agent-intelligence-evals.sh"])
+    # Even a zero exit from an older runner is not comparative evidence.
+    raise RuntimeError(
+        "UNMEASURED: agent-intelligence runner completion is not execution-backed "
+        "ON/OFF/candidate evidence; no verified benchmark score or release proof is available"
+    )
 
 
 def cmd_benchmark(args: argparse.Namespace) -> dict[str, Any]:
     existing = existing_phase(args.tag, "benchmark")
     if existing:
-        return {"status": "already_present", "event_id": existing["event_id"], "event_hash": existing["event_hash"], "measurements": existing["measurements"]}
+        # Preserve append-only history, but do not re-accept fixture-derived v1 scores.
+        raise RuntimeError(
+            "UNMEASURED: historical benchmark records are preserved, not accepted "
+            "as execution-backed ON/OFF/candidate evidence"
+        )
     measurements = run_benchmark(args.tag)
     artifact = Path(args.artifact or f"/tmp/focusa-{args.tag.removeprefix('v')}-benchmark.json")
     artifact.write_text(json.dumps(measurements, indent=2, sort_keys=True) + "\n")
