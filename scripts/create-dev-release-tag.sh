@@ -5,8 +5,10 @@
 #   scripts/create-dev-release-tag.sh
 # Push release tag + main and wait for GitHub CI/Release/Deploy workflows:
 #   scripts/create-dev-release-tag.sh --push
-# Push without waiting for GitHub workflows:
+# Nonwaiting preparation/finalization (stable still requires exact-source CI):
 #   scripts/create-dev-release-tag.sh --push --no-wait-ci --no-wait-deploy
+# Exit 78 leaves a prepared stable candidate untagged while CI is pending;
+# resume the same approved tag after that exact SHA passes, freeing the builder.
 # Force a release gate override (requires plain-language reason):
 #   scripts/create-dev-release-tag.sh --push --force-release --release-reason "critical deploy fix"
 # Pin a major/minor lane:
@@ -164,6 +166,7 @@ wait_for_source_workflow() {
   local sha="$2"
   local deadline=$((SECONDS + CI_TIMEOUT_SECS))
   local status conclusion url
+  SOURCE_CI_PENDING_SHA=""
 
   command -v gh >/dev/null 2>&1 || {
     echo "source_gate_blocked: gh CLI is required to verify ${workflow} for ${sha}" >&2
@@ -171,7 +174,14 @@ wait_for_source_workflow() {
   }
   while (( SECONDS < deadline )); do
     local runs
-    runs="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json status,conclusion,url,headSha 2>/dev/null || echo '[]')"
+    if ! runs="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json status,conclusion,url,headSha)"; then
+      echo "source_gate_unavailable: workflow=${workflow} sha=${sha} query failed; reconcile before retrying" >&2
+      return 1
+    fi
+    if ! jq -e 'type == "array" and all(.[]; type == "object" and (.headSha | type == "string") and (.status | type == "string"))' <<<"$runs" >/dev/null; then
+      echo "source_gate_unavailable: workflow=${workflow} sha=${sha} invalid query projection" >&2
+      return 1
+    fi
     # Duplicate/superseded runs on the same SHA are possible (double dispatch,
     # cache races). The gate passes when ANY completed run succeeded and fails
     # only when every completed run failed.
@@ -185,6 +195,11 @@ wait_for_source_workflow() {
       url="$(jq -r --arg sha "$sha" 'map(select(.headSha == $sha and .status == "completed")) | .[0].url // ""' <<<"$runs")"
       echo "source_gate_failed: workflow=${workflow} sha=${sha} conclusion=${conclusion} url=${url}" >&2
       return 1
+    fi
+    if [[ "$WAIT_CI" -eq 0 ]]; then
+      SOURCE_CI_PENDING_SHA="$sha"
+      echo "source_gate_pending: workflow=${workflow} sha=${sha} tag=${TAG}; no immutable tag created; finish exact-source CI then resume the same approved tag" >&2
+      return 78
     fi
     sleep 10
   done
@@ -353,6 +368,12 @@ journal_problem_on_error() {
   local exit_code="$1"
   local line_number="$2"
   trap - ERR
+  # Expected nonwaiting preparation is not a failed publication or a success.
+  if [[ "$exit_code" -eq 78 && "$WAIT_CI" -eq 0 &&
+        "${RELEASE_CHANNEL:-}" == stable && -n "${SOURCE_CI_PENDING_SHA:-}" &&
+        "$SOURCE_CI_PENDING_SHA" == "${HEAD_SHA:-}" ]]; then
+    exit "$exit_code"
+  fi
   if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
     journal_client problem --tag "$TAG" --stage "release-script" \
       --diagnosis "release script exited with code ${exit_code} at line ${line_number}" \

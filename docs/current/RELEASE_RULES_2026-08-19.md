@@ -71,13 +71,15 @@ bash scripts/create-dev-release-tag.sh --push
 bash scripts/stamp-menubar-version.py vX.Y.Z && bash scripts/local-release-preflight.sh --strict && bash scripts/create-dev-release-tag.sh --push
 ```
 
+On the single eligible builder, the existing controller uses `--no-wait-ci`: stable preparation checks exact-candidate CI once and exits **78 (`source_gate_pending`) before any tag** if that SHA is not green. This is an incomplete preparation phase, not release success. The caller exits to yield the builder; let the existing canonical source-CI workflow finish, then resume the **same approved tag and candidate** through the same helper. Failed, foreign-SHA, unreadable or malformed CI results never authorize tagging; provider failures remain errors rather than an empty queue. Explicit wait mode retains its wait. No new controller, journal, signing path or gate bypass is introduced.
+
 Internally the script does the 7-step checklist deterministically — the agent does not run them by hand:
 
 ```
 1. git status — clean, no ':' in evidence paths (Windows lint would FAIL)
 2. stamp-menubar-version.py vX.Y.Z — 16 surfaces + manifest atomically (source_commit=HEAD, sha256 recomputed, generated_at now)
 3. local-release-preflight.sh --strict — must print DONE — PASS (may tag) or script exits non-zero (no tag)
-4. git add + commit "chore: stamp release surfaces X.Y.Z" + push main — waits deterministically for CI 5/5 on that SHA
+4. git add + commit "chore: stamp release surfaces X.Y.Z" + push main — requires exact-source CI green on that SHA; nonwaiting pending exit78 yields without tagging
 5. (if terminal paths) waits deterministically for Spec132 11/11 on same SHA
 6. canonical controller creates a new immutable candidate tag and pushes only under its current grant — enqueues Release; existing tags are preserved
 7. Release workflow reconciles exact-source proof, full artifact/signature matrix, compatibility, deployment and installed acceptance before promotion

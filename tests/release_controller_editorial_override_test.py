@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ControllerEditorialOverrideTest(unittest.TestCase):
-    def exercise(self, *, reason="Critical startup recovery", ci=True, version=True):
+    def exercise(self, *, reason="Critical startup recovery", ci=True, version=True, helper_exit=0):
         workflow = (ROOT / ".github/workflows/dev-release-tag.yml").read_text()
         step = workflow.split("      - name: Create approved immutable tag\n", 1)[1]
         shell = textwrap.dedent(step.split("        run: |\n", 1)[1])
@@ -54,12 +54,14 @@ class ControllerEditorialOverrideTest(unittest.TestCase):
             script("scripts/create-dev-release-tag.sh", """#!/usr/bin/env bash
                 set -eu
                 printf '%s\n' "$@" > helper-args
+                exit "$HELPER_EXIT"
             """)
             (root / "docs/current/.release-version-stamp").write_text("9.9.999\n")
             env = dict(os.environ, PATH=str(root / "bin") + os.pathsep + os.environ["PATH"],
                        APPROVED_TAG="v9.9.999", APPROVED_BASE="9.9", PUSH="true",
                        RELEASE_REASON=reason, GITHUB_REPOSITORY="synthetic/release-fixture",
-                       FIXTURE_SHA="a" * 40, CI_VALID=str(int(ci)), VERSION_VALID=str(int(version)))
+                       FIXTURE_SHA="a" * 40, CI_VALID=str(int(ci)), VERSION_VALID=str(int(version)),
+                       HELPER_EXIT=str(helper_exit))
             result = subprocess.run(["bash", "-c", shell], cwd=root, env=env,
                                     capture_output=True, text=True, timeout=5)
             self.last_output = result.stdout + result.stderr

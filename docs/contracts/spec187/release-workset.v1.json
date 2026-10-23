@@ -547,7 +547,9 @@
         "docs/current/RELEASE_RULES_2026-08-19.md",
         "scripts/release-deploy-proof.py",
         "all selected issue acceptance criteria",
-        ".github/workflows/dev-release-tag.yml"
+        ".github/workflows/dev-release-tag.yml",
+        "tests/688_release_source_ci_yield_test.py",
+        "tests/release_controller_editorial_override_test.py"
       ],
       "done": "Every selected issue criterion maps to passing evidence or remains explicitly open; no umbrella closure by subset proof; required benchmarks, security gates, exact-candidate CI, cross-version and release-matrix obligations are complete; outage behavior is tested and never fabricates success.",
       "work_item_ref": "focusa-ak5sv.15",
