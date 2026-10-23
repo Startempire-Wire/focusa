@@ -5218,10 +5218,13 @@ fn build_trajectory_guard(
 }
 
 pub(crate) async fn trajectory_guard(
-    _scope: ScopeContext,
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
-    Json(request): Json<TrajectoryGuardRequest>,
+    Json(mut request): Json<TrajectoryGuardRequest>,
 ) -> (axum::http::StatusCode, Json<Value>) {
+    if request.continuity_id.is_none() {
+        request.continuity_id = scope.continuity_id;
+    }
     trajectory_guard_with_limits(
         state,
         request,
@@ -5289,6 +5292,37 @@ fn trajectory_guard_inspection(
             Json(json!({"status":"blocked","code":"SCOPE_MISMATCH"})),
         );
     }
+    // The shared marker snapshot, publication, ledger append and rollback must
+    // use the existing project transaction, not independent per-workstream writes.
+    // Read-only and unconfirmed requests must not create a lock-file artifact.
+    let _project_transaction =
+        if matches!(action, "migrate" | "repair") && request.confirm == Some(true) {
+            match super::project_bootstrap_safety::BootstrapLock::acquire(&canonical_root) {
+                Ok(lock) => Some(lock),
+                Err(error) => {
+                    let (status, code) = if error.kind() == std::io::ErrorKind::WouldBlock {
+                        (
+                            axum::http::StatusCode::CONFLICT,
+                            "PROJECT_TRANSACTION_ACTIVE",
+                        )
+                    } else {
+                        (
+                            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                            "PROJECT_TRANSACTION_LOCK_FAILED",
+                        )
+                    };
+                    return (
+                        status,
+                        Json(json!({
+                            "status":"blocked", "canonical":false,
+                            "code":code, "error":error.to_string()
+                        })),
+                    );
+                }
+            }
+        } else {
+            None
+        };
     let marker_path = canonical_root.join(".focusa-project.json");
     let Some(mut marker) = read_json_value(&marker_path) else {
         return (
@@ -5312,18 +5346,30 @@ fn trajectory_guard_inspection(
     }
     let trajectory = {
         let focusa = state.focusa.blocking_read();
-        focusa
-            .trajectory
-            .records
-            .iter()
-            .rev()
-            .find(|record| {
-                record.project_root.as_deref() == Some(project_root.as_str())
-                    && request.continuity_id.as_deref().is_none_or(|continuity| {
-                        record.continuity_id.as_deref() == Some(continuity)
-                    })
-            })
-            .cloned()
+        let mut candidates = focusa.trajectory.records.iter().rev().filter(|record| {
+            record.project_root.as_deref() == Some(project_root.as_str())
+                && request
+                    .continuity_id
+                    .as_deref()
+                    .is_none_or(|continuity| record.continuity_id.as_deref() == Some(continuity))
+        });
+        let trajectory = candidates.next().cloned();
+        let selected_continuity = trajectory
+            .as_ref()
+            .and_then(|record| record.continuity_id.as_deref());
+        if request.continuity_id.is_none()
+            && candidates.any(|record| record.continuity_id.as_deref() != selected_continuity)
+        {
+            return (
+                axum::http::StatusCode::CONFLICT,
+                Json(json!({
+                    "status":"blocked", "canonical":false,
+                    "code":"WORKSTREAM_SCOPE_REQUIRED",
+                    "reason":"continuity_id is required when a project has multiple workstreams"
+                })),
+            );
+        }
+        trajectory
     };
     let events = match state.persistence.read_trajectory_ladder_events(
         &project_root,
@@ -6232,6 +6278,7 @@ pub(crate) mod tests {
     use super::*;
 
     include!("project_trajectory_workstream_tests.rs");
+    include!("project_guard_transaction_tests.rs");
 
     #[test]
     fn north_star_gate_marks_daemon_authority_without_advisory_fallback() {
