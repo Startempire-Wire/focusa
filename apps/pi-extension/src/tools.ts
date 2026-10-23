@@ -2373,7 +2373,7 @@ pi.registerTool({
         }),
       ),
     }),
-    async execute(params: any) {
+    async execute(_id: string, params: any) {
       const trigger = String(params?.trigger || "manual_gate");
       const projection = String(params?.projection || "short");
       const projectRoot = await resolveFocusaToolProjectRoot();

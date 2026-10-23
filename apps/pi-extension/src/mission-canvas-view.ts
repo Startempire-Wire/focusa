@@ -81,15 +81,27 @@ export class MissionCanvasView implements Component {
   private selectedSurface = 0;
   private refreshing = false;
   private readonly refreshTimer: ReturnType<typeof setInterval>;
+  private model: MissionCanvasModel;
+  private readonly theme: Theme;
+  private readonly requestRender: () => void;
+  private readonly close: () => void;
+  private readonly reload: () => Promise<MissionCanvasModel>;
+  private readonly copyReference: (reference: string) => void;
 
   constructor(
-    private model: MissionCanvasModel,
-    private readonly theme: Theme,
-    private readonly requestRender: () => void,
-    private readonly close: () => void,
-    private readonly reload: () => Promise<MissionCanvasModel>,
-    private readonly copyReference: (reference: string) => void
+    model: MissionCanvasModel,
+    theme: Theme,
+    requestRender: () => void,
+    close: () => void,
+    reload: () => Promise<MissionCanvasModel>,
+    copyReference: (reference: string) => void
   ) {
+    this.model = model;
+    this.theme = theme;
+    this.requestRender = requestRender;
+    this.close = close;
+    this.reload = reload;
+    this.copyReference = copyReference;
     // Bounded reconnect/degraded fallback; canonical event projection remains authoritative.
     this.refreshTimer = setInterval(() => void this.refresh(), 5_000);
   }
