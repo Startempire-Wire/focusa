@@ -132,7 +132,9 @@
         "docs/contracts/spec187/",
         "scripts/compile-flow-workset.py",
         "tests/187_autonomous_flow_workset_contract_test.py",
-        "crates/focusa-core/src/procedure_compiler.rs"
+        "crates/focusa-core/src/procedure_compiler.rs",
+        "crates/focusa-core/tests/689-procedure-plan-digest.rs",
+        "docs/167-governed-procedure-compiler-design.md"
       ],
       "done": "Source authoring profile, full requirements/issue traceability, dependency graph, task records and contract tests agree; no runtime admission or installed support is fabricated.",
       "work_item_ref": "focusa-ak5sv.1",

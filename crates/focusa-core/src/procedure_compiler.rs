@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const PROCEDURE_SCHEMA: &str = "focusa.procedure.v1";
+/// Domain-separated typed-source identity; legacy unframed digests are not v2.
+pub const PROCEDURE_DIGEST_SCHEMA: &str = "focusa.procedure-plan.digest.v2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -107,12 +109,14 @@ pub fn compile_plan(procedure: &Procedure) -> Result<ExecutionPlan, String> {
             rollback_of: step.rollback_step.clone(),
         });
     }
+    // Struct field order and ordered steps are part of the v2 encoding.
+    // JSON frames all fields, including version and safety semantics.
+    let encoded = serde_json::to_vec(procedure)
+        .map_err(|error| format!("procedure digest serialization failed: {error}"))?;
     let mut hasher = Sha256::new();
-    hasher.update(procedure.procedure_id.as_bytes());
-    for step in &procedure.steps {
-        hasher.update(step.step_id.as_bytes());
-        hasher.update(step.command.as_bytes());
-    }
+    hasher.update(PROCEDURE_DIGEST_SCHEMA.as_bytes());
+    hasher.update([0]);
+    hasher.update(encoded);
     let digest = format!("sha256:{}", hex(&hasher.finalize()));
     Ok(ExecutionPlan {
         procedure_id: procedure.procedure_id.clone(),

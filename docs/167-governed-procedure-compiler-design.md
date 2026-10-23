@@ -23,6 +23,23 @@ step := {
 pack := { pack_id, procedures: ProcedureRef[], owner_ref, digest }
 ```
 
+## Plan identity v2 (#689)
+
+The existing pure compiler hashes UTF-8 `focusa.procedure-plan.digest.v2`, one
+zero byte, then `serde_json::to_vec(Procedure)` bytes. Typed struct field order
+and ordered steps are part of this encoding. Every source field participates,
+including schema, procedure/version, step kind/effect, explicit confirmation,
+rollback and command. Output remains `sha256:<lowercase hex>`.
+
+Golden input: `digest-fixture`, version1, one shell/local step `a`, command
+`run a`, explicit confirmation false, no rollback. Its digest is
+`sha256:5f068c6abb4a2d2f67231fcda8aa108e05cc31aa5da1b6922177fd0af6290cec`.
+Unsupported procedure schemas remain rejected. Legacy plans remain readable and
+untouched; their old unframed digest cannot qualify a recompiled v2 plan. Review
+and recompile rather than silently treating legacy identity as equivalent.
+Producer/public typed-consumer and legacy-read compatibility tests do not prove
+persisted-plan migration or live dispatch admission; those remain later slices.
+
 ## Execution routing
 
 - The compiler emits a deterministic execution plan: eligibility,
