@@ -4,6 +4,14 @@ This reference retains a command-help capture, not proof of the calling installa
 
 Use [the cohesive project journey](../agent/02-focusa-cohesive-project-flow.md). Initialize missing state conditionally, preserve current operator intent, recover through supported installed operations, and follow the approved development/release destination. Git push is project-specific; source, publication, activation and consumer verification are distinct.
 
+## Work Loop scope and recovery contract
+
+Use explicit `--project-root` and `--continuity-id` values from the verified existing project; this family never infers scope from cwd. Inspect `work-loop status` or `writer-status` before changing controls. A route preview is not execution admission.
+
+In current source, `pause`, `stop`, and unclaimed metadata `context` accept an omitted fencing token and leave the exact scope/ownership decision to the daemon. They still require the actual caller's `--writer-id` and an idempotency key; an existing live owner requires its genuine positive token. No fallback token, ownership acquisition, takeover or budget renewal is implied. `resume`, `checkpoint`, and `select-next` retain mandatory lease arguments. Zero tokens are rejected by the shared header encoder.
+
+This is the source contract, not installed-binary proof. Older installed clients/services may still demand a token for unclaimed recovery; preserve the exact refusal, use supported recovery, and do not manufacture a token. That request's refusal does not revoke other existing authorizations.
+
 ```text
 Focusa cognitive governance CLI
 

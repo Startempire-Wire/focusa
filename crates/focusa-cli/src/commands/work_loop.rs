@@ -1,8 +1,9 @@
 //! Governed Work Loop CLI parity for the canonical `/v1/work-loop/*` API.
 //!
 //! The CLI never infers project scope, writer ownership, or fencing tokens.
-//! Read operations require explicit scope; mutations additionally require the
-//! exact writer lease returned by `enable`.
+//! Read operations require explicit scope; progression requires the exact lease
+//! returned by `enable`. Pause/stop may omit a fence for unclaimed recovery;
+//! the daemon still checks scope and every existing owner, without acquiring a lease.
 
 use anyhow::Result;
 use clap::{Args, Subcommand};
@@ -52,6 +53,16 @@ pub struct LeaseArgs {
     pub fencing_token: u64,
 }
 
+#[derive(Args, Debug, Clone)]
+pub struct OptionalLeaseArgs {
+    /// Actual caller identity; this argument never grants writer ownership.
+    #[arg(long)]
+    pub writer_id: String,
+    /// Existing positive fence, if any. Omission never bypasses a live owner's fence.
+    #[arg(long)]
+    pub fencing_token: Option<u64>,
+}
+
 #[derive(Args, Debug)]
 pub struct EnableArgs {
     #[command(flatten)]
@@ -92,7 +103,7 @@ pub struct ContextArgs {
     #[command(flatten)]
     pub scope: ScopeArgs,
     #[command(flatten)]
-    pub lease: LeaseArgs,
+    pub lease: OptionalLeaseArgs,
     #[arg(long)]
     pub current_ask: String,
     #[arg(long)]
@@ -124,7 +135,7 @@ pub struct ControlArgs {
     #[command(flatten)]
     pub scope: ScopeArgs,
     #[command(flatten)]
-    pub lease: LeaseArgs,
+    pub lease: OptionalLeaseArgs,
     #[arg(long, default_value = "operator requested")]
     pub reason: String,
     #[arg(long)]
@@ -163,14 +174,42 @@ async fn post_with_lease(
     body: &Value,
     approved: bool,
 ) -> Result<Value> {
-    anyhow::ensure!(lease.fencing_token > 0, "--fencing-token must be positive");
-    let fencing_token = lease.fencing_token.to_string();
-    let mut headers = vec![
-        ("x-scope-project-root", scope.project_root.as_str()),
-        ("x-scope-continuity-id", scope.continuity_id.as_str()),
-        ("x-focusa-writer-id", lease.writer_id.as_str()),
-        ("x-focusa-fencing-token", fencing_token.as_str()),
-    ];
+    post_with_writer(
+        api,
+        path,
+        scope,
+        &lease.writer_id,
+        Some(lease.fencing_token),
+        body,
+        approved,
+    )
+    .await
+}
+
+fn fencing_header_value(value: Option<u64>) -> Result<Option<String>> {
+    value
+        .map(|token| -> Result<String> {
+            anyhow::ensure!(token > 0, "--fencing-token must be positive");
+            Ok(token.to_string())
+        })
+        .transpose()
+}
+
+async fn post_with_writer(
+    api: &ApiClient,
+    path: &str,
+    scope: &ScopeArgs,
+    writer_id: &str,
+    token: Option<u64>,
+    body: &Value,
+    approved: bool,
+) -> Result<Value> {
+    let fencing_token = fencing_header_value(token)?;
+    let mut headers = scope_headers(scope).to_vec();
+    headers.push(("x-focusa-writer-id", writer_id));
+    if let Some(token) = fencing_token.as_deref() {
+        headers.push(("x-focusa-fencing-token", token));
+    }
     if approved {
         headers.push(("x-focusa-approval", "approved"));
     }
@@ -279,11 +318,12 @@ pub async fn run(command: WorkLoopCmd, json_mode: bool) -> Result<()> {
             });
             (
                 "context",
-                post_with_lease(
+                post_with_writer(
                     &api,
                     "/v1/work-loop/context",
                     &args.scope,
-                    &args.lease,
+                    &args.lease.writer_id,
+                    args.lease.fencing_token,
                     &body,
                     false,
                 )
@@ -307,11 +347,12 @@ pub async fn run(command: WorkLoopCmd, json_mode: bool) -> Result<()> {
         }
         WorkLoopCmd::Pause(args) => (
             "pause",
-            post_with_lease(
+            post_with_writer(
                 &api,
                 "/v1/work-loop/pause",
                 &args.scope,
-                &args.lease,
+                &args.lease.writer_id,
+                args.lease.fencing_token,
                 &json!({"reason": args.reason, "idempotency_key": args.idempotency_key}),
                 false,
             )
@@ -331,11 +372,12 @@ pub async fn run(command: WorkLoopCmd, json_mode: bool) -> Result<()> {
         ),
         WorkLoopCmd::Stop(args) => (
             "stop",
-            post_with_lease(
+            post_with_writer(
                 &api,
                 "/v1/work-loop/stop",
                 &args.scope,
-                &args.lease,
+                &args.lease.writer_id,
+                args.lease.fencing_token,
                 &json!({"reason": args.reason, "idempotency_key": args.idempotency_key}),
                 false,
             )
@@ -343,4 +385,74 @@ pub async fn run(command: WorkLoopCmd, json_mode: bool) -> Result<()> {
         ),
     };
     print_result(&value, json_mode, label)
+}
+
+#[cfg(test)]
+mod recovery_argument_tests {
+    use super::*;
+    use clap::Parser;
+
+    #[derive(Parser, Debug)]
+    struct TestCli {
+        #[command(subcommand)]
+        command: WorkLoopCmd,
+    }
+
+    fn args(command: &str) -> Vec<&str> {
+        vec![
+            "test",
+            command,
+            "--project-root",
+            "/workspace/project",
+            "--continuity-id",
+            "existing-stream",
+            "--writer-id",
+            "actual-caller",
+            "--idempotency-key",
+            "request-1",
+        ]
+    }
+
+    #[test]
+    fn recovery_can_omit_fence_without_manufacturing_one() {
+        for command in ["pause", "stop"] {
+            let parsed = TestCli::try_parse_from(args(command)).unwrap();
+            match parsed.command {
+                WorkLoopCmd::Pause(control) | WorkLoopCmd::Stop(control) => {
+                    assert_eq!(control.lease.writer_id, "actual-caller");
+                    assert_eq!(control.lease.fencing_token, None);
+                }
+                _ => panic!("wrong recovery command"),
+            }
+        }
+        let mut input = args("context");
+        input.extend(["--current-ask", "existing authorized work"]);
+        match TestCli::try_parse_from(input).unwrap().command {
+            WorkLoopCmd::Context(context) => assert_eq!(context.lease.fencing_token, None),
+            _ => panic!("wrong metadata command"),
+        }
+        assert_eq!(fencing_header_value(None).unwrap(), None);
+        assert!(fencing_header_value(Some(0)).is_err());
+        assert_eq!(
+            fencing_header_value(Some(42)).unwrap().as_deref(),
+            Some("42")
+        );
+    }
+
+    #[test]
+    fn progression_and_owned_writes_still_require_fence() {
+        for (command, extra) in [
+            ("resume", vec![]),
+            ("checkpoint", vec!["--summary", "existing-work checkpoint"]),
+            (
+                "select-next",
+                vec!["--parent-work-item-id", "existing-item"],
+            ),
+        ] {
+            let mut input = args(command);
+            input.extend(extra);
+            let failure = TestCli::try_parse_from(input).unwrap_err();
+            assert!(failure.to_string().contains("--fencing-token"));
+        }
+    }
 }

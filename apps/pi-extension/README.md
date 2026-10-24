@@ -14,7 +14,7 @@ Before dependent operations, follow the shared project journey linked above: rea
 
 Writer status reports `none` only for an explicit null in a supported successful response; failed, missing or unsupported observations are `unverified`. An unverified lease is not evidence of another writer. Control preflight is a route preview only: it sends no control request and does not check ownership, budgets or execution admission. Unsent requests retain that distinction; daemon refusals and fencing remain unchanged. Other existing authorizations are not revoked by these observations.
 
-The opt-in `tests/693-work-loop-live-reporting.test.mjs` exercises the actual native SDK and explicitly selected canonical daemon scope using reads only; it never sends a loop-control request, renews a budget, dispatches an agent worker or measures model compliance. Source verification is not installed activation.
+The opt-in `tests/693-work-loop-live-reporting.test.mjs` exercises the actual native SDK and explicitly selected canonical daemon scope using reads only by default. The separate `FOCUSA_LIVE_PAUSE_RECOVERY=1` mode permits one already-authorized pause only after observing an idle, unclaimed scope with zero remaining wall time; it checks unchanged budget bounds and writer state. The flag grants no authority and bypasses no daemon checks. Neither mode starts/resumes workers, renews budgets or measures model compliance. State readback alone is not durability proof; source verification is not installed activation.
 
 ## North Star diagnostics
 

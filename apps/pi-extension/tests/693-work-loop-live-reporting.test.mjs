@@ -1,4 +1,5 @@
-// Actual native SDK + canonical daemon reads; never starts/resumes a loop or worker.
+// Actual native SDK + canonical daemon; read-only unless a separately authorized single pause is explicitly enabled.
+// Never starts/resumes a loop or worker, acquires ownership, or renews a budget.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -14,6 +15,10 @@ test('actual native loop reporting distinguishes unverified lease and route prev
   const evidence = process.env.FOCUSA_LIVE_LOOP_EVIDENCE;
   assert.ok(root && continuity && evidence && expected.no_execution_grant === true);
   const requests = [];
+  const pauseEnabled = process.env.FOCUSA_LIVE_PAUSE_RECOVERY === '1';
+  let allowPause = false, pauseAttempts = 0, pauseRequests = 0, pauseHttpStatus = null;
+  let lastLoopBody = null;
+  let pauseEvidence = null;
   let verifiedLoopReads = 0;
   const relay = `import sys,json,urllib.request,urllib.error
 x=json.load(sys.stdin)
@@ -32,9 +37,23 @@ print(json.dumps(out))`;
     const u = new URL(String(url));
     const method = String(init.method || 'GET').toUpperCase();
     assert.ok(['127.0.0.1','localhost'].includes(u.hostname) && u.port === '8787');
-    assert.ok(allowed.get(u.pathname)?.includes(method), `Refuse unexpected operation: ${method} ${u.pathname}`);
+    assert.ok(allowed.get(u.pathname)?.includes(method) ||
+      (u.pathname === '/v1/work-loop/pause' && pauseEnabled && allowPause && method === 'POST'),
+      `Refuse unexpected operation: ${method} ${u.pathname}`);
     const headers = Object.fromEntries(new Headers(init.headers || {}));
     assert.ok(!headers.authorization && !headers.cookie, 'No credential-bearing diagnostic transport');
+    if (u.pathname === '/v1/work-loop/pause') {
+      assert.ok(pauseEnabled && allowPause && method === 'POST', 'Only the expressly authorized idle-scope pause is allowed');
+      assert.equal(++pauseAttempts, 1, 'Never replay a control request');
+      assert.equal(headers['x-scope-project-root'], root);
+      assert.equal(headers['x-scope-continuity-id'], continuity);
+      assert.equal(headers['x-focusa-writer-id'], `pi-${process.pid}`, 'Actual caller identity only');
+      assert.equal(headers['x-focusa-fencing-token'], undefined, 'Never manufacture a fence');
+      const body = JSON.parse(String(init.body || '{}'));
+      assert.notEqual(body.renew_budget, true);
+      for (const key of ['max_turns','max_wall_clock_ms','max_retries','force','approved']) assert.equal(body[key], undefined);
+      pauseRequests++;
+    }
     requests.push({ method, path: u.pathname });
     const raw = execFileSync('ssh', ['-F', process.env.FOCUSA_LIVE_SDK_SSH_CONFIG,
       '-o','BatchMode=yes','-o','ConnectTimeout=5','-o','StrictHostKeyChecking=yes',
@@ -47,8 +66,10 @@ print(json.dumps(out))`;
       assert.deepEqual(body.execution_partition?.project_root_key, expected.project_root_key, 'Actual project selection must match independently read scope');
       assert.deepEqual(body.execution_partition?.workstream_key, expected.workstream_key, 'Actual workstream selection must match independently read scope');
       assert.equal(body.active_writer, null, 'Live test is limited to the already-observed unclaimed loop');
+      lastLoopBody = body;
       verifiedLoopReads++;
     }
+    if (u.pathname === '/v1/work-loop/pause') pauseHttpStatus = response.status;
     return new Response(response.body, { status: response.status, headers: response.headers });
   };
   const { default: factory } = await import(new URL('../src/index.ts', import.meta.url));
@@ -93,6 +114,38 @@ print(json.dumps(out))`;
   const ready = await execute('focusa_north_star_gate', { trigger: 'foundation_recovery_existing_scope' });
   assert.equal(ready.details.ok, true);
   assert.deepEqual(ready.details.next_tools, ['focusa_workpoint_resume'], 'Valid setup must not be restarted');
+  if (pauseEnabled) {
+    const before = structuredClone(lastLoopBody);
+    assert.equal(before.status, 'idle', 'Refuse to disturb running or already-paused work');
+    assert.equal(before.active_writer, null);
+    assert.equal(before.budget_remaining.remaining_wall_clock_ms, 0);
+    allowPause = true;
+    const pause = await execute('focusa_work_loop_control', { action: 'pause', renew_budget: false,
+      reason: 'Operator-requested single live pause verification; no worker, ownership change or budget renewal.' });
+    allowPause = false;
+    await execute('focusa_work_loop_status', {});
+    const after = structuredClone(lastLoopBody);
+    const remainingBudget = (observation) => {
+      const { elapsed_wall_clock_ms: _elapsedObservation, ...remaining } = observation;
+      return remaining;
+    };
+    pauseEvidence = { http_status: pauseHttpStatus, control_requests: pauseRequests,
+      api_ok: pause.details?.ok, response: pause.details?.response,
+      before_status: before.status, after_status: after.status,
+      remaining_budget_unchanged: JSON.stringify(remainingBudget(before.budget_remaining)) === JSON.stringify(remainingBudget(after.budget_remaining)),
+      budget_observation_before: before.budget_remaining,
+      budget_observation_after: after.budget_remaining,
+      bounds_unchanged: JSON.stringify(before.bounds) === JSON.stringify(after.bounds),
+      writer_unchanged: before.active_writer === after.active_writer,
+      durability_verified: false, installed_adapter_fixed: false };
+    writeFileSync(evidence + '.pause.json', JSON.stringify(pauseEvidence, null, 2));
+    assert.equal(pauseRequests, 1);
+    assert.equal(pauseEvidence.remaining_budget_unchanged, true);
+    assert.equal(pauseEvidence.bounds_unchanged, true);
+    assert.equal(pauseEvidence.writer_unchanged, true);
+    assert.equal(pause.details.ok, true, `Installed daemon refused pause: HTTP ${pauseHttpStatus}`);
+    assert.equal(after.status, 'paused', 'A transport acknowledgement alone is not effect proof');
+  }
   const diagnosticReads = requests.filter(x => x.path === '/v1/project/north-star-gate').length;
   const invalidSelectors = await execute('focusa_north_star_gate', { project_root: '/root', continuity_id: continuity, trigger: 'unsupported_selector_negative' });
   assert.equal(invalidSelectors.details.canonical, false);
@@ -111,7 +164,9 @@ print(json.dumps(out))`;
   writeFileSync(evidence, JSON.stringify({ status: 'actual_native_loop_reporting_verified',
     scope_verified: true, verified_loop_reads: verifiedLoopReads, requests,
     writer_text: writer.content[0].text, preview_text: preview.content[0].text,
-    resume_text: resume.content[0].text, control_request_sent: false,
+    resume_text: resume.content[0].text, control_request_sent: pauseHttpStatus !== null,
+    control_request_submitted: pauseRequests === 1, control_delivery_unverified: pauseRequests === 1 && pauseHttpStatus === null,
+    pause_evidence: pauseEvidence,
     budget_renewed: false, model_or_worker_dispatch: false, model_behavior_measured: false,
     foundation_recovery_source_boundary_checked: true, live_unverified_client_setup_measured: true,
     live_incomplete_project_measured: false,
