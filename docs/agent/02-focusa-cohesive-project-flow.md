@@ -95,6 +95,12 @@ A real consent, safety, ownership, provider or exhausted-budget boundary pauses 
 
 For coordination conflicts, preserve the other owner and inspect the explicit options; no automatic takeover. For missing native integration, restore it through the approved path; shell diagnostics do not replace native authority. Pending work is observed, not dispatched again. Snapshot restore, rollback, credential changes and release actions are conditional consequential operations, never mandatory steps in a skill's capability list.
 
+### Incomplete canonical publication
+
+The live publication owner validates a canonical Workpoint promotion before reducing or persisting it: `action_intent.action_type` must be nonblank, `action_intent.lifecycle_stage` must be known, and `next_slice` must be nonblank. `WORKPOINT_PROMOTION_INCOMPLETE` identifies the missing fields; correct the producer/request rather than retry unchanged or invent placeholders. Native tool `current_action`/`next_action` require mapping to REST `action_intent`/`next_slice`; they are not interchangeable top-level REST fields.
+
+Partial draft proposals remain available. Historical reducer/replay semantics retain legacy data; this check neither rewrites old records nor repairs an already-linked incomplete record. A rejected promotion publishes no new active Workpoint and does not revoke other existing authorizations. Use only the installed, supported correction path for legacy records and keep independently authorized work moving; source validation is not installed acceptance.
+
 ### Legacy lifecycle rejection
 
 For `WORKPOINT_FRONTIER_MISSING`, inspect the expanded daemon response's `workpoint_linkage.admission_gaps`, linkage status and lifecycle stage before accepting a generic scope-mismatch summary as the diagnosis. A linked legacy record with only `lifecycle_stage_missing` differs from a foreign or unknown Workstream binding. Discover the installed, explicitly confirmed append-only lifecycle repair if advertised; preserve the original record and never execute its stale next-slice just because structural repair succeeds. Then reconcile the current instruction and proposed successor.

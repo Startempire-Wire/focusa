@@ -1698,6 +1698,69 @@ fn workpoint_scope_conflict(error: String) -> (StatusCode, Json<Value>) {
     )
 }
 
+// Live publication only: historical reducers/replay must retain legacy records.
+// Draft proposals remain valid; only a new canonical activation requires this shape.
+fn validate_live_workpoint_promotion(
+    event: &FocusaEvent,
+    current: &focusa_core::types::FocusaState,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    let FocusaEvent::WorkpointCheckpointPromoted { workpoint_id, .. } = event else {
+        return Ok(());
+    };
+    let record = workpoint_event_record(event, current)
+        .ok_or_else(|| explicit_workpoint_not_found(*workpoint_id))?;
+    if !record.canonical
+        || record.status == WorkpointStatus::Rejected
+        || record.status == WorkpointStatus::DegradedFallback
+    {
+        // Preserve the existing rejected/noncanonical promotion refusals.
+        return Ok(());
+    }
+    let missing_fields: Vec<&str> = [
+        (
+            "action_intent.action_type",
+            record
+                .action_intent
+                .as_ref()
+                .is_some_and(|intent| !intent.action_type.trim().is_empty()),
+        ),
+        (
+            "action_intent.lifecycle_stage",
+            record
+                .action_intent
+                .as_ref()
+                .is_some_and(|intent| intent.lifecycle_stage != WorkpointLifecycleStage::Unknown),
+        ),
+        (
+            "next_slice",
+            record
+                .next_slice
+                .as_deref()
+                .is_some_and(|next| !next.trim().is_empty()),
+        ),
+    ]
+    .into_iter()
+    .filter_map(|(field, present)| (!present).then_some(field))
+    .collect();
+    if missing_fields.is_empty() {
+        return Ok(());
+    }
+    let (status, Json(mut body)) = workpoint_failure(
+        StatusCode::BAD_REQUEST,
+        "Canonical Workpoint promotion was not published: required action context is incomplete",
+        "validation_rejected",
+        "Live promotion requires an action type, a known lifecycle stage and a nonblank next slice",
+        "Read the checkpoint schema and current record; supply complete action_intent and next_slice through the supported producer, then retry the corrected request",
+        "Tool current_action/next_action require adapter mapping to REST action_intent/next_slice; this request refusal does not revoke other existing authorizations",
+        vec!["focusa_agent_prompt", "focusa_workpoint_resume"],
+    );
+    body["code"] = json!("WORKPOINT_PROMOTION_INCOMPLETE");
+    body["failed_operation"] = json!("workpoint_checkpoint_promote");
+    body["workpoint_id"] = json!(record.workpoint_id);
+    body["missing_fields"] = json!(missing_fields);
+    Err((status, Json(body)))
+}
+
 pub(crate) async fn materialize_workpoint_events(
     scope: ScopeContext,
     state: &Arc<AppState>,
@@ -1788,6 +1851,7 @@ async fn materialize_workpoint_events_with_prepare(
     let temporal = focusa_core::temporal_clock::capture_operator_temporal_action_envelope();
 
     for event in events {
+        validate_live_workpoint_promotion(&event, &current)?;
         let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
             tracing::warn!(error = %error, correlation_id, "workpoint event rejected by reducer");
             workpoint_reducer_rejected(error)
@@ -4211,6 +4275,7 @@ mod tests {
 
     include!("workpoint_unbound_checkpoint_tests.rs");
     include!("workpoint_workstream_acceptance_tests.rs");
+    include!("workpoint_promotion_shape_tests.rs");
 
     #[test]
     fn legacy_stage_recovery_is_confirmed_exact_scoped_and_append_only() {
