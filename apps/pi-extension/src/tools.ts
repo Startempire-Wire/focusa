@@ -431,6 +431,7 @@ type FocusaFailureClass =
   | "hot_path_timeout"
   | "cold_path_timeout"
   | "writer_conflict"
+  | "writer_lease_unverified"
   | "scope_mismatch"
   | "scope_conflict"
   | "approval_required"
@@ -507,6 +508,7 @@ function reflexSuggestionsForFailure(
       suggestions.add("require_destructive_confirmation");
       break;
     case "writer_conflict":
+    case "writer_lease_unverified":
       suggestions.add("preflight_writer_ownership");
       break;
     case "validation_rejected":
@@ -578,6 +580,8 @@ function inferFailureClass(
   if (text.includes("timeout") || text.includes("timed out") || text.includes("abort")) {
     return /(cold|deep|replay|worktree|diagnostic)/.test(text) ? "cold_path_timeout" : "hot_path_timeout";
   }
+  if (text.includes("writer_lease_unverified") || text.includes("writer lease was not verified"))
+    return "writer_lease_unverified";
   if (
     text.includes("claimed by another writer") ||
     text.includes("writer_conflict") ||
@@ -710,6 +714,14 @@ function recoveryHintForFailure(
         misuse_hint:
           "Tool failure is infrastructure/reachability, not a reason to stop all useful repo work.",
         next_tools: ["focusa_tool_doctor", "focusa_resource_mode"],
+      };
+    case "writer_lease_unverified":
+      return {
+        recovery_hint:
+          "Inspect scoped writer status and the failed lease observation; preserve ownership and budgets. Other existing authorizations are not revoked by this result.",
+        misuse_hint:
+          "No writer lease was verified for this request; absence, expiry, foreign ownership and a failed read are not interchangeable facts.",
+        next_tools: ["focusa_work_loop_writer_status", "focusa_work_loop_status"],
       };
     case "writer_conflict":
       return {
@@ -3843,12 +3855,13 @@ pi.registerTool({
     return headers;
   }
 
-  async function requiredWriterLeaseHeaders(): Promise<Record<string, string>> {
+  function unverifiedWorkLoopWriterMessage(operation: string): string {
+    return `work-loop ${operation} request not sent (writer_lease_unverified): a current scoped writer lease was not verified; inspect writer status. This does not revoke other existing authorizations.`;
+  }
+
+  async function requiredWriterLeaseHeaders(operation: string): Promise<Record<string, string>> {
     const lease = await currentWorkLoopLease();
-    if (!lease)
-      throw new Error(
-        "current scoped Work Loop writer lease is missing, expired, or owned by another writer"
-      );
+    if (!lease) throw new Error(unverifiedWorkLoopWriterMessage(operation));
     return writerLeaseHeaders(localWriterId, lease);
   }
 
@@ -3884,15 +3897,21 @@ pi.registerTool({
     async execute() {
       const result = await focusaFetchDetailed("/work-loop/status?summary_only=true");
       const body = result.body || {};
-      const activeWriter = String(body.active_writer || "none");
+      const writerObserved = result.ok && compatibleWorkLoopStatusState(body) !== "unsupported" &&
+        Object.prototype.hasOwnProperty.call(body, "active_writer") &&
+        (body.active_writer === null || (typeof body.active_writer === "string" && body.active_writer.trim().length > 0));
+      const activeWriter = writerObserved ? String(body.active_writer ?? "none") : "unverified";
       const status = String(body.status || body.current_task?.status || "unknown");
-      const text = `work-loop writer-status → active_writer=${activeWriter} status=${status} preflight=read_only`;
+      const text = `work-loop writer-status → active_writer=${activeWriter} status=${status} observation=read_only`;
       return {
         content: [{ type: "text", text }],
         details: {
-          ok: result.ok,
+          ok: writerObserved,
           status: String(result.status),
           active_writer: activeWriter,
+          writer_observation_verified: writerObserved,
+          failure_class: writerObserved ? null : "writer_lease_unverified",
+          ...(!writerObserved ? { canonical: false, degraded: true } : {}),
           authorship_mode: body.authorship_mode,
           preflight: {
             mutates: false,
@@ -4037,7 +4056,7 @@ pi.registerTool({
           content: [
             {
               type: "text",
-              text: `work-loop ${action} preflight → route=${route} writer=${writerId} mutates=false`,
+              text: `work-loop ${action} route preview only → route=${route} writer=${writerId}; no control request sent; ownership, budget and execution admission not checked`,
             },
           ],
           details: {
@@ -4047,6 +4066,11 @@ pi.registerTool({
             route,
             writer_id: writerId,
             mutates: false,
+            canonical: false,
+            request_sent: false,
+            ownership_checked: false,
+            budget_checked: false,
+            execution_admission_checked: false,
           },
         } as any;
       }
@@ -4107,14 +4131,16 @@ pi.registerTool({
           content: [
             {
               type: "text",
-              text: "work-loop control blocked: current scoped writer lease is missing, expired, or owned by another writer",
+              text: unverifiedWorkLoopWriterMessage("resume"),
             },
           ],
           details: {
             ok: false,
-            status: "blocked",
-            failure_class: "writer_conflict",
-            next_tools: ["focusa_work_loop_writer_status", "focusa_work_loop_control"],
+            status: "degraded",
+            failure_class: "writer_lease_unverified",
+            canonical: false,
+            request_sent: false,
+            next_tools: ["focusa_work_loop_writer_status", "focusa_work_loop_status"],
           },
         };
       }
@@ -4245,7 +4271,7 @@ pi.registerTool({
       const { summary } = params as { summary?: string };
       const res = await focusaFetchDetailed("/work-loop/checkpoint", {
         method: "POST",
-        headers: await requiredWriterLeaseHeaders(),
+        headers: await requiredWriterLeaseHeaders("checkpoint"),
         body: JSON.stringify({
           summary: (summary || "manual checkpoint via focusa_work_loop_checkpoint").slice(0, 240),
         }),
@@ -4281,7 +4307,7 @@ pi.registerTool({
           content: [
             {
               type: "text",
-              text: "work-loop select-next → blocked: no active parent work item (pass parent_work_item_id or create ready BD)",
+              text: "work-loop select-next request not sent: no parent work item was resolved; inspect the existing task context or supply its exact ID. This is not a global work stop.",
             },
           ],
           details: {
@@ -4296,7 +4322,7 @@ pi.registerTool({
       }
       const res = await focusaFetchDetailed("/work-loop/select-next", {
         method: "POST",
-        headers: await requiredWriterLeaseHeaders(),
+        headers: await requiredWriterLeaseHeaders("select-next"),
         body: JSON.stringify({ parent_work_item_id: parentWorkItemId }),
       });
       return {

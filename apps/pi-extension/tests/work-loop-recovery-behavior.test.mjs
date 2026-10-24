@@ -32,12 +32,16 @@ for (const invalid of [null, {}, { ...status, schema: 'unknown' }, { ...status, 
 }
 const writerLeaseHeaders = loadSourceSection('tools.ts', '  function writerLeaseHeaders(',
   '  async function requiredWriterLeaseHeaders(', {}, 'writerLeaseHeaders');
+const unverifiedWorkLoopWriterMessage = loadSourceSection('tools.ts', '  function unverifiedWorkLoopWriterMessage(',
+  '  async function requiredWriterLeaseHeaders(', {}, 'unverifiedWorkLoopWriterMessage');
+const compatibleWorkLoopStatusState = loadSourceSection('state.ts', 'const WORK_LOOP_STATUS_SCHEMA',
+  '// ── HTTP helper', {}, 'compatibleWorkLoopStatusState');
 function control(lease, response = { ok: true, status: 200, body: { ok: true } }) {
   const requests = [];
   const tool = loadRegisteredTool('focusa_work_loop_control', {
     preferredWriterId: async () => 'pi-test',
     currentWorkLoopLease: async () => lease,
-    writerLeaseHeaders,
+    writerLeaseHeaders, unverifiedWorkLoopWriterMessage,
     focusaFetchDetailed: async (path, options) => { requests.push({ path, options }); return response; },
     explainWorkLoopResult: () => response.ok ? 'accepted' : 'rejected',
     compactApiEcho: value => value,
@@ -58,6 +62,11 @@ for (const action of ['pause', 'stop']) {
   const { tool, requests } = control(null);
   const result = await tool.execute('test', { action: 'resume' });
   assert.equal(result.details.ok, false);
+  assert.equal(result.details.failure_class, 'writer_lease_unverified');
+  assert.equal(result.details.status, 'degraded');
+  assert.equal(result.details.request_sent, false);
+  assert.match(result.content[0].text, /resume request not sent/);
+  assert.doesNotMatch(result.content[0].text, /blocked|owned by another writer/);
   assert.equal(requests.length, 0, 'resume must not turn missing authority into recovery');
 }
 {
@@ -75,12 +84,41 @@ for (const action of ['pause', 'stop']) {
 }
 {
   const tool = loadRegisteredTool('focusa_work_loop_writer_status', {
-    focusaFetchDetailed: async () => ({ ok: true, status: 200, body: { status: 'idle', active_writer: null } }),
+    focusaFetchDetailed: async () => ({ ok: true, status: 200, body: { ...status, status: 'idle', active_writer: null } }),
+    compatibleWorkLoopStatusState,
     compactApiEcho: value => value,
   }, [], source);
   const result = await tool.execute('test', {});
   assert.deepEqual(result.details.preflight.recovery_controls, ['pause', 'stop']);
   assert.equal(result.details.preflight.writer_required_for.includes('control'), false);
   assert.equal(result.details.preflight.mutates, false);
+  assert.equal(result.details.active_writer, 'none');
+  assert.equal(result.details.writer_observation_verified, true);
+}
+for (const response of [
+  { ok: false, status: 503, body: {} },
+  { ok: true, status: 200, body: { ...status, status: 'idle' } },
+  { ok: true, status: 200, body: { ...status, active_writer: '' } },
+  { ok: true, status: 200, body: { schema: 'unsupported', active_writer: null } },
+]) {
+  const tool = loadRegisteredTool('focusa_work_loop_writer_status', {
+    focusaFetchDetailed: async () => response,
+    compatibleWorkLoopStatusState,
+    compactApiEcho: value => value,
+  }, [], source);
+  const result = await tool.execute('test', {});
+  assert.equal(result.details.active_writer, 'unverified');
+  assert.equal(result.details.writer_observation_verified, false);
+  assert.equal(result.details.ok, false);
+}
+{
+  const { tool, requests } = control(null);
+  const result = await tool.execute('test', { action: 'pause', preflight: true });
+  assert.match(result.content[0].text, /route preview only/);
+  assert.equal(result.details.request_sent, false);
+  assert.equal(result.details.ownership_checked, false);
+  assert.equal(result.details.budget_checked, false);
+  assert.equal(result.details.execution_admission_checked, false);
+  assert.equal(requests.length, 0);
 }
 console.log('PASS: actual registered pause/stop recovery, fenced resume, daemon refusal and shared lease projection');

@@ -16,8 +16,9 @@ assert.match(
   /focusa\.work_loop_status\.v3/,
   "shared lease helper must reject unsupported status schemas"
 );
-assert.match(tools, /current scoped writer lease is missing, expired, or owned by another writer/);
-const writerLeaseCalls = tools.match(/requiredWriterLeaseHeaders\(\)/g) ?? [];
+assert.match(tools, /writer lease was not verified/);
+assert.doesNotMatch(tools, /work-loop control blocked: current scoped writer lease/);
+const writerLeaseCalls = tools.match(/requiredWriterLeaseHeaders\(/g) ?? [];
 assert.equal(
   writerLeaseCalls.length,
   3,
@@ -32,7 +33,7 @@ for (const [toolName, nextToolName] of [
   const block = tools.slice(tools.indexOf(`name: "${toolName}"`), tools.indexOf(`name: "${nextToolName}"`));
   assert.doesNotMatch(
     block,
-    /requiredWriterLeaseHeaders\(\)/,
+    /requiredWriterLeaseHeaders\(/,
     `${toolName} must use canonical explicit scope without a continuous Work Loop lease`
   );
   assert.match(
@@ -48,7 +49,7 @@ for (const [toolName, nextToolName] of [
   const block = tools.slice(tools.indexOf(`name: "${toolName}"`), tools.indexOf(`name: "${nextToolName}"`));
   assert.match(
     block,
-    /requiredWriterLeaseHeaders\(\)/,
+    /requiredWriterLeaseHeaders\(/,
     `${toolName} must retain continuous Work Loop fencing authority`
   );
 }
@@ -59,7 +60,7 @@ const checkpointTool = tools.slice(
 assert.match(checkpointTool, /currentWorkLoopLease\(\)/);
 assert.doesNotMatch(
   checkpointTool,
-  /requiredWriterLeaseHeaders\(\)/,
+  /requiredWriterLeaseHeaders\(/,
   "first Workpoint checkpoint must not require a pre-existing Work Loop lease"
 );
 assert.doesNotMatch(
@@ -92,7 +93,7 @@ assert.match(
 );
 assert.doesNotMatch(commands, /commandWorkLoopWriterHeaders/, "unused duplicate lease adapter is retired");
 const contextTool = tools.slice(tools.indexOf('name: "focusa_work_loop_context"'), tools.indexOf('name: "focusa_work_loop_checkpoint"'));
-assert.doesNotMatch(contextTool, /requiredWriterLeaseHeaders\(\)/);
+assert.doesNotMatch(contextTool, /requiredWriterLeaseHeaders\(/);
 assert.match(contextTool, /writerLeaseHeaders\(localWriterId, await currentWorkLoopLease\(\)\)/);
 for (const [name, source] of [["turns", turns]]) {
   assert.match(source, /currentWorkLoopWriterLease\(status, writerId\)/, `${name} must use the shared lease projection`);

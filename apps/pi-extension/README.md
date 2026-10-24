@@ -8,6 +8,14 @@ Use [the shared project journey](../../docs/agent/02-focusa-cohesive-project-flo
 
 Project background dispatch must carry the current invocation's verified attachment in a private child environment, not infer it from cwd or inherit a process-global startup identity. Both single and batch tools fail closed before spawning when that context is missing or mismatched; daemon admission and existing receipts remain controlling. See [Spec188 and its dependency graph](../../docs/188-focusa-invocation-bound-background-dispatch-repair-spec.md). Source implementation alone does not establish installed activation or issue closure.
 
+## Project foundation and control observations
+
+Before dependent operations, follow the shared project journey linked above: read the relevant guidance, verify the intended project, and reuse or complete its existing operator-confirmed trajectory and linked action. A candidate goal or invocation metadata is not execution admission; missing setup must be identified rather than described as a global work stop.
+
+Writer status reports `none` only for an explicit null in a supported successful response; failed, missing or unsupported observations are `unverified`. An unverified lease is not evidence of another writer. Control preflight is a route preview only: it sends no control request and does not check ownership, budgets or execution admission. Unsent requests retain that distinction; daemon refusals and fencing remain unchanged. Other existing authorizations are not revoked by these observations.
+
+The opt-in `tests/693-work-loop-live-reporting.test.mjs` exercises the actual native SDK and explicitly selected canonical daemon scope using reads only; it never sends a loop-control request, renews a budget, dispatches an agent worker or measures model compliance. Source verification is not installed activation.
+
 ## North Star diagnostics
 
 A saved trajectory can remain current while the saved action needs reconciliation
