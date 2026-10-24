@@ -28,14 +28,14 @@ pub fn utility_card() -> UtilityCard {
         status: "completed".to_string(),
         purpose: "Compact but decision-useful startup, bootstrap, post-compaction, recovery, and tool-brevity guidance for Focusa-aware agents.".to_string(),
         preferred_layer: "focusa_* tools before raw daemon calls".to_string(),
-        authority_boundary: "Resolve ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey; the verified working-subpath is not a separate cognitive owner. Current instruction, stage, operation/frontier and required grants govern effects; orientation is not admission.".to_string(),
+        authority_boundary: "Retain the current operator outcome, requested activity and permission ceiling. Project bootstrap and a canonical Trajectory are required for governed project work. Advisory/readiness notices do not revoke existing permission or demand a new grant: perform supported in-scope recovery and continue independently authorized work. Ask only for genuinely new scope, required consent/credentials or an unresolved consequential choice. Never report an unsupported 'Focusa blocks all work' claim: name the exact failed operation, evidence of refusal, recovery attempted and independently authorized next work; unresolved context alone is not a refusal. A real rejection still holds that operation and its dependents until recovered; never bypass required checks. Resolve ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId and applicable AttachmentKey; the verified working-subpath is not a separate cognitive owner. Current instruction, stage, operation/frontier and required grants govern effects; orientation is not admission.".to_string(),
         usefulness_bar: vec![
             "A card is useful only if it states status, authority, why, exact next action, evidence refs, and recovery path.".to_string(),
             "Brevity removes filler, not decision-critical context.".to_string(),
             "Every card must let the next agent act without transcript-tail authority.".to_string(),
         ],
         scope_gate: vec![
-            "For an authorized, verified safe unbound repository, inspect Bootstrap/Genesis; focusa init --quickstart is a scoped entry, not automatic permission or mandatory recovery. Verify .focusa-project.json before HLT or Workpoint admission; reuse valid existing projects.".to_string(),
+            "Project bootstrap is required before governed project execution. For an authorized, verified safe unbound repository, inspect Bootstrap/Genesis; focusa init --quickstart is a scoped entry, not automatic permission or mandatory recovery. Verify .focusa-project.json before HLT or Workpoint admission; reuse valid existing projects.".to_string(),
             "Resolve project identity before trusting Workpoint or Trajectory authority.".to_string(),
             "Compare requested, resolved and saved Workstream/lineage/attachment plus working-subpath before durable writes.".to_string(),
             "If scope conflicts, diagnose and verify supported binding repair before checkpointing; do not infer a global migration or repeat an unchanged denial.".to_string(),
@@ -43,7 +43,7 @@ pub fn utility_card() -> UtilityCard {
         bootstrap_card: vec![
             "Read focusa_utility_card or focusa_agent_prompt at session start.".to_string(),
             "Verify scope and resume the current Workpoint; canonical=true is necessary where required but does not itself establish current instruction match or effect admission.".to_string(),
-            "Read Trajectory as north-star context, not mutation authority.".to_string(),
+            "A canonical Trajectory is required project context; read it as north-star context, not mutation authority.".to_string(),
             "Run git status and bd ready from the verified project root.".to_string(),
             "Select only capabilities needed by the current verified action: conditional Bootstrap/Genesis, linked Ladder/spec/tasks, then Prepare/Act/Reconcile/Advance through existing owners.".to_string(),
             "For active development, apply the approved reload/deployment and verify the exact consumer promptly; commit/push only where the project delivery contract requires them, not as universal completion gates.".to_string(),
@@ -77,7 +77,7 @@ pub fn utility_card() -> UtilityCard {
             "One-line summaries must preserve status + authority + next action.".to_string(),
             "Tool descriptions should say when to use the tool and what it returns.".to_string(),
             "Next-tool, recovery_order and proof-command lists are conditional hints, not required chains or permission to run locally.".to_string(),
-            "A failed operation pauses only affected dependents: diagnose input, observation, reporting, binding, authority or missing proof; recover with installed support, verify and resume without inventing admission.".to_string(),
+            "A failed operation pauses only affected dependents. HTTP 409 rejects that Focusa operation; it does not by itself prove missing operator permission or a whole-mission blocker. Diagnose the exact cause, perform already-authorized supported recovery, verify and resume without inventing admission.".to_string(),
             "Prompt snippets should be one actionable sentence.".to_string(),
             "Docs should link canonical contracts instead of duplicating long payloads.".to_string(),
         ],
@@ -127,6 +127,34 @@ mod tests {
     fn utility_guidance_preserves_current_scope_and_project_specific_delivery() {
         let card = utility_card();
         assert!(card.authority_boundary.contains("WorkstreamId"));
+        assert!(
+            card.authority_boundary
+                .contains("Project bootstrap and a canonical Trajectory are required")
+        );
+        assert!(
+            card.authority_boundary
+                .contains("do not revoke existing permission")
+        );
+        assert!(
+            card.authority_boundary
+                .contains("A real rejection still holds that operation")
+        );
+        assert!(
+            card.brevity_rules
+                .iter()
+                .any(|line| line.contains("HTTP 409") && line.contains("does not by itself"))
+        );
+        assert!(
+            card.authority_boundary
+                .contains("Never report an unsupported")
+        );
+        assert!(card.authority_boundary.contains("exact failed operation"));
+        assert!(card.authority_boundary.contains("evidence of refusal"));
+        assert!(card.authority_boundary.contains("recovery attempted"));
+        assert!(
+            card.authority_boundary
+                .contains("independently authorized next work")
+        );
         assert!(card.authority_boundary.contains("AttachmentKey"));
         assert!(
             card.bootstrap_card

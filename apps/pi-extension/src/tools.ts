@@ -31,7 +31,7 @@ export function toolResult(
 }
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { canonicalDaemonNorthStarReadiness } from "./north-star.js";
+import { canonicalDaemonNorthStarReadiness, northStarRecoveryNotice } from "./north-star.js";
 import { Type } from "@sinclair/typebox";
 import { createHash } from "crypto";
 import {
@@ -2388,7 +2388,7 @@ pi.registerTool({
           next_tools: ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
         };
         return {
-          content: [{ type: "text", text: "🧭 NORTH STAR BLOCKED · exact project/continuity scope is unresolved" }],
+          content: [{ type: "text", text: `🧭 NORTH STAR CONTEXT NOT READY · exact project/continuity scope is unresolved\n${northStarRecoveryNotice()}` }],
           details: blocked,
         };
       }
@@ -2430,9 +2430,9 @@ pi.registerTool({
             type: "text",
             text: ready
               ? reconcile
-                ? "🧭 NORTH STAR RECONCILE · daemon verified the Trajectory Ladder; Workpoint frontier needs reconciliation before consequential mutation"
+                ? `🧭 NORTH STAR RECONCILE · daemon verified the Trajectory Ladder; Workpoint frontier needs reconciliation before consequential mutation\n${northStarRecoveryNotice()}`
                 : "🧭 NORTH STAR READY · daemon verified the canonical Trajectory Ladder"
-              : `🧭 NORTH STAR BLOCKED · ${status}`,
+              : `🧭 NORTH STAR CONTEXT NOT READY · ${status}\n${northStarRecoveryNotice()}`,
           },
         ],
         details,

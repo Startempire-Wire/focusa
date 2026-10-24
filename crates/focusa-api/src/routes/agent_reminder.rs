@@ -100,6 +100,7 @@ pub fn detect_pi_agent(headers: &HeaderMap) -> bool {
 /// Build the structured prompt body for a detected Pi agent.
 fn build_prompt() -> Value {
     let utility_card = utility_card();
+    let operator_reminder = utility_card.authority_boundary.clone();
     json!({
         "is_agent": true,
         "client": DETECTED_CLIENT,
@@ -118,7 +119,7 @@ fn build_prompt() -> Value {
             "focusa_metacog_capture",
             "focusa_metacog_retrieve"
         ],
-        "operator_reminder": "Retain the current operator outcome, requested activity and permission ceiling; ask only for an unresolved consequential choice outside existing authority.",
+        "operator_reminder": operator_reminder,
         "active_trajectory_hint": "Read the current scope-bound Trajectory and Workpoint, not a default product goal or an old next-slice; orientation and successful resume are not effect admission.",
         "shell_tool_reminder": {
             "enabled_by_default": true,
@@ -384,6 +385,25 @@ mod tests {
             .unwrap();
         assert!(fams.iter().any(|v| v.as_str() == Some("workpoint")));
         assert!(fams.iter().any(|v| v.as_str() == Some("trajectory")));
+    }
+
+    #[test]
+    fn prompt_reuses_required_setup_and_existing_permission_guidance() {
+        let body = build_prompt();
+        let card = utility_card();
+        assert_eq!(body["operator_reminder"], json!(card.authority_boundary));
+        assert!(
+            body["operator_reminder"]
+                .as_str()
+                .unwrap()
+                .contains("do not revoke existing permission")
+        );
+        assert!(
+            body["operator_reminder"]
+                .as_str()
+                .unwrap()
+                .contains("A real rejection still holds that operation")
+        );
     }
 
     #[test]

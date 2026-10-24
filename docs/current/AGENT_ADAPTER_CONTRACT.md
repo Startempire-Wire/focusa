@@ -8,7 +8,7 @@ Adapters stay thin. Focusa daemon/core remains cognitive authority. Adapters mus
 
 ## One complete journey
 
-Use [the cohesive project-flow guide](../agent/02-focusa-cohesive-project-flow.md) over the owning Specs 143/158/164 and issue #618. New/missing baseline uses conditional Bootstrap; missing/interrupted intent-to-first-action state uses conditional Genesis. Existing projects reuse valid bindings and the linked Ladder/spec/tasks. Prepare → Act → Reconcile → Advance preserves the goal while refining affected work. The capabilities below are not a mandatory sequence, and none grants itself execution authority.
+Use [the cohesive project-flow guide](../agent/02-focusa-cohesive-project-flow.md) over the owning Specs 143/158/164 and issue #618. Valid project bootstrap and a canonical Trajectory are required for governed project work; run Bootstrap/Genesis only when needed and reuse existing valid bindings and the linked Ladder/spec/tasks. Prepare → Act → Reconcile → Advance preserves the goal while refining affected work. The capabilities below are not a mandatory sequence, and none grants itself execution authority. Keep diagnostics, required setup, operation admission and operator permission distinct: follow the guide's [supported recovery](../agent/02-focusa-cohesive-project-flow.md#recovery-without-surrender-or-bypass) and [blocker classification](../agent/02-focusa-cohesive-project-flow.md#what-is-and-is-not-a-blocker), rather than treating an advisory or the HTTP 409 code alone as a renewed-permission request.
 
 ## Minimal adapter contract
 

@@ -10,7 +10,7 @@ The connected journey is:
 
 **Verify binding → Bootstrap if needed → Genesis if needed → linked Ladder/specification/tasks → exact Workpoint/frontier → Prepare → Act → Reconcile → Advance.**
 
-Bootstrap/Genesis are conditional entry/recovery operations, not rituals repeated every turn. Existing valid artifacts and evidence satisfy unchanged stages. Full/Medium/Short are projections of the same records, not separate plans or lifecycle stages.
+A valid project bootstrap and canonical Trajectory are required for governed project work. Bootstrap/Genesis are conditional entry/recovery operations: run them when needed, not as rituals every turn or to reinitialize valid state. "Conditional" does not make the required project context optional. Existing valid artifacts and evidence satisfy unchanged stages. Full/Medium/Short are projections of the same records, not separate plans or lifecycle stages.
 
 ## Entry and transitions
 
@@ -90,8 +90,8 @@ A real consent, safety, ownership, provider or exhausted-budget boundary pauses 
 2. Preserve the parent outcome and confirmed results. Identify only the affected operation and its dependents; keep independently admitted work advancing.
 3. Read the strict installed contract and advertised scoped repair/rehydration route. Inspect exact bindings, records and receipts; never invent operations or silently use a different daemon.
 4. Reconcile possible effects before replay. Use the operation's retry policy; otherwise at most one safe retry before selecting a supported alternative. Deterministic unchanged errors are not transient retries.
-5. Perform authorized recovery, verify its exit evidence, then resume the interrupted action automatically. A successful view does not itself prove the repair.
-6. Ask only for an irreducible choice/consent outside existing authority. If mandatory authority genuinely remains unavailable and no permitted recovery or independent action remains, preserve a scoped checkpoint and state the missing fact and resume condition. Do not manufacture a green gate.
+5. Perform supported recovery already covered by the existing assignment without asking for the same permission again; verify its exit evidence, then resume the interrupted action automatically. A successful view does not itself prove the repair.
+6. Ask only for an irreducible choice/consent outside existing authority. Name the exact additional target or consequential mutation that crosses that boundary; a failed context lookup or two HTTP 409 replies alone do not establish broader scope. If mandatory authority genuinely remains unavailable and no permitted recovery or independent action remains, preserve a scoped checkpoint and state the missing fact and resume condition. Do not manufacture a green gate.
 
 For coordination conflicts, preserve the other owner and inspect the explicit options; no automatic takeover. For missing native integration, restore it through the approved path; shell diagnostics do not replace native authority. Pending work is observed, not dispatched again. Snapshot restore, rollback, credential changes and release actions are conditional consequential operations, never mandatory steps in a skill's capability list.
 
@@ -103,7 +103,9 @@ Generic `--lifecycle-action` help is not proof that a particular command impleme
 
 ## What is and is not a blocker
 
-A true blocker is a required dependency, grant, invariant, budget or unresolved consequential fact for a particular action. It becomes a whole-mission stop only when no supported recovery or independently authorized path remains. A diagnostic label is evidence to classify, not permission to bypass or an automatic global stop.
+A true blocker is a required dependency, grant, invariant, budget or unresolved consequential fact for a particular action. It becomes a whole-mission stop only when no supported recovery or independently authorized path remains. A diagnostic label is evidence to classify, not permission to bypass or an automatic global stop. Advisory/readiness notices do not revoke the existing operator grant. Required bootstrap/Trajectory context must still be established or repaired through its owner; genuine operation/admission refusals remain in force.
+
+A blocker report must name the exact failed operation, evidence of refusal, supported recovery attempted, affected dependents and independently authorized next work. Without that evidence, a blanket “Focusa is blocking me” is an unsupported diagnosis, not a valid reason to stop or demand renewed permission. Report an advisory or unresolved projection as context to resolve, never as proof that all work is refused. Preserve and report genuine operation failures rather than suppressing them.
 
 | Observation | Correct classification / next step |
 |---|---|
@@ -112,6 +114,8 @@ A true blocker is a required dependency, grant, invariant, budget or unresolved 
 | Status, journal or presentation write fails | Preserve evidence through a supported alternative; determine whether required authority still holds independently. |
 | Job accepted but pending, or reply lost after mutation | Observe exact receipts/effects before replay; not completion, and not permission to duplicate dispatch. |
 | Source supports a repair but installed tooling does not advertise it | Establish actual installed support. Use its approved repair/update path; source presence and generic lifecycle flags are not support proof. |
+| Advisory/readiness warning, or required project context needs repair | Retain the assignment and its permission. Establish or repair the required bootstrap/Trajectory through supported in-scope recovery; do not ask for the same grant again or claim a blanket stop. |
+| Saved project state conflicts with its ledger; a repair returns HTTP 409 | That operation was rejected. Preserve history, inspect the exact conflict and supported recovery, and identify only its affected dependents. Name any genuinely out-of-scope mutation before requesting new permission; the response code alone does not prove broader scope. |
 | Scope/attachment/stage/frontier required by the operation is missing | Pause that operation's effects; diagnose the exact gap and reconcile via the owning mechanism. Keep independent admitted work moving. |
 | Required entitlement/consent unavailable, unsafe target or exhausted execution budget | Preserve state; perform permitted diagnosis/recovery only. Do not self-issue rights, consume forbidden assets, take over writers or self-renew the budget. |
 | No Git push yet | A blocker only when the approved delivery mechanism actually requires the remote; otherwise verify the approved local/development consumer. |

@@ -127,7 +127,14 @@ print(json.dumps(out))
     const execute = (name, params) => extension.tools.get(name).definition.execute(name, params, undefined, undefined, ctx);
     const text = result => (result.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n');
     const unbound = await execute('focusa_north_star_gate', { trigger: 'native_sdk_unbound_negative', projection: 'full' });
-    assert(text(unbound).includes('NORTH STAR BLOCKED'));
+    assert(text(unbound).includes('NORTH STAR CONTEXT NOT READY'));
+    assert(text(unbound).includes('bootstrap and a canonical Trajectory'));
+    assert(text(unbound).includes('does not revoke existing permission'));
+    assert(text(unbound).includes('real operation refusals still apply'));
+    assert(text(unbound).includes('Context warnings are not a blanket work stop'));
+    assert(text(unbound).includes('exact failed operation, evidence, recovery attempted'));
+    assert(text(unbound).includes('independently authorized next work'));
+    assert.equal(unbound.details.canonical, false);
     assert(!text(unbound).includes('NORTH STAR READY'));
     // Only the actual registered resume owner restores existing read context.
     const resume = await execute('focusa_workpoint_resume', { project_root: root, continuity_id: continuity, mode: 'compact_prompt' });

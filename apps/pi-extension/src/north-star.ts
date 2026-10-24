@@ -185,8 +185,13 @@ export function buildNorthStarSnapshot(trigger: string): NorthStarSnapshot {
   };
 }
 
+export function northStarRecoveryNotice(): string {
+  return "Governed project work requires bootstrap and a canonical Trajectory. A context warning does not revoke existing permission: use supported in-scope recovery and continue independently authorized work. Ask only for genuinely new scope, required consent/credentials or an unresolved consequential choice; real operation refusals still apply. Context warnings are not a blanket work stop. Report the exact failed operation, evidence, recovery attempted and independently authorized next work.";
+}
+
 export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   const short = (value: string) => value.replace("mismatched", "mismatch").slice(0, 8);
+  const contextLabel = snapshot.status === "stale" ? "CONTEXT STALE" : "CONTEXT NOT READY";
 
   // Ready: one calm line — no chain dump.
   if (snapshot.status === "ready") {
@@ -202,14 +207,14 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   const ladder = `PROJECT ${short(snapshot.project)} → HLT ${short(snapshot.hlt)} · MLG ${short(snapshot.mlg)} → STG ${short(snapshot.stg)} · WP ${short(snapshot.workpoint)} → FRONTIER ${short(snapshot.frontier)}`;
 
   const surfaces: Array<[string, NorthStarSurfaceState, string, string]> = [
-    ["project", snapshot.project, "this session isn't connected to a project yet", "tell me which project to work in and I'll connect it"],
-    ["hlt", snapshot.hlt, "the project's big-picture goal isn't set", "ask me to set the project goal"],
-    ["mlg", snapshot.mlg, "the goal hasn't been broken into a mid-level plan", "ask me to plan the next milestone"],
-    ["stg", snapshot.stg, "there's no concrete short-term step defined", "ask me to define the next step"],
-    ["waypoint", snapshot.waypoint, "no milestone marker exists yet", "ask me to map the next milestone"],
-    ["gap", snapshot.gap, "I haven't checked what separates current from desired state", "ask me to assess progress"],
-    ["workpoint", snapshot.workpoint, "there's no saved checkpoint to resume from", "ask me to plan the next step"],
-    ["frontier", snapshot.frontier, "the live work queue hasn't been synced", "ask me to refresh the work queue"],
+    ["project", snapshot.project, "required project context isn't verified", "verify the named project and complete authorized bootstrap; ask only if project identity is ambiguous"],
+    ["hlt", snapshot.hlt, "the required canonical project trajectory isn't resolved here", "recover the approved project goal through its existing owner; ask only for unresolved intent"],
+    ["mlg", snapshot.mlg, "the approved milestone isn't resolved here", "recover or derive the next milestone within the approved goal"],
+    ["stg", snapshot.stg, "the authorized next step isn't resolved here", "recover or define the next authorized bounded step"],
+    ["waypoint", snapshot.waypoint, "the milestone marker isn't resolved here", "reuse or derive the milestone marker"],
+    ["gap", snapshot.gap, "progress against the desired state hasn't been assessed", "assess progress against the approved goal"],
+    ["workpoint", snapshot.workpoint, "a matching saved checkpoint isn't resolved here", "resume matching saved work or checkpoint the authorized next step"],
+    ["frontier", snapshot.frontier, "the live work queue hasn't been reconciled", "reconcile the existing work queue through its owner"],
   ];
 
   const problems = surfaces.filter(([_, state]) => state !== "current" && state !== "steered");
@@ -221,11 +226,12 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
     // A changed instruction is not evidence that the saved goal aged out.
     const steered = snapshot.workpoint === "steered";
     return [
-      `🧭 NORTH STAR ${snapshot.status.toUpperCase()} · ${short(snapshot.project)} · ${steered ? "current instruction needs reconciliation" : "needs a quick refresh"}`,
+      `🧭 NORTH STAR ${contextLabel} · ${short(snapshot.project)} · ${steered ? "current instruction needs reconciliation" : "needs a quick refresh"}`,
       `WAYPOINT ${short(snapshot.waypoint)} → GAP ${short(snapshot.gap)}`,
       steered
         ? "Resume saved work and verify the current instruction before continuing."
-        : `${staleNames.length ? `Some details (${staleNames.join(", ")}) aged out` : "Details aged out"} — say the word and I'll re-check before we continue.`,
+        : `${staleNames.length ? `Some details (${staleNames.join(", ")}) aged out` : "Details aged out"} — re-check through the supported owner within the existing assignment.`,
+      northStarRecoveryNotice(),
     ];
   }
 
@@ -245,12 +251,13 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   const otherProblems = problems.filter(([key]) => key !== firstKey);
   const staleNote = firstState === "stale" ? " needs a refresh — " : firstState === "mismatched" ? " doesn't match what I'm seeing — " : " — ";
   const lines = [
-    `🧭 NORTH STAR ${snapshot.status.toUpperCase()} · ${firstWhat}${staleNote}${firstAction}.`,
+    `🧭 NORTH STAR ${contextLabel} · ${firstWhat}${staleNote}${firstAction}.`,
     `WAYPOINT ${short(snapshot.waypoint)} → GAP ${short(snapshot.gap)}`,
   ];
   if (otherProblems.length > 0) {
-    lines.push(`${otherProblems.length} more item${otherProblems.length > 1 ? "s" : ""} will unfold as we go — ask for the full picture anytime.`);
+    lines.push(`${otherProblems.length} more context item${otherProblems.length > 1 ? "s" : ""} remain; inspect fuller diagnostics as needed.`);
   }
+  lines.push(northStarRecoveryNotice());
   lines.push(ladder);
   return lines;
 }
