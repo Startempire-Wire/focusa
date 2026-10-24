@@ -185,8 +185,12 @@ export function buildNorthStarSnapshot(trigger: string): NorthStarSnapshot {
   };
 }
 
+export function northStarRecoveryTools(): string[] {
+  return ["focusa_agent_prompt", "focusa_project_identity", "focusa_project_bootstrap", "focusa_trajectory_view", "focusa_project_genesis", "focusa_workpoint_resume"];
+}
+
 export function northStarRecoveryNotice(): string {
-  return "Governed project work requires bootstrap and a canonical Trajectory. A context warning does not revoke existing permission: use supported in-scope recovery and continue independently authorized work. Ask only for genuinely new scope, required consent/credentials or an unresolved consequential choice; real operation refusals still apply. Context warnings are not a blanket work stop. Report the exact failed operation, evidence, recovery attempted and independently authorized next work.";
+  return "Read the relevant guidance and docs/agent/02-focusa-cohesive-project-flow.md before dependent features. Verify the intended project; inspect bootstrap/Genesis status and reuse or complete its existing operator-confirmed goal hierarchy, milestones, assessed gap and linked action/next step. Cwd or a saved goal sentence is not complete setup. Status inspection is not permission to create goals, scopes or grants. Governed project work requires bootstrap and a canonical Trajectory. A context warning does not revoke existing permission: use supported in-scope recovery and continue independently authorized work. Ask only for genuinely new scope, required consent/credentials or an unresolved consequential choice; real operation refusals still apply. Context warnings are not a blanket work stop. Report the exact failed operation, evidence, recovery attempted and independently authorized next work.";
 }
 
 export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {

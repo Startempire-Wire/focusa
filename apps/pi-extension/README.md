@@ -10,7 +10,7 @@ Project background dispatch must carry the current invocation's verified attachm
 
 ## Project foundation and control observations
 
-Before dependent operations, follow the shared project journey linked above: read the relevant guidance, verify the intended project, and reuse or complete its existing operator-confirmed trajectory and linked action. A candidate goal or invocation metadata is not execution admission; missing setup must be identified rather than described as a global work stop.
+Before dependent operations, follow the shared project journey linked above: read the relevant guidance, verify the intended project, and reuse or complete its existing operator-confirmed trajectory and linked action. A candidate goal or invocation metadata is not execution admission; missing setup must be identified rather than described as a global work stop. The North Star diagnostic reads the current verified session scope; `project_root` and `continuity_id` are not selector inputs for that tool.
 
 Writer status reports `none` only for an explicit null in a supported successful response; failed, missing or unsupported observations are `unverified`. An unverified lease is not evidence of another writer. Control preflight is a route preview only: it sends no control request and does not check ownership, budgets or execution admission. Unsent requests retain that distinction; daemon refusals and fencing remain unchanged. Other existing authorizations are not revoked by these observations.
 

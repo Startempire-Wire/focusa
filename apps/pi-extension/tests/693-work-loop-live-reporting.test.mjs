@@ -13,8 +13,6 @@ test('actual native loop reporting distinguishes unverified lease and route prev
   const expected = JSON.parse(readFileSync(process.env.FOCUSA_LIVE_LOOP_EXPECTED_SCOPE, 'utf8'));
   const evidence = process.env.FOCUSA_LIVE_LOOP_EVIDENCE;
   assert.ok(root && continuity && evidence && expected.no_execution_grant === true);
-  process.env.FOCUSA_PROJECT_ROOT = root;
-  process.env.FOCUSA_CONTINUITY_ID = continuity;
   const requests = [];
   let verifiedLoopReads = 0;
   const relay = `import sys,json,urllib.request,urllib.error
@@ -25,9 +23,10 @@ try:
 except urllib.error.HTTPError as e:out={'status':e.code,'headers':dict(e.headers),'body':e.read().decode()}
 print(json.dumps(out))`;
   const allowed = new Map([
-    ['/v1/health', ['GET']], ['/v1/project/identity', ['GET','POST']],
+    ['/v1/health', ['GET']], ['/v1/agent/prompt', ['GET']], ['/v1/project/identity', ['GET','POST']],
     ['/v1/project/verify', ['GET','POST']], ['/v1/workpoint/resume', ['POST']],
     ['/v1/trajectory/view', ['GET']], ['/v1/work-loop/status', ['GET']],
+    ['/v1/project/north-star-gate', ['GET']],
   ]);
   globalThis.fetch = async (url, init = {}) => {
     const u = new URL(String(url));
@@ -62,6 +61,14 @@ print(json.dumps(out))`;
   const runner = new ExtensionRunner([extension], runtime, root, session, undefined);
   const ctx = runner.createContext();
   const execute = (name, params) => extension.tools.get(name).definition.execute(name, params, undefined, undefined, ctx);
+  const unverifiedSetup = await execute('focusa_north_star_gate', { trigger: 'foundation_before_normal_scope_recovery' });
+  assert.equal(unverifiedSetup.details.canonical, false);
+  assert.deepEqual(unverifiedSetup.details.next_tools, ['focusa_agent_prompt', 'focusa_project_identity', 'focusa_project_bootstrap', 'focusa_trajectory_view', 'focusa_project_genesis', 'focusa_workpoint_resume']);
+  assert.match(unverifiedSetup.content[0].text, /inspect bootstrap\/Genesis status/);
+  await execute('focusa_agent_prompt', {});
+  // Normal existing-scope selection; no new project, trajectory, grant or writer.
+  process.env.FOCUSA_PROJECT_ROOT = root;
+  process.env.FOCUSA_CONTINUITY_ID = continuity;
   const resumePacket = await execute('focusa_workpoint_resume', { project_root: root, continuity_id: continuity, mode: 'compact_prompt' });
   assert.equal(resumePacket.details?.canonical, true, 'Normal canonical read recovery must succeed');
   await execute('focusa_project_identity', { cwd: root, project_root: root });
@@ -83,10 +90,31 @@ print(json.dumps(out))`;
   assert.doesNotMatch(resume.content[0].text, /blocked|owned by another writer/);
   assert.ok(verifiedLoopReads >= 2);
   assert.ok(requests.filter(x => x.path.startsWith('/v1/work-loop/')).every(x => x.method === 'GET'));
+  const ready = await execute('focusa_north_star_gate', { trigger: 'foundation_recovery_existing_scope' });
+  assert.equal(ready.details.ok, true);
+  assert.deepEqual(ready.details.next_tools, ['focusa_workpoint_resume'], 'Valid setup must not be restarted');
+  const diagnosticReads = requests.filter(x => x.path === '/v1/project/north-star-gate').length;
+  const invalidSelectors = await execute('focusa_north_star_gate', { project_root: '/root', continuity_id: continuity, trigger: 'unsupported_selector_negative' });
+  assert.equal(invalidSelectors.details.canonical, false);
+  assert.equal(invalidSelectors.details.request_sent, false);
+  assert.equal(invalidSelectors.details.failure_class, 'validation_rejected');
+  assert.deepEqual(invalidSelectors.details.unsupported_parameters, ['project_root', 'continuity_id']);
+  assert.equal(requests.filter(x => x.path === '/v1/project/north-star-gate').length, diagnosticReads);
+  assert.match(invalidSelectors.content[0].text, /not selector inputs/);
+  // Supplemental source-boundary check, not a claim of live incomplete-project or model acceptance.
+  // No new logical scope is created to manufacture the negative case.
+  const { northStarRecoveryTools, northStarRecoveryNotice } = await import(new URL('../src/north-star.ts', import.meta.url));
+  assert.deepEqual(northStarRecoveryTools(), ['focusa_agent_prompt', 'focusa_project_identity', 'focusa_project_bootstrap', 'focusa_trajectory_view', 'focusa_project_genesis', 'focusa_workpoint_resume']);
+  assert.match(northStarRecoveryNotice(), /Read the relevant guidance/);
+  assert.match(northStarRecoveryNotice(), /inspect bootstrap\/Genesis status/);
+  assert.match(northStarRecoveryNotice(), /existing operator-confirmed goal hierarchy/);
   writeFileSync(evidence, JSON.stringify({ status: 'actual_native_loop_reporting_verified',
     scope_verified: true, verified_loop_reads: verifiedLoopReads, requests,
     writer_text: writer.content[0].text, preview_text: preview.content[0].text,
     resume_text: resume.content[0].text, control_request_sent: false,
     budget_renewed: false, model_or_worker_dispatch: false, model_behavior_measured: false,
+    foundation_recovery_source_boundary_checked: true, live_unverified_client_setup_measured: true,
+    live_incomplete_project_measured: false,
+    valid_existing_setup_reused: true, unsupported_selector_request_rejected: true,
     installed: false, issue693_closed: false }, null, 2));
 });

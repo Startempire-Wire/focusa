@@ -31,7 +31,7 @@ export function toolResult(
 }
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { canonicalDaemonNorthStarReadiness, northStarRecoveryNotice } from "./north-star.js";
+import { canonicalDaemonNorthStarReadiness, northStarRecoveryNotice, northStarRecoveryTools } from "./north-star.js";
 import { Type } from "@sinclair/typebox";
 import { createHash } from "crypto";
 import {
@@ -2374,7 +2374,7 @@ pi.registerTool({
     name: "focusa_north_star_gate",
     label: "North Star Gate",
     description:
-      "Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed.",
+      "Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Uses current session scope, not project_root/continuity_id selector parameters. Read-only and fail-closed.",
     promptSnippet:
       "Use before meaningful work and after session/compaction/model/project/provider/writer transitions; stale authority remains advisory.",
     parameters: Type.Object({
@@ -2386,6 +2386,23 @@ pi.registerTool({
       ),
     }),
     async execute(_id: string, params: any) {
+      const unsupportedSelectors = ["project_root", "continuity_id"].filter(
+        (key) => Object.prototype.hasOwnProperty.call(params || {}, key),
+      );
+      if (unsupportedSelectors.length > 0) {
+        return {
+          content: [{ type: "text", text: "North Star request not sent: this diagnostic reads the current verified session scope; project_root and continuity_id are not selector inputs. Read the tool guidance and verify the intended project context before retrying. This does not revoke other existing authorizations." }],
+          details: {
+            ok: false,
+            status: "error",
+            canonical: false,
+            failure_class: "validation_rejected",
+            request_sent: false,
+            unsupported_parameters: unsupportedSelectors,
+            next_tools: ["focusa_agent_prompt", "focusa_project_identity", "focusa_workpoint_resume"],
+          },
+        };
+      }
       const trigger = String(params?.trigger || "manual_gate");
       const projection = String(params?.projection || "short");
       const projectRoot = await resolveFocusaToolProjectRoot();
@@ -2397,7 +2414,7 @@ pi.registerTool({
           canonical: false,
           advisory: false,
           failure_class: "scope_recovery_required",
-          next_tools: ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
+          next_tools: northStarRecoveryTools(),
         };
         return {
           content: [{ type: "text", text: `🧭 NORTH STAR CONTEXT NOT READY · exact project/continuity scope is unresolved\n${northStarRecoveryNotice()}` }],
@@ -2434,7 +2451,7 @@ pi.registerTool({
         authority: body.authority || "unverified",
         next_tools: ready
           ? ["focusa_workpoint_resume"]
-          : ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
+          : northStarRecoveryTools(),
       };
       return {
         content: [
