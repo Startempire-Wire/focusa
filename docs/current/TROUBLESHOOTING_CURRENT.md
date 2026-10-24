@@ -84,6 +84,16 @@ FOCUSA_INSTALL_UI=plain focusa install --no-animation
 
 Installer JSON troubleshooting should always use `focusa install --json ...`; stdout must contain one JSON document and no ANSI. `NO_COLOR=1` requests monochrome animation on a suitable TTY, while `--no-animation` requests plain output.
 
+## Release Git administration permissions
+
+`release_git_admin_not_writable` stops release preparation and local preflight before costly gates; the same read-only check runs again before each release commit. Inspect the reported paths with:
+
+```bash
+python3 scripts/release-git-admin-preflight.py --repo /path/to/checkout
+```
+
+Run as the checkout owner. Linked worktrees keep `COMMIT_EDITMSG` in the Git-resolved administration directory, not necessarily `<checkout>/.git/`. The check never repairs permissions, removes locks, changes staged files, or grants release readiness. Use the approved owner-permission recovery procedure only for verified reported paths; preserve active locks and staged state. A successful check is not a strict preflight, published release, or deployment receipt.
+
 ## Real release proof
 
 Use `docs/current/VALIDATION_AND_RELEASE_PROOF.md` for current validation expectations.

@@ -12,6 +12,9 @@ cd "$ROOT"
 STRICT=0
 if [[ "${1:-}" == "--strict" ]]; then STRICT=1; fi
 
+# Same read-only owner as release preparation; no chmod/chown or lock removal.
+python3 scripts/release-git-admin-preflight.py --repo "$ROOT"
+
 echo "=== local preflight: Windows path lint (NTFS illegal chars) ==="
 # ':' '?' '*' '"' '<' '>' '|' illegal on Windows — would block windows-conpty + aarch64-pc-windows-msvc.
 if git ls-files | grep -q ":"; then echo "FAIL Windows lint: colon ':' in tracked path"; git ls-files | grep ":"; exit 1; fi

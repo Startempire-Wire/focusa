@@ -121,6 +121,9 @@ if ! [[ "$RELEASE_TIMEOUT_SECS" =~ ^[1-9][0-9]{0,4}$ ]] || (( RELEASE_TIMEOUT_SE
   exit 2
 fi
 
+# Read-only ownership/permission checks precede remote operations and costly gates.
+python3 scripts/release-git-admin-preflight.py --repo .
+
 push_candidate_main_with_auto_rebase() {
   local max_attempts=3
   local attempt=1
@@ -584,6 +587,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
     apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
     apps/pi-extension/package.json apps/pi-extension/package-lock.json \
     apps/pi-extension/src/auto-compaction.ts
+  python3 scripts/release-git-admin-preflight.py --repo .
   git commit -m "chore: stamp release surfaces ${VERSION}"
   STAMPED_RELEASE_SURFACES=1
 fi
@@ -601,6 +605,7 @@ if [[ "$PUSH" -eq 1 && "$STAMPED_RELEASE_SURFACES" -eq 1 && \
     --governance-source-commit "$STAMPED_SOURCE_SHA"
   if [[ -n "$(git status --porcelain -- release-proof/audit/)" ]]; then
     git add release-proof/audit/
+    python3 scripts/release-git-admin-preflight.py --repo .
     git commit -m "chore(release): anchor stamped candidate proof"
   fi
 fi
