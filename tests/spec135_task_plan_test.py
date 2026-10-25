@@ -63,8 +63,10 @@ def main():
         and "playwright" not in u.lower()
     )
     assert j("spec135-st2-task-plan-proof.json")["status"] == "passed"
-    assert j("uiai-eval.st2-task-plan.result.json")["status"] == "passed"
-    print("Spec 135 ST2 provider-neutral task plan contracts/UI proof: PASS")
+    summary = j("uiai-eval.st2-task-plan.result.json")
+    assert summary["schema"] == "focusa.ui_eval_compact_summary.v1"
+    assert summary["verification_status"] == "incomplete" and summary["closure_eligible"] is False
+    print("Spec 135 ST2 source contracts: PASS; browser acceptance: INCOMPLETE")
 
 
 if __name__ == "__main__":

@@ -85,8 +85,8 @@
     },
     {
       "level": "info",
-      "category": "responsive",
-      "summary": "viewport=390; scrollWidth=390; actionWidth=324; deepFocused=true",
+      "category": "visual",
+      "summary": "reported_category=responsive; viewport=390; scrollWidth=390; actionWidth=324; deepFocused=true",
       "diagnostics_ref": "redacted-private-reference"
     }
   ],

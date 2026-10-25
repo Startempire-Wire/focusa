@@ -85,9 +85,11 @@ def main():
     assert "playwright" not in ui.lower() and "playwright" not in html.lower()
     proof = load("spec135-ri2-interview-strategy-proof.json")
     result = load("uiai-eval.ri2-interview-strategy.result.json")
-    assert proof["status"] == "passed" and result["status"] == "passed"
-    assert result["diagnostics_ref"] == "uiai-diagnostics:session=zFmKYl6M:seq=7"
-    print("Spec 135 RI2 Interview strategy contracts/UI proof: PASS")
+    assert proof["status"] == "passed"
+    assert result["schema"] == "focusa.ui_eval_compact_summary.v1"
+    assert result["verification_status"] == "incomplete" and result["closure_eligible"] is False
+    assert result["diagnostics_ref"] == "redacted-private-reference"
+    print("Spec 135 RI2 source contracts: PASS; browser acceptance: INCOMPLETE")
 
 
 if __name__ == "__main__":

@@ -56,8 +56,10 @@ def main():
     )
     proof = j("spec135-p1-provider-conformance-proof.json")
     assert proof["status"] == "passed" and len(proof["providers"]) == 7
-    assert j("uiai-eval.p1-provider-conformance.result.json")["status"] == "passed"
-    print("Spec 135 P1 provider conformance contracts/UI proof: PASS")
+    summary = j("uiai-eval.p1-provider-conformance.result.json")
+    assert summary["schema"] == "focusa.ui_eval_compact_summary.v1"
+    assert summary["verification_status"] == "incomplete" and summary["closure_eligible"] is False
+    print("Spec 135 P1 source contracts: PASS; browser acceptance: INCOMPLETE")
 
 
 if __name__ == "__main__":

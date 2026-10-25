@@ -1,7 +1,7 @@
 {
-  "schema": "uiai.focusa_ui_eval_result.v1",
+  "schema": "focusa.ui_eval_compact_summary.v1",
   "scenario_id": "spec135-st2-provider-neutral-task-plan",
-  "status": "passed",
+  "status": "incomplete",
   "browser_session_refs": [],
   "browser_context_refs": [
     "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
@@ -10,35 +10,39 @@
   "step_results": [
     {
       "step_id": "open",
-      "status": "passed",
+      "status": "unverified",
       "result": "Generated Task Plan rendered from a final-approved Spec.",
       "evidence_refs": [
         "redacted-private-reference"
-      ]
+      ],
+      "reported_status": "passed"
     },
     {
       "step_id": "approve",
-      "status": "passed",
+      "status": "unverified",
       "result": "Revision 5 approved with two dependency-linked tasks; materialized remained false while eligibility became true.",
       "evidence_refs": [
         "redacted-private-reference"
-      ]
+      ],
+      "reported_status": "passed"
     },
     {
       "step_id": "mobile",
-      "status": "passed",
+      "status": "unverified",
       "result": "390px body matched viewport; overflow false; action width 302px.",
       "evidence_refs": [
         "redacted-private-reference"
-      ]
+      ],
+      "reported_status": "passed"
     },
     {
       "step_id": "diagnostics",
-      "status": "passed",
+      "status": "unverified",
       "result": "Zero errors, warnings, exceptions, failed requests, 4xx, and 5xx across 15 requests.",
       "evidence_refs": [
         "redacted-private-reference"
-      ]
+      ],
+      "reported_status": "passed"
     }
   ],
   "artifact_refs": [
@@ -49,5 +53,9 @@
   "diagnostics_ref": "redacted-private-reference",
   "limitations": [],
   "completed_at": "2026-07-22T09:42:10Z",
-  "public_evidence_disposition": "private browser/session evidence redacted; no public artifact is claimed"
+  "public_evidence_disposition": "private browser/session evidence redacted; no public artifact is claimed",
+  "source_schema": "uiai.focusa_ui_eval_result.v1",
+  "reported_status": "passed",
+  "verification_status": "incomplete",
+  "closure_eligible": false
 }

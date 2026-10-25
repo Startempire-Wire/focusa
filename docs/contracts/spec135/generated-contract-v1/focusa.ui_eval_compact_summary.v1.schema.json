@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://focusa.dev/contracts/focusa.ui_eval_compact_summary.v1.schema.json",
+  "title": "Historical compact UI evaluation summary — not full browser evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "source_schema", "scenario_id", "status", "reported_status", "verification_status", "closure_eligible", "browser_session_refs", "browser_context_refs", "step_results", "artifact_refs", "diagnostics_ref", "limitations", "completed_at", "public_evidence_disposition"],
+  "properties": {
+    "schema": {"const": "focusa.ui_eval_compact_summary.v1"},
+    "source_schema": {"const": "uiai.focusa_ui_eval_result.v1"},
+    "scenario_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "status": {"const": "incomplete"},
+    "reported_status": {"enum": ["passed", "failed", "blocked"]},
+    "verification_status": {"const": "incomplete"},
+    "closure_eligible": {"const": false},
+    "browser_session_refs": {"type": "array", "maxItems": 0},
+    "browser_context_refs": {"type": "array", "maxItems": 16, "items": {"type": "string", "minLength": 1}},
+    "step_results": {
+      "type": "array", "minItems": 1, "maxItems": 64,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["step_id", "status", "reported_status", "result", "evidence_refs"],
+        "properties": {
+          "step_id": {"type": "string", "minLength": 1},
+          "status": {"const": "unverified"},
+          "reported_status": {"enum": ["passed", "failed", "blocked", "skipped"]},
+          "result": {"type": "string", "minLength": 1, "maxLength": 500},
+          "evidence_refs": {"type": "array", "maxItems": 16, "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "artifact_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "diagnostics_ref": {"type": "string", "minLength": 1},
+    "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "public_evidence_disposition": {"type": "string", "minLength": 1}
+  }
+}
