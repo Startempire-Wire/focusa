@@ -983,6 +983,7 @@ async function promptForTrajectoryIfNeeded(
   getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
   persistState();
   const promptRuntime = getAttachmentRuntime();
+  const promptAttachment = currentAttachmentKey();
   const promptAsk = promptRuntime.currentAsk;
   const promptAskText = String(promptAsk?.text || "");
   const promptContinuity = getContinuityId();
@@ -990,6 +991,7 @@ async function promptForTrajectoryIfNeeded(
   const promptStillCurrent = () =>
     lifecycleIsCurrent() &&
     getAttachmentRuntime() === promptRuntime &&
+    currentAttachmentKey() === promptAttachment &&
     getAttachmentRuntime().currentAsk === promptAsk &&
     String(getAttachmentRuntime().currentAsk?.text || "") === promptAskText &&
     getAttachmentRuntime().sessionFrameKey === promptSession &&
@@ -1001,12 +1003,25 @@ async function promptForTrajectoryIfNeeded(
   );
   if (!choice || !promptStillCurrent()) return;
   let parsed = options.find((option) => option.label === choice)?.draft || null;
+  let restoreContinuity = "";
   if (String(choice).startsWith("D)")) {
-    if (!promptContinuity) {
+    const attachedScope = promptAttachment?.workstream;
+    const attachedContinuity = String(attachedScope?.continuity_id || "").trim();
+    // Missing trajectory data may clear its mutable continuity projection. The
+    // verified current SDK attachment still scopes this recovery read; it does
+    // not grant goal-write authority or permit another actor/project's history.
+    if (
+      promptAttachment?.session_id !== ctx.sessionManager?.getSessionId?.() ||
+      attachedScope?.root_scope.scope_kind !== "project" ||
+      attachedScope.root_scope.root_path !== projectRoot ||
+      !attachedContinuity || attachedContinuity === "extension-bootstrap" ||
+      (promptContinuity && promptContinuity !== attachedContinuity)
+    ) {
       ctx.ui.notify("The previous goal cannot be read before this project's session is verified. Nothing was changed.", "warning");
       return;
     }
-    const query = new URLSearchParams({ project_root: projectRoot, continuity_id: promptContinuity, limit: "50" });
+    restoreContinuity = attachedContinuity;
+    const query = new URLSearchParams({ project_root: projectRoot, continuity_id: restoreContinuity, limit: "50" });
     const history = await focusaFetch(`/hlt/history?${query}`).catch(() => null);
     if (!promptStillCurrent()) return;
     if (history?.status !== "completed" || !Array.isArray(history.entries)) {
@@ -1023,8 +1038,8 @@ async function promptForTrajectoryIfNeeded(
       return;
     }
     if (
-      history.project_root !== projectRoot || history.continuity_id !== promptContinuity ||
-      previous.project_root !== projectRoot || previous.continuity_id !== promptContinuity ||
+      history.project_root !== projectRoot || history.continuity_id !== restoreContinuity ||
+      previous.project_root !== projectRoot || previous.continuity_id !== restoreContinuity ||
       typeof previous.event_id !== "string" || !previous.event_id.trim() ||
       typeof previous.new_hlt !== "string" || !previous.new_hlt.trim() ||
       history.latest_valid_for_continuity !== previous.new_hlt
@@ -1056,16 +1071,17 @@ async function promptForTrajectoryIfNeeded(
     }
   }
   if (!parsed) return;
+  const selectedContinuity = restoreContinuity || ensureContinuityId(projectRoot);
   const body = {
     ...parsed,
     project_root: projectRoot,
-    continuity_id: ensureContinuityId(projectRoot),
+    continuity_id: selectedContinuity,
     session_id: getAttachmentRuntime().sessionFrameKey,
     goal_source: parsed.goal_source || "operator_selected_inference",
     operator_confirmed: true,
     current_ask: promptAskText || String(choice),
     session_identity: await buildFocusaSessionIdentity(projectRoot, "manual", {
-      continuityId: ensureContinuityId(projectRoot),
+      continuityId: selectedContinuity,
       sessionId: getAttachmentRuntime().sessionFrameKey,
     }),
   };

@@ -18,6 +18,8 @@ function history() {
 function harness({ choice = 'D)', response = history(), onSelect, onHistory, onIdentity, onPost } = {}) {
   const runtime = { cfg: { vitalInfoPromptMode: 'prompt' }, vitalInfoPrompted: {},
     sessionFrameKey: 'synthetic-684-session', currentAsk: { text: 'Repair checkout without losing the accepted purpose.' } };
+  const attachment = { session_id: runtime.sessionFrameKey,
+    workstream: { continuity_id: continuity, root_scope: { scope_kind: 'project', root_path: root } } };
   const notices = [], calls = [], refreshes = [];
   const lifecycle = { current: true };
   const options = loadSourceSection('session.ts', 'function trajectoryDraftOptions(', 'function workpointDraftOptions(', {
@@ -26,6 +28,7 @@ function harness({ choice = 'D)', response = history(), onSelect, onHistory, onI
   }, 'trajectoryDraftOptions');
   const prompt = loadSourceSection('session.ts', 'async function promptForTrajectoryIfNeeded(', 'function seedCurrentAskFromPersistedState(', {
     getAttachmentRuntime: () => runtime, getContinuityId: () => continuity,
+    currentAttachmentKey: () => attachment,
     vitalPromptSurfaceEnabled: () => true, isProjectRootAuthoritySafe: (value) => value === root,
     trajectoryClarityForProject: () => ({ status: 'missing', recommended_action: 'define_goal' }),
     persistState: () => {}, focusaPost: () => {}, trajectoryDraftOptions: options,
@@ -42,7 +45,7 @@ function harness({ choice = 'D)', response = history(), onSelect, onHistory, onI
     refreshTrajectoryClarityLifecycle: async () => { refreshes.push('trajectory'); },
     refreshOntologyContextLifecycle: async () => { refreshes.push('ontology'); },
   }, 'promptForTrajectoryIfNeeded');
-  const ctx = { ui: {
+  const ctx = { sessionManager: { getSessionId: () => runtime.sessionFrameKey }, ui: {
     select: async (_title, labels) => { await onSelect?.(runtime); return choice === null ? null : labels.find((label) => label.startsWith(choice)); },
     notify: (message, level) => notices.push({ message, level }),
     editor: () => assert.fail('restore/skip cannot open a generic goal editor'),
