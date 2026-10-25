@@ -2,6 +2,7 @@
 """Spec98 focusa-877z.13: bounded orchestration is separate from cognition authority."""
 
 from pathlib import Path
+import re
 import sys
 import yaml
 
@@ -12,6 +13,7 @@ WORK_LOOP = ROOT / "crates/focusa-api/src/routes/work_loop.rs"
 CAP_EXTRA = ROOT / "crates/focusa-api/src/routes/capabilities_extra.rs"
 TOOLS = ROOT / "apps/pi-extension/src/tools.ts"
 SILENT_DOC = ROOT / "docs/focusa-tools/tools/focusa_silent_sessions.md"
+SILENT_ROUTES = ROOT / "crates/focusa-api/src/routes"
 
 
 def fail(message: str) -> None:
@@ -36,6 +38,82 @@ def fn_body(source: str, name: str) -> str:
             if depth == 0:
                 return source[start : i + 1]
     fail(f"unterminated function {name}")
+
+
+def check_silent_sessions(tools: str, doc: str, owners: dict[str, str]) -> None:
+    """Spec133 owns process/lifecycle authority; the Pi tool is only its client."""
+    anchor = tools.find('name: "focusa_silent_sessions"')
+    start = tools.rfind('pi.registerTool({', 0, anchor)
+    end = tools.find('pi.registerTool({', anchor)
+    if anchor < 0 or start < 0 or end < anchor:
+        fail("Spec133 SilentSession bounded client registration missing")
+    client = tools[start:end]
+    for needle in ["focusaFetchDetailed", "const requireSession", "encodeURIComponent(sessionId)",
+                   "const exactMutation", "approval_id", "idempotency_key", "run_id", "generation",
+                   'kill: "cancel"', 'start: "start"', 'pause: "pause"', 'resume: "resume"',
+                   "never grants authority", "daemon policy decides force", "never executed as a shell command"]:
+        if needle not in client:
+            fail(f"Spec133 SilentSession client missing exact transport/authority contract {needle}")
+    mutation = client[client.index('const exactMutation'):client.index('let result:')]
+    for field in ["run_id", "generation", "approval_id", "idempotency_key"]:
+        if f"!p.{field}" not in mutation or f"{field}: p.{field}" not in mutation:
+            fail(f"Spec133 SilentSession client missing exact mutation guard {field}")
+    calls = list(re.finditer(r"exactMutation\(\)", client))
+    if len(calls) != 2 or any(call.start() < client.index('action === "send"') for call in calls):
+        fail("Spec133 SilentSession reads/previews must not require mutation approval")
+    for retired in ["force !== true", "approved !== true", "tmux_", "execSync(", "spawn("]:
+        if retired in client:
+            fail(f"Spec133 SilentSession client resurrected local process/approval authority {retired}")
+    for action in ["list", "capabilities", "preflight", "health", "tail", "watch", "receipt", "config"]:
+        if f'"{action}"' not in client:
+            fail(f"Spec133 SilentSession observation/recovery client action missing {action}")
+
+    for name, function, needles in [
+        ("silent_sessions_create.rs", "create", ["durable_request_principal", "resolve_silent_session_config",
+            "authorize_config(", "idempotency_key", "require_silent_session_north_star_admission("]),
+        ("silent_sessions_lifecycle.rs", "start", ["durable_request_principal", "guard_exact_target(",
+            "load_durable_approval(", "authorize_start(", "reduce_lifecycle(",
+            "require_silent_session_north_star_admission(", "append_reducer_event_and_project("]),
+        ("silent_sessions_lifecycle.rs", "authorize_start", ["request_principal.principal",
+            "controller || administrator", "project_root:", "continuity_id:", "owner_os_user:",
+            "config_hash:", "model_binding:", "let workspace = config", "workspace,",
+            "authorize_silent_session_action(", "approval_durably_verified: true", "legacy_approved: false"]),
+        ("silent_sessions_control.rs", "control", ["durable_request_principal", "guard_exact_target(",
+            "session.current_run_generation != body.generation", "load_durable_approval(",
+            "authorize_mutation(", "ensure_silent_session_temporal_guard(", "reduce_lifecycle(",
+            "idempotency_key_reused", "append_reducer_event_and_project("]),
+        ("silent_sessions_authorize.rs", "authorize_mutation", ["request_principal.principal",
+            "controller || administrator", "project_root:", "continuity_id:", "owner_os_user:",
+            "config_hash:", "model_binding:", "workspace:", "authorize_silent_session_action("]),
+    ]:
+        body = fn_body(owners[name], function)
+        for needle in needles:
+            if needle not in body:
+                fail(f"Spec133 SilentSession daemon owner {name}:{function} missing {needle}")
+    control = fn_body(owners["silent_sessions_control.rs"], "control")
+    if control.count("require_silent_session_north_star_admission(") != 1 or not re.search(
+        r"if matches!\(kind, ControlKind::Resume\)\s*\{\s*if let Err\(response\) = require_silent_session_north_star_admission\(", control
+    ):
+        fail("Spec133 SilentSession recovery controls must remain available without new-work admission")
+    for name, function in [("silent_sessions.rs", "list"), ("silent_sessions.rs", "status"),
+                           ("silent_sessions_create.rs", "preflight")]:
+        if "require_silent_session_north_star_admission(" in fn_body(owners[name], function):
+            fail(f"Spec133 SilentSession read/preflight was incorrectly admission-gated {function}")
+    routes = owners["silent_sessions.rs"]
+    for handler in ["get(list)", "get(status)", "post(super::silent_sessions_create::preflight)",
+                    "post(super::silent_sessions_lifecycle::start)", "post(super::silent_sessions_control::resume)",
+                    "post(super::silent_sessions_control::pause)", "post(super::silent_sessions_control::interrupt)",
+                    "post(super::silent_sessions_control::cancel)"]:
+        if handler not in routes:
+            fail(f"Spec133 SilentSession registered daemon route missing {handler}")
+    for needle in ["Daemon-native Spec133", "exact daemon North Star admission",
+                   "pause, interrupt, cancel, and observation remain available for recovery",
+                   "process_control_failed", "receipt-backed recovery", "`session_id`", "`run_id`",
+                   "`generation`", "`approval_id`", "`idempotency_key`", "never grants authority",
+                   "never executed as a shell command", "daemon policy decides force",
+                   "Source capability metadata is not installed support or action admission"]:
+        if needle not in doc:
+            fail(f"Spec133 SilentSession doc missing canonical authority/recovery contract {needle}")
 
 
 def main() -> None:
@@ -132,35 +210,11 @@ def main() -> None:
         if "state.focusa.write().await" in body:
             fail(f"{name} must not mutate Focus State authority")
 
-    tools = TOOLS.read_text()
-    doc = SILENT_DOC.read_text()
-    for needle in [
-        "focusa_silent_sessions",
-        "approved !== true",
-        "force !== true",
-        "tmux_new_session",
-        "tmux_send_interrupt",
-        "tmux_send_keys_literal",
-        "tmux_kill_session",
-    ]:
-        if needle not in tools:
-            fail(f"SilentSession tool missing guard/process marker {needle}")
-    for needle in [
-        "attach_to_workpoint: false",
-        "SilentSession start",
-        "focusa_resource_mode",
-    ]:
-        if needle not in tools:
-            fail(f"SilentSession tool missing proof/resource posture {needle}")
-    for needle in [
-        "requires `approved=true`",
-        "requires `approved=true` and `force=true`",
-        "tmux",
-        "as-user <owner>",
-        "process-control actions",
-    ]:
-        if needle not in doc:
-            fail(f"SilentSession doc missing guardrail {needle}")
+    check_silent_sessions(TOOLS.read_text(), SILENT_DOC.read_text(), {
+        name: (SILENT_ROUTES / name).read_text()
+        for name in ["silent_sessions.rs", "silent_sessions_create.rs", "silent_sessions_lifecycle.rs",
+                     "silent_sessions_control.rs", "silent_sessions_authorize.rs"]
+    })
 
     print(
         "✓ PASS: work-loop, autonomy, and SilentSession are bounded orchestration, not Focus State authority"

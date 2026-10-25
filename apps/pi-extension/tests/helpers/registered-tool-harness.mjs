@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import { createRequire } from 'node:module';
+import { eraseTypeScriptSection } from './source-section-harness.mjs';
 import { Type } from '@sinclair/typebox';
 
 const source = readFileSync(new URL('../../src/tools.ts', import.meta.url), 'utf8');
 export function loadPureTypeScript(url) {
+  const ts = createRequire(import.meta.url)('typescript');
   const code = ts.transpileModule(readFileSync(url, 'utf8'), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
@@ -24,11 +26,9 @@ export function loadRegisteredTool(name, dependencies, helperSections = [], sour
     assert.ok(i >= 0 && j > i, `Missing helper section: ${first}`);
     return source.slice(i, j);
   }).join('\n');
-  const code = ts.transpileModule(helpers + source.slice(start, end), {
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
-  }).outputText;
+  const code = eraseTypeScriptSection(helpers + source.slice(start, end));
   let tool;
-  const deps = { ...dependencies, Type, pi: { registerTool(value) { tool = value; } } };
+  const deps = { exports: {}, ...dependencies, Type, pi: { registerTool(value) { tool = value; } } };
   new Function(...Object.keys(deps), code)(...Object.values(deps));
   assert.equal(tool.name, name);
   return tool;
