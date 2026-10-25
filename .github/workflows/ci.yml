@@ -180,8 +180,10 @@ jobs:
           node scripts/audit-distribution-parity.mjs --json > /tmp/distribution-manifest-audit.json || true
           python3 -c "import json; d=json.load(open('/tmp/distribution-manifest-audit.json')); print('installed_parity_ok=%s drift=%d' % (d['parity_ok'], len(d['drift']))); [print('  drift', r['surface'], r['source_value'], '->', r['observed_value']) for r in d['drift']]"
 
-      - name: Release readiness evaluation (#265, informational)
-        run: node scripts/release-readiness-evaluation.mjs || true
+      - name: Release diagnostics (#358, advisory only; never release acceptance)
+        run: |
+          node --test tests/358-release-diagnostics-advisory.test.mjs
+          node scripts/release-diagnostics-advisory.mjs --advisory --json --project-root "$GITHUB_WORKSPACE"
 
 
   spec-gates:
