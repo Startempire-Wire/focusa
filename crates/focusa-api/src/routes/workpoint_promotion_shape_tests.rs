@@ -1,4 +1,5 @@
-// In-memory publication-boundary cases only; no live scope or malformed record is created.
+// Offline publication-boundary cases; transaction checks reuse the temporary SQLite fixture.
+// No live scope or malformed live record is created.
 fn promotion_shape_record() -> WorkpointRecord {
     WorkpointRecord {
         canonical: true,
@@ -146,4 +147,261 @@ fn historical_reducer_retains_legacy_incomplete_record_compatibility() {
     assert!(validate_live_workpoint_promotion(&promotion, &current).is_err());
     let restored = reducer::reduce_with_meta(current, promotion, None, None, false).unwrap();
     assert!(restored.new_state.workpoint.active_workpoint_id.is_some());
+}
+
+fn promotion_shape_batch(record: WorkpointRecord) -> Vec<FocusaEvent> {
+    let (promotion, _) = promotion_shape_state(record.clone());
+    vec![
+        FocusaEvent::WorkpointCheckpointProposed { workpoint: record },
+        promotion,
+    ]
+}
+
+async fn seed_complete_promotion_shape_record(state: &Arc<AppState>) -> Uuid {
+    let mut prior = promotion_shape_record();
+    prior.workpoint_id = Uuid::now_v7();
+    let prior_id = prior.workpoint_id;
+    let saved = materialize_workpoint_events(
+        ScopeContext::default(),
+        state,
+        promotion_shape_batch(prior),
+        "promotion-shape-offline-seed",
+    )
+    .await
+    .unwrap();
+    assert_eq!(saved.workpoint.active_workpoint_id, Some(prior_id));
+    prior_id
+}
+
+#[tokio::test]
+async fn incomplete_promotion_batch_preserves_prior_memory_durability_and_notifications() {
+    // Only the existing offline fixture is used. No daemon, live project or
+    // customer record participates in these transaction-boundary cases.
+    for case in [
+        "absent_action",
+        "blank_action",
+        "absent_stage",
+        "unknown_stage",
+        "absent_next_slice",
+        "blank_next_slice",
+    ] {
+        let (state, persistence) = crate::routes::turn::tests::setup_state(None).await;
+        let prior_id = seed_complete_promotion_shape_record(&state).await;
+        let before = serde_json::to_value(state.focusa.read().await.clone()).unwrap();
+        let saved_before =
+            serde_json::to_value(persistence.load_state().unwrap().unwrap()).unwrap();
+        let events_before = persistence.event_count().unwrap();
+        let epoch_before = state
+            .external_mutation_epoch
+            .load(std::sync::atomic::Ordering::SeqCst);
+        let fence_before = state
+            .next_writer_fencing_token
+            .load(std::sync::atomic::Ordering::SeqCst);
+        let mut notifications = state.events_tx.subscribe();
+        let mut candidate = promotion_shape_record();
+        candidate.workpoint_id = Uuid::now_v7();
+        let candidate_id = candidate.workpoint_id;
+        let expected_field = match case {
+            "absent_action" => {
+                candidate.action_intent = None;
+                "action_intent.action_type"
+            }
+            "blank_action" => {
+                candidate.action_intent.as_mut().unwrap().action_type = " \t\n".into();
+                "action_intent.action_type"
+            }
+            "absent_stage" => {
+                candidate.action_intent = Some(
+                    serde_json::from_value(json!({
+                        "action_type": "inspect_existing_artifact"
+                    }))
+                    .unwrap(),
+                );
+                "action_intent.lifecycle_stage"
+            }
+            "unknown_stage" => {
+                candidate.action_intent.as_mut().unwrap().lifecycle_stage =
+                    WorkpointLifecycleStage::Unknown;
+                "action_intent.lifecycle_stage"
+            }
+            "absent_next_slice" => {
+                candidate.next_slice = None;
+                "next_slice"
+            }
+            "blank_next_slice" => {
+                candidate.next_slice = Some(" \n\t".into());
+                "next_slice"
+            }
+            _ => unreachable!(),
+        };
+        let (status, Json(body)) = materialize_workpoint_events(
+            ScopeContext::default(),
+            &state,
+            promotion_shape_batch(candidate),
+            "promotion-shape-offline-rejected",
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{case}: {body}");
+        assert_eq!(body["code"], "WORKPOINT_PROMOTION_INCOMPLETE", "{case}");
+        assert_eq!(body["failure_class"], "validation_rejected", "{case}");
+        assert_eq!(body["retry_posture"], "do_not_retry_unchanged", "{case}");
+        assert!(
+            body["missing_fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|field| field == expected_field),
+            "{case}: {body}"
+        );
+        let memory_after = state.focusa.read().await.clone();
+        let saved_after = persistence.load_state().unwrap().unwrap();
+        assert_eq!(
+            serde_json::to_value(&memory_after).unwrap(),
+            before,
+            "{case}: memory changed"
+        );
+        assert_eq!(
+            serde_json::to_value(&saved_after).unwrap(),
+            saved_before,
+            "{case}: saved checkpoint changed"
+        );
+        assert_eq!(
+            memory_after.workpoint.active_workpoint_id,
+            Some(prior_id),
+            "{case}"
+        );
+        assert_eq!(
+            saved_after.workpoint.active_workpoint_id,
+            Some(prior_id),
+            "{case}"
+        );
+        assert!(
+            !saved_after
+                .workpoint
+                .records
+                .iter()
+                .any(|record| record.workpoint_id == candidate_id),
+            "{case}: rejected proposal persisted"
+        );
+        assert_eq!(
+            persistence.event_count().unwrap(),
+            events_before,
+            "{case}: events changed"
+        );
+        assert_eq!(
+            state
+                .external_mutation_epoch
+                .load(std::sync::atomic::Ordering::SeqCst),
+            epoch_before,
+            "{case}: mutation epoch changed"
+        );
+        assert_eq!(
+            state
+                .next_writer_fencing_token
+                .load(std::sync::atomic::Ordering::SeqCst),
+            fence_before,
+            "{case}: fencing counter changed"
+        );
+        assert!(
+            state.writer_claims.read().await.is_empty(),
+            "{case}: writer claim created"
+        );
+        assert!(
+            matches!(
+                notifications.try_recv(),
+                Err(tokio::sync::broadcast::error::TryRecvError::Empty)
+            ),
+            "{case}: notification published or receiver failed"
+        );
+        assert!(
+            state.write_serial_lock.try_lock().is_ok(),
+            "{case}: serial lock retained"
+        );
+    }
+}
+
+#[test]
+fn blank_lifecycle_stage_is_rejected_by_the_existing_request_decoder() {
+    let request = serde_json::from_value::<WorkpointCheckpointRequest>(json!({
+        "mission": "Inspect the existing artifact",
+        "next_slice": "Capture its verification result",
+        "action_intent": {"action_type": "inspect_existing_artifact", "lifecycle_stage": ""}
+    }));
+    assert!(
+        request.is_err(),
+        "blank enum stage must not reach publication"
+    );
+}
+
+#[tokio::test]
+async fn complete_promotion_batch_persists_and_broadcasts_the_same_successor() {
+    let (state, persistence) = crate::routes::turn::tests::setup_state(None).await;
+    let prior_id = seed_complete_promotion_shape_record(&state).await;
+    let events_before = persistence.event_count().unwrap();
+    let epoch_before = state
+        .external_mutation_epoch
+        .load(std::sync::atomic::Ordering::SeqCst);
+    let mut notifications = state.events_tx.subscribe();
+    let mut candidate = promotion_shape_record();
+    candidate.workpoint_id = Uuid::now_v7();
+    let candidate_id = candidate.workpoint_id;
+    let returned = materialize_workpoint_events(
+        ScopeContext::default(),
+        &state,
+        promotion_shape_batch(candidate),
+        "promotion-shape-offline-complete",
+    )
+    .await
+    .unwrap();
+    let memory = state.focusa.read().await.clone();
+    let durable = persistence.load_state().unwrap().unwrap();
+    assert_eq!(
+        serde_json::to_value(&returned).unwrap(),
+        serde_json::to_value(&memory).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_value(&durable).unwrap(),
+        serde_json::to_value(&memory).unwrap()
+    );
+    assert_eq!(durable.workpoint.active_workpoint_id, Some(candidate_id));
+    assert_eq!(
+        durable
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == candidate_id)
+            .unwrap()
+            .status,
+        WorkpointStatus::Active
+    );
+    assert_eq!(
+        durable
+            .workpoint
+            .records
+            .iter()
+            .find(|record| record.workpoint_id == prior_id)
+            .unwrap()
+            .status,
+        WorkpointStatus::Superseded
+    );
+    let events_after = persistence.event_count().unwrap();
+    assert!(events_after >= events_before + 2);
+    assert_eq!(
+        state
+            .external_mutation_epoch
+            .load(std::sync::atomic::Ordering::SeqCst),
+        epoch_before + 1
+    );
+    let mut published = Vec::new();
+    loop {
+        match notifications.try_recv() {
+            Ok(message) => published.push(serde_json::from_str::<EventLogEntry>(&message).unwrap()),
+            Err(tokio::sync::broadcast::error::TryRecvError::Empty) => break,
+            Err(error) => panic!("publication notification read failed: {error}"),
+        }
+    }
+    assert_eq!(published.len(), (events_after - events_before) as usize);
+    assert!(published.iter().any(|entry| matches!(&entry.event, FocusaEvent::WorkpointCheckpointPromoted { workpoint_id, .. } if *workpoint_id == candidate_id)));
+    assert!(state.write_serial_lock.try_lock().is_ok());
 }
