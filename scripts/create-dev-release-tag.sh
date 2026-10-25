@@ -147,21 +147,46 @@ push_candidate_main_with_auto_rebase() {
   return 1
 }
 
+read_source_workflow_runs() {
+  local workflow="$1" sha="$2" runs
+  command -v gh >/dev/null 2>&1 || {
+    echo "source_gate_unavailable: gh CLI is required to verify ${workflow} for ${sha}" >&2
+    return 1
+  }
+  if ! runs="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json status,conclusion,url,headSha)"; then
+    echo "source_gate_unavailable: workflow=${workflow} sha=${sha} query failed; reconcile before retrying" >&2
+    return 1
+  fi
+  if ! jq -e 'type == "array" and all(.[]; type == "object" and (.headSha | type == "string") and (.status | type == "string"))' <<<"$runs" >/dev/null; then
+    echo "source_gate_unavailable: workflow=${workflow} sha=${sha} invalid query projection" >&2
+    return 1
+  fi
+  printf '%s\n' "$runs"
+}
+
 ensure_source_workflow() {
-  local workflow="$1"
-  local sha="$2"
-  local existing remote_main
-  existing="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json headSha 2>/dev/null || echo '[]')"
+  local workflow="$1" sha="$2" existing remote_main
+  existing="$(read_source_workflow_runs "$workflow" "$sha")" || return 1
   if jq -e --arg sha "$sha" 'any(.headSha == $sha)' <<<"$existing" >/dev/null; then
     return 0
   fi
-  remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+  if [[ "$(jq 'length' <<<"$existing")" != "0" ]]; then
+    echo "source_gate_unavailable: workflow=${workflow} sha=${sha} query returned foreign candidates" >&2
+    return 1
+  fi
+  if ! remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"; then
+    echo "source_gate_unavailable: workflow=${workflow} sha=${sha} remote-main query failed" >&2
+    return 1
+  fi
   if [[ "$remote_main" != "$sha" ]]; then
     echo "source_gate_dispatch_blocked: workflow=${workflow} candidate=${sha} remote_main=${remote_main}" >&2
     return 1
   fi
   echo "source_gate_dispatch: workflow=${workflow} exact_main=${sha}"
-  gh workflow run "$workflow" --ref main
+  if ! gh workflow run "$workflow" --ref main; then
+    echo "source_gate_dispatch_failed: workflow=${workflow} sha=${sha}; reconcile existing runs before retrying" >&2
+    return 1
+  fi
 }
 
 wait_for_source_workflow() {
@@ -177,14 +202,7 @@ wait_for_source_workflow() {
   }
   while (( SECONDS < deadline )); do
     local runs
-    if ! runs="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json status,conclusion,url,headSha)"; then
-      echo "source_gate_unavailable: workflow=${workflow} sha=${sha} query failed; reconcile before retrying" >&2
-      return 1
-    fi
-    if ! jq -e 'type == "array" and all(.[]; type == "object" and (.headSha | type == "string") and (.status | type == "string"))' <<<"$runs" >/dev/null; then
-      echo "source_gate_unavailable: workflow=${workflow} sha=${sha} invalid query projection" >&2
-      return 1
-    fi
+    runs="$(read_source_workflow_runs "$workflow" "$sha")" || return 1
     # Duplicate/superseded runs on the same SHA are possible (double dispatch,
     # cache races). The gate passes when ANY completed run succeeded and fails
     # only when every completed run failed.
@@ -632,6 +650,7 @@ if [[ "$PUSH" -eq 1 ]]; then
   # releases remain unnoticeable. Release workflow re-checks candidate gate.
   if [[ "${RELEASE_CHANNEL:-dev}" == "stable" ]]; then
     echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
+    ensure_source_workflow "CI" "$HEAD_SHA"
     wait_for_source_workflow "CI" "$HEAD_SHA"
   else
     echo "Advisory: skipping blocking CI wait for dev channel (async CI will gate Release): ${HEAD_SHA}" >&2
