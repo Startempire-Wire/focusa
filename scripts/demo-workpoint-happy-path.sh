@@ -61,6 +61,7 @@ focusa_cmd workpoint checkpoint \
   --continuity-id "$CONTINUITY_ID" \
   --reason session-start \
   --action-type operator_preview_demo \
+  --lifecycle-stage prepare \
   --target-ref scripts/demo-workpoint-happy-path.sh \
   --json > "$OUT_DIR/04-workpoint-checkpoint.json"
 

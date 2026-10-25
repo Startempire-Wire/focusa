@@ -6,6 +6,9 @@ use clap::Subcommand;
 use focusa_core::working_subpath::resolve_git_working_context;
 use serde_json::{Value, json};
 
+#[path = "workpoint_checkpoint_request.rs"]
+mod checkpoint_request;
+
 #[derive(Subcommand)]
 pub enum WorkpointCmd {
     /// Checkpoint the current typed workpoint before compaction/resume/overflow recovery.
@@ -37,6 +40,15 @@ pub enum WorkpointCmd {
         /// Action type, e.g. checkpoint_workpoint, patch_component_binding.
         #[arg(long)]
         action_type: Option<String>,
+        /// Known lifecycle stage; required for canonical promotion.
+        #[arg(long)]
+        lifecycle_stage: Option<String>,
+        /// Why the approved lifecycle stage changed.
+        #[arg(long)]
+        lifecycle_transition_reason: Option<String>,
+        /// Stable stage-transition evidence reference; repeat for multiple references.
+        #[arg(long = "lifecycle-transition-evidence-ref")]
+        lifecycle_transition_evidence_ref: Vec<String>,
         /// Action target ref.
         #[arg(long)]
         target_ref: Option<String>,
@@ -337,6 +349,9 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             continuity_id,
             reason,
             action_type,
+            lifecycle_stage,
+            lifecycle_transition_reason,
+            lifecycle_transition_evidence_ref,
             target_ref,
             no_promote,
             degraded,
@@ -348,7 +363,7 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             )?;
             let (project_root, working_subpath_id) =
                 resolve_workpoint_scope(project_root, working_subpath_id);
-            let mut body = json!({
+            let body = json!({
                 "mission": mission,
                 "next_slice": next_action,
                 "work_item_id": work_item,
@@ -361,19 +376,14 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
                 "promote": !no_promote,
                 "idempotency_key": idempotency_key,
             });
-            if action_type.is_some() || target_ref.is_some() {
-                let target_ref_for_refs = target_ref.clone();
-                body["action_intent"] = json!({
-                    "action_type": action_type.unwrap_or_else(|| "checkpoint_workpoint".to_string()),
-                    "target_ref": target_ref,
-                    "verification_hooks": [],
-                    "status": "ready",
-                });
-                if let Some(target) = target_ref_for_refs.filter(|target| !target.trim().is_empty())
-                {
-                    body["active_object_refs"] = json!([target]);
-                }
-            }
+            let body = checkpoint_request::populate_checkpoint_request(
+                body,
+                action_type,
+                target_ref,
+                lifecycle_stage,
+                lifecycle_transition_reason,
+                lifecycle_transition_evidence_ref,
+            )?;
             (
                 "checkpoint",
                 api.post("/v1/workpoint/checkpoint", &body).await?,

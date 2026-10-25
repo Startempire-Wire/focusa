@@ -70,7 +70,7 @@ run_json project_identity '.status == "completed" and .project_identity.status =
 run_json trajectory_view '.project_identity != null and (.trajectory != null or .status != null)' "$CLI" trajectory view --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --mode summary --json
 run_json resource_status '.mode != null or .resource_mode != null' "$CLI" resource status --json
 run_json_retry focus_update '.status == "accepted"' "$CLI" focus update --turn-id "$KEY-focus" --note "CLI parity smoke note." --json
-run_json workpoint_checkpoint '(.status == "accepted" or .status == "pending") and .canonical == true' "$CLI" workpoint checkpoint --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --mission "Focusa CLI smoke" --next-action "Complete CLI parity smoke" --action-type smoke_verify --target-ref FocusaCliSmoke --idempotency-key "$KEY-wp" --json
+run_json workpoint_checkpoint '(.status == "accepted" or .status == "pending") and .canonical == true' "$CLI" workpoint checkpoint --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --mission "Focusa CLI smoke" --next-action "Complete CLI parity smoke" --action-type smoke_verify --lifecycle-stage verify_outcome --target-ref FocusaCliSmoke --idempotency-key "$KEY-wp" --json
 if wait_current; then pass workpoint_current_visible; else fail workpoint_current_visible "$(cat "$TMP_DIR/workpoint_current_wait.json" 2>/dev/null)"; fi
 run_json workpoint_resume '.status == "completed" and .canonical == true' "$CLI" workpoint resume --project-root "$PROJECT_ROOT" --continuity-id "$CONTINUITY_ID" --json
 run_json metacog_recent_reflections '.reflections != null' "$CLI" metacognition recent-reflections --limit 1 --json
