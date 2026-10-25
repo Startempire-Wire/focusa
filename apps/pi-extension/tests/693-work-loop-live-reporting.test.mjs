@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs, { readFileSync, writeFileSync } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
+import { userInfo } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
@@ -232,6 +233,50 @@ print(json.dumps(out))`;
     checkpointProbeHook = null;
   }
   assert.equal(checkpointWrites.length, 3);
+  // Simulate only observed stat metadata after interception. The actual OS user,
+  // request identity, directory ownership and permissions are never changed.
+  const observer = userInfo();
+  const observedUid = observer.uid === 0 ? 1 : 0;
+  const homeAccount = root.match(/^\/home\/([^/]+)(?:\/|$)/)?.[1] || null;
+  let ownerProbeArmed = false, ownerProbeObserved = false;
+  checkpointProbeHook = () => { ownerProbeArmed = true; };
+  fs.statSync = (path, ...args) => {
+    const metadata = originalStat(path, ...args);
+    if (ownerProbeArmed && String(path) === root) {
+      ownerProbeArmed = false;
+      ownerProbeObserved = true;
+      return Object.assign(Object.create(Object.getPrototypeOf(metadata)), metadata, { uid: observedUid });
+    }
+    return metadata;
+  };
+  syncBuiltinESMExports();
+  try {
+    const result = await execute('focusa_workpoint_checkpoint', { ...checkpointBase, canonical: false });
+    const posture = result.details.project_root_permission_posture;
+    writeFileSync(evidence + '.owner-observation.json', JSON.stringify({
+      owner_probe_observed: ownerProbeObserved,
+      observed_uid_preserved: posture.root_owner?.uid === observedUid,
+      owner_label_matches_observed_uid: posture.root_owner?.user === `uid:${observedUid}`,
+      owner_label_inferred_from_home_account: homeAccount !== null && posture.root_owner?.user === homeAccount,
+      caller_identity_unchanged: userInfo().uid === observer.uid && userInfo().username === observer.username,
+      checkpoint_network_writes: 0,
+    }, null, 2));
+    assert.equal(ownerProbeObserved, true);
+    assert.equal(posture.root_owner.uid, observedUid);
+    assert.equal(posture.root_owner.user, `uid:${observedUid}`, 'A path account is not proof of the observed UID owner name');
+    assert.equal(posture.root_owner.user_name_verified, false);
+    assert.equal(posture.home_account, homeAccount);
+    assert.equal(posture.root_owned_by_current_user, false);
+    assert.equal(posture.posture, observer.username === homeAccount ? 'home_ownership_mismatch' : 'cross_user_home_use_as_owner');
+    assert.deepEqual(result.details.response, baselineTransportRefusal.details.response);
+    assert.equal(userInfo().uid, observer.uid);
+    assert.equal(userInfo().username, observer.username);
+  } finally {
+    fs.statSync = originalStat;
+    syncBuiltinESMExports();
+    checkpointProbeHook = null;
+  }
+  assert.equal(checkpointWrites.length, 4);
   const diagnosticReads = requests.filter(x => x.path === '/v1/project/north-star-gate').length;
   const invalidSelectors = await execute('focusa_north_star_gate', { project_root: '/root', continuity_id: continuity, trigger: 'unsupported_selector_negative' });
   assert.equal(invalidSelectors.details.canonical, false);
@@ -261,5 +306,6 @@ print(json.dumps(out))`;
     checkpoint_writes_intercepted: checkpointWrites.length, checkpoint_network_writes: 0,
     canonical_checkpoint_mapping_checked: true, noncanonical_stage_omission_compatible: true,
     permission_probe_failure_preserved: probeFailureObserved,
+    owner_observation_label_verified: ownerProbeObserved, caller_identity_unchanged: true,
     installed: false, issue693_closed: false }, null, 2));
 });

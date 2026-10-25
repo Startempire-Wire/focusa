@@ -180,19 +180,29 @@ function projectRootPermissionPosture(projectRoot: string): Record<string, unkno
     const current = userInfo();
     const metadata = statSync(projectRoot);
     const homeOwner = projectRoot.match(/^\/home\/([^/]+)(?:\/|$)/)?.[1] || null;
-    const owner = metadata.uid === current.uid ? current.username : homeOwner || `uid:${metadata.uid}`;
-    const crossUserHome = homeOwner != null && owner !== current.username;
+    const ownedByCurrentUser = metadata.uid === current.uid;
+    // A home-directory account name is not evidence of a filesystem UID's name.
+    const owner = ownedByCurrentUser ? current.username : `uid:${metadata.uid}`;
+    const crossUserHome = homeOwner != null && homeOwner !== current.username;
+    const homeOwnershipMismatch = homeOwner === current.username && !ownedByCurrentUser;
     return {
       project_root: projectRoot,
       permission_observation_verified: true,
-      root_owner: { user: owner, uid: metadata.uid },
+      root_owner: { user: owner, uid: metadata.uid, user_name_verified: ownedByCurrentUser },
+      home_account: homeOwner,
       current_user: current.username,
-      root_owned_by_current_user: metadata.uid === current.uid,
+      root_owned_by_current_user: ownedByCurrentUser,
       root_user_home: homeOwner != null,
-      posture: crossUserHome ? "cross_user_home_use_as_owner" : "same_user_or_non_home_root",
+      posture: crossUserHome
+        ? "cross_user_home_use_as_owner"
+        : homeOwnershipMismatch ? "home_ownership_mismatch" : "same_user_or_non_home_root",
       guidance: crossUserHome
-        ? `Run repo/file mutations via as-user ${owner}; avoid root-owned files under ${projectRoot}.`
-        : "Project root ownership matches current user or is outside /home user space.",
+        ? `Run repo/file mutations via as-user ${homeOwner}; a folder's observed UID never authorizes root writes inside another account's home.`
+        : homeOwnershipMismatch
+          ? `The intended home account is ${homeOwner}, but the observed owner is ${owner}; use the existing owner-scoped repair procedure before file mutations.`
+          : ownedByCurrentUser
+            ? "Local ownership matches the current user; project scope and capability checks still apply."
+            : "Local ownership differs from the current user outside /home; verify owner-scoped mutation authority separately.",
     };
   } catch (error) {
     const probeError = error as { code?: unknown } | null;
