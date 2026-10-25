@@ -4170,7 +4170,7 @@ export async function persistAuthoritativeState(): Promise<void> {
   if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {
     await getFocusState().catch(() => null);
   }
-  persistState();
+  persistState({ immediate: true });
 }
 
 function boundedObject(value: any, maxBytes: number, fallback: Record<string, any>): any {
@@ -4384,11 +4384,19 @@ function persistProjectSwitchLedgerAnchor(): void {
   }
 }
 
-export function persistState(): void {
+export function persistState(options?: { immediate?: boolean }): void {
   if (!getAttachmentRuntime().sessionFrameKey) return;
   const recoveryState = buildPersistedRecoveryState();
   const semanticDigest = semanticPersistenceDigest(recoveryState);
   const semanticChanged = semanticDigest !== getAttachmentRuntime().lastPersistHash;
+  const now = Date.now();
+  // Coalesce the complete publication, not just its anchor: rotating sidecars
+  // before publishing their exact references can evict the last recoverable state.
+  if (
+    semanticChanged && !options?.immediate &&
+    getAttachmentRuntime().lastPersistAt > 0 &&
+    now - getAttachmentRuntime().lastPersistAt < PERSIST_MIN_INTERVAL_MS
+  ) return;
 
   if (semanticChanged) {
     const revision = getAttachmentRuntime().persistRevision + 1;
@@ -4414,12 +4422,6 @@ export function persistState(): void {
   }
 
   if (!getAttachmentRuntime().pendingPersistAnchor || !getAttachmentRuntime().lastPersistSidecarKey) return;
-  const now = Date.now();
-  if (
-    getAttachmentRuntime().lastPersistAt > 0 &&
-    now - getAttachmentRuntime().lastPersistAt < PERSIST_MIN_INTERVAL_MS
-  )
-    return;
 
   const workpoint = compactWorkpointPacket(recoveryState.activeWorkpointPacket);
   const trajectory = compactTrajectoryClarity(recoveryState.lastTrajectoryClarity);

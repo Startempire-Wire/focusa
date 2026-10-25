@@ -124,12 +124,46 @@ except urllib.error.HTTPError as y:print(json.dumps({'status':y.code,'body':y.re
     await runner.emitInput(ask, undefined, 'interactive');
     assert.equal(runtimeState().currentAsk.text, ask);
     assert.equal(runtimeState().currentTaskLabel.length, 500);
-    const captured = binding.captureResumeRequest(runtimeState(), ask);
+    let captured = binding.captureResumeRequest(runtimeState(), ask);
     await execute('focusa_workpoint_resume', resumeArgs);
     await execute('focusa_workpoint_resume', { ...resumeArgs, current_ask: ask });
     const forwarded = report.requests.filter(x => x.path === '/v1/workpoint/resume').slice(-2);
     assert.equal(forwarded[0].ask, ask);
     assert.equal(forwarded[1].ask, ask);
+    const sourceTurn = runtimeState().currentAsk.sourceTurnId;
+    const persistence = await import(pathToFileURL(source + '/persistence.ts').href);
+    const nativeAnchor = () => session.getEntries().filter(e => e.type === 'custom' &&
+      ['focusa-state', 'focusa-wbm-state'].includes(e.customType)).at(-1);
+    const anchored = persistence.loadPersistedRecoveryState(nativeAnchor()?.data);
+    assert.equal(anchored?.currentAsk?.text, ask, 'Latest journal anchor must resolve to its exact complete request');
+    assert.equal(anchored.currentAsk.textIsPreview, false);
+    const entriesBeforeRepeat = session.getEntries().length;
+    const actualKey = state.attachmentRuntimeRegistry.boundSessionAttachment(sid);
+    state.runWithAttachmentRuntime(actualKey, () => { state.persistState(); state.persistState(); });
+    assert.equal(session.getEntries().length, entriesBeforeRepeat, 'Semantic deduplication must suppress unchanged anchors');
+    report.exact_anchor_resolves_complete_request = true;
+    report.unchanged_snapshots_deduplicated = true;
+    // Exercise metadata hooks without selecting, authenticating or running a model.
+    await runner.emit({ type: 'model_select', model: {
+      id: 'native-lifecycle-metadata-only', provider: 'metadata-fixture', contextWindow: 128000,
+    }, source: 'restore' });
+    assert.equal(runtimeState().currentAsk.text, ask);
+    await execute('focusa_workpoint_resume', resumeArgs);
+    assert.equal(report.requests.filter(x => x.path === '/v1/workpoint/resume').at(-1).ask, ask);
+    const leaf = session.getLeafId();
+    assert.ok(leaf, 'Native journal must have a real entry to retain');
+    const compactionId = session.appendCompaction('Metadata-only native storage fixture; no model executed.', leaf, 0);
+    assert.ok(session.getEntries().some(e => e.id === compactionId && e.type === 'compaction'));
+    await runner.emit({ type: 'session_start', reason: 'startup' });
+    assert.equal(session.getSessionId(), sid);
+    assert.equal(runtimeState().currentAsk?.text, ask, 'Same-session reload after native compaction must retain tail restrictions');
+    assert.equal(runtimeState().currentAsk.sourceTurnId, sourceTurn);
+    await execute('focusa_workpoint_resume', resumeArgs);
+    assert.equal(report.requests.filter(x => x.path === '/v1/workpoint/resume').at(-1).ask, ask);
+    report.model_metadata_and_compaction_reload_verified = true;
+    report.model_summarization_executed = false;
+    captured = binding.captureResumeRequest(runtimeState(), ask);
+    assert.equal(binding.isResumeRequestCurrent(captured, runtimeState()), true);
     await runner.emitInput(ask + ' Compare a different handler instead; earlier replies are stale.', undefined, 'interactive');
     assert.equal(binding.isResumeRequestCurrent(captured, runtimeState()), false);
     report.full_input_and_resume_verified = true;

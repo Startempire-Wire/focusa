@@ -2304,7 +2304,6 @@ export function registerTurns(pi: ExtensionAPI) {
       setActiveWorkpointPacket(
         revokeWorkpointRequestAuthority(activeWorkpoint, "operator_ask_changed_since_workpoint_binding")
       );
-      persistState();
     }
     updateNorthStarCard(_ctx, "operator_input");
     observeProjectThreadHintsFromText(newTaskText, sourceTurnId, "current_ask", "current_ask_project_hints");
@@ -2321,6 +2320,8 @@ export function registerTurns(pi: ExtensionAPI) {
       sourceTurnId,
       updatedAt: Date.now(),
     };
+    // The complete request and scope must survive reload even without an active Workpoint.
+    persistState({ immediate: true });
 
     const projectRoot = adoptPiProjectRoot((_ctx as any)?.cwd);
     const rootConfirmed = !projectRootConfirmationRequired(projectRoot);
