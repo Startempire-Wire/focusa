@@ -76,7 +76,8 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
       const explicitContinuity = hints.continuityId;
       if (!explicitProjectRoot && !explicitContinuity) {
         const bound = attachmentRuntimeRegistry.boundSessionAttachment(sessionId) || sessionBinding.resolve();
-        if (bound) return bound;
+        // An extension survives native session switches; its cached binding may not.
+        if (bound?.session_id === sessionId) return bound;
       }
       const projectRoot = String(explicitProjectRoot || ctx?.cwd || process.cwd());
       const continuityId = String(
