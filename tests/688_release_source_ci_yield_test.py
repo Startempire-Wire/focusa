@@ -203,6 +203,40 @@ class SourceCiYield(unittest.TestCase):
             self.assertNotIn('run list', calls)
             self.assertIn('tag:' + A, effects)
 
+    def test_single_builder_yields_then_finalizes_same_green_candidate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pending, effects, _ = phase(directory, [run(A, 'queued')])
+            self.assertEqual(pending.returncode, 78, pending.stderr)
+            self.assertNotIn('tag:' + A, effects)
+            first = controller_fixture.ControllerEditorialOverrideTest()
+            code, pending_args, pending_version, dispatched, duplicate = first.exercise(helper_exit=pending.returncode)
+            self.assertEqual(code, 78, first.last_output)
+            self.assertFalse(dispatched)
+            self.assertFalse(duplicate)
+            green, effects, _ = phase(directory, [run(A, 'completed', 'success')])
+            self.assertEqual(green.returncode, 0, green.stderr)
+            self.assertEqual(effects.count('tag:' + A), 1)
+            second = controller_fixture.ControllerEditorialOverrideTest()
+            code, ready_args, ready_version, dispatched, duplicate = second.exercise(helper_exit=green.returncode)
+            self.assertEqual(code, 0, second.last_output)
+            self.assertTrue(dispatched)
+            self.assertFalse(duplicate)
+            self.assertEqual(pending_args, ready_args)
+            self.assertEqual(pending_version, ready_version)
+            self.assertIn('--no-wait-ci', ready_args)
+
+    def test_actual_controller_cannot_finalize_failed_or_foreign_candidate(self):
+        for runs in [[run(A, 'completed', 'failure')], [run(B, 'completed', 'success')]]:
+            with self.subTest(runs=runs), tempfile.TemporaryDirectory() as directory:
+                refused, effects, _ = phase(directory, runs)
+                self.assertEqual(refused.returncode, 1, refused.stderr)
+                self.assertNotIn('tag:' + A, effects)
+                owner = controller_fixture.ControllerEditorialOverrideTest()
+                code, _, _, dispatched, duplicate = owner.exercise(helper_exit=refused.returncode)
+                self.assertEqual(code, 1, owner.last_output)
+                self.assertFalse(dispatched)
+                self.assertFalse(duplicate)
+
     def test_actual_controller_propagates_pending_without_release_dispatch(self):
         owner = controller_fixture.ControllerEditorialOverrideTest()
         code, args, _, dispatched, duplicate = owner.exercise(helper_exit=78)
