@@ -174,22 +174,40 @@ function ensureScratchDir(): void {
 }
 
 function projectRootPermissionPosture(projectRoot: string): Record<string, unknown> {
-  const current = userInfo();
-  const metadata = statSync(projectRoot);
-  const homeOwner = projectRoot.match(/^\/home\/([^/]+)(?:\/|$)/)?.[1] || null;
-  const owner = metadata.uid === current.uid ? current.username : homeOwner || `uid:${metadata.uid}`;
-  const crossUserHome = homeOwner != null && owner !== current.username;
-  return {
-    project_root: projectRoot,
-    root_owner: { user: owner, uid: metadata.uid },
-    current_user: current.username,
-    root_owned_by_current_user: metadata.uid === current.uid,
-    root_user_home: homeOwner != null,
-    posture: crossUserHome ? "cross_user_home_use_as_owner" : "same_user_or_non_home_root",
-    guidance: crossUserHome
-      ? `Run repo/file mutations via as-user ${owner}; avoid root-owned files under ${projectRoot}.`
-      : "Project root ownership matches current user or is outside /home user space.",
-  };
+  // This observation is diagnostic metadata, not permission or execution authority.
+  // Its own failure must never replace the original operation result.
+  try {
+    const current = userInfo();
+    const metadata = statSync(projectRoot);
+    const homeOwner = projectRoot.match(/^\/home\/([^/]+)(?:\/|$)/)?.[1] || null;
+    const owner = metadata.uid === current.uid ? current.username : homeOwner || `uid:${metadata.uid}`;
+    const crossUserHome = homeOwner != null && owner !== current.username;
+    return {
+      project_root: projectRoot,
+      permission_observation_verified: true,
+      root_owner: { user: owner, uid: metadata.uid },
+      current_user: current.username,
+      root_owned_by_current_user: metadata.uid === current.uid,
+      root_user_home: homeOwner != null,
+      posture: crossUserHome ? "cross_user_home_use_as_owner" : "same_user_or_non_home_root",
+      guidance: crossUserHome
+        ? `Run repo/file mutations via as-user ${owner}; avoid root-owned files under ${projectRoot}.`
+        : "Project root ownership matches current user or is outside /home user space.",
+    };
+  } catch (error) {
+    const probeError = error as { code?: unknown } | null;
+    return {
+      project_root: projectRoot,
+      permission_observation_verified: false,
+      root_owner: null,
+      current_user: null,
+      root_owned_by_current_user: null,
+      posture: "unverified",
+      reason: "permission_probe_unavailable",
+      error_code: typeof probeError?.code === "string" ? probeError.code : "unknown",
+      guidance: "Local ownership could not be observed; preserve the original operation result and use verified scope/owner evidence. This observation grants no mutation authority.",
+    };
+  }
 }
 
 function appendScratchpadLine(note: string, tag?: string): { saved: boolean; turn: number } {

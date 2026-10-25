@@ -2,7 +2,8 @@
 // Never starts/resumes a loop or worker, acquires ownership, or renews a budget.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync, writeFileSync } from 'node:fs';
+import fs, { readFileSync, writeFileSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
@@ -16,6 +17,7 @@ test('actual native loop reporting distinguishes unverified lease and route prev
   assert.ok(root && continuity && evidence && expected.no_execution_grant === true);
   const requests = [];
   const checkpointWrites = [];
+  let checkpointProbeHook = null;
   const pauseEnabled = process.env.FOCUSA_LIVE_PAUSE_RECOVERY === '1';
   let allowPause = false, pauseAttempts = 0, pauseRequests = 0, pauseHttpStatus = null;
   let lastLoopBody = null;
@@ -47,6 +49,7 @@ print(json.dumps(out))`;
           !String(body.next_slice || '').split('\n').filter(line => !line.startsWith('DO_NOT_DRIFT:')).join('').trim(),
         lifecycle_stage_present: Object.hasOwn(body.action_intent || {}, 'lifecycle_stage'),
       }, null, 2));
+      checkpointProbeHook?.();
       throw new Error('Checkpoint POST intercepted before transport; no live record write');
     }
     assert.ok(['127.0.0.1','localhost'].includes(u.hostname) && u.port === '8787');
@@ -190,13 +193,45 @@ print(json.dumps(out))`;
   assert.equal(complete.next_slice, `${checkpointBase.next_action}\nDO_NOT_DRIFT: Preserve the existing approved scope`);
   assert.equal(complete.canonical, true);
   assert.equal(complete.promote, true);
-  await execute('focusa_workpoint_checkpoint', { ...checkpointBase, canonical: false,
+  const baselineTransportRefusal = await execute('focusa_workpoint_checkpoint', { ...checkpointBase, canonical: false,
     lifecycle_stage: undefined, current_action: undefined });
   assert.equal(checkpointWrites.length, 2, 'Noncanonical stage omission retains its existing compatibility');
   assert.equal(checkpointWrites[1].canonical, false);
   assert.equal(checkpointWrites[1].promote, false);
   assert.equal(checkpointWrites[1].action_intent.action_type, 'checkpoint_workpoint');
   assert.equal(checkpointWrites[1].action_intent.lifecycle_stage, undefined);
+  // A process-local, one-shot observation failure; no actual permissions or
+  // caller identity changes, and every checkpoint remains intercepted.
+  const originalStat = fs.statSync;
+  let probeArmed = false, probeFailureObserved = false;
+  checkpointProbeHook = () => { probeArmed = true; };
+  fs.statSync = (path, ...args) => {
+    if (probeArmed && String(path) === root) {
+      probeArmed = false;
+      probeFailureObserved = true;
+      throw Object.assign(new Error('simulated EACCES in advisory ownership observation'), { code: 'EACCES' });
+    }
+    return originalStat(path, ...args);
+  };
+  syncBuiltinESMExports();
+  try {
+    const refusal = await execute('focusa_workpoint_checkpoint', { ...checkpointBase, canonical: false });
+    assert.equal(probeFailureObserved, true);
+    assert.equal(refusal.details.ok, false);
+    const posture = refusal.details.project_root_permission_posture;
+    assert.equal(posture.permission_observation_verified, false);
+    assert.equal(posture.posture, 'unverified');
+    assert.equal(posture.error_code, 'EACCES');
+    assert.deepEqual(refusal.details.response, baselineTransportRefusal.details.response,
+      'A failed diagnostic probe must preserve the existing structured operation error');
+    assert.equal(refusal.details.response.failure_class, 'daemon_unavailable');
+    assert.equal(refusal.details.response.endpoint, '/v1/workpoint/checkpoint');
+  } finally {
+    fs.statSync = originalStat;
+    syncBuiltinESMExports();
+    checkpointProbeHook = null;
+  }
+  assert.equal(checkpointWrites.length, 3);
   const diagnosticReads = requests.filter(x => x.path === '/v1/project/north-star-gate').length;
   const invalidSelectors = await execute('focusa_north_star_gate', { project_root: '/root', continuity_id: continuity, trigger: 'unsupported_selector_negative' });
   assert.equal(invalidSelectors.details.canonical, false);
@@ -225,5 +260,6 @@ print(json.dumps(out))`;
     invalid_checkpoint_inputs_unsent: checkpointInvalid.length,
     checkpoint_writes_intercepted: checkpointWrites.length, checkpoint_network_writes: 0,
     canonical_checkpoint_mapping_checked: true, noncanonical_stage_omission_compatible: true,
+    permission_probe_failure_preserved: probeFailureObserved,
     installed: false, issue693_closed: false }, null, 2));
 });
