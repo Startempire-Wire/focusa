@@ -15,6 +15,7 @@ test('actual native loop reporting distinguishes unverified lease and route prev
   const evidence = process.env.FOCUSA_LIVE_LOOP_EVIDENCE;
   assert.ok(root && continuity && evidence && expected.no_execution_grant === true);
   const requests = [];
+  const checkpointWrites = [];
   const pauseEnabled = process.env.FOCUSA_LIVE_PAUSE_RECOVERY === '1';
   let allowPause = false, pauseAttempts = 0, pauseRequests = 0, pauseHttpStatus = null;
   let lastLoopBody = null;
@@ -36,6 +37,18 @@ print(json.dumps(out))`;
   globalThis.fetch = async (url, init = {}) => {
     const u = new URL(String(url));
     const method = String(init.method || 'GET').toUpperCase();
+    if (u.pathname === '/v1/workpoint/checkpoint' && method === 'POST') {
+      const body = JSON.parse(String(init.body || '{}'));
+      checkpointWrites.push(body);
+      writeFileSync(evidence + '.checkpoint-intercept.json', JSON.stringify({
+        checkpoint_write_attempts: checkpointWrites.length, checkpoint_network_writes: 0,
+        intercepted_before_transport: true,
+        footer_masked_empty_next_action: String(body.next_slice || '').includes('DO_NOT_DRIFT:') &&
+          !String(body.next_slice || '').split('\n').filter(line => !line.startsWith('DO_NOT_DRIFT:')).join('').trim(),
+        lifecycle_stage_present: Object.hasOwn(body.action_intent || {}, 'lifecycle_stage'),
+      }, null, 2));
+      throw new Error('Checkpoint POST intercepted before transport; no live record write');
+    }
     assert.ok(['127.0.0.1','localhost'].includes(u.hostname) && u.port === '8787');
     assert.ok(allowed.get(u.pathname)?.includes(method) ||
       (u.pathname === '/v1/work-loop/pause' && pauseEnabled && allowPause && method === 'POST'),
@@ -146,6 +159,44 @@ print(json.dumps(out))`;
     assert.equal(pause.details.ok, true, `Installed daemon refused pause: HTTP ${pauseHttpStatus}`);
     assert.equal(after.status, 'paused', 'A transport acknowledgement alone is not effect proof');
   }
+  const checkpointBase = { project_root: root, continuity_id: continuity,
+    mission: 'Preserve the approved existing Focusa work', current_action: 'inspect_existing_artifact',
+    next_action: 'Inspect the existing artifact and record the verification result',
+    lifecycle_stage: 'implement', do_not_drift: ['Preserve the existing approved scope'] };
+  const checkpointInvalid = [
+    ['next_action', { next_action: '' }],
+    ['next_action', { next_action: ' \t\n' }],
+    ['mission', { mission: ' \n' }],
+    ['lifecycle_stage', { lifecycle_stage: undefined }],
+    ['lifecycle_stage', { lifecycle_stage: 'unknown' }],
+    ['current_action', { current_action: ' \t' }],
+  ];
+  for (const [field, changed] of checkpointInvalid) {
+    const attemptsBefore = checkpointWrites.length;
+    const rejected = await execute('focusa_workpoint_checkpoint', { ...checkpointBase, ...changed });
+    assert.equal(rejected.details.request_sent, false, `${field}: invalid checkpoint must be unsent`);
+    assert.equal(rejected.details.canonical, false);
+    assert.equal(rejected.details.failure_class, 'validation_rejected');
+    assert.ok(rejected.details.missing_fields.includes(field));
+    assert.match(rejected.content[0].text, /request not sent/i);
+    assert.equal(checkpointWrites.length, attemptsBefore, `${field}: invalid input reached POST`);
+  }
+  await execute('focusa_workpoint_checkpoint', checkpointBase);
+  assert.equal(checkpointWrites.length, 1, 'Complete canonical input must still reach the existing transport');
+  const complete = checkpointWrites[0];
+  assert.equal(complete.mission, checkpointBase.mission);
+  assert.equal(complete.action_intent.action_type, checkpointBase.current_action);
+  assert.equal(complete.action_intent.lifecycle_stage, 'implement');
+  assert.equal(complete.next_slice, `${checkpointBase.next_action}\nDO_NOT_DRIFT: Preserve the existing approved scope`);
+  assert.equal(complete.canonical, true);
+  assert.equal(complete.promote, true);
+  await execute('focusa_workpoint_checkpoint', { ...checkpointBase, canonical: false,
+    lifecycle_stage: undefined, current_action: undefined });
+  assert.equal(checkpointWrites.length, 2, 'Noncanonical stage omission retains its existing compatibility');
+  assert.equal(checkpointWrites[1].canonical, false);
+  assert.equal(checkpointWrites[1].promote, false);
+  assert.equal(checkpointWrites[1].action_intent.action_type, 'checkpoint_workpoint');
+  assert.equal(checkpointWrites[1].action_intent.lifecycle_stage, undefined);
   const diagnosticReads = requests.filter(x => x.path === '/v1/project/north-star-gate').length;
   const invalidSelectors = await execute('focusa_north_star_gate', { project_root: '/root', continuity_id: continuity, trigger: 'unsupported_selector_negative' });
   assert.equal(invalidSelectors.details.canonical, false);
@@ -171,5 +222,8 @@ print(json.dumps(out))`;
     foundation_recovery_source_boundary_checked: true, live_unverified_client_setup_measured: true,
     live_incomplete_project_measured: false,
     valid_existing_setup_reused: true, unsupported_selector_request_rejected: true,
+    invalid_checkpoint_inputs_unsent: checkpointInvalid.length,
+    checkpoint_writes_intercepted: checkpointWrites.length, checkpoint_network_writes: 0,
+    canonical_checkpoint_mapping_checked: true, noncanonical_stage_omission_compatible: true,
     installed: false, issue693_closed: false }, null, 2));
 });

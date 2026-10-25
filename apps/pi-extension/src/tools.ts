@@ -34,6 +34,8 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { canonicalDaemonNorthStarReadiness, northStarRecoveryNotice, northStarRecoveryTools } from "./north-star.js";
 import { Type } from "@sinclair/typebox";
 import { createHash } from "crypto";
+import { statSync } from "node:fs";
+import { userInfo } from "node:os";
 import {
   BackgroundJobToolError,
   dispatchBackgroundJob,
@@ -172,8 +174,6 @@ function ensureScratchDir(): void {
 }
 
 function projectRootPermissionPosture(projectRoot: string): Record<string, unknown> {
-  const { statSync } = require("fs") as typeof import("fs");
-  const { userInfo } = require("os") as typeof import("os");
   const current = userInfo();
   const metadata = statSync(projectRoot);
   const homeOwner = projectRoot.match(/^\/home\/([^/]+)(?:\/|$)/)?.[1] || null;
@@ -9060,6 +9060,39 @@ pi.registerTool({
     ],
     async execute(_id, params) {
       const p = params as any;
+      const missingFields = ["mission", "next_action"].filter(
+        (field) => typeof p[field] !== "string" || !p[field].trim()
+      );
+      if (
+        p.canonical !== false &&
+        (typeof p.lifecycle_stage !== "string" ||
+          !p.lifecycle_stage.trim() ||
+          p.lifecycle_stage.trim().toLowerCase() === "unknown")
+      ) {
+        missingFields.push("lifecycle_stage");
+      }
+      if (
+        p.current_action != null &&
+        (typeof p.current_action !== "string" || !p.current_action.trim())
+      ) {
+        missingFields.push("current_action");
+      }
+      if (missingFields.length) {
+        return {
+          content: [{
+            type: "text",
+            text: `workpoint checkpoint request not sent (validation_rejected): provide nonblank ${missingFields.join(", ")}; canonical checkpoints require a known lifecycle stage. DO_NOT_DRIFT notes are boundaries, not a next action. Other existing authorizations are unchanged.`,
+          }],
+          details: {
+            ok: false,
+            status: "error",
+            canonical: false,
+            failure_class: "validation_rejected",
+            request_sent: false,
+            missing_fields: missingFields,
+          },
+        };
+      }
       const actionType = p.current_action || "checkpoint_workpoint";
       const evidence = Array.isArray(p.verified_evidence) ? p.verified_evidence : [];
       const blockers = Array.isArray(p.blockers) ? p.blockers : [];
