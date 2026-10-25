@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:869201d9423df243ec8a98cedea4cabb84c188e9ca5597c7af8e182a9d53ccf4`
+Registry digest: `sha256:5468cb55a918b06247a6534e8f4f60fb591c2d912e51b113d33a646a65557e3c`
 
 This file is generated. Use the descriptor registry for source schemas and machine metadata; generation is not installed or cross-harness behavioral proof.
 Shared conditional journey: docs/agent/02-focusa-cohesive-project-flow.md. Discover only the capabilities needed by the verified current action; next-tool lists are not execution dependencies.
@@ -898,7 +898,7 @@ Record what you plan to do next (max 160 chars). Use it when Record what you pla
 
 ## focusa_north_star_gate
 
-Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
+Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Uses current session scope, not project_root/continuity_id selector parameters. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier chain with Short, Medium, or Full canonical Workset, CallGraph, evidence, and unresolved-scope projection. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.
 
 - Capability: `focusa.north.star.gate`
 - Family: `trajectory`

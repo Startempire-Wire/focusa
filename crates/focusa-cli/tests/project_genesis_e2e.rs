@@ -270,7 +270,7 @@ fn genesis_commits_first_workpoint_atomically_and_replays_idempotently() {
         Some(first_id.as_str())
     );
 
-    let status = json_output(&run(
+    let unscoped_status = json_output(&run(
         &base_url,
         &[
             "project",
@@ -281,7 +281,32 @@ fn genesis_commits_first_workpoint_atomically_and_replays_idempotently() {
             "--json",
         ],
     ));
+    assert_eq!(find_string(&unscoped_status, "status"), Some("historical"));
+    assert_eq!(unscoped_status["canonical"], false);
+
+    let status = json_output(&run(
+        &base_url,
+        &[
+            "project",
+            "genesis",
+            "status",
+            "--project-root",
+            &root,
+            "--continuity-id",
+            "genesis-e2e-continuity",
+            "--json",
+        ],
+    ));
     assert_eq!(find_string(&status, "status"), Some("ready"));
+    assert_eq!(status["canonical"], true);
+    assert_eq!(
+        status["resolved_scope"]["continuity_id"],
+        "genesis-e2e-continuity"
+    );
+    assert_eq!(
+        status["authority"]["continuity_id"],
+        "genesis-e2e-continuity"
+    );
 
     daemon.restart();
     let warm_status = json_output(&run(
@@ -292,9 +317,13 @@ fn genesis_commits_first_workpoint_atomically_and_replays_idempotently() {
             "status",
             "--project-root",
             &root,
+            "--continuity-id",
+            "genesis-e2e-continuity",
             "--json",
         ],
     ));
+    assert_eq!(find_string(&warm_status, "status"), Some("ready"));
+    assert_eq!(warm_status["canonical"], true);
     assert_eq!(
         find_string(&warm_status, "workpoint_id"),
         Some(first_id.as_str())
