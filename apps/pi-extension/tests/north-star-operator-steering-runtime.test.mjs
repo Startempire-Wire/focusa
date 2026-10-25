@@ -2,11 +2,15 @@ import assert from "node:assert/strict";
 import { readFile, writeFile, unlink } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
+import { loadSourceSection } from "./helpers/source-section-harness.mjs";
 
 const sourceUrl = new URL("../src/north-star.ts", import.meta.url);
 const generatedUrl = new URL("./.north-star-runtime.mjs", import.meta.url);
 const stateUrl = new URL("./.north-star-state.mjs", import.meta.url);
+const normalizeProjectRoot = loadSourceSection("state.ts", "export function normalizeProjectRoot(",
+  "// QN Addendum", {}, "normalizeProjectRoot");
 const stateSource = `
+export ${normalizeProjectRoot.toString()}
 const state = () => globalThis.__focusaNorthStarTestState || {};
 export const getActiveWorkpointPacket = () => state().activeWorkpoint || null;
 export const getScopedWorkpointPacket = () => state().scopedWorkpoint || null;
@@ -64,7 +68,7 @@ try {
   assert.equal(operatorSteering.status, "stale");
   assert.match(operatorSteering.exact_recovery, /workpoint_resume.*workpoint_checkpoint/);
   const renderedSteering = renderNorthStarCard(operatorSteering);
-  assert.match(renderedSteering[0], /NORTH STAR STALE/);
+  assert.match(renderedSteering[0], /NORTH STAR CONTEXT STALE/);
   assert.match(renderedSteering.join("\n"), /WAYPOINT current.*GAP current/);
   assert.equal(
     renderedSteering.some((line) => line.length > 80),
@@ -90,7 +94,7 @@ try {
   assert.match(mismatchLines[0], /saved work needs reconciliation/);
   assert.doesNotMatch(mismatchLines[0], /haven't checked|no saved checkpoint/);
   assert.match(mismatchLines[1], /GAP missing/);
-  assert.match(mismatchLines.join("\n"), /1 more item/);
+  assert.match(mismatchLines.join("\n"), /1 more context item/);
 
   const missingGapSteering = buildNorthStarSnapshot("operator_input");
   assert.equal(missingGapSteering.status, "stale");
@@ -99,7 +103,7 @@ try {
   globalThis.__focusaNorthStarTestState.scopedWorkpoint = null;
   const actuallyMissingWorkpoint = buildNorthStarSnapshot("background_refresh");
   assert.equal(actuallyMissingWorkpoint.status, "blocked");
-  assert.match(renderNorthStarCard(actuallyMissingWorkpoint)[0], /no saved checkpoint/);
+  assert.match(renderNorthStarCard(actuallyMissingWorkpoint)[0], /matching saved checkpoint isn't resolved here/);
   globalThis.__focusaNorthStarTestState.scopedWorkpoint = steeredWorkpoint;
   globalThis.__focusaNorthStarTestState.trajectory = trajectory;
 

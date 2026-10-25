@@ -249,8 +249,9 @@ test("prompt-critical Focusa hooks perform no awaited daemon work", () => {
     assert.doesNotMatch(body, /\bawait\b/, `${eventName} must remain non-blocking`);
   }
   const inputBody = handlerBodyFrom(turnsSource, "input");
-  assert.match(inputBody, /void turnWorkLoopWriterHeaders\(\)/);
-  assert.match(inputBody, /\.catch\(\(\) => null\)/);
+  assert.match(inputBody, /void focusaFetch\(/);
+  assert.match(inputBody, /instructionIntegrityContext = undefined/);
+  assert.match(inputBody, /persistState\(\{ immediate: true \}\)/);
   assert.doesNotMatch(inputBody, /headers:\s*await turnWorkLoopWriterHeaders/);
   assert.match(turnsSource, /getCachedFocusState\(\)/);
   assert.match(turnsSource, /buildCachedRecentTurnsSlice\(4\)/);

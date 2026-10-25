@@ -51,7 +51,10 @@ fn live_promotion_shape_reports_missing_fields_without_publishing_or_echoing_con
     assert_eq!(body["code"], "WORKPOINT_PROMOTION_INCOMPLETE");
     assert_eq!(body["failed_operation"], "workpoint_checkpoint_promote");
     assert_eq!(body["failure_class"], "validation_rejected");
-    assert_eq!(body["retry_posture"], "do_not_retry_unchanged");
+    assert_eq!(
+        body["details"]["tool_result_v1"]["retry"]["posture"],
+        "do_not_retry_unchanged"
+    );
     assert_eq!(
         body["missing_fields"],
         json!([
@@ -245,7 +248,10 @@ async fn incomplete_promotion_batch_preserves_prior_memory_durability_and_notifi
         assert_eq!(status, StatusCode::BAD_REQUEST, "{case}: {body}");
         assert_eq!(body["code"], "WORKPOINT_PROMOTION_INCOMPLETE", "{case}");
         assert_eq!(body["failure_class"], "validation_rejected", "{case}");
-        assert_eq!(body["retry_posture"], "do_not_retry_unchanged", "{case}");
+        assert_eq!(
+            body["details"]["tool_result_v1"]["retry"]["posture"], "do_not_retry_unchanged",
+            "{case}"
+        );
         assert!(
             body["missing_fields"]
                 .as_array()

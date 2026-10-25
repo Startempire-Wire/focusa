@@ -196,6 +196,9 @@ export function northStarRecoveryNotice(): string {
 export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   const short = (value: string) => value.replace("mismatched", "mismatch").slice(0, 8);
   const contextLabel = snapshot.status === "stale" ? "CONTEXT STALE" : "CONTEXT NOT READY";
+  // The card is a bounded projection; complete recovery guidance remains in
+  // northStarRecoveryNotice() for tool responses, not an unwrapped UI line.
+  const recoveryLine = "Context only: use authorized recovery; actual operation refusals still apply.";
 
   // Ready: one calm line — no chain dump.
   if (snapshot.status === "ready") {
@@ -230,12 +233,12 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
     // A changed instruction is not evidence that the saved goal aged out.
     const steered = snapshot.workpoint === "steered";
     return [
-      `🧭 NORTH STAR ${contextLabel} · ${short(snapshot.project)} · ${steered ? "current instruction needs reconciliation" : "needs a quick refresh"}`,
+      `🧭 NORTH STAR ${contextLabel} · ${steered ? "current instruction needs reconciliation" : "needs a quick refresh"}`,
       `WAYPOINT ${short(snapshot.waypoint)} → GAP ${short(snapshot.gap)}`,
       steered
         ? "Resume saved work and verify the current instruction before continuing."
         : `${staleNames.length ? `Some details (${staleNames.join(", ")}) aged out` : "Details aged out"} — re-check through the supported owner within the existing assignment.`,
-      northStarRecoveryNotice(),
+      recoveryLine,
     ];
   }
 
@@ -261,7 +264,7 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   if (otherProblems.length > 0) {
     lines.push(`${otherProblems.length} more context item${otherProblems.length > 1 ? "s" : ""} remain; inspect fuller diagnostics as needed.`);
   }
-  lines.push(northStarRecoveryNotice());
+  lines.push(recoveryLine);
   lines.push(ladder);
   return lines;
 }

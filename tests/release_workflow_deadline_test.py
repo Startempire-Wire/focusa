@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -25,6 +26,10 @@ class ReleaseWorkflowDeadlineTest(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="focusa-release-clock-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        subprocess.run(["git", "init", "--quiet", str(self.root)], check=True, capture_output=True)
+        scripts = self.root / "scripts"
+        scripts.mkdir()
+        shutil.copy2(ROOT / "scripts/release-git-admin-preflight.py", scripts)
         self.events = self.root / "events.jsonl"
         gh = self.root / "gh"
         gh.write_text('''#!/usr/bin/python3
@@ -59,7 +64,7 @@ else:
     raise SystemExit("unexpected API call: " + repr(args))
 ''')
         gh.chmod(0o755)
-        self.probe = self.root / "probe.sh"
+        self.probe = scripts / "probe.sh"
         self.probe.write_text(
             PREFIX + "\n" + function("watch_workflow_run_bounded") + "\n" + function("wait_for_workflow") + '''
 report_workflow_failure() { echo "REAL_TERMINAL_FAILURE $1 $2" >&2; }
@@ -74,7 +79,7 @@ wait_for_workflow "$TEST_WORKFLOW" "$TEST_SHA" "$TEST_TAG"
                    TEST_TAG="v0.9.198" if workflow == "Release" else "",
                    TEST_WORKFLOW=workflow, DISCOVERY_MISSES=str(misses))
         result = subprocess.run(["bash", str(self.probe), "--ci-timeout", "1", *args],
-                                capture_output=True, text=True, env=env, timeout=10)
+                                cwd=self.root, capture_output=True, text=True, env=env, timeout=10)
         return result, result.stdout + result.stderr
 
     def test_release_succeeds_after_source_ci_deadline(self):

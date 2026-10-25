@@ -575,17 +575,22 @@ test('shared request revocation preserves context and never mutates the saved pa
 for (const newTaskText of ['Inspect only; never deploy.', '']) {
   test(`actual input owner revokes old request permission for ${newTaskText ? 'changed' : 'empty meta'} steering`, () => {
     const original = { ...startupSavedState().activeWorkpointPacket, current_ask_binding: 'old request' };
-    let current = original, writes = 0;
+    let current = original;
+    const writes = [], runtime = {};
     loadSourceSection('turns.ts', '    const activeWorkpoint = getActiveWorkpointPacket();',
-      '    updateNorthStarCard(_ctx, "operator_input");', {
+      '    const projectRoot = adoptPiProjectRoot', {
         ...binding, newTaskText, getActiveWorkpointPacket: () => current,
-        setActiveWorkpointPacket: packet => { current = packet; }, persistState: () => writes++,
+        setActiveWorkpointPacket: packet => { current = packet; }, persistState: options => writes.push(options),
+        _ctx: {}, sourceTurnId: 'changed-input', askKind: 'instruction', text: newTaskText,
+        updateNorthStarCard() {}, observeProjectThreadHintsFromText() {},
+        deriveQueryScope: () => ({ kind: 'fixture' }), isOperatorSteeringInput: () => true,
+        getAttachmentRuntime: () => runtime,
       }, 'undefined');
     assert.equal(current.action_authority_for_current_ask, false);
     assert.equal(current.current_ask_scope.matches_current_ask_scope, false);
     assert.equal(current.current_ask_scope.scope_conflict_reason, 'operator_ask_changed_since_workpoint_binding');
     assert.equal(original.action_authority_for_current_ask, true);
-    assert.equal(writes, 1);
+    assert.deepEqual(writes, [{ immediate: true }]);
   });
 }
 

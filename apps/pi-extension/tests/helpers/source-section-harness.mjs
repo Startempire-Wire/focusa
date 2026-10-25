@@ -6,10 +6,16 @@ import * as nodeModule from 'node:module';
 // does not invoke a compiler or lower unsupported TypeScript value syntax.
 export function eraseTypeScriptSection(source) {
   assert.equal(typeof nodeModule.stripTypeScriptTypes, 'function', 'Node native type erasure is required');
-  const erased = nodeModule.stripTypeScriptTypes(source, { mode: 'strip' });
   const names = [];
-  const script = erased.replace(/^([ \t]*)export\s+((?:(?:async\s+)?function\s*\*?\s*|class\s+|(?:const|let|var)\s+)([\w$]+))/gm,
-    (_match, indent, declaration, name) => { names.push(name); return indent + declaration; });
+  const bounded = source.replace(/^([ \t]*)export\s+((?:(?:async\s+)?function\s*\*?\s*|class\s+|(?:const|let|var)\s+)([\w$]+))/gm,
+    (_match, indent, declaration, name) => { names.push(name); return indent + declaration; })
+    .replace(/^([ \t]*)export\s+(?=(?:interface|type)\b)/gm, '$1');
+  // Sections are function bodies, not modules: preserve real early returns and
+  // awaited lifecycle fences while letting Node parse them in their true scope.
+  const prefix = 'async function __focusaBoundedSection__() {\n';
+  const erased = nodeModule.stripTypeScriptTypes(prefix + bounded + '\n}', { mode: 'strip' });
+  assert.ok(erased.startsWith(prefix) && erased.endsWith('\n}'), 'Native erasure changed the section boundary');
+  const script = erased.slice(prefix.length, -2);
   assert.ok(!/^\s*(?:import|export)\s/m.test(script), 'Unsupported module boundary in production section');
   return script + '\n' + [...new Set(names)].map(name => `exports.${name} = ${name};`).join('\n');
 }

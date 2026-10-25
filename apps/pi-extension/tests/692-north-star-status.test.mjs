@@ -12,6 +12,9 @@ const canonicalDaemonNorthStarReadiness = owner.includes('export function canoni
       { normalizeProjectRoot }, 'canonicalDaemonNorthStarReadiness')
   : undefined;
 
+const recovery = loadSourceSection('north-star.ts', 'export function northStarRecoveryTools(',
+  'export function renderNorthStarCard(', {}, '({ northStarRecoveryTools, northStarRecoveryNotice })');
+
 async function run(body, ok = true, suppliedContinuity = continuity) {
   const calls = [];
   const state = { initialized: 0 };
@@ -20,10 +23,10 @@ async function run(body, ok = true, suppliedContinuity = continuity) {
     getContinuityId: () => suppliedContinuity,
     ensureContinuityId: () => { state.initialized++; return 'unwanted-continuity'; },
     isProjectRootAuthoritySafe: value => value === root,
-    canonicalDaemonNorthStarReadiness,
+    canonicalDaemonNorthStarReadiness, ...recovery,
     focusaFetchDetailed: async path => { calls.push(path); return { ok, status: ok ? 200 : 503, body }; },
   });
-  const result = await tool.execute({ trigger: 'isolated-source-fixture', projection: 'short' });
+  const result = await tool.execute('fixture-call', { trigger: 'isolated-source-fixture', projection: 'short' });
   return { result, calls, state };
 }
 
