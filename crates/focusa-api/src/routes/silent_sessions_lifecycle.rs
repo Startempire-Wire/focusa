@@ -200,12 +200,25 @@ pub(super) async fn start(
     if let Err(error) = append_reducer_event_and_project(&state.persistence, &mut event, &session) {
         return after_principal(persistence_failure(error), &principal);
     }
+    let delivery = deliver_start(&state, &session, &run, &config).await;
     let temporal_context = silent_session_temporal_context(
         &session,
         Some(&run),
         Some(&config.config),
         Some(events.len() + 1),
     );
+    if let Err(error) = delivery {
+        let mut response = failure(
+            StatusCode::BAD_GATEWAY,
+            "runner_delivery_failed",
+            "runner_delivery_failed",
+            &format!("Start was recorded but no runner accepted delivery: {error}"),
+        );
+        response.1.0.recovery_hint = Some(
+            "Inspect the runner socket and key material; the start request remains durable.".into(),
+        );
+        return after_principal(response, &principal);
+    }
     lifecycle_success(
         StatusCode::ACCEPTED,
         "start_requested",
@@ -217,6 +230,135 @@ pub(super) async fn start(
         temporal_context,
         Some(temporal_guard),
     )
+}
+
+// ---------------------------------------------------------------------------
+// Spec 133 §13 delivery: a start request is only successful once a real runner
+// accepted a signed launch. Mission bytes are persisted as a hashed artifact
+// (§13.3) instead of being interpolated into a shell string.
+// ---------------------------------------------------------------------------
+
+fn resolve_pi_executable() -> Option<std::path::PathBuf> {
+    if let Some(explicit) = std::env::var_os("FOCUSA_PI_EXECUTABLE") {
+        let path = std::path::PathBuf::from(explicit);
+        if path.is_file() {
+            return Some(path);
+        }
+    }
+    let path = std::env::var_os("PATH")?;
+    std::env::split_paths(&path)
+        .map(|dir| dir.join("pi"))
+        .find(|candidate| candidate.is_file())
+}
+
+fn persist_mission_artifact(
+    data_dir: &std::path::Path,
+    session_id: focusa_core::silent_sessions::SilentSessionId,
+    mission: &str,
+) -> anyhow::Result<(String, String)> {
+    use sha2::{Digest, Sha256};
+    let dir = data_dir.join("missions");
+    std::fs::create_dir_all(&dir)?;
+    let file = dir.join(format!("{session_id}.md"));
+    {
+        use std::io::Write;
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create(true).truncate(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        let mut handle = options.open(&file)?;
+        handle.write_all(mission.as_bytes())?;
+        handle.sync_all()?;
+    }
+    let digest = hex::encode(Sha256::digest(mission.as_bytes()));
+    Ok((file.display().to_string(), digest))
+}
+
+async fn deliver_start(
+    state: &std::sync::Arc<crate::server::AppState>,
+    session: &focusa_core::silent_sessions::SilentSession,
+    run: &focusa_core::silent_sessions::SilentSessionRun,
+    config: &focusa_core::silent_sessions::SilentSessionConfigRevision,
+) -> anyhow::Result<focusa_core::silent_sessions::DispatchReceipt> {
+    use focusa_core::silent_sessions::{
+        dispatch_launch, LaunchPlan, LaunchTrustPolicy, MissionDelivery,
+    };
+    if session.owner_os_user.trim().is_empty() {
+        anyhow::bail!("session has no verified owner_os_user; refusing to launch");
+    }
+    let executable = resolve_pi_executable().ok_or_else(|| {
+        anyhow::anyhow!(
+            "Pi executable not found; set FOCUSA_PI_EXECUTABLE or install `pi` on PATH"
+        )
+    })?;
+    let data_dir = std::path::PathBuf::from(&state.config.data_dir);
+    let (artifact_ref, sha256) =
+        persist_mission_artifact(&data_dir, session.id, &session.mission)?;
+    let cwd = config
+        .config
+        .workspace
+        .source_root
+        .clone()
+        .ok_or_else(|| anyhow::anyhow!("config revision has no workspace.source_root"))?;
+    #[cfg(unix)]
+    let owner_uid = {
+        use std::os::unix::fs::MetadataExt;
+        std::fs::metadata(&cwd)?.uid()
+    };
+    #[cfg(not(unix))]
+    let owner_uid = 0u32;
+
+    let adapter_id = match config.config.harness.kind {
+        focusa_core::silent_sessions::HarnessKind::Pi => "pi_rpc",
+        _ => "generic_pty",
+    };
+    let plan = LaunchPlan {
+        executable: executable.display().to_string(),
+        argv: Vec::new(),
+        cwd,
+        os_user: session.owner_os_user.clone(),
+        mission_delivery: MissionDelivery::Rpc {
+            artifact_ref,
+            sha256,
+        },
+        adapter_id: adapter_id.to_string(),
+        adapter_version: config.config.harness.adapter_version.clone(),
+        config_revision_id: session.active_config_revision_id.to_string(),
+        model_binding: format!(
+            "{}/{}",
+            config.config.model.provider, config.config.model.model
+        ),
+        thinking_level: config
+            .config
+            .model
+            .thinking
+            .clone()
+            .unwrap_or_else(|| "default".into()),
+        bootstrap_packet_ref: format!("silent-session/{}", session.id),
+        // Reached only after durable principal authentication, exact target
+        // binding and approval authorization in this handler.
+        trust: LaunchTrustPolicy {
+            project_verified: true,
+            workspace_verified: true,
+            operator_approved: true,
+            context_authority_allowed: true,
+            trust_preflight_passed: true,
+            required_noninteractive_flag: Some("-a".into()),
+        },
+    };
+    dispatch_launch(
+        &state.persistence,
+        &data_dir,
+        session.id,
+        run.id,
+        &plan,
+        owner_uid,
+        std::time::Duration::from_secs(15),
+    )
+    .await
 }
 
 fn approval_required(
