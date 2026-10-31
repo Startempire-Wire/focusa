@@ -120,10 +120,9 @@ impl RunnerPaths {
 }
 
 fn generate_key() -> Vec<u8> {
-    // Two v4 UUIDs give 32 uniform bytes without adding a dependency.
-    let mut bytes = Vec::with_capacity(RUNNER_KEY_BYTES);
-    bytes.extend_from_slice(uuid::Uuid::new_v4().as_bytes());
-    bytes.extend_from_slice(uuid::Uuid::new_v4().as_bytes());
+    use rand_core::{OsRng, RngCore};
+    let mut bytes = vec![0u8; RUNNER_KEY_BYTES];
+    OsRng.fill_bytes(&mut bytes);
     bytes
 }
 
@@ -189,7 +188,7 @@ mod tests {
     use super::*;
 
     fn scratch() -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("focusa-runner-prov-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("focusa-runner-prov-{}", uuid::Uuid::now_v7()));
         std::fs::create_dir_all(&dir).unwrap();
         dir
     }
@@ -198,7 +197,7 @@ mod tests {
     fn material_is_idempotent_and_private() {
         let root = scratch();
         let paths = RunnerPaths::resolve(&root, "principal-1", "scope-1").unwrap();
-        let uid = current_uid();
+        let uid = uid_of(&root);
         let first = paths.ensure_material(uid).unwrap();
         let second = paths.ensure_material(uid).unwrap();
         assert_eq!(first.len(), RUNNER_KEY_BYTES);
@@ -226,12 +225,12 @@ mod tests {
     }
 
     #[cfg(unix)]
-    fn current_uid() -> u32 {
+    fn uid_of(path: &Path) -> u32 {
         use std::os::unix::fs::MetadataExt;
-        std::fs::metadata(std::env::temp_dir()).unwrap().uid()
+        std::fs::metadata(path).unwrap().uid()
     }
     #[cfg(not(unix))]
-    fn current_uid() -> u32 {
+    fn uid_of(_path: &Path) -> u32 {
         0
     }
 }
