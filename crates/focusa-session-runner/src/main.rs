@@ -66,6 +66,7 @@ struct Args {
 
 #[cfg(unix)]
 struct ManagedProcess {
+    stdin: Option<tokio::process::ChildStdin>,
     identity: ProcessTreeIdentity,
     child: Option<Child>,
     state: RunnerProcessState,
@@ -152,6 +153,7 @@ impl RunnerState {
         match &request.operation {
             RunnerOperation::Launch { spec } => self.launch(request, spec.as_ref()).await,
             RunnerOperation::Signal { signal } => self.signal(request, *signal).await,
+            RunnerOperation::Input { text } => self.input(request, text).await,
             RunnerOperation::Query => self.query(request),
             RunnerOperation::Heartbeat => Ok(self.heartbeat(request)),
             RunnerOperation::Adopt { expected } => self.adopt(request, expected),
@@ -181,7 +183,9 @@ impl RunnerState {
         }
 
         let mut command = prepared.command;
+        command.stdin(std::process::Stdio::piped());
         let mut child = command.spawn().context("spawn owned process tree")?;
+        let stdin = child.stdin.take();
         if let Some(mut stdout) = child.stdout.take() {
             tokio::spawn(async move {
                 let _ = tokio::io::copy(&mut stdout, &mut tokio::io::stdout()).await;
@@ -204,6 +208,7 @@ impl RunnerState {
             started_at: Utc::now(),
         };
         let process = ManagedProcess {
+            stdin,
             identity,
             child: Some(child),
             state: RunnerProcessState::Running,
@@ -248,6 +253,38 @@ impl RunnerState {
         };
         let projection = process.projection();
         Ok(self.response(request, "signal_delivered", Some(projection), None))
+    }
+
+    async fn input(
+        &mut self,
+        request: &RunnerWireRequest,
+        text: &str,
+    ) -> Result<RunnerWireResponse> {
+        let key = Self::process_key(request.command.session_id, request.command.run_id);
+        let process = self
+            .processes
+            .get_mut(&key)
+            .context("no process tree for this run")?;
+        process.refresh()?;
+        ensure!(
+            matches!(
+                process.state,
+                RunnerProcessState::Running
+            ),
+            "process tree is not accepting input in state {:?}",
+            process.state
+        );
+        let stdin = process
+            .stdin
+            .as_mut()
+            .context("process stdin is not piped; input cannot be delivered")?;
+        stdin.write_all(text.as_bytes()).await?;
+        if !text.ends_with('\n') {
+            stdin.write_all(b"\n").await?;
+        }
+        stdin.flush().await?;
+        let projection = process.projection();
+        Ok(self.response(request, "input_delivered", Some(projection), None))
     }
 
     fn query(&mut self, request: &RunnerWireRequest) -> Result<RunnerWireResponse> {
@@ -317,6 +354,7 @@ impl RunnerState {
             "exact run is already tracked"
         );
         let process = ManagedProcess {
+            stdin: None,
             identity: expected.clone(),
             child: None,
             state: RunnerProcessState::Running,

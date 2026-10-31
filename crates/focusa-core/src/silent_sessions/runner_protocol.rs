@@ -11,7 +11,7 @@ use super::{
     SilentSessionRunId,
 };
 
-pub const RUNNER_PROTOCOL_SCHEMA: &str = "focusa.session_runner_protocol.v1";
+pub const RUNNER_PROTOCOL_SCHEMA: &str = "focusa.session_runner_protocol.v2";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "mode", rename_all = "snake_case")]
@@ -58,6 +58,9 @@ pub enum RunnerSignal {
 pub enum RunnerOperation {
     Launch { spec: Box<RunnerLaunchSpec> },
     Signal { signal: RunnerSignal },
+    /// Deliver operator input to the running harness's stdin. Added in v2:
+    /// without it a "send" request could never reach the process (§679).
+    Input { text: String },
     Query,
     Heartbeat,
     Adopt { expected: ProcessTreeIdentity },
@@ -74,6 +77,7 @@ impl RunnerOperation {
                 RunnerSignal::Cancel => SilentSessionAction::Cancel,
                 RunnerSignal::ForceKill => SilentSessionAction::ForceKill,
             },
+            Self::Input { .. } => SilentSessionAction::SendInput,
             Self::Query | Self::Heartbeat => SilentSessionAction::Show,
             Self::Adopt { .. } => SilentSessionAction::Adopt,
         }
