@@ -370,6 +370,41 @@ async fn deliver(
     if let Err(error) = append_reducer_event_and_project(&state.persistence, &mut event, &session) {
         return after(persistence_failure(error), &principal);
     }
+    // Spec133 §12.4: input is delivered to the live harness, not merely recorded.
+    if let Some(text) = event.payload.get("content").and_then(Value::as_str) {
+        let data_dir = std::path::PathBuf::from(&state.config.data_dir);
+        #[cfg(unix)]
+        let owner_uid = {
+            use std::os::unix::fs::MetadataExt;
+            std::fs::metadata(&session.authority.project_root)
+                .map(|meta| meta.uid())
+                .unwrap_or(0)
+        };
+        #[cfg(not(unix))]
+        let owner_uid = 0u32;
+        if let Err(error) = focusa_core::silent_sessions::dispatch_input(
+            &state.persistence,
+            &data_dir,
+            session.id,
+            run.id,
+            &session.owner_os_user,
+            text,
+            owner_uid,
+            std::time::Duration::from_secs(10),
+        )
+        .await
+        {
+            let mut response = failure(
+                StatusCode::BAD_GATEWAY,
+                "runner_delivery_failed",
+                "runner_delivery_failed",
+                &format!("Input was recorded but not delivered: {error}"),
+            );
+            response.1.0.recovery_hint =
+                Some("Start the session first; the input event remains durable.".into());
+            return after(response, &principal);
+        }
+    }
     success(
         StatusCode::ACCEPTED,
         kind.event_kind(),
