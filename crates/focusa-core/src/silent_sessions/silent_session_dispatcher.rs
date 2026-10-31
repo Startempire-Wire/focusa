@@ -51,10 +51,19 @@ pub struct DispatchReceipt {
 }
 
 pub fn build_manifest(plan: &LaunchPlan) -> LaunchManifest {
+    // Spec133 §13.3: the required noninteractive trust flag must reach the
+    // harness. Enforce it here so a caller cannot forget it and produce a
+    // manifest that hangs on a trust prompt.
+    let mut argv = plan.argv.clone();
+    if let Some(flag) = &plan.trust.required_noninteractive_flag {
+        if !argv.iter().any(|argument| argument == flag) {
+            argv.push(flag.clone());
+        }
+    }
     LaunchManifest {
         schema: LaunchManifest::SCHEMA.to_string(),
         executable: plan.executable.clone(),
-        argv: plan.argv.clone(),
+        argv,
         cwd: plan.cwd.clone(),
         safe_env: BTreeMap::new(),
         secret_env_refs: Vec::new(),
@@ -75,7 +84,7 @@ pub fn build_manifest(plan: &LaunchPlan) -> LaunchManifest {
             max_open_files: None,
         },
         resource_mode: ResourceModeResolution {
-            requested: LaunchResourceMode::Auto,
+            requested: LaunchResourceMode::Normal,
             effective: LaunchResourceMode::Normal,
             requirement: ResourceModeRequirement::Advisory,
             resolved: true,
@@ -217,6 +226,7 @@ mod tests {
             manifest.trust_policy.required_noninteractive_flag.as_deref(),
             Some("-a")
         );
+        assert!(manifest.argv.iter().any(|arg| arg == "-a"), "flag must reach argv");
     }
 
     #[test]
