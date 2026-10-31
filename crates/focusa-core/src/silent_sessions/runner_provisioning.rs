@@ -47,15 +47,21 @@ impl RunnerPaths {
     ) -> anyhow::Result<Self> {
         valid_segment("principal_id", principal_id)?;
         valid_segment("socket_scope", socket_scope)?;
-        let root = state_root
-            .join("runners")
-            .join(principal_id)
-            .join(socket_scope);
+        // Unix socket paths cap at ~104 bytes, so the directory name is a
+        // digest rather than the (long) principal/scope pair. Deterministic:
+        // every caller derives the same material location.
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(principal_id.as_bytes());
+        hasher.update([0u8]);
+        hasher.update(socket_scope.as_bytes());
+        let key = hex::encode(hasher.finalize());
+        let root = state_root.join("runners").join(&key[..16]);
         let paths = Self {
             key_file: root.join("runner.key"),
             secret_dir: root.join("secrets"),
             nonce_ledger: root.join("nonces.log"),
-            socket: root.join("runner.sock"),
+            socket: root.join("s.sock"),
             root,
         };
         #[cfg(unix)]

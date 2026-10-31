@@ -47,6 +47,18 @@ pub fn resolve_binary(explicit: Option<&Path>) -> anyhow::Result<PathBuf> {
         }
         return Ok(path.to_path_buf());
     }
+    // Explicit deployment override: packaged installs put both binaries side by
+    // side, but tests and split installs may relocate the runner.
+    if let Some(override_path) = std::env::var_os("FOCUSA_SESSION_RUNNER_BIN") {
+        let path = PathBuf::from(override_path);
+        if path.is_file() {
+            return Ok(path);
+        }
+        bail!(
+            "FOCUSA_SESSION_RUNNER_BIN points at a missing file: {}",
+            path.display()
+        );
+    }
     let exe = std::env::current_exe().context("resolve current executable")?;
     let dir = exe
         .parent()
@@ -71,17 +83,17 @@ pub fn launch_argv(binary: &Path, config: &RunnerLaunchConfig) -> Vec<String> {
         binary.display().to_string(),
         "--socket".into(),
         config.paths.socket.display().to_string(),
-        "--key_file".into(),
+        "--key-file".into(),
         config.paths.key_file.display().to_string(),
-        "--nonce_ledger".into(),
+        "--nonce-ledger".into(),
         config.paths.nonce_ledger.display().to_string(),
-        "--secret_dir".into(),
+        "--secret-dir".into(),
         config.paths.secret_dir.display().to_string(),
-        "--principal_id".into(),
+        "--principal-id".into(),
         config.identity.principal_id.clone(),
-        "--owner_os_user".into(),
+        "--owner-os-user".into(),
         config.identity.os_user.clone(),
-        "--socket_scope".into(),
+        "--socket-scope".into(),
         config.identity.socket_scope.clone(),
     ]
 }
@@ -90,6 +102,7 @@ pub struct RunnerProcess {
     child: Child,
     pub pid: u32,
     pub socket: PathBuf,
+    pub log: PathBuf,
 }
 
 impl RunnerProcess {
@@ -142,7 +155,20 @@ pub fn launch(config: &RunnerLaunchConfig) -> anyhow::Result<RunnerProcess> {
     command.current_dir(&config.paths.root);
     command.stdin(Stdio::null());
     command.stdout(Stdio::null());
-    command.stderr(Stdio::null());
+    // Runner stderr is captured, never discarded: a launch that dies must be
+    // diagnosable from its own output instead of a silent readiness timeout.
+    let log_path = config.paths.root.join("runner.log");
+    let log = {
+        let mut options = std::fs::OpenOptions::new();
+        options.create(true).append(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        options.open(&log_path).context("open runner log")?
+    };
+    command.stderr(Stdio::from(log));
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
@@ -156,6 +182,7 @@ pub fn launch(config: &RunnerLaunchConfig) -> anyhow::Result<RunnerProcess> {
         child,
         pid,
         socket: config.paths.socket.clone(),
+        log: config.paths.root.join("runner.log"),
     };
     wait_ready(&mut process, config.ready_timeout)?;
     Ok(process)
@@ -174,13 +201,17 @@ fn wait_ready(process: &mut RunnerProcess, timeout: Duration) -> anyhow::Result<
                 }
             }
             if !process.is_alive() {
-                bail!("runner exited before its socket became ready");
+                bail!(
+                    "runner exited before its socket became ready; stderr: {}",
+                    log_tail(&process.log)
+                );
             }
             if Instant::now() >= deadline {
                 bail!(
-                    "runner socket not ready within {:?}: {}",
+                    "runner socket not ready within {:?}: {}; stderr: {}",
                     timeout,
-                    process.socket.display()
+                    process.socket.display(),
+                    log_tail(&process.log)
                 );
             }
             std::thread::sleep(Duration::from_millis(25));
@@ -191,6 +222,13 @@ fn wait_ready(process: &mut RunnerProcess, timeout: Duration) -> anyhow::Result<
         let _ = (process, timeout);
         bail!("runner readiness probe requires the named-pipe transport (Spec 133 P2)")
     }
+}
+
+
+fn log_tail(path: &Path) -> String {
+    let bytes = std::fs::read(path).unwrap_or_default();
+    let start = bytes.len().saturating_sub(1200);
+    String::from_utf8_lossy(&bytes[start..]).trim().to_string()
 }
 
 #[cfg(test)]
@@ -213,12 +251,12 @@ mod tests {
         let argv = launch_argv(Path::new("/opt/focusa/focusa-session-runner"), &cfg);
         for flag in [
             "--socket",
-            "--key_file",
-            "--nonce_ledger",
-            "--secret_dir",
-            "--principal_id",
-            "--owner_os_user",
-            "--socket_scope",
+            "--key-file",
+            "--nonce-ledger",
+            "--secret-dir",
+            "--principal-id",
+            "--owner-os-user",
+            "--socket-scope",
         ] {
             assert!(argv.iter().any(|arg| arg == flag), "missing {flag}");
         }

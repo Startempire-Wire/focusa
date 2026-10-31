@@ -78,7 +78,13 @@ pub async fn send_runner_request(
         if response.len() > MAX_RESPONSE_BYTES {
             return Err(RunnerClientError::OversizedResponse);
         }
-        let response: RunnerWireResponse = serde_json::from_slice(&response)?;
+        let raw = response.clone();
+        let response: RunnerWireResponse = serde_json::from_slice(&raw).map_err(|error| {
+            RunnerClientError::Other(anyhow::anyhow!(
+                "runner did not return a protocol response ({error}); body: {}",
+                String::from_utf8_lossy(&raw).trim()
+            ))
+        })?;
         if response.schema != RUNNER_PROTOCOL_SCHEMA
             || response.session_id != request.command.session_id
             || response.run_id != request.command.run_id

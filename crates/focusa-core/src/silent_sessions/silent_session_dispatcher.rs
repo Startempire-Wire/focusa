@@ -68,7 +68,12 @@ pub fn build_manifest(plan: &LaunchPlan) -> LaunchManifest {
         safe_env: BTreeMap::new(),
         secret_env_refs: Vec::new(),
         mission_delivery: plan.mission_delivery.clone(),
-        stdin_mode: StdioMode::Null,
+        stdin_mode: match &plan.mission_delivery {
+            MissionDelivery::Stdin { .. } | MissionDelivery::SecureArtifact { .. } => {
+                StdioMode::MissionArtifact
+            }
+            _ => StdioMode::Null,
+        },
         stdout_mode: StdioMode::Pipe,
         stderr_mode: StdioMode::Pipe,
         process_backend: if cfg!(windows) {
@@ -173,6 +178,103 @@ pub async fn dispatch_launch(
         command_id,
         socket: paths.socket.display().to_string(),
     })
+}
+
+/// Sign and deliver one operation to an already-running runner.
+async fn sign_and_send(
+    persistence: &SqlitePersistence,
+    paths: &RunnerPaths,
+    owner_uid: u32,
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+    os_user: &str,
+    operation: RunnerOperation,
+    timeout: Duration,
+) -> anyhow::Result<()> {
+    let key = std::fs::read(&paths.key_file)
+        .with_context(|| format!("read runner key {}", paths.key_file.display()))?;
+    let payload = serde_json::to_vec(&operation).context("serialize runner operation")?;
+    let now = Utc::now();
+    let principal_id = format!("session-{session_id}");
+    let socket_scope = format!("run-{run_id}");
+    let claims = RunnerCommandClaims {
+        session_id,
+        run_id,
+        runner: RunnerPaths::identity(os_user, &principal_id, &socket_scope),
+        action_digest: operation.action_digest()?,
+        nonce: uuid::Uuid::now_v7().to_string(),
+        issued_at: now,
+        expires_at: now + ChronoDuration::seconds(60),
+    };
+    let command = AuthenticatedRunnerCommand::issue(claims, &payload, &key)
+        .map_err(|error| anyhow::anyhow!("sign runner command: {error}"))?;
+    let request = RunnerWireRequest {
+        schema: RUNNER_PROTOCOL_SCHEMA.to_string(),
+        command,
+        operation,
+    };
+    send_runner_request(persistence, &paths.socket, owner_uid, &request, timeout)
+        .await
+        .map(|_| ())
+        .map_err(|error| anyhow::anyhow!("runner rejected operation: {error}"))
+}
+
+/// Deliver operator input to a running harness (Spec 133 §12.4, protocol v2).
+pub async fn dispatch_input(
+    persistence: &SqlitePersistence,
+    state_root: &Path,
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+    os_user: &str,
+    text: &str,
+    owner_uid: u32,
+    timeout: Duration,
+) -> anyhow::Result<()> {
+    let principal_id = format!("session-{session_id}");
+    let socket_scope = format!("run-{run_id}");
+    let paths = RunnerPaths::resolve(state_root, &principal_id, &socket_scope)?;
+    if !paths.socket.exists() {
+        anyhow::bail!("no runner socket for this run; start the session first");
+    }
+    sign_and_send(
+        persistence,
+        &paths,
+        owner_uid,
+        session_id,
+        run_id,
+        os_user,
+        RunnerOperation::Input {
+            text: text.to_string(),
+        },
+        timeout,
+    )
+    .await
+}
+
+/// Query the runner for the authoritative process projection.
+pub async fn dispatch_query(
+    persistence: &SqlitePersistence,
+    state_root: &Path,
+    session_id: SilentSessionId,
+    run_id: SilentSessionRunId,
+    os_user: &str,
+    owner_uid: u32,
+    timeout: Duration,
+) -> anyhow::Result<()> {
+    let principal_id = format!("session-{session_id}");
+    let socket_scope = format!("run-{run_id}");
+    let paths = RunnerPaths::resolve(state_root, &principal_id, &socket_scope)?;
+    sign_and_send(
+        persistence,
+        &paths,
+        owner_uid,
+        session_id,
+        run_id,
+        os_user,
+        RunnerOperation::Query,
+        timeout,
+    )
+    .await
 }
 
 #[cfg(test)]
