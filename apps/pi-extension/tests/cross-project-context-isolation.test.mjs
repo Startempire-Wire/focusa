@@ -163,9 +163,11 @@ test("session restore rejects foreign trajectory ScopeRef and validates same-pro
       fingerprint: "fnv1a64:focusa",
       rootPath: "/home/wirebot/focusa",
       continuityId: "focusa-v0.9.135-locked-14",
+      sessionId: "native-current",
     },
   };
   const snapshot = {
+    session_id: "native-current",
     trajectory_id: "trajectory:focusa:canonical",
     project_root: "/home/wirebot/focusa",
     continuity_id: "focusa-v0.9.135-locked-14",
@@ -317,7 +319,7 @@ test("begin-session ontology trajectory projection is preserved behind exact sco
   assert.match(ontologyProjection, /\(STG=/);
 });
 
-test("explicit Workpoint resume adopts only the operator-supplied exact typed scope", () => {
+test("Workpoint read selectors never authorize an attachment transfer", () => {
   const adoption = block(
     state,
     "export function adoptWorkpointScopeForFrameRecovery",
@@ -332,7 +334,9 @@ test("explicit Workpoint resume adopts only the operator-supplied exact typed sc
   const resume = block(tools, 'name: "focusa_workpoint_resume"', 'name: "focusa_tree_head"');
   assert.match(resume, /projectRoot: params\.project_root/);
   assert.match(resume, /continuityId: params\.continuity_id/);
-  assert.match(resume, /allowSessionTransfer: Boolean\(params\.project_root && params\.continuity_id\)/);
+  assert.match(resume, /allowSessionTransfer: false/);
+  assert.doesNotMatch(resume, /allowSessionTransfer: Boolean\(params\.project_root && params\.continuity_id\)/);
+  assert.match(adoption, /if \(caller\?\.workstream\.root_scope\.scope_kind === "project" && !sameBoundWorkstream\) return null/);
 });
 
 test("recent predictions reject any response outside requested typed workstream", () => {

@@ -495,6 +495,7 @@ function startupRecoveryFixture(data, fresh = null) {
     isProjectRootAuthoritySafe: root => root === r.sessionCwd,
     setActiveWorkpointPacket: packet => { r.activeWorkpointPacket = packet; },
     setActiveWorkpointSummary: summary => { r.activeWorkpointSummary = summary; },
+    setLastTrajectoryClarity: snapshot => { r.lastTrajectoryClarity = snapshot; },
   };
   const stamp = loadSourceSection('state.ts', 'export function stampWorkpointPacketForCurrentPiSession(',
     'export function isWorkpointPacketScopedToCurrentSession(', dependencies, 'stampWorkpointPacketForCurrentPiSession');
@@ -528,6 +529,7 @@ function startupSavedState() {
     currentAsk: exactAsk('Continue the source-only task; production remains unchanged.'),
     lastProjectIdentity: { project_root: r.sessionCwd },
     activeWorkpointPacket: { project_root: r.sessionCwd, continuity_id: r.continuityId,
+      session_id: r.sessionFrameKey,
       canonical: true, mission: 'specific saved task',
       action_authority_for_current_ask: true, matches_current_ask_scope: true,
       current_ask_scope: { action_authority_for_current_ask: true, matches_current_ask_scope: true } } };

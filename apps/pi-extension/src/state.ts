@@ -3740,6 +3740,8 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
   const persistedSessionId = String(data?.sessionId || "").trim();
   const persistedContinuityId = String(data?.continuityId || "").trim();
   if (!persistedSessionId || persistedSessionId !== eventSessionId || !persistedContinuityId) {
+    getAttachmentRuntime().activeFrameGoal = null;
+    getAttachmentRuntime().activeFrameTitle = null;
     setActiveWorkpointPacket(null);
     setActiveWorkpointSummary("");
     return;
@@ -3748,6 +3750,9 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
   // Adapter stamps are projection metadata, not proof of the record's origin.
   const originSession = String(packet?.session_id || packet?.session_identity?.pi_session_id || packet?.session_identity?.session_frame_key || "").trim();
   if (!originSession || originSession !== eventSessionId) {
+    // Discard only transient derived goal labels; canonical journals remain intact.
+    getAttachmentRuntime().activeFrameGoal = null;
+    getAttachmentRuntime().activeFrameTitle = null;
     setActiveWorkpointPacket(null);
     setActiveWorkpointSummary("");
     setLastTrajectoryClarity(null);
@@ -4972,7 +4977,8 @@ export function getLastTrajectoryClarity(): Record<string, any> | null {
   const store = getCurrentScopeStore();
   const snapshot = store?.lastTrajectoryClarity;
   const cacheKey = currentTrajectoryCacheKey();
-  return snapshot && cacheKey && snapshot.caller_cache_key === cacheKey ? snapshot : null;
+  return snapshot && cacheKey && snapshot.caller_cache_key === cacheKey &&
+    snapshot.fallback_prior_project_trajectory !== true ? snapshot : null;
 }
 
 function trajectorySnapshotMatchesStore(snapshot: Record<string, any>, store: TypedScopeStore): boolean {

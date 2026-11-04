@@ -35,6 +35,7 @@ test('two native sessions keep their bindings even when queries select the other
 test('unbound/crashed sessions bootstrap privately instead of borrowing an extension binding', () => {
   const route = runtimeRouter(new Map(), key('native-b','workstream-b'));
   assert.deepEqual(route(ctx('native-a'), {project_root:root,continuity_id:'workstream-b'}), {host:true,session_id:'native-a'});
+  assert.deepEqual(route(ctx('native-a'), {}), {host:true,session_id:'native-a'});
 });
 
 const classes = section(state, 'export class TypedScopeStore', 'export const scopeStoreRegistry');
@@ -71,10 +72,12 @@ test('foreign ladders, fallbacks, and candidates never become the caller mission
 
 const persistedCode = section(state, 'export function adoptPersistedContinuityForSession(', '// ── Build compact instructions');
 test('old adapter restamps cannot launder another native session through crash recovery', () => {
-  const runtime = {continuityId:'workstream-a'}; let active = 'untouched';
+  const runtime = {continuityId:'workstream-a',activeFrameGoal:'foreign cached goal',activeFrameTitle:'foreign title'}; let active = 'untouched';
   const adopt = new Function('getAttachmentRuntime','setActiveWorkpointPacket','setActiveWorkpointSummary','setLastTrajectoryClarity','normalizeProjectRoot','isProjectRootAuthoritySafe','stampWorkpointPacketForCurrentPiSession','revokeWorkpointRequestAuthority',`${js(persistedCode)};return adoptPersistedContinuityForSession;`)(()=>runtime,x=>active=x,()=>{},()=>{},s=>s,()=>true,x=>x,x=>x);
   adopt({sessionId:'native-a',continuityId:'workstream-b',activeWorkpointPacket:{project_root:root,continuity_id:'workstream-b',session_id:'native-b',pi_session_frame_key:'native-a',canonical:true,status:'active'}},'native-a',root);
   assert.equal(runtime.continuityId,'workstream-a');
+  assert.equal(runtime.activeFrameGoal,null);
+  assert.equal(runtime.activeFrameTitle,null);
   assert.equal(active,null);
 });
 

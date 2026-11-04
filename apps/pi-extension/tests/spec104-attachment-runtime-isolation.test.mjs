@@ -89,6 +89,7 @@ try {
   assert.equal(state.clearPublishedAttachmentEnvironment("promoted-session-b"), true);
 
   const trajectorySnapshot = (root, continuityId, scopeId, goal) => ({
+    session_id: state.getSessionFrameKey(),
     trajectory_id: `trajectory:${scopeId}:${continuityId}`,
     project_root: root,
     continuity_id: continuityId,
