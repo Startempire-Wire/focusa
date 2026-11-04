@@ -10,7 +10,34 @@ const invocations = new AsyncLocalStorage();
 const currentAttachmentKey = loadSourceSection(
   'state.ts', 'export function currentAttachmentKey()',
   '/**\n * Promote one verified Pi session',
-  { attachmentRuntimeContext: invocations }, 'currentAttachmentKey'
+  { attachmentRuntimeContext: invocations,
+    attachmentRuntimeRegistry: { boundSessionAttachment: () => undefined } }, 'currentAttachmentKey'
+);
+const httpRequests = [];
+let foreignProjection;
+const focusaFetchDetailed = loadSourceSection(
+  'tools.ts', '  async function focusaFetchDetailed(', '  function formatWorkLoopBudgetRemaining(',
+  {
+    currentAttachmentKey,
+    currentProjectBindingDecision: () => ({ state: 'BOUND' }),
+    timeoutBudgetForRoute: () => 1000,
+    focusaApiV1Base: () => 'http://source-fixture.invalid/v1',
+    getAttachmentRuntime: () => ({ cfg: {} }),
+    // Deliberately hostile stale projections: these are read data, not binding.
+    getActiveWorkpointPacket: () => foreignProjection,
+    resolveCanonicalMarkerProjectRoot: () => '',
+    normalizeProjectRoot: value => String(value || '').trim(),
+    getLastProjectIdentity: () => foreignProjection,
+    getLastProjectVerify: () => foreignProjection,
+    getContinuityId: () => currentAttachmentKey()?.workstream.continuity_id,
+    getSessionFrameKey: () => currentAttachmentKey()?.session_id,
+    isProjectRootAuthoritySafe: () => true,
+    buildProjectWorkstreamKey: scope.buildProjectWorkstreamKey,
+    fetch: async (url, options) => {
+      httpRequests.push({ url, options });
+      return { ok: true, status: 200, json: async () => ({status: 'ok'}) };
+    },
+  }, 'focusaFetchDetailed'
 );
 const spawned = [];
 let childFailure = false;
@@ -91,13 +118,27 @@ try {
     assert.ok(pair[0].options.env !== pair[1].options.env, 'concurrent child snapshots must be independent');
     assert.equal(process.env.FOCUSA_ATTACHMENT_KEY_V1, ambient);
   }
+  foreignProjection = { project_root: keyB.workstream.root_scope.root_path,
+    continuity_id: keyB.workstream.continuity_id, canonical: true, action_authority_for_current_ask: true };
+  process.env.FOCUSA_ATTACHMENT_KEY_V1 = JSON.stringify(keyB);
+  const parentBeforeParity = process.env.FOCUSA_ATTACHMENT_KEY_V1;
+  await invocations.run(keyA, () => focusaFetchDetailed('/health', {method: 'GET'}));
+  const httpScope = httpRequests.at(-1).options.headers;
   const startMany = spawned.length;
   result = await runMany(keyA);
   assert.equal(result.ok, true);
   assert.equal(spawned.length - startMany, 2);
   for (const row of spawned.slice(startMany)) {
-    assert.deepEqual(JSON.parse(row.options.env.FOCUSA_ATTACHMENT_KEY_V1), keyA);
+    const child = JSON.parse(row.options.env.FOCUSA_ATTACHMENT_KEY_V1);
+    assert.deepEqual(child, keyA);
+    assert.equal(child.workstream.root_scope.root_path, httpScope['x-scope-project-root']);
+    assert.equal(child.workstream.continuity_id, httpScope['x-scope-continuity-id']);
+    assert.equal(child.session_id, httpScope['x-scope-session-id']);
+    assert.equal(child.attachment_id, httpScope['x-scope-attachment-id']);
   }
+  await runSingle(keyA, 'same canonical resolver');
+  assert.deepEqual(JSON.parse(spawned.at(-1).options.env.FOCUSA_ATTACHMENT_KEY_V1), keyA);
+  assert.equal(process.env.FOCUSA_ATTACHMENT_KEY_V1, parentBeforeParity);
 
   const invalid = [undefined, null, {},
     { ...keyA, workstream: { ...keyA.workstream, continuity_id: '' } },

@@ -24,11 +24,13 @@ try {
   await state.runWithAttachmentRuntime(bootstrapA, async () => {
     const runtime = state.getAttachmentRuntime();
     runtime.localDecisions = ["bootstrap-a"];
-    const promoted = state.promoteCurrentSessionAttachment({
+    const promoted = await (async () => state.promoteCurrentSessionAttachment({
       projectRoot: "/tmp/project-a",
       continuityId: "promoted-cont-a",
       sessionId: "promoted-session-a",
-    });
+    }))();
+    assert.equal(promoted.instance_id, bootstrapA.instance_id);
+    assert.equal(promoted.attachment_id, bootstrapA.attachment_id);
     assert.equal(state.currentAttachmentKey().session_id, "promoted-session-a");
     assert.equal(state.getAttachmentRuntime(), runtime, "promotion must re-key, not clone, recovered state");
     assert.deepEqual(state.getAttachmentRuntime().localDecisions, ["bootstrap-a"]);
@@ -57,11 +59,15 @@ try {
     projectRoot: "/tmp/project-a",
     continuityId: "promoted-cont-a",
     sessionId: "promoted-session-a",
+    instanceId: bootstrapA.instance_id,
+    attachmentId: bootstrapA.attachment_id,
   });
   const promotedB = state.makeAttachmentKey({
     projectRoot: "/tmp/project-b",
     continuityId: "promoted-cont-b",
     sessionId: "promoted-session-b",
+    instanceId: bootstrapB.instance_id,
+    attachmentId: bootstrapB.attachment_id,
   });
   assert.deepEqual(state.getAttachmentRuntime(promotedA).localDecisions, ["bootstrap-a"]);
   assert.deepEqual(state.getAttachmentRuntime(promotedB).localDecisions, ["bootstrap-b"]);

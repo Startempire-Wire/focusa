@@ -538,7 +538,13 @@ export function makeAttachmentKey(input: {
 }
 
 export function currentAttachmentKey(): AttachmentKey | undefined {
-  return attachmentRuntimeContext.getStore();
+  const captured = attachmentRuntimeContext.getStore();
+  if (!captured || captured.workstream?.root_scope?.scope_kind !== "host") return captured;
+  const owned = attachmentRuntimeRegistry.boundSessionAttachment(captured.session_id);
+  // Only a verified bootstrap promotion can resolve an inherited host context.
+  // Never retarget a captured project operation into another Workstream.
+  return owned && owned.instance_id === captured.instance_id && owned.attachment_id === captured.attachment_id
+    ? owned : captured;
 }
 
 /**
@@ -563,7 +569,7 @@ export function promoteCurrentSessionAttachment(input: {
   if (!verifiedScopeRefForRoot(input.projectRoot)) {
     throw new Error("attachment_runtime_verified_scope_required");
   }
-  const promoted = makeAttachmentKey(input);
+  const promoted = makeAttachmentKey({ ...input, instanceId: current.instance_id, attachmentId: current.attachment_id });
   const runtime = attachmentRuntimeRegistry.promoteRuntime(current, promoted);
   runtime.sessionCwd = input.projectRoot;
   runtime.continuityId = input.continuityId;
@@ -590,7 +596,7 @@ export function clearPublishedAttachmentEnvironment(sessionId?: string): boolean
 }
 
 export function getAttachmentRuntime(key?: AttachmentKey): any {
-  const resolved = key || attachmentRuntimeContext.getStore();
+  const resolved = key || currentAttachmentKey();
   if (!resolved) throw new Error("attachment_runtime_key_required");
   return attachmentRuntimeRegistry.getOrCreate(resolved);
 }

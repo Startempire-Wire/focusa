@@ -3384,49 +3384,15 @@ pi.registerTool({
     }
     const base = focusaApiV1Base();
     const token = getAttachmentRuntime().cfg?.focusaToken || "";
-    const currentKey = currentAttachmentKey();
-    if (!currentKey) throw new Error("attachment_runtime_key_required");
-    const activeWorkpoint = getActiveWorkpointPacket() as any;
-    const markerProjectRoot = resolveCanonicalMarkerProjectRoot(process.cwd());
-    const activeWorkpointRoot = normalizeProjectRoot(activeWorkpoint?.project_root);
-    const activeWorkpointContinuity = String(activeWorkpoint?.continuity_id || "").trim();
-    const workpointScopeAuthoritative =
-      !!activeWorkpoint &&
-      activeWorkpoint.canonical !== false &&
-      activeWorkpoint.action_authority_for_current_ask !== false &&
-      activeWorkpointContinuity !== "extension-bootstrap" &&
-      (!markerProjectRoot || activeWorkpointRoot === markerProjectRoot);
-    const verifiedRoot = normalizeProjectRoot(
-      (workpointScopeAuthoritative ? activeWorkpoint.project_root : "") ||
-        getLastProjectIdentity()?.project_root ||
-        getLastProjectVerify()?.project_root ||
-        ""
-    );
-    const verifiedContinuity = String(
-      (workpointScopeAuthoritative ? activeWorkpoint.continuity_id : "") || getContinuityId() || ""
-    ).trim();
-    const currentRoot = normalizeProjectRoot(currentKey.workstream.root_scope.root_path);
-    const currentContinuity = String(currentKey.workstream.continuity_id || "").trim();
-    const verifiedScopeAvailable =
-      isProjectRootAuthoritySafe(verifiedRoot) &&
-      verifiedContinuity &&
-      verifiedContinuity !== "extension-bootstrap";
-    const currentScopeAvailable =
-      isProjectRootAuthoritySafe(currentRoot) &&
-      currentContinuity &&
-      currentContinuity !== "extension-bootstrap";
-    const attachmentKey =
-      verifiedScopeAvailable &&
-      (workpointScopeAuthoritative || !currentScopeAvailable || currentRoot !== verifiedRoot)
-        ? {
-            ...currentKey,
-            workstream: buildProjectWorkstreamKey(verifiedRoot, verifiedContinuity),
-          }
-        : currentKey;
+    // The native binding owner supplies one attachment for HTTP and child
+    // dispatch. Cached reads and query selectors cannot synthesize a different
+    // Workstream here; bootstrap promotion preserves the real caller identity.
+    const attachmentKey = currentAttachmentKey();
+    if (!attachmentKey) throw new Error("attachment_runtime_key_required");
     const scopeHeaders = {
       "x-scope-project-root": attachmentKey.workstream.root_scope.root_path,
       "x-scope-continuity-id": attachmentKey.workstream.continuity_id,
-      "x-scope-session-id": getSessionFrameKey() || attachmentKey.session_id,
+      "x-scope-session-id": attachmentKey.session_id,
       "x-scope-id": attachmentKey.workstream.root_scope.scope_id,
       "x-scope-kind": attachmentKey.workstream.root_scope.scope_kind,
       "x-scope-attachment-id": attachmentKey.attachment_id,
