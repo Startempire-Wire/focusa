@@ -1,0 +1,351 @@
+{
+  "schema": "focusa.spec195.inherited_obligations.v1",
+  "source_authoring_only": true,
+  "issue_number": 503,
+  "source_updated_at": "2026-09-14T18:29:31Z",
+  "source_body_sha256": "567acb9a74d7902435c8d88e751889e65f9d6a734a8e7d9f0ea1d96b34ae3e6b",
+  "acceptance_obligations": [
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-1",
+      "exact_source_text": "One mission binds at least four independently verified projects, two Workstreams inside one project, multiple Worksets and CallGraphs per Workstream, multiple graph revisions/runs, multiple repositories/workspaces, at least two daemons, and multiple agent participants.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-2",
+      "exact_source_text": "The same daemon concurrently hosts several projects/Workstreams without authority bleed; different daemons concurrently host separate Workstreams for the same mission without creating divergent mission truth.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-3",
+      "exact_source_text": "A Workstream/run moves between authorized daemons through explicit placement/handoff while preserving Workstream/graph/run identity and fencing the old executor.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-4",
+      "exact_source_text": "Similar HLT text, shared parent directory, same Git organization, same daemon, and Canvas proximity never auto-bind a project or Workstream.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-5",
+      "exact_source_text": "A project proposed but not project-accepted remains advisory and receives no mission context or dispatch; an accepted project does not implicitly admit any Workstream.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-6",
+      "exact_source_text": "A mutation carrying only `mission_id`, scope membership, or daemon identity fails `target_scope_required|target_workstream_required|target_execution_ref_required` with zero child mutation.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-7",
+      "exact_source_text": "An admitted dispatch creates/reuses an exact child Workset/CallGraph revision/run/frame/Workpoint and returns a child-scoped Receipt.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-8",
+      "exact_source_text": "One objective consumes several CallGraphs and one CallGraph contributes to several objectives without merging graph reducers, frontiers, runs, or settlement.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-9",
+      "exact_source_text": "Project HLT revision changes mark alignment stale; neither mission nor project truth is silently rewritten.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-10",
+      "exact_source_text": "Cross-project/cross-Workstream/cross-CallGraph fanout runs independent child-scoped lanes; deliberate lane scope, Workstream, graph, or run substitution is fenced.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-11",
+      "exact_source_text": "A blocked member/Workstream/graph does not block independent objectives; an explicitly accepted dependency does.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-12",
+      "exact_source_text": "Scope or Workstream revocation blocks future dispatch and removes active aggregate contribution without erasing child history.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-13",
+      "exact_source_text": "Remote daemon partition renders affected child state unknown/stale and cannot satisfy mission completion.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-14",
+      "exact_source_text": "Two daemons reconcile compatible mission events and surface conflicting governance/mission edits for governed resolution.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-15",
+      "exact_source_text": "Mission Canvas can inspect all members, Workstreams, graphs, and runs, then explicitly attach to one child without adopting foreign Workpoints/context.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-16",
+      "exact_source_text": "Agent compaction/resume preserves mission orientation only for its exact accepted member/Workstream/objective/graph and never emits a foreign executable next action.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-17",
+      "exact_source_text": "Aggregate settlement verifies exact child Receipt revisions/digests and cannot close or rewrite child Worksets or CallGraphs.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-18",
+      "exact_source_text": "Secret, private-context, evidence-visibility, prompt-injection, revoked-principal, replay, and stale-binding adversarial tests pass.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-19",
+      "exact_source_text": "Restart and multi-device restoration reconstruct the same mission graph and member states without singleton authority.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    },
+    {
+      "source_clause_ref": "github:Startempire-Wire/focusa#503:acceptance-20",
+      "exact_source_text": "Wirebot dogfood proves one mission coordinating Focusa, Connect, Ring Leader, WINS, and Wirebot Core restoration while every repository, Workstream, CallGraph, and daemon retains its exact identity, Workpoint, tests, release authority, and proof.",
+      "mapped_requirement_refs": [
+        "PNC-R029",
+        "PNC-R030",
+        "PNC-R031",
+        "PNC-R032",
+        "PNC-R033",
+        "PNC-R034",
+        "PNC-R048",
+        "PNC-R049"
+      ],
+      "mapping_status": "group_mapping_requires_clause_level_owner_review",
+      "implementation_status": "not_started",
+      "evidence_refs": []
+    }
+  ],
+  "activated_spec139_spec144_clause_mapping_status": "pending_exact_activation_review",
+  "closure_prohibitions_preserved": true
+}

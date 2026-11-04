@@ -1,0 +1,51 @@
+{
+  "schema": "focusa.spec195.authoring_manifest.v1",
+  "candidate_spec_number": 195,
+  "number_reserved": false,
+  "version": "0.1.0",
+  "status": "draft_complete_for_review_not_approved",
+  "source_authoring_only": true,
+  "implementation_admitted": false,
+  "decomposition_ready": false,
+  "release_dependency": false,
+  "operator_direction": "Ideas translated to Focusa primitives, no Busabase dependency; immediate next priority recent issue closure, retained qualified threshold, canonical release delivery.",
+  "approval_receipt_ref": null,
+  "remaining_adoption_gates": [
+    "current canonical number allocation",
+    "owner review of exact source/contract digest set",
+    "exact schema/operation registry binding",
+    "clause-level inherited activation/ownership review"
+  ],
+  "files": [
+    {
+      "path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "bytes": 43383,
+      "sha256": "9dd76397db33a34e58115f552be1e5e67e86b2bf447a199e420d51eb865e8660"
+    },
+    {
+      "path": "docs/contracts/spec195/field-contracts.v1.json",
+      "bytes": 7038,
+      "sha256": "c6a1c342101313f6a4c838bdf3ad872374d851a5dc0c357df22ee02cd1e2d1ad"
+    },
+    {
+      "path": "docs/contracts/spec195/inherited-obligations.v1.json",
+      "bytes": 12982,
+      "sha256": "61c01ae77afb72d4bb22c69113928d9f26ab9e3376ef96c14a31075013c07341"
+    },
+    {
+      "path": "docs/contracts/spec195/proof-matrix.v1.json",
+      "bytes": 21635,
+      "sha256": "b168f0378bef2724c5d31d269636228e7ddab2b26de9c93ddc86e73e2ecb1e04"
+    },
+    {
+      "path": "docs/contracts/spec195/requirements.v1.json",
+      "bytes": 57408,
+      "sha256": "245932d77b9e79a4a74e0b21751787be27d20e870e5a237fbe38f67a5c42fb74"
+    },
+    {
+      "path": "docs/contracts/spec195/source-coverage.v1.json",
+      "bytes": 751,
+      "sha256": "8d6f8b70f32f90163a17823361359151380f754e571da83911782a5347287659"
+    }
+  ]
+}

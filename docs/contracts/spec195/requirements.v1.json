@@ -1,0 +1,1329 @@
+{
+  "schema": "focusa.spec195.authoring_requirements.v1",
+  "source_sha256": "9dd76397db33a34e58115f552be1e5e67e86b2bf447a199e420d51eb865e8660",
+  "source_authoring_only": true,
+  "implementation_admitted": false,
+  "requirements": [
+    {
+      "requirement_id": "PNC-R001",
+      "title": "Release separation",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 30,
+      "exact_normative_text": "This specification MUST preserve the existing release workset, qualified-closure threshold, mandatory issue-specific acceptance, retained prior obligations, and original issue criteria; MUST NOT add the network layer as a prerequisite, count spec authoring as issue closure, or use it to waive recently discovered release-critical defects.",
+      "primitive_owner": "architecture/release-governance",
+      "dependency_requirement_refs": [],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R002",
+      "title": "Owner approval and freeze",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 32,
+      "exact_normative_text": "Canonical adoption MUST record the owner-approved specification revision, exact content/contract digests, decision provenance, and unresolved dispositions; any normative change MUST invalidate affected coverage and decomposition approval until regeneration and review. A hash or agent-authored statement alone MUST NOT count as approval.",
+      "primitive_owner": "architecture/release-governance",
+      "dependency_requirement_refs": [],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R003",
+      "title": "No software dependency",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 34,
+      "exact_normative_text": "Implementation MUST translate the adopted ideas into Focusa's existing primitive owners and MUST NOT require Busabase, a public messaging service, a particular harness, SSH, a particular operating system, or an additional daemon merely to use the baseline project-network capability.",
+      "primitive_owner": "architecture/release-governance",
+      "dependency_requirement_refs": [],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R004",
+      "title": "Single ownership",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 61,
+      "exact_normative_text": "Every contract, predicate, state transition, validation rule and persistence family introduced or extended here MUST identify one primitive owner and reuse its registered reducers, canonical constructors, authority and storage mechanism; clients MUST NOT maintain divergent authoritative copies.",
+      "primitive_owner": "typed-scope/primitive-ownership",
+      "dependency_requirement_refs": [],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R005",
+      "title": "Design-versus-runtime truth",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 63,
+      "exact_normative_text": "Discovery and documentation MUST distinguish specified, source-present, installed, configured, operationally verified and unavailable capability; Spec 139 and Spec 182 draft declarations MUST NOT be presented as installed support.",
+      "primitive_owner": "typed-scope/primitive-ownership",
+      "dependency_requirement_refs": [],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R006",
+      "title": "Scope isolation",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 65,
+      "exact_normative_text": "Every authority-bearing mutation MUST resolve the exact verified ScopeRef, WorkstreamKey and applicable attachment/execution identity; project names, local paths, common Git origins, shared machines, agent labels, mission IDs and UI selection MUST NOT establish or merge those identities.",
+      "primitive_owner": "typed-scope/primitive-ownership",
+      "dependency_requirement_refs": [],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R007",
+      "title": "Core/adapters boundary",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 80,
+      "exact_normative_text": "New shared semantics MUST live in the owning portable core/service contract, with thin API, CLI, harness and UI adapters; integration MUST avoid copying the ontology route's logic into the Pi extension or requiring a wholesale unrelated rewrite as a prerequisite.",
+      "primitive_owner": "typed-scope/primitive-ownership",
+      "dependency_requirement_refs": [],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R008",
+      "title": "Typed relationship contracts",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 105,
+      "exact_normative_text": "Relationship profiles MUST enforce typed endpoints, direction, multiplicity, semantic meaning, revision, evidence/promotion policies, freshness, visibility and lifecycle through the existing ontology/semantic registry, and MUST expose why the relationship exists.",
+      "primitive_owner": "ontology/PRE/semantic-registry",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R009",
+      "title": "Discovery is advisory",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 107,
+      "exact_normative_text": "Manifest parsing, repository links, service references, deployment observations, model inference and similar goals MAY produce attributed candidates only; candidates MUST NOT acquire accepted membership, foreign visibility, scheduling effects or instruction authority by inference.",
+      "primitive_owner": "ontology/PRE/semantic-registry",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R010",
+      "title": "Two-sided commitments",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 109,
+      "exact_normative_text": "A relationship asserting a mutual cross-scope commitment MUST become active only after independently authorized acceptance in both endpoint scopes over the same binding digest. Unilateral observations remain clearly unilateral and cannot falsely claim the other side's acceptance.",
+      "primitive_owner": "ontology/PRE/semantic-registry",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R011",
+      "title": "Revision-safe edits",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 111,
+      "exact_normative_text": "Acceptance MUST bind exact endpoint identities, contract/dependency semantics, visibility and revisions; changes to those binding fields MUST invalidate affected acceptance and require revalidation. Concurrent conflicting decisions MUST enter governed conflict resolution rather than last-writer-wins.",
+      "primitive_owner": "ontology/PRE/semantic-registry",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R012",
+      "title": "Relationship lifecycle",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 113,
+      "exact_normative_text": "Relationship states MUST support `candidate`, `proposed`, `partially_accepted`, `active`, `stale`, `conflicted`, `superseded` and `revoked`; missing acceptance cannot produce `active`, and revocation/supersession MUST retain history while fencing future use.",
+      "primitive_owner": "ontology/PRE/semantic-registry",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R013",
+      "title": "Project-network projection",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 115,
+      "exact_normative_text": "Network views MUST be authorized, bounded, cursor-paged and revision/freshness-bearing; queries and exports MUST avoid revealing inaccessible endpoints, edge existence, labels or counts, and MUST distinguish an unreadable result from an empty graph.",
+      "primitive_owner": "ontology/PRE/semantic-registry",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R014",
+      "title": "Revision-specific impact",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 132,
+      "exact_normative_text": "Contract changes MUST identify the affected accepted relationship revisions and consumer obligations; a producer change MUST mark affected compatibility claims stale or pending revalidation under their policy, without inventing consumer failure or silently changing the consumer's project goal.",
+      "primitive_owner": "artifact/evidence/child-dependency",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R010",
+        "PNC-R011"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R015",
+      "title": "Consumer proof",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 134,
+      "exact_normative_text": "Compatibility or downstream readiness MUST require the consumer authority's evidence for the exact declared artifact/contract and execution context; producer tests, message delivery, agent assertions and old-revision results MUST NOT satisfy that proof.",
+      "primitive_owner": "artifact/evidence/child-dependency",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R010",
+        "PNC-R011"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R016",
+      "title": "Controlled dependency activation",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 136,
+      "exact_normative_text": "A network relationship MUST NOT change a child scheduler's frontier until that child accepts a corresponding external dependency through its existing Workset/CallGraph contract. Existing cross-project scheduler hard stops MUST remain intact.",
+      "primitive_owner": "artifact/evidence/child-dependency",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R010",
+        "PNC-R011"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R017",
+      "title": "Stable identity versus presence",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 162,
+      "exact_normative_text": "Routing MUST distinguish principal, actor instance, role, project, Workstream, session/run/generation, machine, daemon and daemon epoch; missing or stale presence MUST render `unknown`, `stale` or `unavailable`, not proof of absence, release of a writer lease, or completion.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R018",
+      "title": "Exact recipient selection",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 164,
+      "exact_normative_text": "Resolution MUST return one authorized exact recipient/role target or an explicit ambiguity/recovery result; session names, cwd, a daemon-global current project and cached UI focus MUST NOT silently select a mutation target.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R019",
+      "title": "Transport neutrality",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 166,
+      "exact_normative_text": "The registered adapter contract MUST declare supported topology, authentication, delivery, cancellation, replay, maximum payload, timeout, platform and recovery semantics. Unsupported capability MUST be explicit; no platform-specific transport or public broker is a mandatory primitive dependency.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R020",
+      "title": "Authenticated provenance",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 191,
+      "exact_normative_text": "The receiver MUST separate transport-authenticated identity, verified authority/delegation, and self-reported agent/tool labels; a message header, SSH account or possession of a transport connection MUST NOT substitute for target capability or architecture authority.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R017",
+        "PNC-R018"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R021",
+      "title": "Bounded exchanges",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 193,
+      "exact_normative_text": "An exchange MUST bind source, exact target, intent, payload digest/reference, disclosure policy, expiry, correlation, idempotency and reply/acceptance contract; payload and fanout budgets MUST be enforced before transport.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R017",
+        "PNC-R018"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R022",
+      "title": "Delivery truth",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 195,
+      "exact_normative_text": "Exchange state MUST distinguish `prepared`, `queued`, `transport_accepted`, `received`, `recipient_accepted`, `rejected`, `expired`, `cancel_requested`, `cancelled`, `outcome_reported`, `outcome_verified` and `unknown`; a transport acknowledgement MUST NOT imply model consumption, accepted work, execution, verified outcome or settlement.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R017",
+        "PNC-R018"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R023",
+      "title": "Durable delivery and deduplication",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 197,
+      "exact_normative_text": "Outbound intent and inbox acceptance MUST be durably recorded through the existing persistence/outbox owners before claiming their respective states; duplicate messages MUST reuse semantic request identity, preserve receipts and prevent duplicate consequential target effects.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R017",
+        "PNC-R018"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R024",
+      "title": "Loss, reordering and reconciliation",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 199,
+      "exact_normative_text": "Timeout, crash, partition, duplicate delivery and out-of-order receipts MUST reconcile by correlation, revision and target effect evidence before retry; unknown effects MUST remain unknown until reconciled, and later transport events cannot regress verified terminal truth.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R017",
+        "PNC-R018"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R025",
+      "title": "Cancellation semantics",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 201,
+      "exact_normative_text": "Cancellation MUST distinguish withdrawal before target admission, a request to stop admitted work, and a confirmed stop/terminal outcome; revocation or cancellation cannot erase prior effects, forge rollback or imply that an unreachable executor stopped.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R017",
+        "PNC-R018"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R026",
+      "title": "Recipient admission",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 203,
+      "exact_normative_text": "Receiving a request MUST NOT create a child task, session, execution run, budget or credential grant unless the target's current operation-specific authority admits that effect; legitimate permitted read-only exchanges MUST NOT require a full executable trajectory as an artificial prerequisite.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R017",
+        "PNC-R018"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R027",
+      "title": "Handoff ownership",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 209,
+      "exact_normative_text": "Execution handoff MUST preserve the existing handoff owner, exact Workpoint/action or separately admitted child assignment, native run/generation, required acceptance, writer lease and fencing semantics; old executors MUST remain fenced after an authorized ownership transition.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R017",
+        "PNC-R018"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R028",
+      "title": "Existing executors only",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 211,
+      "exact_normative_text": "Admitted work MUST run through existing Work Loop, CallGraph, Silent Session/team/fanout and protected-runner contracts with target-owned budgets and leases; this layer MUST NOT introduce a global scheduler, cross-project Workpoint, shared Workset, uncontrolled subprocess spawn or terminal-input injection.",
+      "primitive_owner": "spec139/spec136/target-execution",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R017",
+        "PNC-R018"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R029",
+      "title": "Federation identity and cardinality",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 232,
+      "exact_normative_text": "Mission Federation MUST support many projects, many explicitly selected Workstreams per project, many child graphs/runs and many participating actors/hosts/daemons without assuming a one-to-one mapping; federation identity MUST NOT become a root scope, project HLT, writer lease or child mutation authority.",
+      "primitive_owner": "mission-federation/spec136",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R010",
+        "PNC-R026",
+        "PNC-R028"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R030",
+      "title": "Explicit member and Workstream acceptance",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 234,
+      "exact_normative_text": "Each mission member MUST have mission-side proposal and independently authorized project-side acceptance over the same exact binding; each participating Workstream MUST be separately admitted. Scope membership cannot implicitly admit all present or future Workstreams.",
+      "primitive_owner": "mission-federation/spec136",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R010",
+        "PNC-R026",
+        "PNC-R028"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R031",
+      "title": "Alignment and steering",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 236,
+      "exact_normative_text": "Mission alignment MUST reference exact project-owned goal/spec/design revisions; changes MUST invalidate affected alignment without overwriting child HLTs. Mission steering may prioritize proposals but MUST NOT override child operators, constitutions, stop directives or reserved decisions.",
+      "primitive_owner": "mission-federation/spec136",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R010",
+        "PNC-R026",
+        "PNC-R028"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R032",
+      "title": "Independent child dispatch",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 238,
+      "exact_normative_text": "Every federation dispatch MUST independently resolve and admit one exact child target and execution binding; fanout MUST consist of independently admitted child lanes with isolated grants, budgets, credentials, contexts, runs and receipts. Mission ID alone MUST fail target admission.",
+      "primitive_owner": "mission-federation/spec136",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R010",
+        "PNC-R026",
+        "PNC-R028"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R033",
+      "title": "Aggregate settlement",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 240,
+      "exact_normative_text": "Federation completion MUST be evaluated by the existing settlement authority against the approved aggregate completion contract and exact visible child evidence/receipts; stale, revoked, missing, conflicting, failed or indeterminate mandatory contributions MUST prevent a successful aggregate claim without rewriting or settling child objects.",
+      "primitive_owner": "mission-federation/spec136",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R010",
+        "PNC-R026",
+        "PNC-R028"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R034",
+      "title": "Independence and revocation",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 242,
+      "exact_normative_text": "A blocked member MUST NOT block unrelated eligible contributions unless an accepted dependency requires it; member/Workstream revocation MUST fence future use and active contribution while retaining historical outcomes and evidence, and cannot silently reduce the approved mandatory completion contract.",
+      "primitive_owner": "mission-federation/spec136",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006",
+        "PNC-R010",
+        "PNC-R026",
+        "PNC-R028"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R035",
+      "title": "Minimal disclosure",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 248,
+      "exact_normative_text": "Cross-scope projections and exchanges MUST apply the intersection of source, destination and operator visibility policies, classify/redact sensitive references before transport, and omit secrets, tokens, raw private transcripts, private endpoints and unauthorized context. Authorized secret use remains within the existing broker, not message payloads.",
+      "primitive_owner": "context-authority/spec140/spec156/spec139",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R036",
+      "title": "Data is not instruction authority",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 250,
+      "exact_normative_text": "Received project descriptions, playbooks, relationship labels, evidence, messages and provider text MUST remain attributed data unless promoted through existing instruction-authority procedures; they MUST NOT add members, change goals, grant permissions or inject foreign executable next actions.",
+      "primitive_owner": "context-authority/spec140/spec156/spec139",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R037",
+      "title": "Trust and replay protection",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 252,
+      "exact_normative_text": "Cross-daemon operations MUST use Spec 139's verified realm/principal, key possession, epoch, revocation and replay contracts; cryptographic integrity MUST NOT be confused with authorization, truth or valid consumer proof. Unsupported or unverified federation transport cannot silently downgrade to trusted mutation.",
+      "primitive_owner": "context-authority/spec140/spec156/spec139",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R038",
+      "title": "Durable source and derived views",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 258,
+      "exact_normative_text": "Canonical transitions MUST use the existing append-only/reducer-backed persistence contracts; graph/topology/status views MUST be reconstructible and versioned, with materialization revision and freshness. No shared SQLite file or private client cache may become cross-daemon consensus or canonical mission state.",
+      "primitive_owner": "existing-event-persistence/spec136/spec139",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R039",
+      "title": "Partial commits and recovery",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 260,
+      "exact_normative_text": "Cross-scope operations MUST expose partial acceptance and recovery state without claiming distributed atomicity; local atomic changes and intent/outbox recording MUST follow their existing transaction boundary, and failed compensation MUST remain a visible unresolved effect.",
+      "primitive_owner": "existing-event-persistence/spec136/spec139",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R040",
+      "title": "Replay parity",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 262,
+      "exact_normative_text": "Live and persisted replay MUST use the same registered event interpretation/state transitions and produce equivalent authorized semantic projections; unknown supported-extension fields/events MUST be retained or handled according to compatibility policy without fabricating progress, and unknown authority-bearing semantics MUST fail closed.",
+      "primitive_owner": "existing-event-persistence/spec136/spec139",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R041",
+      "title": "Bounded resources",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 264,
+      "exact_normative_text": "Reads, subscriptions, fanout, inboxes/outboxes, retry attempts, payloads, retained events and graph traversal MUST have explicit enforced budgets, cursors, expiry and backpressure; policy-controlled coalescing MUST preserve consequential evidence and uncertainty. Low-memory mode cannot waive mandatory truth or safety.",
+      "primitive_owner": "existing-event-persistence/spec136/spec139",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R042",
+      "title": "Generated surface parity",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 285,
+      "exact_normative_text": "API, CLI, Pi and other harness tools, MCP descriptors, generated clients and applicable UI surfaces MUST derive from the single approved operation/semantic registry and preserve exact error details, authority requirements, revision and receipt semantics; direct tools and child/background dispatch MUST resolve the same verified identity.",
+      "primitive_owner": "spec141/context/consumer-surfaces",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R043",
+      "title": "Honest degraded behavior",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 287,
+      "exact_normative_text": "Unavailable presence, transport, daemon, registry, browser or UI capability MUST produce operation-specific supported fallback or an explicit resumable unavailability result; harmless allowed inspection cannot be globally blocked by unrelated execution admission, while degraded modes MUST NOT grant weaker authority or claim missing capability is complete.",
+      "primitive_owner": "spec141/context/consumer-surfaces",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R044",
+      "title": "Inspectable review and presentation",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 295,
+      "exact_normative_text": "Applicable surfaces MUST show understandable relationship/mission meaning, proposed versus accepted state, exact revision, attribution versus authenticated principal, freshness, proof gaps, pending commitments and recovery actions; selection or visualization MUST NOT silently change the active child attachment or authority.",
+      "primitive_owner": "spec141/context/consumer-surfaces",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R045",
+      "title": "Bounded context and continuity",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 297,
+      "exact_normative_text": "Agent bootstrap, compaction/resume and model/harness changes MUST preserve only the relevant authorized network/mission slice with source revisions and rehydrate references; foreign member goals, Workpoints and next actions MUST NOT become the recipient's own executable continuation. Foreman/role continuity cannot depend on hidden model memory.",
+      "primitive_owner": "spec141/context/consumer-surfaces",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R046",
+      "title": "Safe migration",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 303,
+      "exact_normative_text": "Existing material MUST import as attributed candidates/observations unless exact current acceptance is proven; migration MUST preserve project/workstream IDs, historical receipts and child authority, and MUST NOT silently enroll projects, start peers, transfer writers or convert chat acknowledgements into execution evidence.",
+      "primitive_owner": "spec-approval/migration/proof/closure",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R047",
+      "title": "Version negotiation and rollback",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 305,
+      "exact_normative_text": "Schemas and adapters MUST support explicit capability/version negotiation, tested old/new producer-consumer behavior and additive compatibility where declared; unknown authority fields MUST NOT widen access. Rollback MUST stop new dispatch, retain receipts and reconcile in-flight effects without erasing canonical history or silently re-enabling revoked bindings.",
+      "primitive_owner": "spec-approval/migration/proof/closure",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R048",
+      "title": "Full proof standard",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 329,
+      "exact_normative_text": "Every activated requirement MUST have versioned contract, producer, actual receiving-consumer, declared cross-version and live end-to-end evidence on each claimed environment; fixtures, schema checks, message acknowledgements, installation or source tests alone MUST NOT establish installed outcome or whole-spec completion.",
+      "primitive_owner": "spec-approval/migration/proof/closure",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R049",
+      "title": "Inherited acceptance preservation",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 331,
+      "exact_normative_text": "Adopting this spec MUST reconcile and map the full issue #503 acceptance and closure prohibitions, applicable Spec 139/144 requirements and all activated owner obligations without silently dropping them; spec authoring, a smaller pilot or a graph UI MUST NOT close those broader issues or claim their full conformance.",
+      "primitive_owner": "spec-approval/migration/proof/closure",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R050",
+      "title": "Decomposition gate",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 347,
+      "exact_normative_text": "Before implementation task decomposition or admission, the approved package MUST contain hash-bound normative source coverage, clause-level requirement/ownership/dependency mapping, exact resolved schema and operation registry bindings, cross-spec amendments, migration/rollback and surface/proof matrices; no mandatory row may be orphaned, weakened, mapped only to prose follow-up, or falsely marked implemented. Task creation and execution admission remain separate later actions.",
+      "primitive_owner": "spec-approval/migration/proof/closure",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R051",
+      "title": "No premature activation",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 349,
+      "exact_normative_text": "This documentation package MUST NOT create implementation tasks, live network/federation records, agents, grants, schedules, budgets, peer connections, releases or issue closures; future implementation MUST obtain its own approved scope and actual runtime admission after the release priority is reconciled.",
+      "primitive_owner": "spec-approval/migration/proof/closure",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    },
+    {
+      "requirement_id": "PNC-R052",
+      "title": "Whole-outcome closure",
+      "source_path": "docs/195-focusa-project-network-coordination-and-mission-federation-spec.md",
+      "source_line": 351,
+      "exact_normative_text": "Full conformance MUST require all active mandatory rows and inherited obligations to be verified with current producer and consumer evidence; missing, stale, inaccessible, conflicted or unimplemented proof MUST remain visible and prevent an unqualified completion claim.",
+      "primitive_owner": "spec-approval/migration/proof/closure",
+      "dependency_requirement_refs": [
+        "PNC-R004",
+        "PNC-R006"
+      ],
+      "status": "not_started",
+      "authoring_status": "drafted_unapproved",
+      "implementation_task_refs": [],
+      "evidence_refs": [],
+      "receipt_refs": [],
+      "required_proof_classes": [
+        "versioned_contract",
+        "producer",
+        "actual_consumer",
+        "declared_cross_version",
+        "live_supported_environment"
+      ],
+      "closure_claim": false
+    }
+  ]
+}

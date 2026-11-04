@@ -1,0 +1,246 @@
+{
+  "schema": "focusa.spec195.field_contract_catalogue.v1",
+  "source_authoring_only": true,
+  "not_installed_registry_schemas": true,
+  "exact_owner_schema_id_resolution": "pending_current_registry_review",
+  "records": {
+    "ProjectRelationshipBinding": {
+      "owner": "ontology LinkType profile / Spec136 acceptance",
+      "fields": [
+        "relationship_id",
+        "revision",
+        "previous_revision_ref",
+        "source_scope_ref",
+        "target_scope_ref",
+        "registered_link_type_ref",
+        "semantic_profile_ref",
+        "source_object_ref",
+        "target_object_ref",
+        "contract_artifact_ref?",
+        "contract_revision_digest?",
+        "proposal_ref",
+        "source_acceptance_receipt_ref?",
+        "target_acceptance_receipt_ref?",
+        "binding_digest",
+        "status",
+        "provenance_refs[]",
+        "verification_refs[]",
+        "visibility_policy_ref",
+        "freshness_policy_ref",
+        "created_at",
+        "effective_at",
+        "superseded_by_ref?",
+        "revoked_at?"
+      ],
+      "states": [
+        "candidate",
+        "proposed",
+        "partially_accepted",
+        "active",
+        "stale",
+        "conflicted",
+        "superseded",
+        "revoked"
+      ]
+    },
+    "CoordinationExchange": {
+      "owner": "Spec139 coordination with Spec136 request/outcome lifecycle",
+      "fields": [
+        "exchange_id",
+        "revision",
+        "correlation_id",
+        "causation_ref?",
+        "source_scope_ref",
+        "source_workstream_ref?",
+        "source_actor_ref",
+        "source_authority_provenance_ref",
+        "authenticated_transport_principal_ref?",
+        "target_scope_ref",
+        "target_workstream_or_role_ref",
+        "target_actor_attachment_ref?",
+        "relationship_binding_ref?",
+        "mission_objective_ref?",
+        "intent",
+        "operation_descriptor_ref",
+        "expected_target_revision?",
+        "payload_artifact_ref",
+        "payload_digest",
+        "classification",
+        "disclosure_policy_ref",
+        "idempotency_key",
+        "issued_at",
+        "expires_at",
+        "temporal_policy_ref",
+        "reply_contract_ref",
+        "required_acceptance_refs[]",
+        "request_receipt_ref?",
+        "recipient_receipt_ref?",
+        "execution_receipt_refs[]",
+        "status_projection",
+        "reason_code?",
+        "evidence_refs[]"
+      ],
+      "states": [
+        "prepared",
+        "queued",
+        "transport_accepted",
+        "received",
+        "recipient_accepted",
+        "rejected",
+        "expired",
+        "cancel_requested",
+        "cancelled",
+        "outcome_reported",
+        "outcome_verified",
+        "unknown"
+      ]
+    },
+    "MissionFederation": {
+      "owner": "narrow mission coordination aggregate / settlement Spec136",
+      "fields": [
+        "mission_id",
+        "realm_ref",
+        "revision",
+        "previous_revision_ref",
+        "title",
+        "mission_statement",
+        "desired_outcome_refs[]",
+        "constraint_refs[]",
+        "objective_refs[]",
+        "member_refs[]",
+        "completion_contract_ref",
+        "governance_policy_ref",
+        "visibility_policy_ref",
+        "created_by",
+        "timestamps",
+        "digest",
+        "receipt_refs[]"
+      ],
+      "not_a_root_scope": true
+    },
+    "MissionObjective": {
+      "owner": "MissionFederation",
+      "fields": [
+        "objective_id",
+        "mission_revision_ref",
+        "desired_outcome_ref",
+        "mandatory",
+        "contribution_refs[]",
+        "dependency_refs[]",
+        "acceptance_refs[]",
+        "settlement_policy_ref",
+        "status_projection",
+        "freshness"
+      ]
+    },
+    "MissionMemberBinding": {
+      "owner": "MissionFederation plus independent project acceptance",
+      "fields": [
+        "binding_id",
+        "mission_revision_ref",
+        "member_scope_ref",
+        "project_identity_digest",
+        "role",
+        "contribution_refs[]",
+        "acceptance_refs[]",
+        "binding_digest",
+        "state",
+        "visibility_policy_ref"
+      ],
+      "invariants": {
+        "authority_transfers": false,
+        "permission_transfers": false,
+        "credential_transfers": false
+      }
+    },
+    "MissionWorkstreamBinding": {
+      "owner": "MissionFederation plus independent Workstream acceptance",
+      "fields": [
+        "binding_id",
+        "parent_member_binding_ref",
+        "exact_workstream_key",
+        "objective_refs[]",
+        "child_execution_refs[]",
+        "acceptance_refs[]",
+        "binding_digest",
+        "context_policy_ref",
+        "state"
+      ],
+      "invariants": {
+        "writer_lease_transfers": false
+      }
+    },
+    "MissionAlignmentClaim": {
+      "owner": "MissionFederation / child validation",
+      "fields": [
+        "alignment_id",
+        "objective_ref",
+        "member_ref",
+        "workstream_refs[]",
+        "project_hlt_revision_ref",
+        "spec_revision_refs[]",
+        "design_revision_refs[]",
+        "child_execution_refs[]",
+        "child_validation_receipt_ref",
+        "status",
+        "freshness"
+      ]
+    },
+    "MissionDependency": {
+      "owner": "MissionFederation / child dependency owner",
+      "fields": [
+        "dependency_id",
+        "source_contribution_ref",
+        "target_contribution_ref",
+        "registered_semantic_ref",
+        "effect",
+        "child_acceptance_receipt_refs[]",
+        "freshness"
+      ],
+      "effect_values": [
+        "advisory",
+        "aggregate_blocking",
+        "child_accepted"
+      ]
+    },
+    "MissionDispatchProposal": {
+      "owner": "MissionFederation proposal / target admission",
+      "fields": [
+        "dispatch_id",
+        "mission_revision_ref",
+        "objective_ref",
+        "member_binding_ref",
+        "workstream_binding_ref",
+        "exact_target_scope_ref",
+        "target_execution_binding_ref",
+        "requested_operation_ref",
+        "required_admission_refs[]",
+        "idempotency_key",
+        "expires_at",
+        "child_admission_receipt_ref?",
+        "child_result_receipt_refs[]",
+        "status"
+      ],
+      "is_execution_permit": false
+    },
+    "MissionExecutionBinding": {
+      "owner": "MissionFederation read projection over child authorities",
+      "fields": [
+        "binding_id",
+        "objective_ref",
+        "workstream_binding_ref",
+        "child_workset_refs[]",
+        "child_graph_revision_run_frame_refs[]",
+        "child_workpoint_refs[]",
+        "assignment_refs[]",
+        "validation_receipt_refs[]",
+        "state_projection",
+        "freshness"
+      ],
+      "read_only": true
+    }
+  },
+  "base_identity_types_owner": "crates/focusa-core/src/scoped_state.rs",
+  "common_result_error_owner": "existing canonical result/error envelope constructors",
+  "schema_generation_rule": "Generate and approve versioned executable schemas from resolved owner contracts before implementation decomposition; this catalogue is not runtime schema proof."
+}

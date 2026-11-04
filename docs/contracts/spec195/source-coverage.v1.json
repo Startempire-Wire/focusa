@@ -1,0 +1,13 @@
+{
+  "schema": "focusa.spec195.normative_source_coverage.v1",
+  "source_sha256": "9dd76397db33a34e58115f552be1e5e67e86b2bf447a199e420d51eb865e8660",
+  "identified_requirement_count": 52,
+  "exact_text_extraction": "52 directly identified normative paragraphs; activated field contracts mapped by referring requirements",
+  "direct_requirement_coverage": "complete_for_52_identified_paragraphs",
+  "field_contract_mapping_status": "catalogued_pending_exact_schema_binding",
+  "inherited_clause_coverage": "20 issue503 clauses preserved; detailed owner-reviewed mapping pending; Spec139/144 activation mapping pending",
+  "decomposition_ready": false,
+  "owner_approval_receipt_ref": null,
+  "implementation_admitted": false,
+  "runtime_claim": "none"
+}
