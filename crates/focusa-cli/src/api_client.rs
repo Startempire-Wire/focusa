@@ -272,7 +272,28 @@ impl ApiClient {
     }
 
     pub async fn post(&self, path: &str, body: &Value) -> anyhow::Result<Value> {
-        self.post_with_headers(path, body, &[]).await
+        // Explicit payload selectors identify this request; they do not change a
+        // caller's persisted attachment or confer mutation permission.
+        let mut headers = Vec::new();
+        if let (Some(root), Some(continuity)) = (
+            body.get("project_root")
+                .and_then(Value::as_str)
+                .filter(|s| !s.trim().is_empty()),
+            body.get("continuity_id")
+                .and_then(Value::as_str)
+                .filter(|s| !s.trim().is_empty()),
+        ) {
+            headers.push(("x-scope-project-root", root));
+            headers.push(("x-scope-continuity-id", continuity));
+            if let Some(session) = body
+                .get("session_id")
+                .and_then(Value::as_str)
+                .filter(|s| !s.trim().is_empty())
+            {
+                headers.push(("x-scope-session-id", session));
+            }
+        }
+        self.post_with_headers(path, body, &headers).await
     }
 
     pub async fn post_with_headers(
@@ -428,5 +449,39 @@ mod tests {
             .expect("scoped request succeeds");
         assert_eq!(response["status"], "completed");
         server.join().expect("mock daemon joins");
+    }
+
+    #[tokio::test]
+    async fn explicit_post_scope_is_sent_without_inventing_partial_scope() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            for scoped in [false, true] {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut buffer = [0u8; 4096];
+                let read = stream.read(&mut buffer).unwrap();
+                let request = String::from_utf8_lossy(&buffer[..read]).to_ascii_lowercase();
+                assert_eq!(request.contains("x-scope-project-root:"), scoped);
+                assert_eq!(request.contains("x-scope-continuity-id:"), scoped);
+                assert_eq!(
+                    request.contains("x-scope-session-id: fixture-native"),
+                    scoped
+                );
+                let body = r#"{"status":"completed"}"#;
+                write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", body.len(), body).unwrap();
+            }
+        });
+        let api = ApiClient {
+            client: Client::new(),
+            base: format!("http://{address}"),
+        };
+        api.post(
+            "/v1/workpoint/checkpoint",
+            &serde_json::json!({"project_root":"/fixture/project"}),
+        )
+        .await
+        .unwrap();
+        api.post("/v1/workpoint/checkpoint", &serde_json::json!({"project_root":"/fixture/project","continuity_id":"fixture-workstream","session_id":"fixture-native"})).await.unwrap();
+        server.join().unwrap();
     }
 }

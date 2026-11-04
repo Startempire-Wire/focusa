@@ -1154,7 +1154,7 @@ fn workpoint_packet(record: &WorkpointRecord) -> Value {
 
 fn workpoint_response_status(status: &WorkpointStatus) -> Map<String, Value> {
     Map::from_iter([
-        ("status".into(), json!(status)),
+        ("status".into(), json!("completed")),
         ("workpoint_status".into(), json!(status)),
         ("operation_status".into(), json!("completed")),
     ])
@@ -4907,8 +4907,8 @@ mod tests {
             let packet = workpoint_packet(&record);
             let current = current_workpoint_payload(&record);
             let resume = workpoint_response_status(&record.status);
-            assert_eq!(resume.get("status"), packet.get("status"));
-            assert_eq!(resume.get("status"), current.get("status"));
+            assert_eq!(resume.get("workpoint_status"), current.get("status"));
+            assert_eq!(resume.get("status"), Some(&json!("completed")));
             assert_eq!(resume.get("workpoint_status"), packet.get("status"));
             assert_eq!(resume.get("operation_status"), Some(&json!("completed")));
         }

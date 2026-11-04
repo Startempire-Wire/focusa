@@ -3722,6 +3722,11 @@ export function adoptVerifiedContinuityForCurrentSession(
       decision.selected_project_root
   );
   if (!root || !continuity || !isProjectRootAuthoritySafe(root) || verifiedRoot !== root) return false;
+  const caller = currentAttachmentKey();
+  if (caller?.workstream.root_scope.scope_kind === "project" && (
+    normalizeProjectRoot(caller.workstream.root_scope.root_path) !== root ||
+    caller.workstream.continuity_id !== continuity
+  )) return false; // Only the supported attachment-transition owner may re-key a caller.
   getAttachmentRuntime().continuityId = continuity;
   verifiedContinuityBySessionRoot.set(
     verifiedContinuityKey(getSessionFrameKey(), root),
@@ -3739,8 +3744,16 @@ export function adoptPersistedContinuityForSession(data: any, eventSessionId: st
     setActiveWorkpointSummary("");
     return;
   }
-  getAttachmentRuntime().continuityId = persistedContinuityId;
   const packet = data?.activeWorkpointPacket || null;
+  // Adapter stamps are projection metadata, not proof of the record's origin.
+  const originSession = String(packet?.session_id || packet?.session_identity?.pi_session_id || packet?.session_identity?.session_frame_key || "").trim();
+  if (!originSession || originSession !== eventSessionId) {
+    setActiveWorkpointPacket(null);
+    setActiveWorkpointSummary("");
+    setLastTrajectoryClarity(null);
+    return;
+  }
+  getAttachmentRuntime().continuityId = persistedContinuityId;
   const packetProjectRoot = normalizeProjectRoot(packet?.project_root);
   const packetContinuityId = String(packet?.continuity_id || "").trim();
   if (
@@ -3796,6 +3809,7 @@ export function buildCompactInstructions(prefix: string): string {
   );
   const parts = [
     prefix,
+    "\nScope integrity: a prior summary, rejected Workpoint, or record canonical only in another attachment cannot define this session's mission. Preserve the current operator correction; unavailable current authority stays unknown rather than borrowing another goal.",
     "\n" + attentionLines.join("\n"),
     "\n" + base,
     "\nFallback policy: never emit bare 'none' for Focusa Cognitive Summary fields. If a slot is empty, fill it with the nearest related canonical source: Workpoint mission/next_slice/project_root/session_id, current operator ask, active frame goal/title, local shadow decisions/constraints/failures, git/beads/evidence mentioned in the conversation. If no related source exists, say 'No recorded <field>; no safe related fallback available.'",
@@ -3897,8 +3911,16 @@ export function adoptWorkpointScopeForFrameRecovery(
     packet.status === "rejected_scope_mismatch"
   )
     return null;
+  const caller = currentAttachmentKey();
+  const sameBoundWorkstream = caller?.workstream.root_scope.scope_kind === "project" &&
+    normalizeProjectRoot(caller.workstream.root_scope.root_path) === packetProjectRoot &&
+    caller.workstream.continuity_id === packetContinuityId &&
+    caller.session_id === currentSessionKey && currentContinuityId === packetContinuityId;
+  // Transfer activation must already have been performed by its canonical owner.
+  // A readable packet and selectors cannot re-key a project attachment here.
+  if (caller?.workstream.root_scope.scope_kind === "project" && !sameBoundWorkstream) return null;
   const explicitScopeMatch =
-    expectedScope?.allowSessionTransfer === true &&
+    sameBoundWorkstream && source === "session_transfer_tool" && expectedScope?.allowSessionTransfer === true &&
     normalizeProjectRoot(expectedScope.projectRoot) === packetProjectRoot &&
     String(expectedScope.continuityId || "").trim() === packetContinuityId;
   if (currentContinuityId && currentContinuityId !== packetContinuityId && !explicitScopeMatch) return null;
@@ -3906,7 +3928,7 @@ export function adoptWorkpointScopeForFrameRecovery(
     currentSessionKey &&
     packetPiSessionKey &&
     packetPiSessionKey !== currentSessionKey &&
-    !explicitScopeMatch
+    !sameBoundWorkstream && !explicitScopeMatch
   )
     return null;
   if (
@@ -3914,7 +3936,7 @@ export function adoptWorkpointScopeForFrameRecovery(
     !packetPiSessionKey &&
     packetSessionId &&
     packetSessionId !== currentSessionKey &&
-    !explicitScopeMatch
+    !sameBoundWorkstream && !explicitScopeMatch
   )
     return null;
   if (currentSessionKey && !packetPiSessionKey && !packetSessionId && !explicitScopeMatch) return null;
@@ -4707,6 +4729,8 @@ class ScopeStoreRegistry {
       id.rootPath,
       id.continuityId,
       id.workingSubpathId || "primary",
+      // This registry stores transient projections, not canonical Workstream identity.
+      id.sessionId || "unbound-native-session",
     ].join("::");
   }
 }
@@ -4725,6 +4749,12 @@ export function getCurrentScopeStore(): TypedScopeStore | null {
   if (!requestedRoot || !continuityId) return null;
   const verifiedScope = verifiedScopeRefForRoot(requestedRoot);
   if (!verifiedScope) return null;
+  const caller = currentAttachmentKey();
+  if (caller?.workstream.root_scope.scope_kind === "project" && (
+    normalizeProjectRoot(caller.workstream.root_scope.root_path) !== normalizeProjectRoot(verifiedScope.root_path) ||
+    caller.workstream.continuity_id !== continuityId ||
+    caller.session_id !== getAttachmentRuntime().sessionFrameKey
+  )) return null;
   const identity: TypedScopeIdentity = {
     scopeKind: verifiedScope.scope_kind,
     scopeId: verifiedScope.scope_id,
@@ -4931,9 +4961,18 @@ export function setActiveWorkpointSummary(summary: string): void {
 }
 
 /** PI-04: Get lastTrajectoryClarity from the typed scope store only. */
+function currentTrajectoryCacheKey(): string {
+  const caller = currentAttachmentKey();
+  return caller?.workstream.root_scope.scope_kind === "project"
+    ? JSON.stringify([caller, process.env.FOCUSA_WORKING_SUBPATH_ID || "primary"])
+    : "";
+}
+
 export function getLastTrajectoryClarity(): Record<string, any> | null {
   const store = getCurrentScopeStore();
-  return store ? store.lastTrajectoryClarity : null;
+  const snapshot = store?.lastTrajectoryClarity;
+  const cacheKey = currentTrajectoryCacheKey();
+  return snapshot && cacheKey && snapshot.caller_cache_key === cacheKey ? snapshot : null;
 }
 
 function trajectorySnapshotMatchesStore(snapshot: Record<string, any>, store: TypedScopeStore): boolean {
@@ -4947,6 +4986,8 @@ function trajectorySnapshotMatchesStore(snapshot: Record<string, any>, store: Ty
   const receiptScope = receipt?.scope_ref || {};
   if (
     !trajectoryId ||
+    String(snapshot?.session_id || "").trim() !== String(store.identity.sessionId || "").trim() ||
+    !store.identity.sessionId ||
     projectIdentity?.status !== "verified" ||
     projectRoot !== store.identity.rootPath ||
     continuityId !== store.identity.continuityId ||
@@ -4983,7 +5024,10 @@ function trajectorySnapshotMatchesStore(snapshot: Record<string, any>, store: Ty
 export function setLastTrajectoryClarity(snapshot: Record<string, any> | null): void {
   const store = getCurrentScopeStore();
   if (!store) return;
-  store.lastTrajectoryClarity = snapshot && trajectorySnapshotMatchesStore(snapshot, store) ? snapshot : null;
+  const cacheKey = currentTrajectoryCacheKey();
+  store.lastTrajectoryClarity = snapshot && cacheKey && trajectorySnapshotMatchesStore(snapshot, store)
+    ? { ...snapshot, caller_cache_key: cacheKey }
+    : null;
 }
 
 function ontologyContextMatchesStore(packet: Record<string, any>, store: TypedScopeStore): boolean {

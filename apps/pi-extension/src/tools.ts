@@ -916,7 +916,11 @@ function toolTrajectoryProjectRoot(details: Record<string, unknown>): string {
   const candidate = objectValue(details.trajectory_candidate);
   const workpoint = objectValue(details.workpoint);
   const cached = objectValue(getLastTrajectoryClarity());
+  const caller = currentAttachmentKey();
+  if (caller?.workstream.root_scope.scope_kind !== "project") return "";
+  const callerRoot = normalizeProjectRoot(caller.workstream.root_scope.root_path);
   const candidates = [
+    callerRoot,
     details.project_root,
     projectIdentity.project_root,
     trajectory.project_root,
@@ -974,17 +978,27 @@ function normalizeToolTrajectoryLadder(source: unknown, sourceLabel: string): Re
   };
 }
 
+function toolTrajectoryLadderMatchesCaller(ladder: Record<string, unknown> | null): boolean {
+  const caller = currentAttachmentKey();
+  return Boolean(ladder && caller?.workstream.root_scope.scope_kind === "project" &&
+    normalizeProjectRoot(String(ladder.project_root || "")) === normalizeProjectRoot(caller.workstream.root_scope.root_path) &&
+    ladder.continuity_id === caller.workstream.continuity_id &&
+    ladder.session_id === caller.session_id &&
+    ladder.fallback_prior_project_trajectory !== true);
+}
+
 function cachedToolTrajectoryLadder(
   details: Record<string, unknown>,
   refreshed?: unknown
 ): Record<string, unknown> | null {
-  return (
-    normalizeToolTrajectoryLadder(details.trajectory_ladder, "tool_details.trajectory_ladder") ||
-    normalizeToolTrajectoryLadder(details.trajectory, "tool_details.trajectory") ||
-    normalizeToolTrajectoryLadder(details.trajectory_candidate, "tool_details.trajectory_candidate") ||
-    normalizeToolTrajectoryLadder(refreshed, "pi_state.lastTrajectoryClarity") ||
-    normalizeToolTrajectoryLadder(getLastTrajectoryClarity(), "pi_state.lastTrajectoryClarity")
-  );
+  // Candidate and foreign-scope records remain readable, never current-mission context.
+  const candidates = [
+    normalizeToolTrajectoryLadder(details.trajectory_ladder, "tool_details.trajectory_ladder"),
+    normalizeToolTrajectoryLadder(details.trajectory, "tool_details.trajectory"),
+    normalizeToolTrajectoryLadder(refreshed, "pi_state.lastTrajectoryClarity"),
+    normalizeToolTrajectoryLadder(getLastTrajectoryClarity(), "pi_state.lastTrajectoryClarity"),
+  ];
+  return candidates.find(toolTrajectoryLadderMatchesCaller) || null;
 }
 
 function formatToolTrajectoryLadderSummary(ladder: Record<string, unknown>): string {
@@ -1007,7 +1021,7 @@ async function ensureToolTrajectoryClarity(
   const cachedLadder = normalizeToolTrajectoryLadder(cached, "pi_state.lastTrajectoryClarity");
   const cachedAt = Number(cached.refreshed_at || 0);
   const cacheFresh = Boolean(
-    cachedLadder &&
+    toolTrajectoryLadderMatchesCaller(cachedLadder) &&
     cachedRoot === projectRoot &&
     cachedAt > 0 &&
     Date.now() - cachedAt < FOCUSA_TOOL_TRAJECTORY_TTL_MS
@@ -1029,8 +1043,12 @@ function focusaToolDetails(
 ): Record<string, unknown> {
   const trajectoryLadder = cachedToolTrajectoryLadder(details, trajectoryClarity);
   const trajectorySummary = trajectoryLadder ? formatToolTrajectoryLadderSummary(trajectoryLadder) : "";
+  const { trajectory_ladder: queriedLadder, trajectory_ladder_summary: queriedSummary, ...base } = details;
   return {
-    ...details,
+    ...base,
+    ...(queriedLadder && !toolTrajectoryLadderMatchesCaller(normalizeToolTrajectoryLadder(queriedLadder, "query_result"))
+      ? { queried_trajectory_ladder: queriedLadder, queried_trajectory_ladder_summary: queriedSummary, queried_trajectory_scope: "advisory_not_current_attachment" }
+      : {}),
     ...(trajectoryLadder ? { trajectory_ladder: trajectoryLadder } : {}),
     ...(trajectorySummary ? { trajectory_ladder_summary: trajectorySummary } : {}),
     tool_result_v1: result,
@@ -9630,7 +9648,7 @@ pi.registerTool({
         const adoptedRoot = adoptWorkpointScopeForFrameRecovery(candidate, "workpoint_resume_tool", {
           projectRoot: params.project_root || "",
           continuityId: params.continuity_id || "",
-          allowSessionTransfer: Boolean(params.project_root && params.continuity_id),
+          allowSessionTransfer: false, // Read selectors cannot authorize an attachment transfer.
         });
         if (adoptedRoot) {
           setActiveWorkpointSummary(String(res.body?.rendered_summary || v2?.rendered_summary || ""));

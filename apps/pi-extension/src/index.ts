@@ -13,14 +13,12 @@ import {
   getActiveFrameId,
   getActiveWorkpointPacket,
   isProjectRootAuthoritySafe,
-  makeAttachmentKey,
   makeSessionBootstrapAttachmentKey,
   runWithAttachmentRuntime,
 } from "./state.js";
 import {
   PiExtensionSessionBinding,
   attachmentRoutingHints,
-  verifiedScopeRefForRoot,
   type AttachmentKey,
 } from "./scoped-state.js";
 
@@ -66,27 +64,17 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     const runtimeFor = (ctx?: any, eventOrParams?: any) => {
       const hints = attachmentRoutingHints(eventOrParams);
       const sessionId = String(
-        hints.sessionId ||
-          ctx?.sessionManager?.getSessionId?.() ||
+        ctx?.sessionManager?.getSessionId?.() ||
+          hints.sessionId ||
           ctx?.sessionManager?.getSessionFile?.() ||
           getAttachmentRuntime(extensionKey).sessionFrameKey ||
           `pi-extension-${process.pid}`
       );
-      const explicitProjectRoot = hints.projectRoot;
-      const explicitContinuity = hints.continuityId;
-      if (!explicitProjectRoot && !explicitContinuity) {
-        const bound = attachmentRuntimeRegistry.boundSessionAttachment(sessionId) || sessionBinding.resolve();
-        // An extension survives native session switches; its cached binding may not.
-        if (bound?.session_id === sessionId) return bound;
-      }
-      const projectRoot = String(explicitProjectRoot || ctx?.cwd || process.cwd());
-      const continuityId = String(
-        explicitContinuity || getAttachmentRuntime(extensionKey).continuityId || "extension-bootstrap"
-      );
-      // Let session_start establish verified identity from the host bootstrap.
-      // Promote only after initFocusa has registered the exact project ScopeRef.
-      if (!verifiedScopeRefForRoot(projectRoot)) return makeSessionBootstrapAttachmentKey(sessionId);
-      return makeAttachmentKey({ projectRoot, continuityId, sessionId, attachmentId: sessionId });
+      const bound = attachmentRuntimeRegistry.boundSessionAttachment(sessionId) || sessionBinding.resolve();
+      // Query selectors are not attachment transitions. A newly encountered native
+      // session must establish its own binding, never inherit another one's bootstrap.
+      if (bound?.session_id === sessionId) return bound;
+      return makeSessionBootstrapAttachmentKey(sessionId);
     };
     const prepareRuntime = (key: AttachmentKey) => {
       const bootstrap = getAttachmentRuntime(extensionKey);
@@ -146,7 +134,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
           ...tool,
           execute: tool?.execute
             ? (id: string, params: any, signal: AbortSignal, onUpdate: any, ctx: any) =>
-                runWithAttachmentRuntime(prepareRuntime(runtimeFor(ctx, params || {})), () =>
+                runWithAttachmentRuntime(prepareRuntime(runtimeFor(ctx)), () =>
                   tool.execute(id, params, signal, onUpdate, ctx)
                 )
             : tool?.execute,
