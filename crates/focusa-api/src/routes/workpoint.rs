@@ -2479,9 +2479,9 @@ fn legacy_lifecycle_repair_eligible(
         && req.project_root == previous.project_root
         && req.continuity_id == previous.continuity_id
         && req.work_item_id == previous.work_item_id
-        // The task link is optional in the record schema; preserve None rather
-        // than inventing owner data just to repair its single missing stage.
-        && previous.work_item_id.as_deref().is_none_or(|id| !id.trim().is_empty())
+        // Optional snapshot metadata is not execution authority: a repair that
+        // restores readiness must retain its existing admitted task linkage.
+        && previous.work_item_id.as_deref().is_some_and(|id| !id.trim().is_empty())
         && req.mission == previous.mission
         && req.next_slice == previous.next_slice
         && req.active_object_refs.as_ref() == Some(&previous.active_object_refs)
@@ -4332,7 +4332,7 @@ mod tests {
         taskless.work_item_id = None;
         assert!(!legacy_lifecycle_repair_eligible(&req, &taskless, &linkage));
         req.work_item_id = None;
-        assert!(legacy_lifecycle_repair_eligible(&req, &taskless, &linkage));
+        assert!(!legacy_lifecycle_repair_eligible(&req, &taskless, &linkage));
         req.work_item_id = old.work_item_id.clone();
         req.confirm_lifecycle_repair = false;
         assert!(!legacy_lifecycle_repair_eligible(&req, &old, &linkage));
