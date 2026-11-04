@@ -42,15 +42,25 @@ jobs:
           set -euo pipefail
           binary="${RUNNER_TEMP}/deslop-${DESLOP_VERSION}/deslop-${DESLOP_VERSION}-linux-x64/deslop"
           reports="${RUNNER_TEMP}/deslop-reports"
-          # Podman rejects the runner's inherited /run/user/0 when it is not
-          # owned by the active runner. Use a private runtime dir per job.
-          runtime_dir="${RUNNER_TEMP}/podman-runtime"
+          # Isolate storage as well as runtime state: an OOM-killed rootless
+          # pause process must not poison later scans or require a global reset.
+          container_state="$(mktemp -d "${RUNNER_TEMP}/deslop-container.XXXXXX")"
+          runtime_dir="${container_state}/runtime"
           install -d -m 700 "${runtime_dir}"
           export XDG_RUNTIME_DIR="${runtime_dir}"
+          podman_args=(--root "${container_state}/storage" --runroot "${container_state}/run" --cgroup-manager=cgroupfs)
+          cleanup_private_container_state() {
+            # Only this job's newly-created sandbox; never shared containers,
+            # images, reports, receipts, or the runner's default Podman store.
+            if [[ "${container_state}" == "${RUNNER_TEMP}"/deslop-container.* ]]; then
+              podman "${podman_args[@]}" unshare rm -rf -- "${container_state}" || true
+            fi
+          }
+          trap cleanup_private_container_state EXIT
           mkdir -p "${reports}"
           find "${reports}" -mindepth 1 -maxdepth 1 -delete
           set +e
-          podman run --rm \
+          podman "${podman_args[@]}" run --rm \
             --network=none \
             --memory 4g \
             --memory-swap 4g \
