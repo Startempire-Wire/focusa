@@ -13,6 +13,8 @@ const SCHEMA_SELECTED: &str = "focusa.cli.selected_project.v1";
 pub struct SelectedProjectProfile {
     pub schema: String,
     pub selected_project_fingerprint: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_root: Option<String>,
     pub selected_at: String,
     pub selected_by: String,
     pub note: String,
@@ -182,6 +184,7 @@ fn migrate_active_project_alias() -> Result<()> {
             &SelectedProjectProfile {
                 schema: SCHEMA_SELECTED.to_string(),
                 selected_project_fingerprint: fingerprint,
+                project_root: None,
                 selected_at: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
                 selected_by: "active-project-migration".to_string(),
                 note: "migrated from active-project".to_string(),
@@ -207,6 +210,7 @@ pub fn write_selected_project(project_root: &str, selected_by: &str) -> Result<(
         &SelectedProjectProfile {
             schema: SCHEMA_SELECTED.to_string(),
             selected_project_fingerprint: project_fingerprint(project_root),
+            project_root: Some(project_root.to_string()),
             selected_at: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
             selected_by: selected_by.to_string(),
             note: "CLI selected project".to_string(),
@@ -239,6 +243,9 @@ pub fn resolve_project_scope(
             // (e.g. /root) and reject the explicit child path.
             return Ok(resolved_from_root(root, ScopeSource::ExplicitFlag));
         }
+        return Err(anyhow!(
+            "[CLI_SCOPE_REJECT] explicit project root does not exist: {root}"
+        ));
     }
 
     if let Some(alias) = explicit_project_alias.filter(|value| !value.trim().is_empty()) {
@@ -306,6 +313,16 @@ pub fn resolve_project_scope(
         }
     }
 
+    if let Some(profile) = read_json_file::<SelectedProjectProfile>(&selected_profile_path())
+        .filter(|profile| profile.schema == SCHEMA_SELECTED)
+    {
+        if let Some(root) = profile.project_root.as_deref().filter(|root| {
+            is_safe_root(root).is_none() && root_path_is_project_candidate(Path::new(root))
+        }) {
+            return Ok(resolved_from_root(root, ScopeSource::CliSelectedProject));
+        }
+    }
+
     if let Some(profile_fingerprint) = selected_fingerprint_from_profile()? {
         if !profile_fingerprint.is_empty() {
             if let Some(root) = std::env::var("FOCUSA_PROJECT_ROOT")
@@ -332,12 +349,163 @@ pub fn resolve_project_scope(
     ))
 }
 
+/// Resolve request selectors for reads, never a native attachment transition.
+/// Marker Genesis data is only a standalone CLI default; the daemon still
+/// verifies the selected scope and remains the readiness/goal authority.
+pub fn resolve_read_scope(
+    project_root: Option<&str>,
+    continuity_id: Option<&str>,
+    cwd: Option<&str>,
+) -> Result<ResolvedProjectScope> {
+    let attachment = std::env::var("FOCUSA_ATTACHMENT_KEY_V1").ok();
+    let key: Option<serde_json::Value> = attachment
+        .as_deref()
+        .and_then(|value| serde_json::from_str(value).ok());
+    let attached_root = key
+        .as_ref()
+        .and_then(|value| value.pointer("/workstream/root_scope/root_path"))
+        .and_then(|value| value.as_str());
+    if project_root.is_none() && attachment.is_some() && attached_root.is_none() {
+        return Err(anyhow!(
+            "[CLI_SCOPE_REJECT] current attachment is unresolved; no project default was adopted"
+        ));
+    }
+    let mut resolved = if let Some(root) = project_root
+        .or(attached_root)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        if let Some(reason) = is_safe_root(root) {
+            return Err(anyhow!(
+                "[CLI_SCOPE_REJECT] operation=read reason={reason} value={root}"
+            ));
+        }
+        // An explicit remote root is a request selector even when it does not
+        // exist on this client; never replace it with another local project.
+        resolved_from_root(root, ScopeSource::ExplicitFlag)
+    } else {
+        resolve_project_scope(None, None, cwd)?
+    };
+    let env_root = std::env::var("FOCUSA_PROJECT_ROOT").ok();
+    let env_continuity = std::env::var("FOCUSA_CONTINUITY_ID").ok();
+    resolved.continuity_id = read_continuity_selector(
+        &resolved.project_root,
+        continuity_id,
+        attachment.as_deref(),
+        env_root.as_deref(),
+        env_continuity.as_deref(),
+    );
+    resolved.verified = false;
+    resolved.authority = "read_request_selector";
+    Ok(resolved)
+}
+
+pub fn remember_selected_project(response: &serde_json::Value) -> Result<()> {
+    if response["status"].as_str() == Some("ok") {
+        let profile: SelectedProjectProfile = serde_json::from_value(response["selected"].clone())?;
+        if profile.schema != SCHEMA_SELECTED
+            || profile
+                .project_root
+                .as_deref()
+                .is_none_or(|root| is_safe_root(root).is_some())
+        {
+            return Err(anyhow!(
+                "selected project response has no safe request root"
+            ));
+        }
+        write_json_file(&selected_profile_path(), &profile)?;
+    }
+    Ok(())
+}
+
+pub async fn read_selected_project_identity(
+    api: &crate::api_client::ApiClient,
+) -> Result<serde_json::Value> {
+    let cwd = std::env::current_dir()?.to_string_lossy().into_owned();
+    let scope = resolve_read_scope(None, None, Some(&cwd))?;
+    let path = format!(
+        "/v1/project/identity?project_root={}",
+        urlencoding::encode(&scope.project_root)
+    );
+    match scope.continuity_id {
+        Some(continuity) => {
+            api.get_scoped(&path, &scope.project_root, &continuity)
+                .await
+        }
+        None => api.get(&path).await,
+    }
+}
+
+fn read_continuity_selector(
+    root: &str,
+    explicit: Option<&str>,
+    attachment: Option<&str>,
+    env_root: Option<&str>,
+    env_continuity: Option<&str>,
+) -> Option<String> {
+    let nonempty = |value: &str| !value.trim().is_empty();
+    if let Some(explicit) = explicit.filter(|value| nonempty(value)) {
+        return Some(explicit.trim().to_string());
+    }
+    if let Some(attachment) = attachment {
+        // An existing caller attachment always outranks project defaults. An
+        // invalid/foreign attachment is unresolved, not permission to borrow one.
+        let key: serde_json::Value = serde_json::from_str(attachment).ok()?;
+        if key
+            .pointer("/workstream/root_scope/root_path")
+            .and_then(|v| v.as_str())
+            != Some(root)
+        {
+            return None;
+        }
+        return key
+            .pointer("/workstream/continuity_id")
+            .and_then(|v| v.as_str())
+            .filter(|value| nonempty(value))
+            .map(ToString::to_string);
+    }
+    if let Some(continuity) = env_continuity.filter(|value| nonempty(value)) {
+        return env_root
+            .filter(|value| nonempty(value))
+            .is_none_or(|value| value == root)
+            .then(|| continuity.trim().to_string());
+    }
+    let marker: serde_json::Value = read_json_file(&Path::new(root).join(".focusa-project.json"))?;
+    let binding = &marker["genesis_binding"];
+    if binding["status"].as_str() != Some("ready")
+        || !binding["receipt_id"].as_str().is_some_and(nonempty)
+        || marker["project_root"]
+            .as_str()
+            .is_some_and(|value| value != root)
+    {
+        return None;
+    }
+    binding["continuity_id"]
+        .as_str()
+        .filter(|value| nonempty(value))
+        .map(ToString::to_string)
+}
+
 pub fn resolve_active_workstream_scope(cwd: Option<&str>) -> Result<ResolvedProjectScope> {
-    let mut resolved = resolve_project_scope(None, None, cwd)?;
-    if resolved.continuity_id.is_none() {
+    let native_attachment = std::env::var_os("FOCUSA_ATTACHMENT_KEY_V1").is_some();
+    let mut resolved = if native_attachment {
+        resolve_read_scope(None, None, cwd)?
+    } else {
+        resolve_project_scope(None, None, cwd)?
+    };
+    if resolved.continuity_id.is_none() && !native_attachment {
         resolved.continuity_id = std::env::var("FOCUSA_CONTINUITY_ID")
             .ok()
             .filter(|value| !value.trim().is_empty());
+    }
+    if resolved.continuity_id.is_none()
+        && !native_attachment
+        && matches!(resolved.scope_source, ScopeSource::CliSelectedProject)
+    {
+        // A supported standalone selection may address its committed default;
+        // CWD discovery alone never activates that Workstream default.
+        resolved.continuity_id =
+            read_continuity_selector(&resolved.project_root, None, None, None, None);
     }
     if resolved.continuity_id.is_none() {
         return Err(anyhow!(
@@ -355,7 +523,10 @@ mod tests {
     fn blocked_scope_without_candidates() {
         let err =
             resolve_project_scope(Some("/tmp/focusa-does-not-exist"), None, None).unwrap_err();
-        assert!(err.to_string().contains("project_root_selection_required"));
+        assert!(
+            err.to_string()
+                .contains("explicit project root does not exist")
+        );
     }
 
     #[test]
@@ -380,6 +551,70 @@ mod tests {
     }
 
     #[test]
+    fn read_scope_defaults_are_selectors_not_attachment_transitions() {
+        let root = std::env::temp_dir().join(format!("focusa-read-scope-{}", uuid::Uuid::now_v7()));
+        fs::create_dir_all(&root).unwrap();
+        let root_string = root.to_string_lossy();
+        let marker = serde_json::json!({"project_root":root_string,
+            "genesis_binding":{"status":"ready","receipt_id":"owner-receipt","continuity_id":"genesis-default"}});
+        let marker_path = root.join(".focusa-project.json");
+        write_json_file(&marker_path, &marker).unwrap();
+        assert_eq!(
+            read_continuity_selector(&root_string, None, None, None, None).as_deref(),
+            Some("genesis-default")
+        );
+        let attachment = serde_json::json!({"workstream":{"root_scope":{"root_path":root_string},"continuity_id":"native-owned"}}).to_string();
+        assert_eq!(
+            read_continuity_selector(&root_string, None, Some(&attachment), None, None).as_deref(),
+            Some("native-owned")
+        );
+        assert_eq!(
+            read_continuity_selector(
+                &root_string,
+                Some("queried-only"),
+                Some(&attachment),
+                None,
+                None
+            )
+            .as_deref(),
+            Some("queried-only")
+        );
+        assert_eq!(
+            read_continuity_selector("/different-project", None, Some(&attachment), None, None),
+            None
+        );
+        assert_eq!(
+            read_continuity_selector(&root_string, None, Some("invalid"), None, None),
+            None
+        );
+        assert_eq!(
+            read_continuity_selector(
+                &root_string,
+                None,
+                None,
+                Some("/different-project"),
+                Some("foreign-env")
+            ),
+            None
+        );
+        let mut unready = marker.clone();
+        unready["genesis_binding"]["status"] = serde_json::json!("staged");
+        write_json_file(&marker_path, &unready).unwrap();
+        assert_eq!(
+            read_continuity_selector(&root_string, None, None, None, None),
+            None
+        );
+        unready = marker;
+        unready["genesis_binding"]["receipt_id"] = serde_json::Value::Null;
+        write_json_file(&marker_path, &unready).unwrap();
+        assert_eq!(
+            read_continuity_selector(&root_string, None, None, None, None),
+            None
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn reads_selected_profile_schema() {
         let root = std::env::temp_dir().join("focusa-cli-selected-test");
         let path = root
@@ -391,6 +626,7 @@ mod tests {
         let profile = SelectedProjectProfile {
             schema: SCHEMA_SELECTED.to_string(),
             selected_project_fingerprint: "project-fnv1a64:example".to_string(),
+            project_root: Some(root.to_string_lossy().into_owned()),
             selected_at: "2026-07-01T00:00:00Z".to_string(),
             selected_by: "cli".to_string(),
             note: "test".to_string(),
@@ -402,6 +638,13 @@ mod tests {
             decoded.selected_project_fingerprint,
             "project-fnv1a64:example"
         );
+        assert_eq!(decoded.project_root, profile.project_root);
+        let legacy: SelectedProjectProfile = serde_json::from_value(serde_json::json!({
+            "schema":SCHEMA_SELECTED, "selected_project_fingerprint":"legacy",
+            "selected_at":"2026-07-01T00:00:00Z", "selected_by":"cli", "note":"legacy"
+        }))
+        .unwrap();
+        assert_eq!(legacy.project_root, None);
 
         let _ = fs::remove_dir_all(&root);
     }

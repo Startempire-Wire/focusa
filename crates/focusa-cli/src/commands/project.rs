@@ -907,7 +907,11 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 "selected_by": selected_by,
                 "note": note,
             });
-            ("use", api.post("/v1/project/use", &body).await?)
+            let response = api.post("/v1/project/use", &body).await?;
+            // The backend can be remote or run as another OS user. Retain its
+            // convenience selection locally without changing a native binding.
+            scope_resolver::remember_selected_project(&response)?;
+            ("use", response)
         }
         ProjectCmd::Current { project_root } => {
             let mut qs = Vec::new();

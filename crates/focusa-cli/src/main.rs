@@ -994,9 +994,11 @@ async fn async_main() -> anyhow::Result<()> {
                 let health = api.get("/v1/health").await.unwrap_or_else(
                     |err| serde_json::json!({"status":"blocked","ok":false,"error":err.to_string()}),
                 );
-                let project = api.get("/v1/project/identity").await.unwrap_or_else(
-                    |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
-                );
+                let project = commands::scope_resolver::read_selected_project_identity(&api)
+                    .await
+                    .unwrap_or_else(
+                        |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
+                    );
                 let frame = api.get("/v1/focus/frame/current").await.unwrap_or_else(
                     |err| serde_json::json!({"status":"blocked","error":err.to_string()}),
                 );
@@ -1082,7 +1084,9 @@ async fn async_main() -> anyhow::Result<()> {
 
                 // Enrichment calls: current_frame, license_status, scope_status, uptime, last_5_events.
                 let health = api.get("/v1/health").await.ok();
-                let project = api.get("/v1/project/identity").await.ok();
+                let project = commands::scope_resolver::read_selected_project_identity(&api)
+                    .await
+                    .ok();
                 let frame = api.get("/v1/focus/frame/current").await.ok();
                 let license = api.get("/v1/license/status").await.ok();
                 let events = api.get("/v1/events/recent?limit=5").await.ok();

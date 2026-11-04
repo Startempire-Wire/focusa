@@ -2,6 +2,7 @@
 
 use crate::api_client::ApiClient;
 use crate::commands::scope::ensure_project_root_scope_safe;
+use crate::commands::scope_resolver::resolve_read_scope;
 use clap::Subcommand;
 use focusa_core::working_subpath::resolve_git_working_context;
 use serde_json::{Value, json};
@@ -226,6 +227,18 @@ fn print_summary(label: &str, resp: &Value) {
     }
 }
 
+async fn read_scoped(
+    api: &ApiClient,
+    path: &str,
+    root: Option<&str>,
+    continuity: Option<&str>,
+) -> anyhow::Result<Value> {
+    match (root, continuity) {
+        (Some(root), Some(continuity)) => api.get_scoped(path, root, continuity).await,
+        _ => api.get(path).await,
+    }
+}
+
 pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()> {
     fn canonicalize(root: &mut Option<String>) {
         let Some(input) = root.clone() else { return };
@@ -234,11 +247,26 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
         }
     }
     match &mut cmd {
-        TrajectoryCmd::View(scope) | TrajectoryCmd::Resume(scope) => {
-            canonicalize(&mut scope.project_root)
+        TrajectoryCmd::View(scope) => {
+            let cwd = std::env::current_dir()?.to_string_lossy().into_owned();
+            let selected = resolve_read_scope(
+                scope.project_root.as_deref(),
+                scope.continuity_id.as_deref(),
+                Some(&cwd),
+            )?;
+            scope.project_root = Some(selected.project_root);
+            scope.continuity_id = selected.continuity_id;
         }
+        TrajectoryCmd::Resume(scope) => canonicalize(&mut scope.project_root),
         TrajectoryCmd::History(args) | TrajectoryCmd::Query(args) => {
-            canonicalize(&mut args.project_root)
+            let cwd = std::env::current_dir()?.to_string_lossy().into_owned();
+            let selected = resolve_read_scope(
+                args.project_root.as_deref(),
+                args.continuity_id.as_deref(),
+                Some(&cwd),
+            )?;
+            args.project_root = Some(selected.project_root);
+            args.continuity_id = selected.continuity_id;
         }
         TrajectoryCmd::DefineGoal { project_root, .. }
         | TrajectoryCmd::Assess { project_root, .. }
@@ -252,7 +280,16 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
                 scope.project_root.as_deref(),
                 "trajectory view: project_root",
             )?;
-            ("view", api.get(&path_for_view(&scope)).await?)
+            (
+                "view",
+                read_scoped(
+                    &api,
+                    &path_for_view(&scope),
+                    scope.project_root.as_deref(),
+                    scope.continuity_id.as_deref(),
+                )
+                .await?,
+            )
         }
         TrajectoryCmd::History(args) => {
             ensure_project_root_scope_safe(
@@ -261,8 +298,13 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
             )?;
             (
                 "history",
-                api.get(&path_for_history("/v1/trajectory/history", &args))
-                    .await?,
+                read_scoped(
+                    &api,
+                    &path_for_history("/v1/trajectory/history", &args),
+                    args.project_root.as_deref(),
+                    args.continuity_id.as_deref(),
+                )
+                .await?,
             )
         }
         TrajectoryCmd::Query(args) => {
@@ -272,8 +314,13 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
             )?;
             (
                 "query",
-                api.get(&path_for_history("/v1/trajectory/query", &args))
-                    .await?,
+                read_scoped(
+                    &api,
+                    &path_for_history("/v1/trajectory/query", &args),
+                    args.project_root.as_deref(),
+                    args.continuity_id.as_deref(),
+                )
+                .await?,
             )
         }
         TrajectoryCmd::Resume(scope) => {
