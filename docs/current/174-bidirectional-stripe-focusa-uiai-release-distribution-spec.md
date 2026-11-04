@@ -140,6 +140,17 @@ The request preserves project, continuity, task, mission, objects, action, verif
 
 The source CLI `focusa workpoint repair-stage` reads the current record rather than reconstructing it. Its required scope/stage/reason/evidence/replay inputs and `--confirm-lifecycle-repair` select this narrow recovery. A truncated or inconsistent record fails the server's exact-match checks; success must never be inferred from the command definition alone. Proof requires recovery, subsequent normal checkpoint/background admission, and continued denial of invalid requests.
 
+#### 4.1.2 Incomplete planning-context recovery (source; pending release proof)
+
+A legacy canonical Active checkpoint missing its action or frontier cannot use the stage-only operation above. The same checkpoint owner accepts a bounded **successor planning checkpoint**, not a revival into implementation:
+
+* The request retains the exact project, continuity, existing nonblank task identity, mission, native session and object references. It has a fresh replay key, source turn, `checkpoint_reason: operator_checkpoint`, and a nonblank next slice.
+* `action_intent` explicitly uses `action_type: prepare_workpoint_recovery`, `lifecycle_stage: prepare`, `status: ready`, and `target_ref` equal to the project root, with a nonblank transition reason and evidence references.
+* The existing record must be the exact linked canonical Active checkpoint. Its gaps are confined to missing operation/stage/frontier and include a missing operation or frontier. A stage-only gap, foreign scope/session, terminal record, absent task, or execution-stage request does not qualify.
+* The existing persistence owner holds the serial transaction and writer-claim guards, refuses a live Workstream writer, re-verifies the same READY Trajectory and unchanged linkage snapshot, validates the proposed record, and durably appends the successor. The saved record and verification history are preserved; no direct persistence edit or takeover is implied.
+
+This restores **Prepare** context only. It does not complete work, authorize deployment, waive Definition of Ready, mint a lease, or supply a missing task identity. Normal guarded stage transitions and operation-specific admission still apply afterward. Release proof must exercise the owner transaction, subsequent current/resume/gate parity, and negative controls; helper tests or this documentation alone are not delivery evidence.
+
 ### 4.2 WP -> Focusa (truth + seats)
 
 * `GET /wp-json/wpuiai-ai-cloud/v1/license/verify|validate|status?license_key=focusa_live_…` returns `{ ok:true, schema:focusa.license_verify.v1, license:{id, license_key masked, license_key_full if caller supplied exact key, download_id, product, status, price}, payment_plan:{…}, seats:{schema:focusa.license_truth.v1, license:{license_id, download_id, status}, nodes:[]} }`.

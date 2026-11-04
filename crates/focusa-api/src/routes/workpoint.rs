@@ -1783,17 +1783,17 @@ async fn materialize_workpoint_events_with_prepare(
     state: &Arc<AppState>,
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
-    expected_unbound_linkage: Option<&Value>,
+    expected_prepare_linkage: Option<&Value>,
 ) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
     let guard = state.write_serial_lock.lock().await;
     // Keep the existing transaction owner and writer-key owner. Hold the read
     // guard through durable acknowledgement so a claim cannot race preparation.
-    let prepare_claims = if expected_unbound_linkage.is_some() {
+    let prepare_claims = if expected_prepare_linkage.is_some() {
         Some(state.writer_claims.read().await)
     } else {
         None
     };
-    if let Some(expected) = expected_unbound_linkage {
+    if let Some(expected) = expected_prepare_linkage {
         let workstream = scope.require_workstream_key().map_err(|error| (
             StatusCode::CONFLICT,
             Json(json!({"status":"blocked","canonical":false,"code":"WORKPOINT_PREPARE_SCOPE_REQUIRED","error":error})),
@@ -2415,7 +2415,7 @@ fn validate_workpoint_checkpoint_request(
     }
 }
 
-fn first_prepare_checkpoint_eligible(req: &WorkpointCheckpointRequest, linkage: &Value) -> bool {
+fn prepare_checkpoint_shape_eligible(req: &WorkpointCheckpointRequest) -> bool {
     req.canonical.unwrap_or(true)
         && req.promote.unwrap_or(true)
         && !req.repair_missing_lifecycle_stage
@@ -2447,6 +2447,10 @@ fn first_prepare_checkpoint_eligible(req: &WorkpointCheckpointRequest, linkage: 
                 && !intent.action_type.trim().is_empty()
                 && intent.target_ref.as_deref() == req.project_root.as_deref()
         })
+}
+
+fn first_prepare_checkpoint_eligible(req: &WorkpointCheckpointRequest, linkage: &Value) -> bool {
+    prepare_checkpoint_shape_eligible(req)
         && linkage.get("status").and_then(Value::as_str) == Some("missing")
         && linkage.get("reason").and_then(Value::as_str) == Some("trajectory_workpoint_unbound")
         && linkage.get("frontier_status").and_then(Value::as_str) == Some("missing")
@@ -2456,6 +2460,72 @@ fn first_prepare_checkpoint_eligible(req: &WorkpointCheckpointRequest, linkage: 
             .is_some_and(|id| !id.trim().is_empty())
         && linkage.get("project_root").and_then(Value::as_str) == req.project_root.as_deref()
         && linkage.get("continuity_id").and_then(Value::as_str) == req.continuity_id.as_deref()
+}
+
+/// Recovery restores planning context, never an execution stage or foreign
+/// mission. The same persistence owner rechecks the exact snapshot and writers.
+fn incomplete_prepare_checkpoint_eligible(
+    req: &WorkpointCheckpointRequest,
+    previous: &WorkpointRecord,
+    linkage: &Value,
+) -> bool {
+    let allowed_gaps = [
+        "active_operation_missing",
+        "lifecycle_stage_missing",
+        "current_frontier_missing",
+    ];
+    let Some(gaps) = linkage.get("admission_gaps").and_then(Value::as_array) else {
+        return false;
+    };
+    prepare_checkpoint_shape_eligible(req)
+        && previous.canonical
+        && previous.status == WorkpointStatus::Active
+        && req.project_root == previous.project_root
+        && req.continuity_id == previous.continuity_id
+        && req.work_item_id == previous.work_item_id
+        && req.mission == previous.mission
+        && req.session_id == previous.session_id
+        && previous
+            .session_id
+            .as_deref()
+            .is_some_and(|id| !id.trim().is_empty())
+        && req.active_object_refs.as_ref() == Some(&previous.active_object_refs)
+        && req
+            .idempotency_key
+            .as_deref()
+            .is_some_and(|key| !key.trim().is_empty())
+        && req.action_intent.as_ref().is_some_and(|intent| {
+            intent.action_type == "prepare_workpoint_recovery"
+                && intent.status.as_deref() == Some("ready")
+                && intent
+                    .lifecycle_transition_reason
+                    .as_deref()
+                    .is_some_and(|value| !value.trim().is_empty())
+                && !intent.lifecycle_transition_evidence_refs.is_empty()
+                && intent
+                    .lifecycle_transition_evidence_refs
+                    .iter()
+                    .all(|value| !value.trim().is_empty())
+        })
+        && linkage.get("status").and_then(Value::as_str) == Some("linked")
+        && linkage.get("workpoint_id").and_then(Value::as_str)
+            == Some(previous.workpoint_id.to_string().as_str())
+        && linkage.get("frontier_status").and_then(Value::as_str) == Some("missing")
+        && linkage.get("project_root").and_then(Value::as_str) == req.project_root.as_deref()
+        && linkage.get("continuity_id").and_then(Value::as_str) == req.continuity_id.as_deref()
+        && linkage
+            .get("trajectory_id")
+            .and_then(Value::as_str)
+            .is_some_and(|id| !id.trim().is_empty())
+        && gaps.iter().any(|gap| {
+            matches!(
+                gap.as_str(),
+                Some("active_operation_missing" | "current_frontier_missing")
+            )
+        })
+        && gaps
+            .iter()
+            .all(|gap| gap.as_str().is_some_and(|gap| allowed_gaps.contains(&gap)))
 }
 
 fn legacy_lifecycle_repair_eligible(
@@ -2658,6 +2728,7 @@ async fn checkpoint(
         None
     };
     let mut first_prepare_linkage = None;
+    let mut incomplete_prepare_source = None;
     if promote && requested_canonical && previous.is_some() {
         let linkage = {
             let focusa = state.focusa.read().await;
@@ -2670,6 +2741,13 @@ async fn checkpoint(
         if first_prepare_checkpoint_eligible(&req, &linkage) {
             // This is only a candidate: the existing persistence owner rechecks
             // scope, goal, linkage and live writers before applying any events.
+            first_prepare_linkage = Some(linkage);
+            previous = None;
+        } else if previous
+            .as_ref()
+            .is_some_and(|record| incomplete_prepare_checkpoint_eligible(&req, record, &linkage))
+        {
+            incomplete_prepare_source = previous.clone();
             first_prepare_linkage = Some(linkage);
             previous = None;
         }
@@ -2766,6 +2844,17 @@ async fn checkpoint(
         WorkpointRecord {
             workpoint_id,
             action_intent: record.action_intent,
+            status: WorkpointStatus::Proposed,
+            checkpoint_reason: record.checkpoint_reason,
+            idempotency_key: record.idempotency_key,
+            ..previous
+        }
+    } else if let Some(previous) = incomplete_prepare_source {
+        WorkpointRecord {
+            workpoint_id,
+            action_intent: record.action_intent,
+            next_slice: record.next_slice,
+            source_turn_id: record.source_turn_id,
             status: WorkpointStatus::Proposed,
             checkpoint_reason: record.checkpoint_reason,
             idempotency_key: record.idempotency_key,
@@ -4287,6 +4376,90 @@ mod tests {
     include!("workpoint_unbound_checkpoint_tests.rs");
     include!("workpoint_workstream_acceptance_tests.rs");
     include!("workpoint_promotion_shape_tests.rs");
+
+    #[test]
+    fn incomplete_prepare_recovery_is_exact_scoped_and_cannot_grant_execution() {
+        let old = WorkpointRecord {
+            canonical: true,
+            status: WorkpointStatus::Active,
+            project_root: Some("/tmp/recovery-project".into()),
+            continuity_id: Some("owned-continuity".into()),
+            session_id: Some("native-owner".into()),
+            work_item_id: Some("existing-admitted-task".into()),
+            mission: Some("Preserve the existing mission".into()),
+            ..Default::default()
+        };
+        let body = json!({"project_root":old.project_root,"continuity_id":old.continuity_id,
+            "session_id":old.session_id,"work_item_id":old.work_item_id,"mission":old.mission,
+            "active_object_refs":[],"source_turn_id":"operator-current-turn","checkpoint_reason":"operator_checkpoint",
+            "next_slice":"Verify the restored planning context through its owner",
+            "idempotency_key":"recovery-replay", "action_intent":{
+                "action_type":"prepare_workpoint_recovery","target_ref":old.project_root,"lifecycle_stage":"prepare","status":"ready",
+                "lifecycle_transition_reason":"Restore missing planning fields without changing the mission",
+                "lifecycle_transition_evidence_refs":["evidence:actual-incomplete-record"]}});
+        let linkage = json!({"status":"linked","workpoint_id":old.workpoint_id,
+            "project_root":old.project_root,"continuity_id":old.continuity_id,"trajectory_id":"owned-trajectory",
+            "frontier_status":"missing","admission_gaps":["active_operation_missing","lifecycle_stage_missing","current_frontier_missing"]});
+        let parse =
+            |value: Value| serde_json::from_value::<WorkpointCheckpointRequest>(value).unwrap();
+        assert!(incomplete_prepare_checkpoint_eligible(
+            &parse(body.clone()),
+            &old,
+            &linkage
+        ));
+        for (pointer, value) in [
+            ("/mission", json!("another mission")),
+            ("/project_root", json!("/tmp/foreign-project")),
+            ("/continuity_id", json!("foreign-continuity")),
+            ("/session_id", json!("another-native-session")),
+            ("/work_item_id", Value::Null),
+            ("/idempotency_key", Value::Null),
+            ("/source_turn_id", Value::Null),
+            ("/next_slice", Value::Null),
+            ("/action_intent/lifecycle_stage", json!("implement")),
+            ("/action_intent/lifecycle_stage", json!("autonomy")),
+            ("/action_intent/lifecycle_stage", json!("deploy")),
+            ("/action_intent/action_type", json!("execute_recovery")),
+            (
+                "/action_intent/lifecycle_transition_evidence_refs",
+                json!([]),
+            ),
+        ] {
+            let mut changed = body.clone();
+            *changed.pointer_mut(pointer).unwrap() = value;
+            assert!(
+                !incomplete_prepare_checkpoint_eligible(&parse(changed), &old, &linkage),
+                "unsafe delta {pointer}"
+            );
+        }
+        for gaps in [
+            json!([]),
+            json!(["lifecycle_stage_missing"]),
+            json!(["active_operation_missing", "foreign_scope"]),
+        ] {
+            let mut changed = linkage.clone();
+            changed["admission_gaps"] = gaps;
+            assert!(!incomplete_prepare_checkpoint_eligible(
+                &parse(body.clone()),
+                &old,
+                &changed
+            ));
+        }
+        let mut foreign = linkage.clone();
+        foreign["workpoint_id"] = json!(Uuid::now_v7());
+        assert!(!incomplete_prepare_checkpoint_eligible(
+            &parse(body.clone()),
+            &old,
+            &foreign
+        ));
+        let mut closed = old.clone();
+        closed.status = WorkpointStatus::Superseded;
+        assert!(!incomplete_prepare_checkpoint_eligible(
+            &parse(body),
+            &closed,
+            &linkage
+        ));
+    }
 
     #[test]
     fn legacy_stage_recovery_is_confirmed_exact_scoped_and_append_only() {
