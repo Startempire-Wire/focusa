@@ -73,7 +73,11 @@ fn repair_stage_does_not_infer_confirmation() {
 
 #[test]
 fn generic_confirmation_does_not_approve_an_unrelated_command() {
-    let mut cli = parse_cli(["focusa", "status", "--confirm"].map(str::to_string).to_vec());
+    let mut cli = parse_cli(
+        ["focusa", "status", "--confirm"]
+            .map(str::to_string)
+            .to_vec(),
+    );
     let error = prepare_command_confirmation(&mut cli).unwrap_err();
     assert!(error.to_string().contains("requires --lifecycle-action"));
 }
@@ -81,9 +85,15 @@ fn generic_confirmation_does_not_approve_an_unrelated_command() {
 #[test]
 fn installer_confirmation_still_requires_its_existing_guided_flow() {
     let mut cli = parse_cli(
-        ["focusa", "install", "--lifecycle-action", "repair", "--confirm"]
-            .map(str::to_string)
-            .to_vec(),
+        [
+            "focusa",
+            "install",
+            "--lifecycle-action",
+            "repair",
+            "--confirm",
+        ]
+        .map(str::to_string)
+        .to_vec(),
     );
     prepare_command_confirmation(&mut cli).unwrap();
     assert!(cli.confirm);
