@@ -11,19 +11,22 @@ const project = readFileSync(
   "utf8"
 );
 
-assert.match(
-  tools,
-  /body\.trajectory\?\.hlt \|\| priorLadder\.high_level_goal/,
-  "canonical exact-scope trajectory must outrank historical project-card ladder text"
-);
-assert.match(tools, /body\.trajectory\?\.stg \|\| priorLadder\.short_term_goal/);
+assert.match(tools, /const displayedLadder = cachedToolTrajectoryLadder\(\{ trajectory: body\.trajectory \}\)/,
+  "current-goal display requires exact caller-scoped trajectory data");
+assert.doesNotMatch(tools, /hlg=\$\{String\(body\.trajectory\?\.hlt \|\| priorLadder/,
+  "historical goals must not become a current-goal fallback");
 assert.match(tools, /crosswire\.status \|\|/);
-assert.match(tools, /activeWorkpointContinuity !== "extension-bootstrap"/);
-assert.match(tools, /activeWorkpointRoot === markerProjectRoot/);
+const http = tools.slice(tools.indexOf("  async function focusaFetchDetailed("), tools.indexOf("  function formatWorkLoopBudgetRemaining("));
+assert.match(http, /const attachmentKey = currentAttachmentKey\(\)/);
+assert.doesNotMatch(http, /getActiveWorkpointPacket|buildProjectWorkstreamKey/,
+  "HTTP cannot synthesize a different attachment from cached read data");
 assert.match(tools, /body\.trajectory_ladder\?\.fallback_source_continuity_id/);
 assert.match(tools, /priorContinuityCounts = new Map<string, number>/);
 assert.match(tools, /modalPriorContinuity/);
-assert.match(tools, /adoptVerifiedContinuityForCurrentSession\([\s\S]*?recoveredRoot,[\s\S]*?recoveredContinuity/);
+assert.doesNotMatch(tools, /adoptVerifiedContinuityForCurrentSession\(/,
+  "read-only identity/card/trajectory tools cannot activate recovered historical scope");
+assert.match(tools, /const continuityRecoveryAdopted = false/);
+assert.match(tools, /current_attachment_matches_query: responseMatchesCaller/);
 assert.doesNotMatch(
   tools,
   /crosswire=\$\{String\(crosswire\.prediction_feed\?\.elapsed_tokens_waypoints_feed_future_predictions === true \? "ok"/,

@@ -3729,10 +3729,10 @@ export function adoptVerifiedContinuityForCurrentSession(
   );
   if (!root || !continuity || !isProjectRootAuthoritySafe(root) || verifiedRoot !== root) return false;
   const caller = currentAttachmentKey();
-  if (caller?.workstream.root_scope.scope_kind === "project" && (
+  if (caller?.workstream.root_scope.scope_kind !== "project" ||
     normalizeProjectRoot(caller.workstream.root_scope.root_path) !== root ||
     caller.workstream.continuity_id !== continuity
-  )) return false; // Only the supported attachment-transition owner may re-key a caller.
+  ) return false; // Reads can refresh an owned binding, never activate a bootstrap or re-key a caller.
   getAttachmentRuntime().continuityId = continuity;
   verifiedContinuityBySessionRoot.set(
     verifiedContinuityKey(getSessionFrameKey(), root),

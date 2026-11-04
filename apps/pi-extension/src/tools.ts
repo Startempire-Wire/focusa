@@ -103,7 +103,6 @@ import {
   stampWorkpointPacketForCurrentPiSession,
   normalizeWorkpointResumePacketEnvelope,
   adoptWorkpointScopeForFrameRecovery,
-  adoptVerifiedContinuityForCurrentSession,
   persistState,
   estimateTokens,
   storeEcsArtifact,
@@ -5852,32 +5851,13 @@ pi.registerTool({
             },
           } as any;
         }
-        setLastProjectIdentity(identity);
-        const verifiedRoot = normalizeProjectRoot(identity.project_root);
-        if (
-          verifiedRoot &&
-          identity.status === "verified" &&
-          body.binding_decision?.ambiguous !== true &&
-          body.status !== "ambiguous_project_binding" &&
-          isProjectRootAuthoritySafe(verifiedRoot)
-        ) {
-          confirmPiProjectRoot(verifiedRoot, "focusa_project_identity_verified");
-          ensureContinuityId(verifiedRoot);
-          const priorTrajectory = await focusaFetchDetailed(
-            `/trajectory/view?project_root=${encodeURIComponent(verifiedRoot)}&mode=summary&allow_prior_project_trajectory=true`,
-            { method: "GET" }
-          ).catch(() => null);
-          const priorContinuity = String(
-            priorTrajectory?.body?.trajectory?.fallback_source_continuity_id ||
-              priorTrajectory?.body?.project_identity?.continuity_id ||
-              priorTrajectory?.body?.continuity_id ||
-              ""
-          ).trim();
-          if (priorContinuity) {
-            adoptVerifiedContinuityForCurrentSession(verifiedRoot, priorContinuity);
-          }
-          persistState();
+        const caller = currentAttachmentKey();
+        if (caller?.workstream.root_scope.scope_kind !== "project" ||
+          normalizeProjectRoot(identity.project_root) === normalizeProjectRoot(caller.workstream.root_scope.root_path)) {
+          setLastProjectIdentity(identity);
         }
+        // Identity is a read. It cannot select a historical continuity, change
+        // the native working folder, or activate a Workstream from a fallback.
       }
       const summaryLines = Array.isArray(body.summary_lines)
         ? body.summary_lines.map((line: any) => String(line)).filter(Boolean)
@@ -6031,18 +6011,9 @@ pi.registerTool({
       const recoveredRoot = normalizeProjectRoot(
         body.project_identity?.canonical_parent_root || body.project_identity?.project_root
       );
-      let continuityRecoveryAdopted = false;
-      if (
-        recoveredContinuity &&
-        recoveredContinuity !== continuityBeforeRecovery &&
-        (continuityRecoveryAdopted = adoptVerifiedContinuityForCurrentSession(
-          recoveredRoot,
-          recoveredContinuity
-        ))
-      ) {
-        result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
-        body = result.body || {};
-      }
+      // Historical/modal continuity is an advisory candidate, not an attachment
+      // transition. A project-card read never changes the caller's Workstream.
+      const continuityRecoveryAdopted = false;
       const project = body.project_identity || {};
       const temporalProjectRoot = project.project_root || project.canonical_parent_root || p.project_root;
       const temporalContinuityId = getContinuityId();
@@ -6061,7 +6032,6 @@ pi.registerTool({
       const prediction = body.prediction || {};
       const ontology = body.ontology || {};
       const prior = body.prior_session_context || {};
-      const priorLadder = prior.trajectory_ladder || {};
       const priorDecisionCount = Array.isArray(prior.recent_decisions) ? prior.recent_decisions.length : 0;
       const priorOutcomeCount = Array.isArray(prior.recent_algorithm_outcomes)
         ? prior.recent_algorithm_outcomes.length
@@ -6081,8 +6051,9 @@ pi.registerTool({
         ? shortest.eliminated_candidates.length
         : 0;
       const ontologyCounts = ontology.counts || {};
+      const displayedLadder = cachedToolTrajectoryLadder({ trajectory: body.trajectory });
       const text = result.ok
-        ? `project card → project=${String(project.canonical_name || project.project_id || "unknown")} parent=${String(project.canonical_parent_root || project.project_root || "unknown")} worktree=${String(project.active_worktree_root || project.working_context?.active_worktree_root || project.project_root || "unknown")} subpath=${String(project.working_context?.working_subpath?.working_subpath_id || "primary")} bootstrap_needed=${bootstrap.needed === true} hlg=${String(body.trajectory?.hlt || priorLadder.high_level_goal || "missing").slice(0, 80)} stg=${String(body.trajectory?.stg || priorLadder.short_term_goal || "missing").slice(0, 80)} decisions=${priorDecisionCount} outcomes=${priorOutcomeCount} elapsed_avg=${String(efficiency.average_elapsed_hms || "00:00:00")} tokens_avg=${String(efficiency.average_total_tokens ?? 0)} waypoints=${String(waypointSummary.waypoints_accomplished_by_recent_outcomes ?? 0)}/${String(waypointSummary.waypoints_total ?? 0)} crosswire=${String(crosswire.status || (crosswire.prediction_feed?.elapsed_tokens_waypoints_feed_future_predictions === true ? "legacy_unknown" : "check"))} inferred_wp=${String(inferredWorkpoint.current_action || "none")} ask_bridge=${String(askToWorkpointBridge.recommended_bridge_action || "unknown")} exact_next=${String(askToWorkpointBridge.exact_next_action || inferredWorkpoint.next_action || "unknown").slice(0, 80)} next_event=${String(sequence.recommended_first_event || "unknown")} shortest=${String(selectedPath.path_id || "unknown")} cost=${String(selectedPath.cost ?? "unknown")} eliminated=${eliminatedCount} predictions=${String(prediction.total ?? "unknown")}/${String(prediction.evaluated ?? "unknown")} ontology_runtime=${String(ontologyCounts.runtime_objects ?? ontology.runtime_objects ?? "unknown")} ontology_effective=${String(ontologyCounts.effective_project_card_objects ?? ontology.objects ?? "unknown")} ontology_source=${String(ontology.source_index || "unknown")} selector=${String(ontology.selector || "unknown")}`
+        ? `project card → project=${String(project.canonical_name || project.project_id || "unknown")} parent=${String(project.canonical_parent_root || project.project_root || "unknown")} worktree=${String(project.active_worktree_root || project.working_context?.active_worktree_root || project.project_root || "unknown")} subpath=${String(project.working_context?.working_subpath?.working_subpath_id || "primary")} bootstrap_needed=${bootstrap.needed === true} hlg=${String(displayedLadder?.hlt || "unknown").slice(0, 80)} stg=${String(displayedLadder?.stg || "unknown").slice(0, 80)} decisions=${priorDecisionCount} outcomes=${priorOutcomeCount} elapsed_avg=${String(efficiency.average_elapsed_hms || "00:00:00")} tokens_avg=${String(efficiency.average_total_tokens ?? 0)} waypoints=${String(waypointSummary.waypoints_accomplished_by_recent_outcomes ?? 0)}/${String(waypointSummary.waypoints_total ?? 0)} crosswire=${String(crosswire.status || (crosswire.prediction_feed?.elapsed_tokens_waypoints_feed_future_predictions === true ? "legacy_unknown" : "check"))} inferred_wp=${String(inferredWorkpoint.current_action || "none")} ask_bridge=${String(askToWorkpointBridge.recommended_bridge_action || "unknown")} exact_next=${String(askToWorkpointBridge.exact_next_action || inferredWorkpoint.next_action || "unknown").slice(0, 80)} next_event=${String(sequence.recommended_first_event || "unknown")} shortest=${String(selectedPath.path_id || "unknown")} cost=${String(selectedPath.cost ?? "unknown")} eliminated=${eliminatedCount} predictions=${String(prediction.total ?? "unknown")}/${String(prediction.evaluated ?? "unknown")} ontology_runtime=${String(ontologyCounts.runtime_objects ?? ontology.runtime_objects ?? "unknown")} ontology_effective=${String(ontologyCounts.effective_project_card_objects ?? ontology.objects ?? "unknown")} ontology_source=${String(ontology.source_index || "unknown")} selector=${String(ontology.selector || "unknown")}`
         : `project card blocked → ${explainWorkLoopResult(result, "project card unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || {
         ok: result.ok,
@@ -6146,6 +6117,8 @@ pi.registerTool({
             project_root: recoveredRoot || null,
             before: continuityBeforeRecovery || null,
             adopted: continuityRecoveryAdopted,
+            advisory_only: true,
+            transition_required: recoveredContinuity !== continuityBeforeRecovery,
             after: getContinuityId() || null,
           },
           prior_session_context: prior,
@@ -7672,19 +7645,14 @@ pi.registerTool({
       const responseContinuity = String(
         trajectory.continuity_id || body.scope?.continuity_id || body.continuity_id || requestedContinuity
       ).trim();
-      if (!adoptVerifiedContinuityForCurrentSession(responseRoot, responseContinuity)) {
-        return {
-          content: [{ type: "text", text: "trajectory view blocked → exact verified scope adoption failed" }],
-          details: {
-            ok: false,
-            status: "blocked",
-            canonical: true,
-            failure_class: "scope_mismatch",
-            project_root: responseRoot,
-            continuity_id: responseContinuity,
-          },
-        };
-      }
+      const caller = currentAttachmentKey();
+      const responseMatchesCaller = caller?.workstream.root_scope.scope_kind === "project" &&
+        normalizeProjectRoot(caller.workstream.root_scope.root_path) === responseRoot &&
+        caller.workstream.continuity_id === responseContinuity &&
+        (!p.session_id || p.session_id === caller.session_id) &&
+        body.canonical === true && body.degraded !== true && trajectory.fallback_prior_project_trajectory !== true;
+      // Requested scope remains readable, but cannot become native current-goal
+      // state merely because a read returned a canonical record for that scope.
       if (trajectory.short_term_goal && !body.intelligence_view?.focus_trajectory_sync?.current_focus) {
         body.intelligence_view = {
           ...(body.intelligence_view || {}),
@@ -7697,7 +7665,7 @@ pi.registerTool({
         };
       }
       const trajectoryLadder = trajectory.trajectory_ladder || {};
-      if (
+      if (responseMatchesCaller && (
         trajectory.long_term_goal ||
         trajectoryLadder.hlt ||
         trajectory.mid_level_goal ||
@@ -7706,7 +7674,7 @@ pi.registerTool({
         trajectoryLadder.stg ||
         trajectory.current_state ||
         trajectory.active_gap
-      ) {
+      )) {
         setLastTrajectoryClarity({
           ...(cachedTrajectoryForScope(projectRoot, requestedContinuity) || {}),
           reason: "trajectory_view_tool",
@@ -7775,7 +7743,7 @@ pi.registerTool({
               ? `trajectory view → SET long_term=${String(trajectory.long_term_goal || "missing")} desired=${String(trajectory.desired_end_state || "missing")} current=${String(trajectory.current_state || "missing")} gap=${String(trajectory.active_gap || "none")} posture=${posture}`
               : `trajectory view → status=${String(body.status || "unknown")} canonical=${body.canonical === true} project=${String(project.status || "unknown")} definition=${String(trajectory.definition_status || "unknown")} posture=${posture}`;
       const text = result.ok
-        ? [trajectoryText, recovery?.text].filter(Boolean).join("\n")
+        ? [!responseMatchesCaller ? "QUERIED SCOPE — advisory to the current native attachment" : null, trajectoryText, recovery?.text].filter(Boolean).join("\n")
         : `trajectory view blocked → ${explainWorkLoopResult(result, "trajectory unavailable")}`;
       const toolResult = body.details?.tool_result_v1 || {
         ok: result.ok && body.status !== "degraded" && body.status !== "not_found",
@@ -7796,6 +7764,8 @@ pi.registerTool({
           endpoint: "/v1/trajectory/view",
           canonical: body.canonical === true,
           degraded: body.degraded === true,
+          current_attachment_matches_query: responseMatchesCaller,
+          advisory_only: !responseMatchesCaller,
           project_identity: project,
           trajectory,
           intelligence_view: body.intelligence_view || null,
