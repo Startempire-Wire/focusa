@@ -86,8 +86,8 @@ struct Cli {
     #[arg(long, global = true, value_enum, value_name = "ACTION")]
     lifecycle_action: Option<commands::lifecycle_guidance::GuidedAction>,
 
-    /// Confirm the mutation selected by --lifecycle-action.
-    #[arg(long, global = true, requires = "lifecycle_action")]
+    /// Confirm a lifecycle mutation or the workpoint repair-stage operation.
+    #[arg(long, global = true)]
     confirm: bool,
 
     /// Separately confirm user-data deletion for a lifecycle purge.
@@ -576,6 +576,29 @@ fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static st
     }
 }
 
+// Resolve the generic confirmation at the command boundary. Stage-only
+// Workpoint recovery is not an installer lifecycle and must not require the
+// --lifecycle-action flag that its command family deliberately rejects (#702).
+fn prepare_command_confirmation(cli: &mut Cli) -> anyhow::Result<()> {
+    if cli.confirm && cli.lifecycle_action.is_none() {
+        if let Commands::Workpoint(commands::workpoint::WorkpointCmd::RepairStage {
+            confirm_lifecycle_repair,
+            ..
+        }) = &mut cli.command
+        {
+            *confirm_lifecycle_repair = true;
+            cli.confirm = false;
+        } else {
+            anyhow::bail!("--confirm requires --lifecycle-action outside workpoint repair-stage");
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "main_confirmation_tests.rs"]
+mod main_confirmation_tests;
+
 fn main() -> anyhow::Result<()> {
     // Clap's deeply nested command tree and Tokio initialization can exceed
     // the Windows process-main stack (0xC00000FD) before the command runs.
@@ -649,7 +672,8 @@ async fn async_main() -> anyhow::Result<()> {
     if raw_args.iter().any(|arg| arg == "--help" || arg == "-h") {
         eprintln!("{}", commands::intro::render_help_banner());
     }
-    let cli = Cli::parse_from(raw_args);
+    let mut cli = Cli::parse_from(raw_args);
+    prepare_command_confirmation(&mut cli)?;
 
     // Initialize tracing with basic formatting
     let subscriber = tracing_subscriber::fmt()

@@ -4852,6 +4852,30 @@ pi.registerTool({
     } catch {
       body = null;
     }
+    if (!res.ok && res.status >= 400 && res.status < 500) {
+      // A structured daemon rejection is not a failed transport (#704). Keep
+      // the canonical constructor and promote actionable owner metadata so the
+      // common result decorator does not lose it inside details.data.
+      const owner = body?.details?.tool_result_v1 || {};
+      const failureClass = owner.failure_class || body?.failure_class || "validation_rejected";
+      const status = failureClass === "validation_rejected" ? "validation_rejected" : body?.status || "blocked";
+      const code = safeErrorText(body?.code || "request_rejected");
+      const hint = safeErrorText(owner.misuse_hint || body?.misuse_hint || body?.error || body?.command);
+      const result = toolResult(false, status, `CallGraph request rejected (${code}, HTTP ${res.status})${hint ? `: ${hint}` : ""}`, body);
+      return {
+        ...result,
+        details: {
+          ...result.details,
+          canonical: typeof body?.canonical === "boolean" ? body.canonical : true,
+          failure_class: failureClass,
+          code,
+          correlation_id: body?.correlation_id,
+          misuse_hint: hint || undefined,
+          next_tools: Array.isArray(owner.next_tools) ? owner.next_tools : body?.next_tools || [],
+          http_status: res.status,
+        },
+      };
+    }
     if (!res.ok) {
       const message = String(body?.error || `daemon returned HTTP ${res.status}`);
       return toolResult(false, body?.status || "blocked", `CallGraph validator unavailable: ${message}`, {
