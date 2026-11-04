@@ -588,8 +588,17 @@ fn prepare_command_confirmation(cli: &mut Cli) -> anyhow::Result<()> {
         {
             *confirm_lifecycle_repair = true;
             cli.confirm = false;
+        } else if let Commands::Project(commands::project::ProjectCmd::TrajectoryGuard {
+            confirm,
+            ..
+        }) = &mut cli.command
+        {
+            *confirm = true;
+            cli.confirm = false;
         } else {
-            anyhow::bail!("--confirm requires --lifecycle-action outside workpoint repair-stage");
+            anyhow::bail!(
+                "--confirm requires --lifecycle-action or a command-owned repair confirmation"
+            );
         }
     }
     Ok(())

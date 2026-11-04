@@ -99,3 +99,30 @@ fn installer_confirmation_still_requires_its_existing_guided_flow() {
     assert!(cli.confirm);
     assert!(cli.lifecycle_action.is_some());
 }
+
+#[test]
+fn marker_repair_confirmation_is_owned_by_trajectory_guard_not_installer() {
+    let mut cli = parse_cli(
+        [
+            "focusa",
+            "project",
+            "trajectory-guard",
+            "--project-root",
+            "/fixture/project",
+            "--action",
+            "repair",
+            "--confirm",
+        ]
+        .map(str::to_string)
+        .to_vec(),
+    );
+    prepare_command_confirmation(&mut cli).unwrap();
+    match cli.command {
+        Commands::Project(commands::project::ProjectCmd::TrajectoryGuard { confirm, .. }) => {
+            assert!(confirm)
+        }
+        _ => panic!("expected marker guard repair"),
+    }
+    assert!(!cli.confirm);
+    assert!(cli.lifecycle_action.is_none());
+}

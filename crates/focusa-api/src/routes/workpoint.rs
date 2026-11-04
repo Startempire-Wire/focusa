@@ -1152,6 +1152,14 @@ fn workpoint_packet(record: &WorkpointRecord) -> Value {
     })
 }
 
+fn workpoint_response_status(status: &WorkpointStatus) -> Map<String, Value> {
+    Map::from_iter([
+        ("status".into(), json!(status)),
+        ("workpoint_status".into(), json!(status)),
+        ("operation_status".into(), json!("completed")),
+    ])
+}
+
 fn current_workpoint_payload(record: &WorkpointRecord) -> Value {
     json!({
         "status": record.status,
@@ -3706,6 +3714,7 @@ async fn resume(
     let identity_confidence = identity_confidence_payload(record, &scope, &req);
     let mismatch_warnings = scope.warnings.clone();
     let packet = workpoint_packet(record);
+    let status_fields = workpoint_response_status(&record.status);
     let summary = resume_summary(record);
     let mut packet_v2 = workpoint_resume_packet_v2(
         record,
@@ -3768,8 +3777,8 @@ async fn resume(
     if resume_render_dispatch_warning.is_some() {
         warnings.push("resume render telemetry dispatch degraded; packet returned from read model to preserve continuation".to_string());
     }
-    let mut response = Map::new();
-    response.insert("status".to_string(), json!("completed"));
+    // Reading a record completed successfully; that does not complete its mission.
+    let mut response = status_fields;
     response.insert(
         "schema_version".to_string(),
         json!("focusa.workpoint_resume_packet.v2"),
@@ -4886,6 +4895,23 @@ mod tests {
             payload.get("operation_status").and_then(Value::as_str),
             Some("completed")
         );
+    }
+
+    #[test]
+    fn resume_and_current_keep_lifecycle_separate_from_read_completion() {
+        for status in [WorkpointStatus::Active, WorkpointStatus::Completed] {
+            let record = WorkpointRecord {
+                status,
+                ..WorkpointRecord::default()
+            };
+            let packet = workpoint_packet(&record);
+            let current = current_workpoint_payload(&record);
+            let resume = workpoint_response_status(&record.status);
+            assert_eq!(resume.get("status"), packet.get("status"));
+            assert_eq!(resume.get("status"), current.get("status"));
+            assert_eq!(resume.get("workpoint_status"), packet.get("status"));
+            assert_eq!(resume.get("operation_status"), Some(&json!("completed")));
+        }
     }
 
     #[test]

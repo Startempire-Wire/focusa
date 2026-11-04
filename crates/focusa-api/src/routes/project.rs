@@ -1647,11 +1647,29 @@ fn discover_identity(
     let workspace_kind = workspace_root
         .as_ref()
         .and_then(|root| workspace_kind(root));
+    // Non-Git projects also have independent identity evidence. An ancestor's
+    // package manifest describes that ancestor, not a conflicting child project.
+    let explicit_marker_and_beads_scope_verified =
+        explicit_project_root
+            .as_deref()
+            .is_some_and(|trusted_root| {
+                marker_root
+                    .as_ref()
+                    .is_some_and(|root| normalize_path(root) == trusted_root)
+                    && beads_root
+                        .as_ref()
+                        .is_some_and(|root| normalize_path(root) == trusted_root)
+                    && marker
+                        .as_ref()
+                        .and_then(|value| value.get("project_root"))
+                        .and_then(Value::as_str)
+                        .is_none_or(|declared| normalize_path(Path::new(declared)) == trusted_root)
+            });
     if let Some(root) = &workspace_root {
         let root_shadowed = explicit_project_root
             .as_deref()
             .is_some_and(|trusted_root| {
-                explicit_git_scope_verified
+                (explicit_git_scope_verified || explicit_marker_and_beads_scope_verified)
                     && parent_scope_shadowed_by_trusted_root(root, trusted_root)
             });
         signals.push(ProjectSignal {
@@ -1661,7 +1679,7 @@ fn discover_identity(
             independent: !root_shadowed,
             details: json!({
                 "workspace_kind": workspace_kind,
-                "authority_note": if root_shadowed { Value::String("parent workspace file is advisory when explicit project_root matches git_root".to_string()) } else { Value::Null }
+                "authority_note": if root_shadowed { Value::String("ancestor workspace is advisory when independent evidence verifies the explicit child project".to_string()) } else { Value::Null }
             }),
         });
     }
@@ -2314,6 +2332,9 @@ fn write_json_file<T: serde::Serialize>(path: &Path, value: &T) -> Result<(), St
     fs::write(path, serialized).map_err(|err| err.to_string())?;
     Ok(())
 }
+
+#[path = "project_marker_ownership.rs"]
+mod marker_ownership;
 
 fn preserve_file_metadata(source: &Path, destination: &Path) -> Result<(), String> {
     let metadata = fs::symlink_metadata(source).map_err(|error| error.to_string())?;
@@ -5432,6 +5453,12 @@ fn trajectory_guard_inspection(
             guard.status,
             TrajectoryIntegrityStatus::Ready | TrajectoryIntegrityStatus::MigrationRequired
         );
+        if would_change && let Some(mut denial) = marker_ownership::denial(&marker_path) {
+            denial["action"] = json!("preview");
+            denial["trajectory_integrity_guard"] = json!(guard);
+            denial["trajectory_binding"] = json!(binding);
+            return (axum::http::StatusCode::OK, Json(denial));
+        }
         return (
             axum::http::StatusCode::OK,
             Json(json!({
@@ -5498,6 +5525,11 @@ fn trajectory_guard_inspection(
                 Json(json!({"status":"blocked","code":"WORKSTREAM_SCOPE_REQUIRED","guard":guard})),
             );
         };
+        if let Some(mut denial) = marker_ownership::denial(&marker_path) {
+            denial["trajectory_integrity_guard"] = json!(guard);
+            denial["trajectory_binding"] = json!(binding);
+            return (axum::http::StatusCode::CONFLICT, Json(denial));
+        }
         let original_marker = marker.clone();
         let backup = canonical_root.join(format!(".focusa-project.json.backup-{}", Uuid::now_v7()));
         if let Err(error) = fs::copy(&marker_path, &backup) {
@@ -5615,20 +5647,26 @@ fn trajectory_guard_inspection(
     } else {
         "blocked"
     };
-    (
-        axum::http::StatusCode::OK,
-        Json(json!({
-            "status": status,
-            "canonical": true,
-            "action": action,
-            "project_root": project_root,
-            "trajectory_binding": binding,
-            "trajectory_integrity_guard": guard,
-            "marker_path": marker_path,
-            "backup_ref": backup_ref,
-            "receipt_ref": receipt_ref,
-        })),
-    )
+    let mut payload = json!({
+        "status": status,
+        "canonical": true,
+        "action": action,
+        "project_root": project_root,
+        "trajectory_binding": binding,
+        "trajectory_integrity_guard": guard,
+        "marker_path": marker_path,
+        "backup_ref": backup_ref,
+        "receipt_ref": receipt_ref,
+    });
+    if guard.status == TrajectoryIntegrityStatus::MigrationRequired
+        && let Some(denial) = marker_ownership::denial(&marker_path)
+    {
+        payload["code"] = denial["code"].clone();
+        payload["next_step_hint"] = denial["remediation"].clone();
+        payload["repair_route"] = denial["repair_route"].clone();
+        payload["marker_repair"] = denial;
+    }
+    (axum::http::StatusCode::OK, Json(payload))
 }
 
 fn mark_north_star_daemon_authority(payload: &mut Value, trigger: &str) {
@@ -7105,6 +7143,37 @@ pub(crate) mod tests {
                 && signal.independent
         }));
         let _ = fs::remove_dir_all(parent);
+    }
+
+    #[test]
+    fn explicit_non_git_project_is_not_shadowed_by_ancestor_workspace() {
+        let parent = temp_project("non-git-ancestor-workspace");
+        fs::write(parent.join("pyproject.toml"), "[project]\nname='parent'\n").unwrap();
+        let root = parent.join("child");
+        fs::create_dir_all(root.join(".beads")).unwrap();
+        fs::write(
+            root.join(".focusa-project.json"),
+            serde_json::to_vec(&json!({
+                "schema":"focusa.project.v1", "project_id":"child", "project_root":root,
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let candidate = discover_identity(
+            root.to_str(),
+            root.to_str(),
+            None,
+            RemoteProjectHint::default(),
+        );
+        assert_eq!(candidate.status, "verified");
+        assert!(candidate.mismatches.is_empty());
+        assert!(
+            candidate
+                .signals
+                .iter()
+                .any(|signal| signal.source == "workspace_file" && !signal.independent)
+        );
+        fs::remove_dir_all(parent).unwrap();
     }
 
     #[test]

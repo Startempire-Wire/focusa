@@ -4385,7 +4385,10 @@ pi.registerTool({
   // ── Spec88 Workpoint Continuity tools ────────────────────────────────────
 
   function summarizeWorkpointResponse(body: any): string {
-    const status = String(body?.status || "unknown");
+    const packet = body?.resume_packet || body?.workpoint;
+    // Older servers use status=completed for the read operation, not the mission.
+    const status = String(body?.workpoint_status || packet?.status || body?.status || "unknown");
+    const operationStatus = String(body?.operation_status || (packet && body?.status !== status ? body?.status || "" : ""));
     const id = String(
       body?.workpoint_id || body?.active_workpoint_id || body?.requested_workpoint_id || "none"
     );
@@ -4403,6 +4406,7 @@ pi.registerTool({
       body?.action_intent || body?.resume_packet?.action_intent || body?.workpoint?.action_intent || "";
     const action = typeof actionRaw === "string" ? actionRaw : actionRaw ? JSON.stringify(actionRaw) : "";
     let summary = `status=${status} id=${id} canonical=${canonical}`;
+    if (operationStatus) summary += ` operation_status=${operationStatus}`;
     if (mission) summary += ` mission="${truncateForSummary(mission, 80)}"`;
     if (action) summary += ` action="${truncateForSummary(action, 80)}"`;
     summary += ` next=${truncateForSummary(next, 80)}`;
