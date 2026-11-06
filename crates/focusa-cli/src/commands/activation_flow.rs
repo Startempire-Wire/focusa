@@ -30,8 +30,8 @@ use focusa_license::activation_reducer::{
 use focusa_license::authority::{EntitlementSnapshot, LeaseVerificationContext};
 use focusa_license::authority_client::SensitiveCredential;
 use focusa_license::authority_credentials::{
-    CredentialHandle, KeyringCredentialStore, NodeIdentity, ProtectedCredentialStore,
-    load_or_create_node_identity,
+    CredentialHandle, CredentialStoreError, KeyringCredentialStore, NodeIdentity,
+    ProtectedCredentialStore, load_or_create_node_identity,
 };
 use focusa_license::authority_store::{
     AUTHORITY_STATE_FILE, PersistedAuthorityState, embedded_production_trust_roots,
@@ -702,6 +702,45 @@ pub fn run_agent_activation<A: ActivationAuthority>(
         terminal: session.state().is_terminal(),
         envelope,
     })
+}
+
+/// Recover only a genuinely missing poll credential. Snapshots retain only a
+/// masked email, so restarting requires an explicitly supplied email. Store
+/// outages and terminal records never create a new authority attempt.
+#[allow(clippy::too_many_arguments)]
+pub fn resume_or_restart_agent_activation<A: ActivationAuthority>(
+    authority: A,
+    config: ActivationFlowConfig,
+    registration: ActivationRegistration,
+    store: &dyn ProtectedCredentialStore,
+    email: Option<String>,
+    device_public_key: Option<String>,
+    poll_timeout_seconds: Option<u64>,
+    reveal: AgentKeyReveal,
+    persist: Option<AgentPersistHook<'_, A>>,
+) -> Result<AgentActivationOutcome, ActivationFlowError> {
+    let handle = CredentialHandle::for_registration(&registration.registration_id)
+        .map_err(|error| ActivationFlowError::Delivery(error.to_string()))?;
+    match store.get(&handle) {
+        Ok(credential) => resume_agent_activation(
+            authority,
+            config,
+            registration,
+            credential,
+            poll_timeout_seconds,
+            reveal,
+            persist,
+        ),
+        Err(CredentialStoreError::CredentialMissing) if !registration.state.is_terminal() => {
+            if email.as_deref().is_none_or(|email| email.trim().is_empty()) {
+                return Err(ActivationFlowError::Delivery(
+                    "POLL_CREDENTIAL_REQUIRED: this attempt cannot resume; pass --email with --resume to begin a fresh verification attempt, or use --license-key for an existing paid license".into(),
+                ));
+            }
+            run_agent_activation(authority, config, email, device_public_key, reveal, persist)
+        }
+        Err(error) => Err(ActivationFlowError::Delivery(error.to_string())),
+    }
 }
 
 /// One bounded agent resume step: re-supplies the poll credential from the
@@ -2117,5 +2156,179 @@ mod tests {
         .expect("timeout cancels");
         assert!(outcome.terminal);
         assert_eq!(outcome.envelope.state, "recovery_only");
+    }
+
+    fn recoverable_registration() -> ActivationRegistration {
+        ActivationRegistration {
+            schema: "focusa.activation_registration.v1".into(),
+            registration_id: "lost-registration".into(),
+            facade_id: "focusa-cli".into(),
+            presenter: "cli".into(),
+            install_channel: "source_build".into(),
+            state: ActivationState::CheckoutPending,
+            masked_email: Some("c***@example.com".into()),
+            poll_count: 1,
+            max_polls: 40,
+        }
+    }
+
+    #[test]
+    fn missing_poll_credential_restarts_and_persists_fresh_attempt() {
+        let directory =
+            std::env::temp_dir().join(format!("focusa-restart-{}", uuid::Uuid::now_v7()));
+        let store = focusa_license::authority_credentials::InMemoryCredentialStore::default();
+        let old = recoverable_registration();
+        persist_registration_snapshot(&directory, &old).unwrap();
+        let persist = |session: &ActivationSession<ScriptedAuthority>| {
+            persist_agent_session_state(&directory, session, &store)
+        };
+        let outcome = resume_or_restart_agent_activation(
+            scripted_paid_start(),
+            CLI_FLOW,
+            old.clone(),
+            &store,
+            Some("customer@example.com".into()),
+            Some("device-pub-key".into()),
+            None,
+            AgentKeyReveal::denied(),
+            Some(&persist),
+        )
+        .unwrap();
+        assert_ne!(outcome.registration_id, old.registration_id);
+        assert!(!outcome.terminal);
+        assert_eq!(outcome.envelope.state, "email_verification_pending");
+        load_poll_credential(&store, &outcome.registration_id).unwrap();
+        assert_eq!(
+            load_registration_snapshot(&directory, &old.registration_id).unwrap(),
+            old
+        );
+        let raw = std::fs::read_to_string(
+            directory
+                .join("activation")
+                .join(format!("{}.json", outcome.registration_id)),
+        )
+        .unwrap();
+        assert!(!raw.contains("poll-secret"));
+        assert!(!raw.contains("customer@example.com"));
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn missing_poll_credential_requires_explicit_email_without_authority_call() {
+        let store = focusa_license::authority_credentials::InMemoryCredentialStore::default();
+        let error = resume_or_restart_agent_activation(
+            ScriptedAuthority::new(),
+            CLI_FLOW,
+            recoverable_registration(),
+            &store,
+            None,
+            None,
+            None,
+            AgentKeyReveal::denied(),
+            None,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("POLL_CREDENTIAL_REQUIRED"));
+        assert!(error.to_string().contains("--email"));
+    }
+
+    #[test]
+    fn missing_poll_credential_never_restarts_terminal_registration() {
+        let store = focusa_license::authority_credentials::InMemoryCredentialStore::default();
+        let mut registration = recoverable_registration();
+        registration.state = ActivationState::RecoveryOnly;
+        let error = resume_or_restart_agent_activation(
+            ScriptedAuthority::new(),
+            CLI_FLOW,
+            registration,
+            &store,
+            Some("customer@example.com".into()),
+            None,
+            None,
+            AgentKeyReveal::denied(),
+            None,
+        )
+        .unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("protected credential is missing")
+        );
+    }
+
+    #[test]
+    fn missing_poll_credential_store_outage_never_restarts() {
+        struct UnavailableStore;
+        impl ProtectedCredentialStore for UnavailableStore {
+            fn get(
+                &self,
+                _: &CredentialHandle,
+            ) -> Result<SensitiveCredential, CredentialStoreError> {
+                Err(CredentialStoreError::StoreUnavailable)
+            }
+            fn put(
+                &self,
+                _: &CredentialHandle,
+                _: &SensitiveCredential,
+            ) -> Result<(), CredentialStoreError> {
+                panic!("unexpected write")
+            }
+            fn delete(&self, _: &CredentialHandle) -> Result<(), CredentialStoreError> {
+                panic!("unexpected delete")
+            }
+        }
+        let error = resume_or_restart_agent_activation(
+            ScriptedAuthority::new(),
+            CLI_FLOW,
+            recoverable_registration(),
+            &UnavailableStore,
+            Some("customer@example.com".into()),
+            None,
+            None,
+            AgentKeyReveal::denied(),
+            None,
+        )
+        .unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("protected credential store is unavailable")
+        );
+    }
+
+    #[test]
+    fn missing_poll_credential_recovery_preserves_valid_session() {
+        let store = focusa_license::authority_credentials::InMemoryCredentialStore::default();
+        let authority = ScriptedAuthority::new();
+        authority.push(
+            "activation.poll",
+            Ok(AuthorityReply::Poll(PollOutcome {
+                transitions: vec![],
+                one_time_key_envelope: None,
+                node_id: None,
+                lease_envelope: None,
+            })),
+        );
+        let registration = recoverable_registration();
+        persist_poll_credential(
+            &store,
+            &registration.registration_id,
+            &SensitiveCredential::new("poll-secret".into()).unwrap(),
+        )
+        .unwrap();
+        let outcome = resume_or_restart_agent_activation(
+            authority,
+            CLI_FLOW,
+            registration.clone(),
+            &store,
+            Some("customer@example.com".into()),
+            None,
+            None,
+            AgentKeyReveal::denied(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(outcome.registration_id, registration.registration_id);
+        assert_eq!(outcome.envelope.poll_count, registration.poll_count + 1);
     }
 }
