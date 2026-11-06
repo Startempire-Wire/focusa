@@ -2591,9 +2591,9 @@ async fn run_agent_activation_command(
     args: ActivateFlowArgs,
 ) -> anyhow::Result<()> {
     use crate::commands::activation_flow::{
-        ActivationFlowError, CLI_FLOW, load_poll_credential, load_registration_snapshot,
-        persist_poll_credential, persist_registration_snapshot, resolve_flow_node_identity,
-        resume_agent_activation, run_agent_activation,
+        ActivationFlowError, CLI_FLOW, load_registration_snapshot, persist_poll_credential,
+        persist_registration_snapshot, resolve_flow_node_identity,
+        resume_or_restart_agent_activation, run_agent_activation,
     };
     use focusa_license::activation_client::ActivationSession;
     use focusa_license::authority_credentials::KeyringCredentialStore;
@@ -2645,12 +2645,13 @@ async fn run_agent_activation_command(
 
     let outcome = if let Some(registration_id) = args.resume.as_deref() {
         let registration = load_registration_snapshot(&config_dir, registration_id)?;
-        let credential = load_poll_credential(&KeyringCredentialStore, registration_id)?;
-        resume_agent_activation(
+        resume_or_restart_agent_activation(
             client,
             CLI_FLOW,
             registration,
-            credential,
+            &KeyringCredentialStore,
+            args.email.clone(),
+            Some(identity.node_id.clone()),
             args.poll_timeout,
             reveal,
             Some(&agent_persist),
