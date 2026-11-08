@@ -42,29 +42,17 @@ jobs:
           set -euo pipefail
           binary="${RUNNER_TEMP}/deslop-${DESLOP_VERSION}/deslop-${DESLOP_VERSION}-linux-x64/deslop"
           reports="${RUNNER_TEMP}/deslop-reports"
-          # Isolate storage as well as runtime state: an OOM-killed rootless
-          # pause process must not poison later scans or require a global reset.
-          container_state="$(mktemp -d "${RUNNER_TEMP}/deslop-container.XXXXXX")"
-          runtime_dir="${container_state}/runtime"
-          install -d -m 700 "${runtime_dir}"
-          export XDG_RUNTIME_DIR="${runtime_dir}"
-          podman_args=(--root "${container_state}/storage" --runroot "${container_state}/run" --cgroup-manager=cgroupfs)
-          cleanup_private_container_state() {
-            # Only this job's newly-created sandbox; never shared containers,
-            # images, reports, receipts, or the runner's default Podman store.
-            if [[ "${container_state}" == "${RUNNER_TEMP}"/deslop-container.* ]]; then
-              podman "${podman_args[@]}" unshare rm -rf -- "${container_state}" || true
-            fi
-          }
-          trap cleanup_private_container_state EXIT
+          # Use the runner's existing Docker engine without migrating or
+          # resetting shared Podman state. Keep the scan non-root and isolated.
           mkdir -p "${reports}"
           find "${reports}" -mindepth 1 -maxdepth 1 -delete
           set +e
-          podman "${podman_args[@]}" run --rm \
+          docker run --rm \
             --network=none \
             --memory 4g \
             --memory-swap 4g \
-            --userns=keep-id \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
             --user "$(id -u):$(id -g)" \
             --volume "${GITHUB_WORKSPACE}:/workspace:ro,Z" \
             --volume "${reports}:/reports:Z" \

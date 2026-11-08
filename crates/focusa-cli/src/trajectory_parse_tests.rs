@@ -37,12 +37,11 @@ fn issue621_complete_goal_confirmation_does_not_require_lifecycle_action() {
 fn issue621_global_confirmation_still_requires_lifecycle_action() {
     let mut args = goal_args();
     args.push("--confirm");
-    let error = Cli::try_parse_from(args)
-        .err()
-        .expect("global confirmation requires lifecycle action");
-    assert_eq!(
-        error.kind(),
-        clap::error::ErrorKind::MissingRequiredArgument
-    );
+    // Generic confirmation is resolved at the command boundary so valid
+    // command-owned repairs do not require an installer lifecycle (#702).
+    // Defining a goal is not such a repair and must still reject this flag.
+    let mut parsed = Cli::try_parse_from(args).expect("parse before command-owned validation");
+    let error = super::prepare_command_confirmation(&mut parsed)
+        .expect_err("global confirmation requires lifecycle action");
     assert!(error.to_string().contains("--lifecycle-action"));
 }
