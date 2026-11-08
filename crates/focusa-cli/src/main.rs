@@ -705,7 +705,9 @@ async fn async_main() -> anyhow::Result<()> {
         eprintln!("{}", commands::intro::render_help_banner());
     }
     let mut command = Cli::command();
-    let matches = command.get_matches_from_mut(raw_args);
+    let matches = command
+        .try_get_matches_from_mut(raw_args)
+        .unwrap_or_else(|error| error.exit());
     let mut cli = Cli::from_arg_matches(&matches).unwrap_or_else(|error| error.exit());
     prepare_command_confirmation(&mut cli, &command, &matches)?;
 
