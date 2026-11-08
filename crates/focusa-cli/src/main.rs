@@ -5,7 +5,7 @@
 //! Binary: `focusa`
 //! Thin facade — zero business logic beyond arg parsing + API calls.
 
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 
 mod api_client;
 mod commands;
@@ -576,11 +576,43 @@ fn classify_cli_error(message: &str) -> (&'static str, &'static str, &'static st
     }
 }
 
-// Resolve the generic confirmation at the command boundary. Stage-only
-// Workpoint recovery is not an installer lifecycle and must not require the
-// --lifecycle-action flag that its command family deliberately rejects (#702).
-fn prepare_command_confirmation(cli: &mut Cli) -> anyhow::Result<()> {
+// Resolve confirmation through the selected canonical Clap schema. Commands
+// owning a local confirmation retain it; global installer confirmation keeps
+// its lifecycle gate. Stage repair alone maps the compatibility alias (#702).
+fn selected_command_owns_confirmation(
+    mut command: &clap::Command,
+    mut matches: &clap::ArgMatches,
+) -> bool {
+    while let Some((name, selected)) = matches.subcommand() {
+        let Some(child) = command.find_subcommand(name) else {
+            return false;
+        };
+        command = child;
+        matches = selected;
+    }
+    command
+        .get_arguments()
+        .any(|argument| argument.get_id() == "confirm" && !argument.is_global_set())
+        && matches
+            .try_get_one::<bool>("confirm")
+            .ok()
+            .flatten()
+            .copied()
+            .unwrap_or(false)
+}
+
+fn prepare_command_confirmation(
+    cli: &mut Cli,
+    command: &clap::Command,
+    matches: &clap::ArgMatches,
+) -> anyhow::Result<()> {
     if cli.confirm && cli.lifecycle_action.is_none() {
+        if selected_command_owns_confirmation(command, matches) {
+            // Derive already copied the selected command's confirmation into
+            // its typed argument. Clear only the inherited installer flag.
+            cli.confirm = false;
+            return Ok(());
+        }
         if let Commands::Workpoint(commands::workpoint::WorkpointCmd::RepairStage {
             confirm_lifecycle_repair,
             ..
@@ -588,17 +620,8 @@ fn prepare_command_confirmation(cli: &mut Cli) -> anyhow::Result<()> {
         {
             *confirm_lifecycle_repair = true;
             cli.confirm = false;
-        } else if let Commands::Project(commands::project::ProjectCmd::TrajectoryGuard {
-            confirm,
-            ..
-        }) = &mut cli.command
-        {
-            *confirm = true;
-            cli.confirm = false;
         } else {
-            anyhow::bail!(
-                "--confirm requires --lifecycle-action or a command-owned repair confirmation"
-            );
+            anyhow::bail!("--confirm requires --lifecycle-action or a command-owned confirmation");
         }
     }
     Ok(())
@@ -681,8 +704,10 @@ async fn async_main() -> anyhow::Result<()> {
     if raw_args.iter().any(|arg| arg == "--help" || arg == "-h") {
         eprintln!("{}", commands::intro::render_help_banner());
     }
-    let mut cli = Cli::parse_from(raw_args);
-    prepare_command_confirmation(&mut cli)?;
+    let mut command = Cli::command();
+    let matches = command.get_matches_from_mut(raw_args);
+    let mut cli = Cli::from_arg_matches(&matches).unwrap_or_else(|error| error.exit());
+    prepare_command_confirmation(&mut cli, &command, &matches)?;
 
     // Initialize tracing with basic formatting
     let subscriber = tracing_subscriber::fmt()

@@ -1,7 +1,6 @@
 use super::*;
 
 fn repair_args() -> Vec<String> {
-    // Parsing is pure: this placeholder path is never inspected or mutated.
     let root = std::env::temp_dir().join("focusa-stage-confirmation-parser");
     vec![
         "focusa".into(),
@@ -22,11 +21,16 @@ fn repair_args() -> Vec<String> {
     ]
 }
 
-fn parse_cli(args: Vec<String>) -> Cli {
-    // Match the production parser's stack allowance on Windows and Unix.
+fn parse_cli(args: Vec<String>) -> (Cli, clap::Command, clap::ArgMatches) {
+    // Exercise the same selected schema and stack allowance as production.
     std::thread::Builder::new()
         .stack_size(8 * 1024 * 1024)
-        .spawn(move || Cli::try_parse_from(args))
+        .spawn(move || {
+            let mut command = Cli::command();
+            let matches = command.try_get_matches_from_mut(args)?;
+            let cli = Cli::from_arg_matches(&matches)?;
+            Ok::<_, clap::Error>((cli, command, matches))
+        })
         .unwrap()
         .join()
         .unwrap()
@@ -47,8 +51,8 @@ fn stage_confirmed(cli: &Cli) -> bool {
 fn repair_stage_generic_confirm_does_not_require_installer_lifecycle() {
     let mut args = repair_args();
     args.push("--confirm".into());
-    let mut cli = parse_cli(args);
-    prepare_command_confirmation(&mut cli).expect("stage recovery is not an installer flow");
+    let (mut cli, schema, matches) = parse_cli(args);
+    prepare_command_confirmation(&mut cli, &schema, &matches).unwrap();
     assert!(stage_confirmed(&cli));
     assert!(!cli.confirm);
     assert!(cli.lifecycle_action.is_none());
@@ -58,33 +62,49 @@ fn repair_stage_generic_confirm_does_not_require_installer_lifecycle() {
 fn repair_stage_dedicated_confirmation_remains_supported() {
     let mut args = repair_args();
     args.push("--confirm-lifecycle-repair".into());
-    let mut cli = parse_cli(args);
-    prepare_command_confirmation(&mut cli).unwrap();
+    let (mut cli, schema, matches) = parse_cli(args);
+    prepare_command_confirmation(&mut cli, &schema, &matches).unwrap();
     assert!(stage_confirmed(&cli));
     assert!(cli.lifecycle_action.is_none());
 }
 
 #[test]
 fn repair_stage_does_not_infer_confirmation() {
-    let mut cli = parse_cli(repair_args());
-    prepare_command_confirmation(&mut cli).unwrap();
+    let (mut cli, schema, matches) = parse_cli(repair_args());
+    prepare_command_confirmation(&mut cli, &schema, &matches).unwrap();
     assert!(!stage_confirmed(&cli));
 }
 
 #[test]
 fn generic_confirmation_does_not_approve_an_unrelated_command() {
-    let mut cli = parse_cli(
-        ["focusa", "status", "--confirm"]
-            .map(str::to_string)
-            .to_vec(),
-    );
-    let error = prepare_command_confirmation(&mut cli).unwrap_err();
-    assert!(error.to_string().contains("requires --lifecycle-action"));
+    for args in [
+        vec!["focusa", "status", "--confirm"],
+        vec!["focusa", "install", "--confirm"],
+        vec![
+            "focusa",
+            "trajectory",
+            "define-goal",
+            "--long-term-goal",
+            "Fixture goal",
+            "--desired-end-state",
+            "Fixture proof",
+            "--confirm",
+        ],
+    ] {
+        let (mut cli, schema, matches) = parse_cli(args.into_iter().map(str::to_string).collect());
+        assert!(!selected_command_owns_confirmation(&schema, &matches));
+        assert!(
+            prepare_command_confirmation(&mut cli, &schema, &matches)
+                .unwrap_err()
+                .to_string()
+                .contains("requires --lifecycle-action")
+        );
+    }
 }
 
 #[test]
 fn installer_confirmation_still_requires_its_existing_guided_flow() {
-    let mut cli = parse_cli(
+    let (mut cli, schema, matches) = parse_cli(
         [
             "focusa",
             "install",
@@ -95,14 +115,14 @@ fn installer_confirmation_still_requires_its_existing_guided_flow() {
         .map(str::to_string)
         .to_vec(),
     );
-    prepare_command_confirmation(&mut cli).unwrap();
+    prepare_command_confirmation(&mut cli, &schema, &matches).unwrap();
     assert!(cli.confirm);
     assert!(cli.lifecycle_action.is_some());
 }
 
 #[test]
 fn marker_repair_confirmation_is_owned_by_trajectory_guard_not_installer() {
-    let mut cli = parse_cli(
+    let (mut cli, schema, matches) = parse_cli(
         [
             "focusa",
             "project",
@@ -116,7 +136,8 @@ fn marker_repair_confirmation_is_owned_by_trajectory_guard_not_installer() {
         .map(str::to_string)
         .to_vec(),
     );
-    prepare_command_confirmation(&mut cli).unwrap();
+    assert!(selected_command_owns_confirmation(&schema, &matches));
+    prepare_command_confirmation(&mut cli, &schema, &matches).unwrap();
     match cli.command {
         Commands::Project(commands::project::ProjectCmd::TrajectoryGuard { confirm, .. }) => {
             assert!(confirm)
@@ -125,4 +146,76 @@ fn marker_repair_confirmation_is_owned_by_trajectory_guard_not_installer() {
     }
     assert!(!cli.confirm);
     assert!(cli.lifecycle_action.is_none());
+}
+
+#[test]
+fn selected_command_schema_owns_genesis_bootstrap_and_temporal_confirmation() {
+    let cases = [
+        vec![
+            "focusa",
+            "project",
+            "genesis",
+            "commit",
+            "--project-root",
+            "/fixture/project",
+            "--continuity-id",
+            "fixture",
+            "--idempotency-key",
+            "genesis",
+            "--confirm",
+        ],
+        vec![
+            "focusa",
+            "project",
+            "bootstrap",
+            "apply",
+            "--project-root",
+            "/fixture/project",
+            "--project-id",
+            "fixture",
+            "--canonical-name",
+            "Fixture",
+            "--continuity-id",
+            "fixture",
+            "--idempotency-key",
+            "bootstrap",
+            "--confirm",
+        ],
+        vec![
+            "focusa",
+            "temporal",
+            "commit",
+            "--project-root",
+            "/fixture/project",
+            "--continuity-id",
+            "fixture",
+            "--idempotency-key",
+            "temporal",
+            "--claim-id",
+            "claim",
+            "--kind",
+            "forecast",
+            "--subject-ref",
+            "subject",
+            "--timezone",
+            "UTC",
+            "--source",
+            "operator",
+            "--confirm",
+        ],
+    ];
+    for args in cases {
+        let (mut cli, schema, matches) = parse_cli(args.into_iter().map(str::to_string).collect());
+        assert!(selected_command_owns_confirmation(&schema, &matches));
+        prepare_command_confirmation(&mut cli, &schema, &matches).unwrap();
+        assert!(
+            !cli.confirm,
+            "command-owned flags must not become installer approval"
+        );
+        assert!(
+            selected_command_owns_confirmation(&schema, &matches),
+            "actual selected confirmation stays intact"
+        );
+        assert!(cli.lifecycle_action.is_none());
+    }
 }
