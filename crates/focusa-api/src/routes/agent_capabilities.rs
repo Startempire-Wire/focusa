@@ -207,8 +207,8 @@ fn op(
     docs: &'static str,
     deprecation: Option<DeprecationEntry>,
 ) -> OperationEntry {
-    let read_only_operation = method == "GET"
-        || matches!(id, "focusa.callgraph.validate" | "focusa.workpoint.resume");
+    let read_only_operation =
+        method == "GET" || matches!(id, "focusa.callgraph.validate" | "focusa.workpoint.resume");
     let project_scoped = !matches!(family, "health" | "device" | "license" | "events")
         && id != "focusa.compatibility_lock.read"
         && id != "focusa.callgraph.validate";
@@ -5060,10 +5060,7 @@ mod tests {
                 "/v1/workpoint/evidence/link",
             ),
         ] {
-            let operation = operations
-                .iter()
-                .find(|op| op.operation_id == id)
-                .unwrap();
+            let operation = operations.iter().find(|op| op.operation_id == id).unwrap();
             assert_eq!(operation.method, "POST");
             assert_eq!(operation.path, path);
             let advertised = &document["paths"][path];
@@ -5071,7 +5068,11 @@ mod tests {
             assert_eq!(advertised["post"]["operationId"], id);
             assert!(advertised["post"].get("requestBody").is_some());
         }
-        assert!(document["paths"].get("/v1/workpoint/link-evidence").is_none());
+        assert!(
+            document["paths"]
+                .get("/v1/workpoint/link-evidence")
+                .is_none()
+        );
         let resume = operations
             .iter()
             .find(|op| op.operation_id == "focusa.workpoint.resume")
