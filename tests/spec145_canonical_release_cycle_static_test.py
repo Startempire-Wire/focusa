@@ -232,7 +232,21 @@ require(
 assert "Release cargo test" not in RELEASE, "Release duplicates source/tag CI cargo tests on the critical path"
 assert "Release clippy" not in RELEASE, "Release duplicates source/tag CI clippy on the critical path"
 assert "FOCUSA_GITHUB_MACOS_RESTORED" in CI, "billing-locked macOS must remain skipped until restoration"
-assert "XDG_RUNTIME_DIR" in (ROOT / ".github/workflows/deslop.yml").read_text(), "Deslop must use a runner-owned Podman runtime dir"
+deslop = (ROOT / ".github/workflows/deslop.yml").read_text()
+require(
+    deslop,
+    [
+        "docker run --rm",
+        "--network=none",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        '--user "$(id -u):$(id -g)"',
+        '${GITHUB_WORKSPACE}:/workspace:ro,Z',
+        "docker.io/library/node@sha256:",
+    ],
+    "Deslop uses the existing Docker engine with runner ownership and isolation",
+)
+assert "podman system" not in deslop, "Deslop must not migrate or reset shared Podman state"
 require(
     RELEASE,
     [

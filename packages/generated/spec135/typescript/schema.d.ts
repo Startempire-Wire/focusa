@@ -1564,7 +1564,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/workpoint/link-evidence": {
+    "/v1/workpoint/evidence/link": {
         parameters: {
             query?: never;
             header?: never;
@@ -1591,13 +1591,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /**
          * Workpoint Resume
          * @description Workpoint Resume — family=workpoint budget=standard_read materialization=advisory_read
          */
-        get: operations["focusa.workpoint.resume"];
-        put?: never;
-        post?: never;
+        post: operations["focusa.workpoint.resume"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9647,7 +9647,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_workpoint_resume_request_v1"];
+            };
+        };
         responses: {
             /** @description Workpoint Resume response */
             200: {
