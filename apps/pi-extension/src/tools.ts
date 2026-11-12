@@ -5981,8 +5981,8 @@ pi.registerTool({
       if (p.remote_repo_remote) query.set("remote_repo_remote", p.remote_repo_remote);
       if (p.remote_workspace_kind) query.set("remote_workspace_kind", p.remote_workspace_kind);
       if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
-      let result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
-      let body = result.body || {};
+      const result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
+      const body = result.body || {};
       const continuityBeforeRecovery = getContinuityId();
       const priorContinuityCounts = new Map<string, number>();
       for (const frame of body.prior_session_context?.recent_frames || []) {
