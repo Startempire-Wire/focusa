@@ -5378,7 +5378,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/workpoint/resume`
 
-- Methods: `GET /v1/workpoint/resume`, `POST /v1/workpoint/resume`
+- Methods: `POST /v1/workpoint/resume`
 - Classification: `agent_eligible`
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/workpoint.rs`

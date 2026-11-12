@@ -38,7 +38,7 @@ Use the structured error recovery field, preserve the original scope and idempot
 
 ## `focusa.workpoint.link_evidence`
 
-- Method/path: `POST /v1/workpoint/link-evidence`
+- Method/path: `POST /v1/workpoint/evidence/link`
 - Family: `workpoint`
 - Input schema: `focusa.workpoint_link_evidence.request.v1`
 - Output schema: `focusa.workpoint_link_evidence.response.v1`
@@ -70,7 +70,7 @@ Use the structured error recovery field, preserve the original scope and idempot
 
 ## `focusa.workpoint.resume`
 
-- Method/path: `GET /v1/workpoint/resume`
+- Method/path: `POST /v1/workpoint/resume`
 - Family: `workpoint`
 - Input schema: `focusa.workpoint_resume.request.v1`
 - Output schema: `focusa.workpoint_resume.response.v1`

@@ -207,7 +207,8 @@ fn op(
     docs: &'static str,
     deprecation: Option<DeprecationEntry>,
 ) -> OperationEntry {
-    let read_only_operation = method == "GET" || id == "focusa.callgraph.validate";
+    let read_only_operation = method == "GET"
+        || matches!(id, "focusa.callgraph.validate" | "focusa.workpoint.resume");
     let project_scoped = !matches!(family, "health" | "device" | "license" | "events")
         && id != "focusa.compatibility_lock.read"
         && id != "focusa.callgraph.validate";
@@ -585,7 +586,7 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.workpoint.resume",
             "Workpoint Resume",
             "workpoint",
-            "GET",
+            "POST",
             "/v1/workpoint/resume",
             true,
             None,
@@ -609,7 +610,7 @@ fn build_operations() -> Vec<OperationEntry> {
             "Workpoint Link Evidence",
             "workpoint",
             "POST",
-            "/v1/workpoint/link-evidence",
+            "/v1/workpoint/evidence/link",
             true,
             None,
             "write_workpoint_evidence",
@@ -5046,6 +5047,39 @@ mod tests {
         assert_eq!(rendered["operationId"], "focusa.callgraph.validate");
         assert_eq!(rendered["x-focusa-mode"], "read");
         assert_eq!(rendered["x-focusa-receipt"], false);
+    }
+
+    #[test]
+    fn workpoint_discovery_matches_registered_routes() {
+        let operations = build_operations();
+        let document = openapi_document();
+        for (id, path) in [
+            ("focusa.workpoint.resume", "/v1/workpoint/resume"),
+            (
+                "focusa.workpoint.link_evidence",
+                "/v1/workpoint/evidence/link",
+            ),
+        ] {
+            let operation = operations
+                .iter()
+                .find(|op| op.operation_id == id)
+                .unwrap();
+            assert_eq!(operation.method, "POST");
+            assert_eq!(operation.path, path);
+            let advertised = &document["paths"][path];
+            assert!(advertised.get("get").is_none());
+            assert_eq!(advertised["post"]["operationId"], id);
+            assert!(advertised["post"].get("requestBody").is_some());
+        }
+        assert!(document["paths"].get("/v1/workpoint/link-evidence").is_none());
+        let resume = operations
+            .iter()
+            .find(|op| op.operation_id == "focusa.workpoint.resume")
+            .unwrap();
+        assert_eq!(resume.permissions_required, vec!["workpoint:read"]);
+        assert_eq!(resume.control.mode, "read");
+        assert!(!resume.control.receipt_required);
+        assert!(!resume.requires_idempotency_key);
     }
 
     #[test]
