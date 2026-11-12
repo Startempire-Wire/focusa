@@ -5,7 +5,7 @@ interface OpenClawPluginApi {
     warn(message: string): void;
   };
   on(
-    event: "before_agent_start",
+    event: "before_prompt_build",
     handler: (
       event: unknown,
       ctx: { sessionKey?: string },
@@ -122,7 +122,7 @@ const focusaAwareness = {
     }
 
     api.on(
-      "before_agent_start",
+      "before_prompt_build",
       async (_event: unknown, ctx: { sessionKey?: string }) => {
         const sessionId = sessionIdFromContext(ctx);
         if (!c.projectRoot || !c.continuityId) {

@@ -1,6 +1,6 @@
 # Focusa Awareness Plugin
 
-Standalone OpenClaw-compatible plugin that injects a Focusa Utility Card before agent start.
+Standalone OpenClaw-compatible plugin that injects a Focusa Utility Card through the public `before_prompt_build` hook.
 
 ## Build
 
@@ -11,6 +11,18 @@ bun run build
 ```
 
 The plugin intentionally declares a minimal local host API interface instead of importing `openclaw/plugin-sdk`; this keeps the package buildable in this repository while preserving the expected runtime hook shape.
+
+## Hook compatibility and regression history
+
+The November 2026 repair replaces `before_agent_start`, an unrecognized typed hook in both OpenClaw 2026.10.7 and 2026.11.3. This is a pre-existing adapter defect, not a new incompatibility introduced by upgrading. Hosts can report the plugin loaded while ignoring its obsolete hook.
+
+Both reviewed releases support `before_prompt_build` and its `{ prependContext }` result. Register exactly one hook: dual registration can inject duplicate context. The change preserves fetching, timeout, scope checks, degraded fallback, and disabled behavior. Compatibility claims cover these reviewed contracts, not every past or future host. Re-run qualification when upgrading OpenClaw.
+
+Non-bundled plugins also require `plugins.entries.focusa-awareness.hooks.allowConversationAccess: true`; enable only for this approved adapter. A configured folder is not verified project/task authority, and a missing continuity identifier must never be invented. Unbound/degraded cards remain advisory.
+
+Run `npm test` on a supported Node runtime. Fixtures retain release source references and hashes; tests check one recognized registration, one fetch/injection, disabled behavior, missing scope, and degraded fetch handling. These isolated tests are not proof of an actual host load or a future release.
+
+For an approved hot deployment, preserve exact source/config preimages with ownership and hashes; change only the necessary hook and permission; use the native plugin reload; then verify the loaded generation and a real prompt preparation. Keep canonical-source and legacy-deployment differences explicit instead of copying unrelated behavior changes. Roll back only the changed files/field and reload again, preserving concurrent config changes. No host package upgrade or full-service restart is implied.
 
 ## Runtime config
 

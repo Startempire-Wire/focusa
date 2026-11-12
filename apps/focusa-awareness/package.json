@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "build": "bun build ./index.ts --target=node --format=esm --outfile=dist/index.js",
-    "check": "bun build ./index.ts --target=node --format=esm --outfile=/tmp/focusa-awareness-check.js"
+    "check": "bun build ./index.ts --target=node --format=esm --outfile=/tmp/focusa-awareness-check.js",
+    "test": "node --experimental-strip-types --test compat.test.mjs"
   }
 }
