@@ -56,18 +56,22 @@ test("session startup fails closed before durable project initialization", () =>
   assert.doesNotMatch(block, /North-star gate blocked durable project startup/);
 });
 
-test("explicit trajectory view adopts verified continuity before caching North Star state", () => {
+test("explicit trajectory view caches only the attached scope without adopting a workstream", () => {
   const start = tools.indexOf('name: "focusa_trajectory_view"');
   const end = tools.indexOf('name: "focusa_hlt_history"', start);
   assert.ok(start >= 0 && end > start);
   const block = tools.slice(start, end);
-  const adopt = block.indexOf("adoptVerifiedContinuityForCurrentSession");
-  const cache = block.indexOf("setLastTrajectoryClarity", adopt);
-  assert.ok(adopt >= 0 && cache > adopt);
-  assert.match(block, /scope_verification:/);
-  assert.match(block, /trajectory\.scope_verification/);
-  assert.match(state, /export function adoptVerifiedContinuityForCurrentSession/);
-  assert.match(state, /verifiedRoot !== root/);
+  const scopeCheck = block.indexOf("if (!typedTrajectoryScopeMatches");
+  const attachedCheck = block.indexOf("const responseMatchesCaller", scopeCheck);
+  const guard = block.indexOf("if (responseMatchesCaller &&", attachedCheck);
+  const cache = block.indexOf("setLastTrajectoryClarity", guard);
+  assert.ok(scopeCheck >= 0 && attachedCheck > scopeCheck && guard > attachedCheck && cache > guard);
+  assert.match(block, /caller\.workstream\.continuity_id === responseContinuity/);
+  assert.match(block, /normalizeProjectRoot\(caller\.workstream\.root_scope\.root_path\) === responseRoot/);
+  assert.match(block, /p\.session_id === caller\.session_id/);
+  assert.match(block, /body\.canonical === true && body\.degraded !== true/);
+  assert.match(block, /trajectory\.fallback_prior_project_trajectory !== true/);
+  assert.doesNotMatch(block, /adoptVerifiedContinuityForCurrentSession\s*\(/);
 });
 
 test("north-star startup order is project then trajectory then Workpoint", () => {

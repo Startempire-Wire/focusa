@@ -151,9 +151,18 @@ assert.match(
   /query\.set\("pi_session_id", getSessionFrameKey\(\)\)/,
   "project identity reads must carry the native Pi session UUID"
 );
+const identityStart = toolsSource.indexOf('name: "focusa_project_identity"');
+const identityEnd = toolsSource.indexOf('name: "focusa_project_card"', identityStart);
+assert.ok(identityStart >= 0 && identityEnd > identityStart);
+const identityTool = toolsSource.slice(identityStart, identityEnd);
+assert.doesNotMatch(
+  identityTool,
+  /(?:adoptVerifiedContinuityForCurrentSession|setContinuityId|setSessionCwd)\s*\(/,
+  "identity reads must not adopt historical workstreams or change the native working folder"
+);
 assert.match(
-  toolsSource,
-  /fallback_source_continuity_id[\s\S]*adoptVerifiedContinuityForCurrentSession\(verifiedRoot, priorContinuity\)/,
-  "verified project identity must recover the prior exact project continuity before later surface reads"
+  identityTool,
+  /normalizeProjectRoot\(identity\.project_root\) === normalizeProjectRoot\(caller\.workstream\.root_scope\.root_path\)[\s\S]*setLastProjectIdentity\(identity\)/,
+  "identity caching must respect the current attachment's project boundary"
 );
 console.log("project identity working-context retention passed");
