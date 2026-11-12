@@ -1,16 +1,16 @@
 {
   "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
   "baseline_counts": {
-    "covered": 733,
+    "covered": 734,
     "total": 1216,
-    "unmatched": 483
+    "unmatched": 482
   },
   "baseline_coverage": "docs/contracts/spec152-entitlement-coverage.v1.json",
-  "coverage_canonical_sha256": "b23997d852bad2d28227537e5b915d98c823c1e35bc2c09dff3b01c2bafbbecc",
+  "coverage_canonical_sha256": "f2178b8958ee818b3ade4413ea2dccca0353d554c8bdca4deb490544b70fe332",
   "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
   "policy_file_sha256": "7aa11eae5eb360325b23441f9c67554604d476027a4a343e5d0fb263f4c4df87",
   "resolution_counts": {
-    "base_entitlement_candidate": 200,
+    "base_entitlement_candidate": 199,
     "inherit_canonical_operation": 215,
     "premium_family_candidate": 55,
     "recovery_or_read_allowance": 4,
@@ -39,8 +39,8 @@
     },
     "rest": {
       "path": "docs/contracts/spec152f-surface-reconciliation/rest.v1.json",
-      "row_count": 244,
-      "sha256": "91d9357063fdd561d45778f43dfd6d1f77a5de6bce2bb1d01509734446191ebe"
+      "row_count": 243,
+      "sha256": "410340ac81ef0e34388343f343803a0ddfa5421d8d986842e4989055314bc0b7"
     },
     "runtime_files": {
       "path": "docs/contracts/spec152f-surface-reconciliation/runtime_files.v1.json",
@@ -49,9 +49,9 @@
     }
   },
   "source_digests": {
-    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "325103e2cad44e6278bd312bb19537f6edfd22eb0ec948d7e71715d16295c983",
-    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "207699b048605ea0e5af2a18dcd9a76d3ee0727856ec56073be22ec0d536ddac",
-    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "b2890d1936ae38aaaca96f99c02b54894c7a64a2d3cd47d93da385c4d4b6c6b1"
+    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "71966a23b79c616af9ccbbab141d0146fb40acf7fcc7b5df48caa8bec3886069",
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "2262109587592062f0c43841873ca88c142133e1a4d9456a6192e104a940e9ac",
+    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "582092ac2227bddbcf284e35940d36c24844497a86c331baea93a391676e4b73"
   },
   "surface_counts": {
     "cli": 104,
@@ -59,7 +59,7 @@
     "menubar": 87,
     "pi_tool": 17,
     "release": 18,
-    "rest": 244,
+    "rest": 243,
     "scheduler": 2,
     "update": 6
   },

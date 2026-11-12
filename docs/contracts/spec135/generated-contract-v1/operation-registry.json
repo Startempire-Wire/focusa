@@ -13801,7 +13801,7 @@
         "core_action_ref": "focusa.workpoint.link_evidence",
         "subsystem": "workpoint"
       },
-      "path": "/v1/workpoint/link-evidence",
+      "path": "/v1/workpoint/evidence/link",
       "permissions_required": [
         "workpoint:write"
       ],
@@ -13884,7 +13884,7 @@
       "family": "workpoint",
       "label": "Workpoint Resume",
       "materialization_mode": "advisory_read",
-      "method": "GET",
+      "method": "POST",
       "operation_id": "focusa.workpoint.resume",
       "operation_version": "1.0.0",
       "ownership": {

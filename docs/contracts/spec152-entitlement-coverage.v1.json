@@ -15906,9 +15906,9 @@
   },
   "schema": "focusa.entitlement_coverage.v1",
   "source_digests": {
-    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "325103e2cad44e6278bd312bb19537f6edfd22eb0ec948d7e71715d16295c983",
-    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "207699b048605ea0e5af2a18dcd9a76d3ee0727856ec56073be22ec0d536ddac",
-    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "b2890d1936ae38aaaca96f99c02b54894c7a64a2d3cd47d93da385c4d4b6c6b1"
+    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "71966a23b79c616af9ccbbab141d0146fb40acf7fcc7b5df48caa8bec3886069",
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "2262109587592062f0c43841873ca88c142133e1a4d9456a6192e104a940e9ac",
+    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "582092ac2227bddbcf284e35940d36c24844497a86c331baea93a391676e4b73"
   },
   "unmatched_surfaces": []
 }

@@ -1,6 +1,6 @@
 {
   "schema": "focusa.mcp_tool_projection.v2",
-  "registry_digest": "sha256:5468cb55a918b06247a6534e8f4f60fb591c2d912e51b113d33a646a65557e3c",
+  "registry_digest": "sha256:c01e036479378644c82fd3ff7c13cc8bef16afaf7dfd1f7f2b39bf039ea941bb",
   "tools": [
     {
       "name": "focusa.active.object.resolve",

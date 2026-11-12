@@ -13211,32 +13211,32 @@
       "family": "workpoint",
       "namespace": "focusa.workpoint",
       "operation_policy": {
-        "operation_id": null,
+        "operation_id": "focusa.workpoint.link_evidence",
         "method": "POST",
         "path": "/v1/workpoint/evidence/link",
-        "operation_class": "read",
-        "capability_family": "read_projection",
-        "commercial_treatment": "read_allowance",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
-        "recovery_allowance": "read_projection",
-        "source_owner": "agent_capability_contracts",
+        "recovery_allowance": "none",
+        "source_owner": "workpoint",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": null,
+          "operation_id": "focusa.workpoint.link_evidence",
           "method": "POST",
           "path": "/v1/workpoint/evidence/link",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
           "policy_activation": "active",
           "required_feature": null,
           "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
+          "recovery_allowance": "none",
+          "source_owner": "workpoint",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
@@ -13268,14 +13268,14 @@
           "policy_owner": "entitlement_policy_resolver"
         }
       ],
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
       "policy_activation": "active",
       "required_feature": null,
       "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "recovery_allowance": "none",
+      "source_owner": "workpoint",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -13774,7 +13774,7 @@
         "snippet": "Use after UIAI browser diagnostics/error envelopes to standardize evidence + learning intake before manual interpretation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:4280e21e82ef9e2e5c78bf3928f3f7dc97d28bb2ec453ed322b4bcf1c6990b12"
+      "descriptor_digest": "sha256:9b9b04b925f418adf42da4931a4057f6440afd8f53cc0b8f13231ac41595322b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31251,43 +31251,43 @@
       "family": "workpoint",
       "namespace": "focusa.workpoint",
       "operation_policy": {
-        "operation_id": null,
+        "operation_id": "focusa.workpoint.link_evidence",
         "method": "POST",
         "path": "/v1/workpoint/evidence/link",
-        "operation_class": "read",
-        "capability_family": "read_projection",
-        "commercial_treatment": "read_allowance",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
-        "recovery_allowance": "read_projection",
-        "source_owner": "agent_capability_contracts",
+        "recovery_allowance": "none",
+        "source_owner": "workpoint",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": null,
+          "operation_id": "focusa.workpoint.link_evidence",
           "method": "POST",
           "path": "/v1/workpoint/evidence/link",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
           "policy_activation": "active",
           "required_feature": null,
           "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
+          "recovery_allowance": "none",
+          "source_owner": "workpoint",
           "policy_owner": "entitlement_policy_resolver"
         }
       ],
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
       "policy_activation": "active",
       "required_feature": null,
       "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "recovery_allowance": "none",
+      "source_owner": "workpoint",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -31761,7 +31761,7 @@
         "snippet": "Use after tests, stress runs, or proof collection to keep handles instead of transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8f24b38cc28a2b8ab5704bd4274693eb275694aefc018ff54655fa039818f0e0"
+      "descriptor_digest": "sha256:717454d45ce48d20e140b72c085a94c1c7b4b20e7b824db48caa9f0fc55b08b4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -60441,7 +60441,7 @@
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.workpoint.resume",
           "method": "POST",
           "path": "/v1/workpoint/resume",
           "operation_class": "read",
@@ -60451,7 +60451,7 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "workpoint",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
@@ -61183,7 +61183,7 @@
         "snippet": "Use when operator wants to save, continue, or roll over a long Focusa/Pi session with explicit source/target scope.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1a5411175b789bd62871138ba99d2651befe2003a27db131fac2b81879b394b8"
+      "descriptor_digest": "sha256:4adb087614fedb4139fa4744d7b3ebcf42ba1c3e7d239e2fcb21186d68d6a574"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86210,43 +86210,43 @@
       "family": "workpoint",
       "namespace": "focusa.workpoint",
       "operation_policy": {
-        "operation_id": null,
+        "operation_id": "focusa.workpoint.link_evidence",
         "method": "POST",
         "path": "/v1/workpoint/evidence/link",
-        "operation_class": "read",
-        "capability_family": "read_projection",
-        "commercial_treatment": "read_allowance",
+        "operation_class": "value_mutation",
+        "capability_family": "base_focusa",
+        "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
         "limit_bucket": null,
-        "recovery_allowance": "read_projection",
-        "source_owner": "agent_capability_contracts",
+        "recovery_allowance": "none",
+        "source_owner": "workpoint",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": null,
+          "operation_id": "focusa.workpoint.link_evidence",
           "method": "POST",
           "path": "/v1/workpoint/evidence/link",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
           "policy_activation": "active",
           "required_feature": null,
           "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
+          "recovery_allowance": "none",
+          "source_owner": "workpoint",
           "policy_owner": "entitlement_policy_resolver"
         }
       ],
-      "operation_class": "read",
-      "capability_family": "read_projection",
-      "commercial_treatment": "read_allowance",
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
       "policy_activation": "active",
       "required_feature": null,
       "limit_bucket": null,
-      "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "recovery_allowance": "none",
+      "source_owner": "workpoint",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -86718,7 +86718,7 @@
         "snippet": "Link proof/evidence to active Workpoint instead of keeping it only in transcript.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7f662fac320094ca0aa1f15fe7ef5ab6feac25d323e69821c8884198f9f9bfab"
+      "descriptor_digest": "sha256:0182efc4a89188c231356d1f3c6d2913f09136c00eae66471bdb9c8315b9a073"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -86763,7 +86763,7 @@
       "family": "workpoint",
       "namespace": "focusa.workpoint",
       "operation_policy": {
-        "operation_id": null,
+        "operation_id": "focusa.workpoint.resume",
         "method": "POST",
         "path": "/v1/workpoint/resume",
         "operation_class": "read",
@@ -86773,12 +86773,12 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "read_projection",
-        "source_owner": "agent_capability_contracts",
+        "source_owner": "workpoint",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": null,
+          "operation_id": "focusa.workpoint.resume",
           "method": "POST",
           "path": "/v1/workpoint/resume",
           "operation_class": "read",
@@ -86788,7 +86788,7 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "workpoint",
           "policy_owner": "entitlement_policy_resolver"
         }
       ],
@@ -86799,7 +86799,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "workpoint",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -87257,7 +87257,7 @@
           "If canonical=false, state degraded status and avoid treating it as canonical truth."
         ]
       },
-      "descriptor_digest": "sha256:a1932d1d2b40934435e8d3e27419c43543c018fc4396e690889f2dabf73706b2"
+      "descriptor_digest": "sha256:cb8036174f7e44984654236083aa5624db1ae81b70ee2d3f02e715ce2e026bd5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87773,5 +87773,5 @@
       "descriptor_digest": "sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae"
     }
   ],
-  "registry_digest": "sha256:5468cb55a918b06247a6534e8f4f60fb591c2d912e51b113d33a646a65557e3c"
+  "registry_digest": "sha256:c01e036479378644c82fd3ff7c13cc8bef16afaf7dfd1f7f2b39bf039ea941bb"
 }

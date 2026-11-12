@@ -21417,7 +21417,7 @@
         "x-focusa-subsystem": "workpoint"
       }
     },
-    "/v1/workpoint/link-evidence": {
+    "/v1/workpoint/evidence/link": {
       "post": {
         "description": "Workpoint Link Evidence \u2014 family=workpoint budget=standard_mutation materialization=daemon_dispatch",
         "operationId": "focusa.workpoint.link_evidence",
@@ -21528,7 +21528,7 @@
       }
     },
     "/v1/workpoint/resume": {
-      "get": {
+      "post": {
         "description": "Workpoint Resume \u2014 family=workpoint budget=standard_read materialization=advisory_read",
         "operationId": "focusa.workpoint.resume",
         "parameters": [
@@ -21551,6 +21551,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_workpoint_resume_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
