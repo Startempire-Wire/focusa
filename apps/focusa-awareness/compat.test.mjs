@@ -2,11 +2,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
-import plugin from './index.ts';
+import plugin from './dist/index.js';
 
 // Contract fixtures are extracted from the reviewed release sources, not
 // invented registration receipts. These tests do not replace live host proof.
 const versions = ['2026.10.7', '2026.11.3'];
+test('package selects the built entry point rather than a cached source fallback', () => {
+  const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url)));
+  assert.equal(pkg.main, 'dist/index.js');
+  assert.deepEqual(pkg.openclaw.extensions, ['./dist/index.js']);
+});
 for (const version of versions) {
   test(`one supported registration and one injection: ${version}`, async () => {
     const contract = JSON.parse(readFileSync(new URL(`./hooks-${version}.json`, import.meta.url)));

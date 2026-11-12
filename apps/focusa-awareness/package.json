@@ -10,8 +10,13 @@
     "openclaw.plugin.json"
   ],
   "scripts": {
-    "build": "bun build ./index.ts --target=node --format=esm --outfile=dist/index.js",
-    "check": "bun build ./index.ts --target=node --format=esm --outfile=/tmp/focusa-awareness-check.js",
-    "test": "node --experimental-strip-types --test compat.test.mjs"
+    "build": "node build.mjs",
+    "check": "node build.mjs --check",
+    "test": "node build.mjs && node --test compat.test.mjs"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ]
   }
 }
