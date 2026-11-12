@@ -133,3 +133,39 @@ Do not replace Focusa's current release authority, CI provider owners, signed up
 - Check exact authority/tenant/project scope before mutations; a blocked lifecycle/admission state is a real blocker, not permission for `bd close --force` or ungoverned job launch.
 - Avoid blind `--force-release`. That flag may bypass only the scored batch/time gate with an explicit authorized reason; never skip license/security/trust/CI/receipt completeness checks.
 - Observe source, signed-artifact, installed-runtime and **actual receiver** outcomes separately. Keep unsuccessful attempts visible rather than rewriting them as completed.
+
+## 8. Free-credit alternative build provider pilot — owner-directed addition
+
+**Purpose:** Reduce dependence on GitHub-hosted compute while the account billing restriction remains. Test **Semaphore for native macOS**, **GitLab CI for Windows**, and keep the **existing OVH builder for Linux**. Retain AppVeyor and Codemagic as incumbent fallback/build producers. This is an exploratory pilot; it does **not** change the approved Focusa release workflow, build/signing authority, trust roots, GitHub source repository or supported platform set.
+
+**Published allowance context, subject to live eligibility and provider changes:** Semaphore has advertised a USD $15 monthly credit allowance and macOS pricing near $0.09/minute; GitLab Free has advertised 400 compute minutes monthly and a Windows beta runner. **No account entitlement, macOS chip/runner availability, Windows runner access, free credit balance, geographical access or project eligibility has been verified for this Focusa owner.** Check provider dashboards and up-to-date terms *before* promising free cross-platform capacity. Never incur a charge or add a payment method without explicit authorization.
+
+### Pilot work packets and owner outputs
+
+| Packet | Action | Evidence / success condition |
+|---|---|---|
+| ALT-01 — Eligibility/cost | Verify Semaphore organization free credits, native macOS runner architecture, duration/parallelism, public/private repo terms, billing guard; verify GitLab namespace free minutes, Windows beta availability, runner OS/architecture and eligibility. Record expected credit use; impose zero paid overage where possible. | Provider-specific `available / unavailable / unknown`, cost/minute and remaining budget; missing eligibility blocks that lane only. |
+| ALT-02 — Source integrity | Connect **read-only** repository checkout or short-lived scoped fetch to GitHub; pin identical immutable Focusa commit SHA, Cargo.lock, Node/Bun lockfiles and build recipe for both providers and OVH baseline. No branch-head drift, no customer secrets or production credentials on trial pipelines. | Both providers attest exact commit, dependency revisions, toolchain and runner identity. |
+| ALT-03 — Semaphore/macOS | Try native Rust CLI, daemon, session runner, TUI and Tauri Menubar app builds for required macOS architectures. Explicitly distinguish ordinary build success from Apple developer signing/notarization and native Tauri updater signatures; handle latter only through approved credential custody or canonical final signing process. | Native macOS artifacts, target architecture/version, build logs and checksums; signing/native-update verification marked independently, not inferred. |
+| ALT-04 — GitLab/Windows | Try Windows x64 native Rust binaries and the actual Tauri NSIS/MSI packaging flow. Check architecture and native runner availability **before** assuming Windows ARM64 coverage; if unsupported, leave ARM64 with existing proven provider or independently proven cross-build path. | Windows binary + installer compile/link/installer smoke, artifact hashes, source provenance; missing ARM64 remains explicit. |
+| ALT-05 — Existing release intake | Export build artifacts/receipts via a short-lived, controlled transfer to the **existing Focusa release authority**. Prefer canonical release workflow pull/intake over giving external CI long-lived GitHub release-write tokens. Verify SHA, provenance, artifact families, signatures, version stamps, immutable candidate tag and duplicate/overwrite refusal. | Separate source-producer, external builder and canonical publisher audit records; no broadened authority. Do not silently swap Spec-178 provider while contract still names Codemagic/AppVeyor. |
+| ALT-06 — Measurement/decision | Compare Semaphore, GitLab, Codemagic, AppVeyor and OVH on queue wait, execution duration, retry rate, available credits, real cost, signed package completeness and exact installed acceptance. Run one failure recovery/timeout case. | Choose `adopt / keep as backup / reject` per OS lane with dated evidence, not assumptions. |
+
+### Pilot order and safety
+
+1. **First:** run ALT-01 eligibility and zero-charge/overage guard. Evaluate macOS **Semaphore first** because native Apple build capacity is the scarce resource; GitLab Windows is the next independent test.
+2. **Second:** invoke one **pinned-source nonpublication build** on each eligible provider. Do not recreate Focusa's entire release pipeline, move repositories, create customer releases, or change release trust roots for the pilot.
+3. **Third:** validate complete artifacts, native Tauri updater signatures, exact SHA and independent install/smoke tests. Use signed production-channel release only after existing provider/receipt contract is updated and all original release invariants pass.
+4. **Fourth:** report measured minutes, credits, wait time and failed jobs. Avoid idle 45–150-minute pollers when a provider is not enrolled/ready. Keep OVH Linux and the existing provider lanes operational until an alternative is independently accepted.
+
+### Definition of pilot completion
+
+- [ ] Actual eligibility verified for Semaphore macOS with zero unapproved charges.
+- [ ] Actual eligibility verified for GitLab Windows with zero unapproved charges, or documented unsupported status.
+- [ ] Same immutable Focusa SHA compiled on each available provider.
+- [ ] macOS required architecture(s) and Windows x64 plus ARM64 coverage truthfully reported.
+- [ ] Rust/Tauri packages independently inspected, native updater signing preserved, and representative installation tested.
+- [ ] Intake uses existing source-of-truth release authority and cannot overwrite or publish unapproved assets.
+- [ ] Measured cost/latency/reliability comparison and one adopt/backup/reject decision per lane recorded.
+
+**Important:** A green pilot build is **not** a public stable Focusa release and does not justify closing the existing AppVeyor/Codemagic/upload/signature issues. The owner may decide to change the provider strategy later based on real results; no implied migration or payment is authorized here.
