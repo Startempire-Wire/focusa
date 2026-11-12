@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.209",
-  "source_commit": "92a92524",
-  "generated_at": "2026-11-12T20:23:11.350969Z",
+  "source_commit": "bb9274a1",
+  "generated_at": "2026-11-12T20:31:16.890072Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:7afea4d9ae5d6dfed8e61c1578ede76a00cc506f27f82737752ef9eeeff4ef3b",
@@ -26,7 +26,7 @@
     },
     "pi_extension": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:63298260b6ae54eaf8d2f2ebde1276916cc643e4411a20b0cc51e398ee8d6b57",
+      "sha256": "sha256:6508e3431fee8cad6e691944c854aa5a366ebb29108be5aaea16591aa271dfda",
       "file_count": 229,
       "source_paths": [
         "apps/pi-extension"
