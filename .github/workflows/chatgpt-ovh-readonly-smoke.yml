@@ -62,3 +62,16 @@ jobs:
           else
             printf 'focusa_cargo_bin_present=false\n'
           fi
+      - name: Inspect installed Pi version and canonical work CLI help
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'pi_version_begin\n'
+          timeout 8s "$HOME/.local/bin/pi" --version 2>&1 | head -n 8 || true
+          printf 'pi_version_end\n'
+          printf 'wb_queue_help_begin\n'
+          timeout 5s wb queue --help 2>&1 | head -n 38 || true
+          printf 'wb_queue_help_end\n'
+          printf 'wb_focusa_help_begin\n'
+          timeout 5s wb focusa --help 2>&1 | head -n 38 || true
+          printf 'wb_focusa_help_end\n'
