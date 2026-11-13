@@ -132,7 +132,8 @@ jobs:
               peers = list((json.loads(state.stdout).get("Peer") or {}).values())
               matches = [p for p in peers if "knownhost" in str(p.get("HostName", "")).lower()
                          or "knownhost" in str(p.get("DNSName", "")).lower()
-                         or str(p.get("DNSName", "")).lower().startswith("host.philoveracity.com")]
+                         or str(p.get("DNSName", "")).lower().startswith("host.philoveracity.com")
+                         or str(p.get("HostName", "")).lower() == "host"]
               if len(matches) != 1 or not matches[0].get("Online"):
                   print("knownhost_ssh=blocked_identity_or_offline")
               else:
