@@ -75,3 +75,16 @@ jobs:
           printf 'wb_focusa_help_begin\n'
           timeout 5s wb focusa --help 2>&1 | head -n 38 || true
           printf 'wb_focusa_help_end\n'
+      - name: Inspect installed Pi flags and local daemon health
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'pi_flags_begin\n'
+          timeout 8s "$HOME/.local/bin/pi" --help 2>&1 | head -n 70 || true
+          printf 'pi_flags_end\n'
+          printf 'focusa_local_health_http='
+          if command -v curl >/dev/null 2>&1; then
+            curl --silent --output /dev/null --max-time 3 --write-out '%{http_code}\n'               http://127.0.0.1:8787/v1/health || printf 'unreachable\n'
+          else
+            printf 'curl_missing\n'
+          fi
