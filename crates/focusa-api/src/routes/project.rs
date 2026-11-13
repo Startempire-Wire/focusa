@@ -1584,22 +1584,34 @@ fn discover_identity(
         });
     let repo_remote = git_root.as_ref().and_then(|root| read_git_remote(root));
     let explicit_git_scope_verified = explicit_project_root.as_deref().is_some_and(|root| {
-        git_root
-            .as_ref()
-            .is_some_and(|git_root| normalize_path(git_root) == root)
+        git_root.as_ref().is_some_and(|git_root| {
+            let git_root = normalize_path(git_root);
+            root == git_root || Path::new(root).starts_with(Path::new(&git_root))
+        })
     });
     if let Some(root) = &git_root {
+        let normalized_git_root = normalize_path(root);
+        let explicit_child_scope = explicit_project_root
+            .as_deref()
+            .is_some_and(|trusted_root| {
+                trusted_root != normalized_git_root
+                    && Path::new(trusted_root).starts_with(Path::new(&normalized_git_root))
+            });
         signals.push(ProjectSignal {
             source: "git_common_dir",
-            root: Some(normalize_path(root)),
+            root: Some(normalized_git_root),
             confidence: "high",
-            independent: true,
+            independent: !explicit_child_scope,
             details: json!({
                 "repo_remote": repo_remote,
                 "canonical_parent_git_root": root,
                 "active_worktree_root": git_context.as_ref().map(|context| &context.active_worktree_root),
                 "git_common_dir_id": git_context.as_ref().map(|context| &context.working_subpath.git_common_dir_id),
-                "authority_note": "git common-dir proves parent lineage while active worktree remains separate execution authority"
+                "authority_note": if explicit_child_scope {
+                    "git common-dir proves parent lineage; explicit child project_root remains the scoped execution authority"
+                } else {
+                    "git common-dir proves parent lineage while active worktree remains separate execution authority"
+                }
             }),
         });
     }
@@ -1910,7 +1922,9 @@ fn discover_identity(
     let has_blocking_mismatch = mismatches.iter().any(mismatch_blocks);
     let confidence = if unsafe_reason.is_some() {
         "low"
-    } else if !has_blocking_mismatch && matching_independent >= 2 && has_root_marker {
+    } else if !has_blocking_mismatch
+        && ((matching_independent >= 2 && has_root_marker) || explicit_git_scope_verified)
+    {
         "high"
     } else if !has_blocking_mismatch && matching_independent >= 1 {
         "medium"
@@ -1921,7 +1935,7 @@ fn discover_identity(
         "unsafe_project_root"
     } else if has_blocking_mismatch {
         "mismatch"
-    } else if matching_independent >= 2 && has_root_marker {
+    } else if (matching_independent >= 2 && has_root_marker) || explicit_git_scope_verified {
         "verified"
     } else if matching_independent >= 1 {
         "degraded"
@@ -7174,6 +7188,47 @@ pub(crate) mod tests {
                 .any(|signal| signal.source == "workspace_file" && !signal.independent)
         );
         fs::remove_dir_all(parent).unwrap();
+    }
+
+    #[test]
+    fn explicit_child_scope_inside_git_parent_is_verified_without_becoming_parent() {
+        let parent = temp_project("nested-operator-scope");
+        let env: Vec<(String, String)> = std::env::vars()
+            .filter(|(key, _)| key != "GIT_DIR" && key != "GIT_WORK_TREE")
+            .collect();
+        let output = std::process::Command::new("git")
+            .args(["init", "-q", "."])
+            .current_dir(&parent)
+            .env_clear()
+            .envs(env)
+            .output()
+            .expect("git must be available for the nested scope fixture");
+        assert!(
+            output.status.success(),
+            "git init failed: {:?}",
+            output.stderr
+        );
+        let child = parent.join("users/verious");
+        fs::create_dir_all(child.join("identity")).unwrap();
+        fs::create_dir_all(child.join("memory")).unwrap();
+
+        let candidate = discover_identity(
+            child.to_str(),
+            child.to_str(),
+            None,
+            RemoteProjectHint::default(),
+        );
+
+        assert_eq!(candidate.status, "verified");
+        assert_eq!(candidate.confidence, "high");
+        assert_eq!(candidate.project_root, normalize_path(&child));
+        assert!(candidate.mismatches.is_empty());
+        assert!(candidate.signals.iter().any(|signal| {
+            signal.source == "git_common_dir"
+                && signal.root.as_deref() == Some(normalize_path(&parent).as_str())
+                && !signal.independent
+        }));
+        let _ = fs::remove_dir_all(parent);
     }
 
     #[test]
