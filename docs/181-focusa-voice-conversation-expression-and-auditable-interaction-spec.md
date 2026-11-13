@@ -504,6 +504,26 @@ Switching providers MUST fence the old speech generation and playback, preserve 
 
 **Acceptance:** replay realistic pauses, hesitation, self-correction, backchannels, overlapping speech, barge-in while tool work continues, interrupted output, reconnect and provider change. Measure false turn completion, late/duplicate replies, floor-yield time, first audible response, p50/p95 including network transport, and preservation of transcript/ExpressionOutput/effect lineage. Compare at least two qualified providers before claiming swappability; no particular vendor's unpublished architecture or performance is assumed.
 
+### 16.2 Voice-originated multi-agent work without multiple voice identities — owner direction, 2026-11-13
+
+A single authenticated Wirebot/OpenClaw Operating Partner MAY request **multiple concurrent Focusa Spec 133 Silent Sessions** through the current authorized Work Loop/daemon interfaces while the same user's spoken conversation remains active. These are **background execution instances**, not new speaking partners, memory owners, conversation floors or human-approved operation authorities. A POSIX process is a replaceable runner attachment below the daemon-native session; do not conflate process IDs with durable session identities.
+
+**Conversation ledger linkage** must distinguish, without duplicating canonical work truth:
+
+- initiating conversation/accepted human utterance ID and revision, authenticated principal/tenant, relevant operation intent and scope;
+- one-to-many child work/session refs (Workstream/Workpoint/Trajectory, session, attempt and typed job/effect key) issued by the **actual** Focusa owner;
+- admission accepted/denied/queued/unknown and later observed progress, cancellation request, completed/failed/blocked/unknown **with source-backed receipt and verified result refs**;
+- an assistant status **ExpressionOutput** linked to exact accepted admission or evidence, and whether its SpokenOutput was played/interruptibly delivered;
+- current conversation epoch/audience/topic for deciding whether a returning result may be spoken. Other concurrent agents and rooms must not bypass the output floor.
+
+**Speech is not work control authority.** Voice transcript hypotheses, speaker matching, a "yes" with no exact proposal, model-generated calls, or session restarts do not authorize a work launch. The selected persistent partner requests typed actions under existing Context Authority, exact work scope, resource policy and required confirmation. Admission/receipt, work launch, process exit, provider verification and user-accepted outcome remain separate claims; retries and reconnects reconcile the original idempotency key rather than launching another child.
+
+**No floor hijacking.** Background work completion is projected as a bounded event/notification candidate, not automatically spoken. The persistent partner checks the current owner, relevance, attention and conversation floor before speech admission; when irrelevant or user-speaking it remains inspectable through the owning App/notification surface. Human barge-in terminates or suppresses current sound, **not** a running Silent Session; cancelling work requires its own authenticated, scoped session control operation. Audio provider failure or client disconnect must not orphan a session whose daemon admission succeeded.
+
+**Capacity isolation:** apply Focusa Spec 133 per-tenant concurrency, resource budgets, writer leases, recovery and bounded streams. Reserve enough runtime resources for the fast conversation loop; if background jobs compete for CPU/IO, defer or throttle *background* work rather than weakening immediate microphone stop. Only send each worker minimal qualified context for its assigned task, not raw conversation histories or owner credentials.
+
+**End-to-end evidence:** prove one human conversation with at least three authorized independent Silent Sessions, continued speech and barge-in, a failure and a late result, separately authorized cancellation, reconnect and duplicate-event replay. The Conversation Ledger must remain reconstructable while canonical completion and receipt authority stay in Focusa Workpoints/Silent Sessions. No app/UI demo or utterance text alone establishes actual execution.
+
 ## 17. Degraded operation
 
 Voice failure must degrade explicitly:
