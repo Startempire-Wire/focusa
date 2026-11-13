@@ -88,3 +88,36 @@ jobs:
           else
             printf 'curl_missing\n'
           fi
+      - name: KnownHost private Tailscale reachability
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, subprocess
+          try:
+              output = subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True, timeout=8, check=True)
+              data = json.loads(output.stdout)
+              peers = list((data.get("Peer") or {}).values())
+              matches = []
+              for peer in peers:
+                  host = str(peer.get("HostName") or "").lower()
+                  dns = str(peer.get("DNSName") or "").lower().rstrip(".")
+                  if "knownhost" in host or "knownhost" in dns or host == "host" or dns.startswith("host.philoveracity.com"):
+                      matches.append(peer)
+              print("tailscale_status=available")
+              print("knownhost_candidate_count=" + str(len(matches)))
+              if len(matches) == 1:
+                  peer = matches[0]
+                  print("knownhost_online=" + str(bool(peer.get("Online", False))).lower())
+                  target = str(peer.get("DNSName") or peer.get("HostName") or "").rstrip(".")
+                  if target and peer.get("Online"):
+                      try:
+                          test = subprocess.run(["tailscale", "ping", "--c=1", "--timeout=6s", target], capture_output=True, text=True, timeout=9)
+                          print("knownhost_tailscale_ping_success=" + str(test.returncode == 0).lower())
+                      except Exception as error:
+                          print("knownhost_tailscale_ping_error=" + type(error).__name__)
+              else:
+                  print("knownhost_reachability=not_verified_unambiguous_identity_missing")
+          except Exception as error:
+              print("tailscale_status_error=" + type(error).__name__)
+          PY
