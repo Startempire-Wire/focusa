@@ -40,3 +40,25 @@ jobs:
           printf '%s\n' 'ovh-temporary-write-proof-20261113' > "$probe_dir/receipt"
           test "$(cat "$probe_dir/receipt")" = 'ovh-temporary-write-proof-20261113'
           printf 'temporary_write_readback=verified\n'
+      - name: Inspect existing Wirebot CLI without contacting services
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'wb_help_begin\n'
+          timeout 5s wb --help 2>&1 | head -n 45 || true
+          printf 'wb_help_end\n'
+          if test -f "$HOME/.local/lib/node_modules/@earendil-works/pi-coding-agent/package.json"; then
+            printf 'pi_package_home_present=true\n'
+          else
+            printf 'pi_package_home_present=false\n'
+          fi
+          if test -x "$HOME/.local/bin/pi"; then
+            printf 'pi_local_bin_present=true\n'
+          else
+            printf 'pi_local_bin_present=false\n'
+          fi
+          if test -x "$HOME/.cargo/bin/focusa"; then
+            printf 'focusa_cargo_bin_present=true\n'
+          else
+            printf 'focusa_cargo_bin_present=false\n'
+          fi
