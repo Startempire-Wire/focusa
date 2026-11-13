@@ -481,6 +481,29 @@ Adapters may include:
 
 A provider MAY accelerate interaction but MUST NOT become canonical conversation, identity, authority, Workpoint, transcript, or settlement storage.
 
+### 16.1 Provider-neutral fast-conversation / governed-work separation — owner direction, 2026-11-13
+
+**Status:** Owner-directed target contract; not evidence of an installed duplex provider or accepted audio client. This refines §8/§16 without making Focusa a media runtime. Wirebot Core Spec 22 owns the reference implementation, while Focusa owns the reusable conversation meaning and provenance rules.
+
+A consumer MAY implement two cooperating loops:
+
+1. **Fast conversation loop:** the chosen speech/runtime adapter and one authoritative floor controller accept streaming human audio, arbitrate speaking/listening, detect interruption, stop unplayed output locally and produce bounded conversational acknowledgments. It MUST NOT require Focusa retrieval, archival, the main reasoning model or a classifier to yield the floor.
+2. **Governed work loop:** the selected persistent Operating Partner and existing Focusa/domain operation owners interpret substantive requests, use scoped memory and tools, authorize actions, retain verified outcomes and return typed results. This loop MUST NOT seize the speech floor or introduce a second agent identity.
+
+The two loops are **latency domains, not two autonomous minds**. The audio model has no independent principal, memory authority, business tool grant, or permission to invent commitments. Every consequential spoken answer remains traceable to approved ExpressionOutput and the accepted conversational turns; a provider's native text/audio output needs an owning semantic audit/binding before it can serve that role. Filler/backchannels remain strictly bounded presentation, not promises that a tool was run or work completed.
+
+**Provider independence is a required capability contract, not just configurable model names.** Every selected provider binding MUST disclose and validate:
+
+- bidirectional streaming and whether true simultaneous input/output is supported; supported transport, audio formats and timing;
+- pause-sensitive turn detection, backchannels, interruption/cancellation, buffering and playback/truncation support;
+- transcript hypothesis/final/revision availability, timing and speaker attribution quality, including explicitly unavailable fields;
+- substantive-result handoff, session/resume semantics, and how response/utterance/epoch refs map into the Conversation Ledger;
+- locality/residency, retention/privacy, identity/credential scope, limits, cost, timeout and tested p50/p95 end-to-end latency.
+
+Switching providers MUST fence the old speech generation and playback, preserve the same authenticated owner/Operating Partner/conversation lineage and accepted human history, and transfer only eligible context. A new provider session MAY be required; seamless in-flight switching is not promised. Never treat generated-but-unheard speech as accepted shared history. A missing capability MUST yield an honest degraded profile (including push-to-talk/text where necessary), not a false full-duplex claim. Local/hosted providers remain optional interchangeable implementations, never new canonical owners.
+
+**Acceptance:** replay realistic pauses, hesitation, self-correction, backchannels, overlapping speech, barge-in while tool work continues, interrupted output, reconnect and provider change. Measure false turn completion, late/duplicate replies, floor-yield time, first audible response, p50/p95 including network transport, and preservation of transcript/ExpressionOutput/effect lineage. Compare at least two qualified providers before claiming swappability; no particular vendor's unpublished architecture or performance is assumed.
+
 ## 17. Degraded operation
 
 Voice failure must degrade explicitly:
