@@ -382,9 +382,13 @@ fn insert_binding_candidate(
         .map(|context| context.canonical_parent_root.clone())
         .filter(|value| !value.trim().is_empty())
         .or_else(|| Some(root_text.clone()));
-    let authoritative_root = active_worktree_root
-        .clone()
-        .unwrap_or_else(|| root_text.clone());
+    let authoritative_root = if source == "explicit_project_root" {
+        root_text.clone()
+    } else {
+        active_worktree_root
+            .clone()
+            .unwrap_or_else(|| root_text.clone())
+    };
     let repo_fingerprint = git
         .as_ref()
         .map(|context| context.working_subpath.git_common_dir_id.clone());
@@ -836,6 +840,42 @@ mod tests {
         );
         assert!(!decision.ambiguous);
         assert_eq!(decision.state, "VERIFY");
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn binding_candidates_preserve_explicit_child_inside_git_worktree() {
+        let base = std::env::temp_dir().join(format!(
+            "focusa-binding-explicit-child-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let repository = base.join("repository");
+        std::fs::create_dir_all(&repository).unwrap();
+        git_ok(&base, &["init", "-q", repository.to_str().unwrap()]);
+        git_ok(&repository, &["config", "user.email", "test@focusa.local"]);
+        git_ok(&repository, &["config", "user.name", "Focusa Test"]);
+        std::fs::write(
+            repository.join("README.md"),
+            "fixture
+",
+        )
+        .unwrap();
+        git_ok(&repository, &["add", "README.md"]);
+        git_ok(&repository, &["commit", "-q", "-m", "fixture"]);
+        let child = repository.join("users/verious");
+        std::fs::create_dir_all(&child).unwrap();
+
+        let decision = resolve_project_binding_candidates(&child, Some(&child), None);
+        let expected = path_text(&canonical(&child));
+        assert_eq!(
+            decision.selected_project_root.as_deref(),
+            Some(expected.as_str())
+        );
+        assert_eq!(decision.candidates[0].sources[0], "explicit_project_root");
+        assert_eq!(
+            decision.selected_active_worktree_root.as_deref(),
+            Some(path_text(&canonical(&repository)).as_str())
+        );
         std::fs::remove_dir_all(base).unwrap();
     }
 

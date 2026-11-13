@@ -1437,6 +1437,19 @@ fn signal_json(signal: &ProjectSignal) -> Value {
     })
 }
 
+fn has_explicit_scope_anchor(root: &str) -> bool {
+    let root = Path::new(root);
+    root.join(".focusa-project.json").is_file()
+        || root.join(".beads").is_dir()
+        || ["Cargo.toml", "package.json", "go.mod", "pyproject.toml"]
+            .iter()
+            .any(|marker| root.join(marker).is_file())
+        || (root.join("openclaw.json").is_file()
+            && root.join("IDENTITY.md").is_file()
+            && root.join("agents").is_dir()
+            && root.join("memory").is_dir())
+}
+
 fn discover_identity(
     cwd: Option<&str>,
     project_root: Option<&str>,
@@ -1584,22 +1597,40 @@ fn discover_identity(
         });
     let repo_remote = git_root.as_ref().and_then(|root| read_git_remote(root));
     let explicit_git_scope_verified = explicit_project_root.as_deref().is_some_and(|root| {
-        git_root
+        let canonical_parent = git_root.as_ref().map(|value| normalize_path(value));
+        let active_worktree = git_context
             .as_ref()
-            .is_some_and(|git_root| normalize_path(git_root) == root)
+            .map(|context| normalize_path(Path::new(&context.active_worktree_root)))
+            .or_else(|| canonical_parent.clone());
+        root == canonical_parent.as_deref().unwrap_or_default()
+            || root == active_worktree.as_deref().unwrap_or_default()
+            || (active_worktree
+                .as_deref()
+                .is_some_and(|worktree| Path::new(root).starts_with(Path::new(worktree)))
+                && has_explicit_scope_anchor(root))
     });
     if let Some(root) = &git_root {
+        let normalized_git_root = normalize_path(root);
+        let explicit_child_scope = explicit_project_root
+            .as_deref()
+            .is_some_and(|trusted_root| {
+                explicit_git_scope_verified && trusted_root != normalized_git_root
+            });
         signals.push(ProjectSignal {
             source: "git_common_dir",
-            root: Some(normalize_path(root)),
+            root: Some(normalized_git_root),
             confidence: "high",
-            independent: true,
+            independent: !explicit_child_scope,
             details: json!({
                 "repo_remote": repo_remote,
                 "canonical_parent_git_root": root,
                 "active_worktree_root": git_context.as_ref().map(|context| &context.active_worktree_root),
                 "git_common_dir_id": git_context.as_ref().map(|context| &context.working_subpath.git_common_dir_id),
-                "authority_note": "git common-dir proves parent lineage while active worktree remains separate execution authority"
+                "authority_note": if explicit_child_scope {
+                    "git common-dir proves parent lineage; explicit child project_root remains the scoped execution authority"
+                } else {
+                    "git common-dir proves parent lineage while active worktree remains separate execution authority"
+                }
             }),
         });
     }
@@ -1910,7 +1941,9 @@ fn discover_identity(
     let has_blocking_mismatch = mismatches.iter().any(mismatch_blocks);
     let confidence = if unsafe_reason.is_some() {
         "low"
-    } else if !has_blocking_mismatch && matching_independent >= 2 && has_root_marker {
+    } else if !has_blocking_mismatch
+        && ((matching_independent >= 2 && has_root_marker) || explicit_git_scope_verified)
+    {
         "high"
     } else if !has_blocking_mismatch && matching_independent >= 1 {
         "medium"
@@ -1921,7 +1954,7 @@ fn discover_identity(
         "unsafe_project_root"
     } else if has_blocking_mismatch {
         "mismatch"
-    } else if matching_independent >= 2 && has_root_marker {
+    } else if (matching_independent >= 2 && has_root_marker) || explicit_git_scope_verified {
         "verified"
     } else if matching_independent >= 1 {
         "degraded"
@@ -3183,12 +3216,23 @@ fn verify_project_inspection(body: ProjectVerifyRequest) -> Json<Value> {
             body.project_root.as_deref().map(Path::new),
             body.persisted_project_root.as_deref().map(Path::new),
         );
+        let verified_identity_root = payload
+            .pointer("/project_identity/project_root")
+            .and_then(Value::as_str);
+        let binding_matches_identity =
+            decision.selected_project_root.as_deref() == verified_identity_root;
         if payload
             .pointer("/verification/verified")
             .and_then(Value::as_bool)
             .unwrap_or(false)
+            && binding_matches_identity
         {
             decision = decision.mark_verified();
+        } else if !binding_matches_identity {
+            decision
+                .rejection_reasons
+                .push("binding_root_identity_root_mismatch".to_string());
+            decision.requires_confirmation = true;
         }
         if let Some(object) = payload.as_object_mut() {
             object.insert(
@@ -7174,6 +7218,121 @@ pub(crate) mod tests {
                 .any(|signal| signal.source == "workspace_file" && !signal.independent)
         );
         fs::remove_dir_all(parent).unwrap();
+    }
+
+    #[test]
+    fn explicit_child_scope_inside_git_parent_is_verified_without_becoming_parent() {
+        let parent = temp_project("nested-operator-scope");
+        let env: Vec<(String, String)> = std::env::vars()
+            .filter(|(key, _)| key != "GIT_DIR" && key != "GIT_WORK_TREE")
+            .collect();
+        let output = std::process::Command::new("git")
+            .args(["init", "-q", "."])
+            .current_dir(&parent)
+            .env_clear()
+            .envs(env)
+            .output()
+            .expect("git must be available for the nested scope fixture");
+        assert!(
+            output.status.success(),
+            "git init failed: {:?}",
+            output.stderr
+        );
+        let child = parent.join("users/verious");
+        fs::create_dir_all(child.join("agents")).unwrap();
+        fs::create_dir_all(child.join("memory")).unwrap();
+        fs::write(
+            child.join("IDENTITY.md"),
+            "# Wirebot
+",
+        )
+        .unwrap();
+        fs::write(
+            child.join("openclaw.json"),
+            "{}
+",
+        )
+        .unwrap();
+
+        let candidate = discover_identity(
+            child.to_str(),
+            child.to_str(),
+            None,
+            RemoteProjectHint::default(),
+        );
+
+        assert_eq!(candidate.status, "verified");
+        assert_eq!(candidate.confidence, "high");
+        assert_eq!(candidate.project_root, normalize_path(&child));
+        assert!(candidate.mismatches.is_empty());
+        assert!(candidate.signals.iter().any(|signal| {
+            signal.source == "git_common_dir"
+                && signal.root.as_deref() == Some(normalize_path(&parent).as_str())
+                && !signal.independent
+        }));
+
+        let payload = verify_project_inspection(ProjectVerifyRequest {
+            cwd: child.to_str().map(str::to_string),
+            project_root: child.to_str().map(str::to_string),
+            ..ProjectVerifyRequest::default()
+        })
+        .0;
+        assert_eq!(
+            payload
+                .pointer("/binding_decision/selected_project_root")
+                .and_then(Value::as_str),
+            child.to_str()
+        );
+        assert_eq!(
+            payload
+                .pointer("/binding_decision/verification_status")
+                .and_then(Value::as_str),
+            Some("verified")
+        );
+        assert!(
+            payload
+                .pointer("/binding_decision/binding_receipt_id")
+                .is_some_and(|value| !value.is_null())
+        );
+        let _ = fs::remove_dir_all(parent);
+    }
+
+    #[test]
+    fn unrelated_explicit_child_inside_git_parent_is_not_verified() {
+        let parent = temp_project("nested-unrelated-scope");
+        let env: Vec<(String, String)> = std::env::vars()
+            .filter(|(key, _)| key != "GIT_DIR" && key != "GIT_WORK_TREE")
+            .collect();
+        let output = std::process::Command::new("git")
+            .args(["init", "-q", "."])
+            .current_dir(&parent)
+            .env_clear()
+            .envs(env)
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        let child = parent.join("tmp/unrelated");
+        fs::create_dir_all(&child).unwrap();
+
+        let payload = verify_project_inspection(ProjectVerifyRequest {
+            cwd: child.to_str().map(str::to_string),
+            project_root: child.to_str().map(str::to_string),
+            ..ProjectVerifyRequest::default()
+        })
+        .0;
+        assert_ne!(
+            payload
+                .pointer("/verification/verified")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+        assert_ne!(
+            payload
+                .pointer("/binding_decision/verification_status")
+                .and_then(Value::as_str),
+            Some("verified")
+        );
+        let _ = fs::remove_dir_all(parent);
     }
 
     #[test]
