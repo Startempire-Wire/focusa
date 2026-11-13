@@ -1,0 +1,26 @@
+name: ChatGPT to OVH read-only execution smoke
+on:
+  push:
+    branches:
+      - feat/chatgpt-ovh-runner-readonly-smoke-20261113
+    paths:
+      - .github/workflows/chatgpt-ovh-readonly-smoke.yml
+permissions:
+  contents: read
+jobs:
+  ovh-identity:
+    name: Bounded OVH runner identity verification
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 2
+    steps:
+      - name: Print bounded non-secret identity facts
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'proof=chatgpt-ovh-readonly-20261113\n'
+          printf 'runner=%s\n' "${RUNNER_NAME:-unknown}"
+          printf 'hostname=%s\n' "$(hostname -s)"
+          printf 'username=%s\n' "$(id -un)"
+          printf 'os=%s\n' "$(uname -s)"
+          printf 'uid=%s\n' "$(id -u)"
+          printf 'no_changes=true\n'
