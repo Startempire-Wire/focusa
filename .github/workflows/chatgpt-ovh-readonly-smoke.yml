@@ -166,3 +166,13 @@ jobs:
           else
             echo 'private_wirebot_api_access=false'
           fi
+      - name: Check durable service placement on OVH without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'durable-check-begin'
+          if systemctl --user show-environment >/dev/null 2>&1; then echo 'user_systemd_usable=true'; else echo 'user_systemd_usable=false'; fi
+          if command -v loginctl >/dev/null 2>&1; then loginctl show-user "$(id -un)" -p Linger --value 2>/dev/null | sed 's/^/user_linger=/'; fi
+          if sudo -n true >/dev/null 2>&1; then echo 'noninteractive_sudo=true'; else echo 'noninteractive_sudo=false'; fi
+          if GH_PROMPT_DISABLED=1 timeout 5s gh api -X GET repos/Startempire-Wire/wirebot-core/issues?state=open\&per_page=1 >/dev/null 2>&1; then echo 'private_issue_read=true'; else echo 'private_issue_read=false'; fi
+          echo 'durable-check-end'
