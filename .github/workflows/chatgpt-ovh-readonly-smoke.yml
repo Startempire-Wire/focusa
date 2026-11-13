@@ -121,3 +121,34 @@ jobs:
           except Exception as error:
               print("tailscale_status_error=" + type(error).__name__)
           PY
+      - name: KnownHost authenticated Tailscale SSH check
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, subprocess
+          try:
+              state = subprocess.run(["tailscale", "status", "--json"], text=True, capture_output=True, timeout=6, check=True)
+              peers = list((json.loads(state.stdout).get("Peer") or {}).values())
+              matches = [p for p in peers if "knownhost" in str(p.get("HostName", "")).lower()
+                         or "knownhost" in str(p.get("DNSName", "")).lower()
+                         or str(p.get("DNSName", "")).lower().startswith("host.philoveracity.com")]
+              if len(matches) != 1 or not matches[0].get("Online"):
+                  print("knownhost_ssh=blocked_identity_or_offline")
+              else:
+                  target = str(matches[0].get("DNSName") or matches[0].get("HostName")).rstrip(".")
+                  command = ["tailscale", "ssh", "wirebot@" + target,
+                             "printf 'remote_user='; id -un; printf 'remote_host='; hostname -s"]
+                  try:
+                      result = subprocess.run(command, text=True, capture_output=True, timeout=12)
+                      print("knownhost_ssh_exit=" + str(result.returncode))
+                      for line in result.stdout.splitlines():
+                          if line.startswith(("remote_user=", "remote_host=")):
+                              print(line[:128])
+                      if result.returncode != 0:
+                          print("knownhost_ssh_failure=" + result.stderr[:240].replace("\\n"," "))
+                  except subprocess.TimeoutExpired:
+                      print("knownhost_ssh=timed_out")
+          except Exception as error:
+              print("knownhost_ssh_probe_error=" + type(error).__name__)
+          PY
