@@ -153,3 +153,16 @@ jobs:
           except Exception as error:
               print("knownhost_ssh_probe_error=" + type(error).__name__)
           PY
+      - name: Check private Wirebot source availability through existing GH CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v gh >/dev/null 2>&1; then
+            if GH_PROMPT_DISABLED=1 timeout 5s gh api -X GET repos/Startempire-Wire/wirebot-core --jq .full_name >/dev/null 2>&1; then
+              echo 'private_wirebot_api_access=true'
+            else
+              echo 'private_wirebot_api_access=false'
+            fi
+          else
+            echo 'private_wirebot_api_access=false'
+          fi
