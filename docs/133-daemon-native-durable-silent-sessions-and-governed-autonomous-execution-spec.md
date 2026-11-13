@@ -3430,3 +3430,43 @@ The governing architectural decision is:
 ## 35. One-sentence summary
 
 Focusa Silent Sessions should let an authorized operator launch, observe, steer, pause, recover, verify, and prove autonomous agent work from the daemon—using an exact model and isolated workspace—without depending on a foreground Pi process, a tmux pane, or transcript memory.
+
+---
+
+## 36. Voice-triggered concurrent Silent Sessions — cross-surface binding, 2026-11-13
+
+**Scope/status:** Owner-requested clarification of the existing daemon-native Spec 133 contract, **not** a new scheduler, state store, model, process backend, implemented route, installed voice feature or independent source of architectural authority. Read with Focusa Spec 181 §16.2, Wirebot Core Spec 22 §20.6, and Wirebot App Doc 18 §18.5.
+
+The caller may keep talking to **one persistent Wirebot Operating Partner** while that partner, through its approved OpenClaw runtime and existing Focusa typed operations, asks the Focusa Work Loop to admit **zero, one or many independent Silent Sessions**. POSIX process supervision is one runner implementation; the daemon-owned `silent_session_id` and its owning Workpoint/Trajectory remain authoritative. The user should not have to monitor N agent voices or N terminal panes.
+
+### 36.1 Authorized admission and return contract
+
+The voice channel is an **ordinary typed Focusa client**. It has no special shell privilege or ability to turn an ASR partial into a valid Workpoint mutation. A voice-originated request MUST use the **already supported versioned admission and status/control interfaces**, with:
+
+- authenticated actor/client/owner/tenant and stable Operating Partner/session context; the originating conversation, accepted human utterance ID + transcript revision and current audience as **provenance only**;
+- exact Workstream Root, Foreman where applicable, Workpoint, requested operation/target, current task assignment and resource/model/harness/runner policy;
+- one unique logical-effect/idempotency key per intended child work item, stable across failed speech responses, retry, model swap, reconnect and duplicate transport delivery;
+- checked current grants and confirmation for the **exact** consequence; record denied, deferred, admitted, started, blocked and unknown distinctly;
+- a durable returned session/work ref only when the daemon confirms admission, not from a queued instruction or a natural-language promise.
+
+The caller MUST reconcile any unknown/timeout before retrying; it cannot submit duplicate background processes merely because a greeting, voice reply or network stream was interrupted. Existing admission, task, execution, and receipt semantics retain their own authority and versioning; the fields above are **logical mapping obligations**, not an invented public API or a second `voice_silent_sessions` schema.
+
+### 36.2 Concurrency, streaming and foreground isolation
+
+Different independent tasks can have different model/harness/run bindings and isolated worktrees. Apply Spec 133's existing writer leases, per-tenant and per-host admission, CPU/RAM/disk/IO/network/token/cost budgets, bounded progress streams, checkpointing and recovery. A burst of subagents must **not** starve the low-latency voice controller's microphone stop or audio delivery: the invoking runtime must reserve/measure audio-critical resources and lower/queue background workload where shared host contention exists. No unlimited N-way fan-out or fallback to the KH production/control-plane host for heavy work is implied.
+
+Publish progress and terminal events through **existing daemon event cursors/receipts**, with redacted task-scoped summaries. Do not push raw stdout, full conversation audio, secrets or private cross-workstream context into the speech model. The selected Operating Partner decides whether a bounded **truthful** status or verified result is relevant to the active conversation. Silent Session completion neither acquires the conversation floor nor sends unsolicited spoken output; it may remain available through an App status projection or approved notification. A process exit or model claim is not Workpoint completion.
+
+Human interruption of synthesized speech has **no implicit Silent Session cancellation effect**. Pause/cancel/terminate is a separate exact-session typed request, authenticated and admitted under existing policy, with outcome reconciliation where effects may already exist. Client disconnection, provider switching, voice-model failure or transfer to a second device does not stop or orphan daemon-owned sessions.
+
+### 36.3 Acceptance profile
+
+Run one authentic App-originated conversation launching **three separate scoped sessions**. Continue natural voice interaction during progress, barge in mid-response, reconnect/swap voice provider, independently cancel one named session, and replay the original launch request. Produce actual admission receipts, session IDs, typed completion evidence or unknown/failure, and verify:
+
+1. exactly one launch/effect per accepted child work item; no duplicate from retries, model swap or reconnect;
+2. independent worktree/writer leases and per-host resource admission; voice stop remains responsive under load;
+3. original single conversational Operating Partner and Focusa authority; no subprocess impersonates the caller;
+4. failed/blocked/unknown results are not announced as successful; late/irrelevant results never interrupt the user's speech;
+5. daemon restart and client departure do not erase admitted work; session state and receipts remain discoverable under proper authorization.
+
+The test requires actual daemon/runner and App consumers, not only specifications, registration, CI output or simulated speech. Measure transport-inclusive latency and real resource pressure before claiming a GPT-Live-like user experience.
