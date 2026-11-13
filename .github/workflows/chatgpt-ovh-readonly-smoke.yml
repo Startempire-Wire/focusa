@@ -1,4 +1,4 @@
-name: ChatGPT to OVH read-only execution smoke
+name: ChatGPT to OVH reversible execution smoke
 on:
   push:
     branches:
@@ -9,18 +9,34 @@ permissions:
   contents: read
 jobs:
   ovh-identity:
-    name: Bounded OVH runner identity verification
+    name: Verify OVH identity and temporary file operation
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 2
     steps:
-      - name: Print bounded non-secret identity facts
+      - name: Identity and supported tools, read-only
         shell: bash
         run: |
           set -euo pipefail
-          printf 'proof=chatgpt-ovh-readonly-20261113\n'
+          printf 'proof=chatgpt-ovh-write-readback-20261113\n'
           printf 'runner=%s\n' "${RUNNER_NAME:-unknown}"
           printf 'hostname=%s\n' "$(hostname -s)"
           printf 'username=%s\n' "$(id -un)"
-          printf 'os=%s\n' "$(uname -s)"
           printf 'uid=%s\n' "$(id -u)"
-          printf 'no_changes=true\n'
+          printf 'os=%s\n' "$(uname -s)"
+          for cmd in pi gh git ssh tailscale focusa wb; do
+            if command -v "$cmd" >/dev/null 2>&1; then
+              printf 'available_%s=true\n' "$cmd"
+            else
+              printf 'available_%s=false\n' "$cmd"
+            fi
+          done
+      - name: Write verify and clean only runner temporary directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${RUNNER_TEMP:?Runner temp not set}"
+          probe_dir="$(mktemp -d "${RUNNER_TEMP}/chatgpt-ovh-probe.XXXXXXXX")"
+          trap 'rm -rf -- "$probe_dir"' EXIT
+          printf '%s\n' 'ovh-temporary-write-proof-20261113' > "$probe_dir/receipt"
+          test "$(cat "$probe_dir/receipt")" = 'ovh-temporary-write-proof-20261113'
+          printf 'temporary_write_readback=verified\n'
