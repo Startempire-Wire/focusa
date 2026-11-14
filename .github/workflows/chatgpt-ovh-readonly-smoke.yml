@@ -222,4 +222,4 @@ jobs:
           print(proc.stdout[:5500])
           print("root_ssh_inspect_exit="+str(proc.returncode))
           if proc.returncode: print("root_ssh_inspect_stderr="+proc.stderr[-700:]); sys.exit(proc.returncode)
-                    PY
+          PY
