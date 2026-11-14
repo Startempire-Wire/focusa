@@ -138,13 +138,13 @@ jobs:
                   print("knownhost_ssh=blocked_identity_or_offline")
               else:
                   target = str(matches[0].get("DNSName") or matches[0].get("HostName")).rstrip(".")
-                  command = ["tailscale", "ssh", "wirebot@" + target,
-                             "printf 'remote_user='; id -un; printf 'remote_host='; hostname -s"]
+                  command = ["tailscale", "ssh", "root@" + target,
+                             "printf 'remote_user='; id -un; printf 'remote_uid='; id -u; printf 'remote_host='; hostname -s"]
                   try:
                       result = subprocess.run(command, text=True, capture_output=True, timeout=12)
                       print("knownhost_ssh_exit=" + str(result.returncode))
                       for line in result.stdout.splitlines():
-                          if line.startswith(("remote_user=", "remote_host=")):
+                          if line.startswith(("remote_user=", "remote_uid=", "remote_host=")):
                               print(line[:128])
                       if result.returncode != 0:
                           print("knownhost_ssh_failure=" + result.stderr[:240].replace("\\n"," "))
