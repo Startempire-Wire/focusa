@@ -190,3 +190,36 @@ jobs:
           else
             echo 'service_identity_repo_access=false'
           fi
+
+      - name: Read-only wirebot.chat WordPress lookup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, subprocess, sys
+          state = subprocess.run(["tailscale","status","--json"],capture_output=True,text=True,timeout=8,check=True)
+          peers = list((json.loads(state.stdout).get("Peer") or {}).values())
+          matches = [p for p in peers if str(p.get("HostName","")).lower()=="host" or str(p.get("DNSName","")).lower().startswith("host.philoveracity.com") or "knownhost" in str(p.get("HostName","")).lower()]
+          if len(matches)!=1 or not matches[0].get("Online"):
+              raise SystemExit("KnownHost unique online peer missing")
+          target = str(matches[0].get("DNSName") or matches[0].get("HostName")).rstrip(".")
+          script = """set -euo pipefail
+          echo remote_user=$(id -un)
+          echo remote_hostname=$(hostname -s)
+          acct="$(awk -F: 'tolower($1)=="wirebot.chat" {gsub(/[[:space:]]/,"",$2); print $2; exit}' /etc/userdomains)"
+          if [[ -z "$acct" ]]; then
+            echo 'domain_account=NOT_FOUND'
+            grep -i 'wirebot.chat' /etc/userdomains | head -n 3 | sed -E 's/[[:space:]]+/ /g' || true
+            exit 22
+          fi
+          echo "domain_account=$acct"
+          echo 'wordpress_config_parent_candidates_begin'
+          find "/home/$acct" -maxdepth 6 -type f -name wp-config.php -printf '%h\\n' 2>/dev/null | head -n 12
+          echo 'wordpress_config_parent_candidates_end'
+          echo wp_cli_present=$(command -v wp || echo none)
+          """
+          proc = subprocess.run(["tailscale","ssh","root@"+target,"bash -s"],input=script,capture_output=True,text=True,timeout=45)
+          print(proc.stdout[:5500])
+          print("root_ssh_inspect_exit="+str(proc.returncode))
+          if proc.returncode: print("root_ssh_inspect_stderr="+proc.stderr[-700:]); sys.exit(proc.returncode)
+                    PY
