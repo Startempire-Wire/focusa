@@ -191,19 +191,21 @@ jobs:
             echo 'service_identity_repo_access=false'
           fi
 
-      - name: Inspect live wirebot.chat homepage configuration
+      - name: Add exact homepage message as WordPress site owner and check public page
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import json, subprocess, sys
-          d=json.loads(subprocess.run(["tailscale","status","--json"],capture_output=True,text=True,check=True,timeout=8).stdout)
-          ps=[p for p in (d.get("Peer") or {}).values() if str(p.get("HostName","")).lower()=="host" or str(p.get("DNSName","")).lower().startswith("host.philoveracity.com") or "knownhost" in str(p.get("HostName","")).lower()]
-          if len(ps)!=1 or not ps[0].get("Online"): raise SystemExit("knownhost_not_online_unambiguous")
+          state=json.loads(subprocess.run(["tailscale","status","--json"],capture_output=True,text=True,check=True,timeout=8).stdout)
+          ps=[p for p in (state.get("Peer") or {}).values() if str(p.get("HostName","")).lower()=="host" or str(p.get("DNSName","")).lower().startswith("host.philoveracity.com") or "knownhost" in str(p.get("HostName","")).lower()]
+          if len(ps)!=1 or not ps[0].get("Online"): raise SystemExit("KnownHost unique online peer missing")
           target=str(ps[0].get("DNSName") or ps[0].get("HostName")).rstrip(".")
-          script="set -euo pipefail\np=/home/wirebot/public_html\nprintf 'ssh_user=%s\\n' \"$(id -un)\"\nprintf 'site_dir=%s\\n' \"$p\"\nstat -c 'site_owner=%U site_group=%G site_mode=%a' \"$p\"\nrunwp() { sudo -n -u wirebot -H wp --path=\"$p\" \"$@\"; }\nprintf 'wp_is_installed='\nrunwp core is-installed && echo true\nprintf 'show_on_front='\nrunwp option get show_on_front\nprintf 'page_on_front='\nrunwp option get page_on_front\nprintf 'page_for_posts='\nrunwp option get page_for_posts\nprintf 'active_theme='\nrunwp option get stylesheet\nprintf 'siteurl='\nrunwp option get siteurl\nprintf 'template_files_begin\\n'\nfor q in \"$p\"/wp-content/themes/*/front-page.php \"$p\"/wp-content/themes/*/home.php \"$p\"/wp-content/themes/*/templates/front-page.html; do\n  if test -f \"$q\"; then stat -c '%n owner=%U group=%G mode=%a' \"$q\"; fi\ndone\nprintf 'template_files_end\\n'\npageid=$(runwp option get page_on_front)\nif [[ \"$pageid\" =~ ^[1-9][0-9]*$ ]]; then\n printf 'homepage_post_status='\n runwp post get \"$pageid\" --field=post_status\n printf 'homepage_post_title='\n runwp post get \"$pageid\" --field=post_title\n printf 'homepage_content_length='\n runwp post get \"$pageid\" --field=post_content | wc -c\nfi"
-          r=subprocess.run(["tailscale","ssh","root@"+target,"bash -s"],input=script,capture_output=True,text=True,timeout=50)
-          print(r.stdout[-6000:])
-          print("inspection_exit="+str(r.returncode))
-          if r.returncode: print("inspect_error="+r.stderr[-1200:]); sys.exit(r.returncode)
+          script="set -euo pipefail\nsite=/home/wirebot/public_html\nplugin=\"$site/wp-content/mu-plugins/wirebot-root-test.php\"\nif ! sudo -n -u wirebot -H wp --path=\"$site\" core is-installed >/dev/null; then echo \"wordpress_not_ready\"; exit 11; fi\nfront=\"$(sudo -n -u wirebot -H wp --path=\"$site\" option get page_on_front)\"\nif [[ \"$front\" != \"40\" ]]; then echo \"unexpected_homepage_id=$front\"; exit 12; fi\nif [[ -e \"$plugin\" ]]; then\n  if grep -q 'root test passed' \"$plugin\"; then echo 'homepage_proof_plugin=already_present'\n  else echo 'homepage_proof_plugin=conflicting_file'; exit 13\n  fi\nelse\n  sudo -n -u wirebot -H mkdir -p \"$site/wp-content/mu-plugins\"\n  sudo -n -u wirebot -H bash -c 'umask 022; cat > \"$1\"' _ \"$plugin\" <<'PHP'\n<?php\n/*\nPlugin Name: Wirebot Homepage Root Access Proof\nDescription: Displays the owner-requested root access test message on the production homepage only.\n*/\nif (!function_exists('wirebot_homepage_root_access_proof')) {\n    function wirebot_homepage_root_access_proof() {\n        static $printed = false;\n        if ($printed || !is_front_page()) { return; }\n        $printed = true;\n        echo '<div id=\"wirebot-root-test-proof\" style=\"padding:12px 20px;text-align:center;font-size:16px;\">root test passed</div>';\n    }\n    add_action('wp_body_open', 'wirebot_homepage_root_access_proof', 100);\n    add_action('wp_footer', 'wirebot_homepage_root_access_proof', 100);\n}\nPHP\n  echo 'homepage_proof_plugin=created'\nfi\nphp -l \"$plugin\" | tail -n 1\nstat -c 'plugin_owner=%U plugin_group=%G plugin_mode=%a' \"$plugin\"\nsudo -n -u wirebot -H wp --path=\"$site\" eval 'echo \"plugin_loaded=\" . (function_exists(\"wirebot_homepage_root_access_proof\") ? \"true\" : \"false\") . PHP_EOL;'\npython3 - <<'PYCODE'\nimport urllib.request, time\nurl=\"https://wirebot.chat/?wirebot_root_proof=\"+str(int(time.time()))\ntry:\n    req=urllib.request.Request(url,headers={\"User-Agent\":\"Wirebot-Root-Proof/1.0\",\"Cache-Control\":\"no-cache\"})\n    with urllib.request.urlopen(req,timeout=20) as resp:\n        page=resp.read().decode(\"utf-8\",\"replace\")\n        print(\"public_http_status=\"+str(resp.status))\n        print(\"public_root_test_passed_visible=\"+str(\"root test passed\" in page).lower())\n        print(\"public_marker_present=\"+str('id=\"wirebot-root-test-proof\"' in page).lower())\nexcept Exception as e:\n    print(\"public_probe_error=\"+type(e).__name__+\":\"+str(e)[:180])\nPYCODE\n"
+          p=subprocess.run(["tailscale","ssh","root@"+target,"bash -s"],input=script,text=True,capture_output=True,timeout=70)
+          print(p.stdout[-6500:])
+          print("remote_edit_exit="+str(p.returncode))
+          if p.returncode:
+           print("remote_edit_error="+p.stderr[-950:])
+           sys.exit(p.returncode)
           PY
