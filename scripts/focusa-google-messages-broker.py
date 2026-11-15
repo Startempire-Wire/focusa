@@ -46,7 +46,7 @@ def secure_file(path: Path, *, minimum_size: int = 1) -> None:
 
 secure_file(TOKEN_FILE, minimum_size=32)
 TOKEN = TOKEN_FILE.read_text(encoding="utf-8").strip()
-THREADS: dict[str, int] = {}
+THREADS: dict[str, str] = {}
 CHALLENGES: dict[str, dict] = {}
 EVENTS: list[dict] = []
 LOCK = threading.RLock()
@@ -229,40 +229,83 @@ def browser_health() -> dict:
 
 
 def list_threads(limit: int, *, include_snippet: bool = True) -> list[dict]:
+    """Return only threads with a stable, uniquely identifiable provider route."""
     client = Cdp()
     try:
         session = client.attach("https://messages.google.com/")
-        rows = client.evaluate(session, "(()=>[...document.querySelectorAll('mws-conversation-list-item')].map((x,i)=>({index:i,name:(x.querySelector('h2.name')?.innerText||'').trim(),snippet:(x.querySelector('.snippet-text')?.innerText||'').trim(),timestamp:(x.querySelector('mws-relative-timestamp')?.innerText||'').trim(),unread:x.classList.contains('unread')||x.querySelector('[aria-label*=unread i]')!==null})))()") or []
+        rows = client.evaluate(session, """(() => [...document.querySelectorAll('mws-conversation-list-item')].map(x => {
+            const link = x.querySelector('a.list-item[href]');
+            let route = null;
+            try {
+                const url = link ? new URL(link.getAttribute('href'), location.origin) : null;
+                if (url && url.origin === location.origin &&
+                    /^\/web\/u\/\d+\/conversations\/[^/?#]+\/?$/.test(url.pathname))
+                    route = url.pathname.replace(/\/$/, '');
+            } catch (_) {}
+            return {
+                route, name: (x.querySelector('h2.name')?.innerText || '').trim(),
+                snippet: (x.querySelector('.snippet-text')?.innerText || '').trim(),
+                timestamp: (x.querySelector('mws-relative-timestamp')?.innerText || '').trim(),
+                unread: x.classList.contains('unread') || x.querySelector('[aria-label*=unread i]') !== null
+            };
+        }))()""") or []
         output = []
         with LOCK:
             THREADS.clear()
-            for row in rows[:limit]:
-                token = opaque("thread", f"{row['index']}\0{row['name']}")
-                THREADS[token] = int(row["index"])
-                output.append({"thread_handle": token, "display_name": row["name"], "participant_handles": [], "unread_count": 1 if row["unread"] else 0, "last_message_at": None, "snippet": row["snippet"] if include_snippet else None, "relative_timestamp": row["timestamp"]})
+            for row in rows:
+                route = row.get("route")
+                if not isinstance(route, str) or not route:
+                    continue
+                token = opaque("thread", route)
+                if token in THREADS:
+                    continue
+                THREADS[token] = route
+                output.append({
+                    "thread_handle": token, "display_name": row["name"], "participant_handles": [],
+                    "unread_count": 1 if row["unread"] else 0, "last_message_at": None,
+                    "snippet": row["snippet"] if include_snippet else None,
+                    "relative_timestamp": row["timestamp"]
+                })
+                if len(output) >= limit:
+                    break
         return output
     finally:
         client.close()
 
 
 def select_thread(thread_handle: str) -> tuple[Cdp, str]:
+    """Select by an exact route, then verify the browser reached that route."""
+    # A fresh source listing is needed: row indices and contact names can change.
+    list_threads(200)
     with LOCK:
-        index = THREADS.get(thread_handle)
-    if index is None:
-        list_threads(200)
-        with LOCK:
-            index = THREADS.get(thread_handle)
-    if index is None:
-        raise KeyError("thread handle unavailable")
+        route = THREADS.get(thread_handle)
+    if route is None:
+        raise KeyError("bound thread handle unavailable")
     client = Cdp()
-    session = client.attach("https://messages.google.com/")
-    selected = client.evaluate(session, f"(()=>{{const x=document.querySelectorAll('mws-conversation-list-item a.list-item')[{index}];if(!x)return false;x.click();return true}})()")
-    if not selected:
+    try:
+        session = client.attach("https://messages.google.com/")
+        expression = """(() => {
+            const target = %s;
+            const matches = [...document.querySelectorAll('mws-conversation-list-item a.list-item[href]')]
+                .filter(link => {
+                    try {
+                        const url = new URL(link.getAttribute('href'), location.origin);
+                        return url.origin === location.origin && url.pathname.replace(/\/$/, '') === target;
+                    } catch (_) { return false; }
+                });
+            if (matches.length !== 1) return false;
+            matches[0].click();
+            return true;
+        })()""" % json.dumps(route)
+        if not client.evaluate(session, expression):
+            raise RuntimeError("bound thread route unavailable")
+        time.sleep(1)
+        if client.evaluate(session, "location.pathname.replace(/\\/$/, '')") != route:
+            raise RuntimeError("selected thread identity mismatch")
+        return client, session
+    except Exception:
         client.close()
-        raise RuntimeError("thread selection failed")
-    time.sleep(1)
-    return client, session
-
+        raise
 
 def read_messages(thread_handle: str, limit: int) -> list[dict]:
     client, session = select_thread(thread_handle)
@@ -275,10 +318,29 @@ def read_messages(thread_handle: str, limit: int) -> list[dict]:
         client.close()
 
 
-def idempotent_send(grant_id: str, consumer_ref: str, idempotency_key: str, recipient: str, body: str) -> tuple[str, bool]:
+def authorize_send(grant_id: str, consumer_ref: str, thread_handle: str, *, consume: bool = False) -> dict:
+    """Bind the send grant to the actual thread; an unscoped send grant is invalid."""
+    grant = authorize(grant_id, consumer_ref, "send")
+    scope = grant.get("scope", {})
+    threads = scope.get("thread_handles") or []
+    recipients = scope.get("recipient_handles") or []
+    if not threads and not recipients:
+        raise PermissionError("send requires an exact destination scope")
+    if threads and thread_handle not in threads:
+        raise PermissionError("thread is outside send grant")
+    if recipients and thread_handle not in recipients:
+        raise PermissionError("recipient is outside send grant")
+    if consume:
+        # Recheck and atomically consume *before* any external browser effect.
+        return authorize(grant_id, consumer_ref, "send", consume=True)
+    return grant
+
+
+def idempotent_send(grant_id: str, consumer_ref: str, idempotency_key: str, recipient: str, body: str) -> tuple[str, bool, str]:
+    """Durably reserve a one-shot send. Never retry an ambiguous browser click."""
     private_state_dir()
-    key = hashlib.sha256(f"{grant_id}\0{consumer_ref}\0{idempotency_key}".encode()).hexdigest()
-    request_digest = hashlib.sha256(f"{recipient}\0{body}".encode()).hexdigest()
+    key = hashlib.sha256(f"{CONNECTOR_ID}\0{grant_id}\0{consumer_ref}\0{idempotency_key}".encode()).hexdigest()
+    request_digest = hashlib.sha256(f"{CONNECTOR_ID}\0{recipient}\0{body}".encode()).hexdigest()
     fd = os.open(SEND_LEDGER_LOCK, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
@@ -290,15 +352,43 @@ def idempotent_send(grant_id: str, consumer_ref: str, idempotency_key: str, reci
         if prior:
             if prior.get("request_digest") != request_digest:
                 raise PermissionError("idempotency key payload mismatch")
-            return str(prior["send_handle"]), True
-        receipt = send_message(recipient, body)
-        ledger.setdefault("entries", {})[key] = {"request_digest": request_digest, "send_handle": receipt, "occurred_at": now_iso()}
+            status = prior.get("status", "outcome_unknown")
+            if status in {"intent_recorded", "dispatching"}:
+                status = "outcome_unknown"
+            return str(prior["send_handle"]), True, status
+
+        authorize_send(grant_id, consumer_ref, recipient)
+        # Resolve the exact provider route while the source is reachable.
+        list_threads(200)
+        with LOCK:
+            if recipient not in THREADS:
+                raise PermissionError("destination not present in source")
+
+        # Reserve grant usage before effect. If reservation or journal fails, do not send.
+        authorize_send(grant_id, consumer_ref, recipient, consume=True)
+        send_handle = opaque("send", key)
+        entry = {
+            "request_digest": request_digest, "send_handle": send_handle,
+            "status": "intent_recorded", "occurred_at": now_iso(),
+        }
+        ledger.setdefault("entries", {})[key] = entry
         atomic_json(SEND_LEDGER_FILE, ledger)
-        return receipt, False
+        entry["status"] = "dispatching"
+        atomic_json(SEND_LEDGER_FILE, ledger)
+        try:
+            send_message(recipient, body)
+        except Exception:
+            # A crashed browser or lost response may still have submitted the text.
+            entry["status"] = "outcome_unknown"
+            atomic_json(SEND_LEDGER_FILE, ledger)
+            return send_handle, False, "outcome_unknown"
+        # A DOM click is not provider acceptance, delivery, or recipient read proof.
+        entry["status"] = "submission_unverified"
+        atomic_json(SEND_LEDGER_FILE, ledger)
+        return send_handle, False, "submission_unverified"
     finally:
         fcntl.flock(fd, fcntl.LOCK_UN)
         os.close(fd)
-
 
 def send_message(thread_handle: str, body: str) -> str:
     client, session = select_thread(thread_handle)
@@ -308,6 +398,10 @@ def send_message(thread_handle: str, body: str) -> str:
         if not object_id:
             raise RuntimeError("compose input unavailable")
         client.call("Runtime.callFunctionOn", {"objectId": object_id, "functionDeclaration": "function(v){const s=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set;s.call(this,v);this.dispatchEvent(new Event('input',{bubbles:true}));return true}", "arguments": [{"value": body}], "returnByValue": True}, session)
+        with LOCK:
+            expected_route = THREADS.get(thread_handle)
+        if not expected_route or client.evaluate(session, "location.pathname.replace(/\\/$/, '')") != expected_route:
+            raise RuntimeError("thread identity changed before send")
         sent = client.evaluate(session, "(()=>{const x=document.querySelector('mws-message-send-button button,button[aria-label*=send i]');if(!x)return false;x.click();return true})()")
         if not sent:
             raise RuntimeError("send control unavailable")
@@ -464,14 +558,22 @@ class Handler(BaseHTTPRequestHandler):
                 audit("otp_inject", "ok", consumer_ref=consumer, grant_id=grant_id, target_handle=target); return self.reply(200, envelope(True, "injected", "OTP injected into exact bound target", injected=True, challenge_handle=handle))
             if url.path == "/v1/sms/send":
                 if body.get("confirm") is not True: return self.blocked("approval_required")
-                recipients = body.get("recipient_handles") or []; message = str(body.get("body", "")); idem = str(body.get("idempotency_key", ""))
-                if len(recipients) != 1 or not message.strip() or not idem: return self.blocked("validation_rejected", 400)
-                authorize(grant_id, consumer, "send"); key = (grant_id, consumer, idem)
-                with LOCK: prior = SENDS.get(key)
-                if prior: return self.reply(200, envelope(True, "sent", "Idempotent send receipt replayed", send_handle=prior, idempotency_key=idem, replayed=True))
-                receipt = send_message(str(recipients[0]), message); authorize(grant_id, consumer, "send", consume=True)
-                with LOCK: SENDS[key] = receipt
-                audit("send", "ok", consumer_ref=consumer, grant_id=grant_id); return self.reply(200, envelope(True, "sent", "Message sent", send_handle=receipt, idempotency_key=idem, replayed=False))
+                recipients = body.get("recipient_handles") or []
+                message = body.get("body")
+                idem = body.get("idempotency_key")
+                if (not isinstance(recipients, list) or len(recipients) != 1
+                    or not isinstance(recipients[0], str) or not recipients[0]
+                    or not isinstance(message, str) or not message.strip()
+                    or not isinstance(idem, str) or not idem.strip()):
+                    return self.blocked("validation_rejected", 400)
+                receipt, replayed, status = idempotent_send(grant_id, consumer, idem, recipients[0], message)
+                audit("send", status, consumer_ref=consumer, grant_id=grant_id)
+                if status == "submission_unverified":
+                    return self.reply(202, envelope(True, status, "Message submission attempted; source delivery unverified",
+                        send_handle=receipt, idempotency_key=idem, replayed=replayed))
+                return self.reply(409, envelope(False, "outcome_unknown", "Message outcome uncertain; inspect the source before retrying",
+                    send_handle=receipt, idempotency_key=idem, replayed=replayed, failure_class="send_outcome_unknown"))
+
             if url.path == "/v1/sms/checkpoint":
                 authorize(grant_id, consumer, "checkpoint"); state = supervisor_request("checkpoint"); audit("checkpoint", "ok", consumer_ref=consumer, grant_id=grant_id); return self.reply(200, envelope(True, "verified_standby", "Encrypted connector generation checkpointed", generation=state.get("current_generation")))
             if url.path == "/v1/sms/revoke":
