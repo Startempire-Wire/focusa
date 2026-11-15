@@ -128,7 +128,7 @@ def atomic_json(path: Path, value: dict) -> None:
             temporary.unlink()
 
 
-def authorize(grant_id: str, consumer_ref: str, capability: str, *, target_handle: str | None = None, provider: str | None = None, thread_handle: str | None = None, recipient_handle: str | None = None, consume: bool = False) -> dict:
+def authorize(grant_id: str, consumer_ref: str, capability: str, *, target_handle: str | None = None, provider: str | None = None, thread_handle: str | None = None, recipient_handle: str | None = None, destination_handle: str | None = None, consume: bool = False) -> dict:
     payload = load_json_authority(GRANTS_FILE)
     grants = payload.get("grants", [])
     grant = next((item for item in grants if item.get("grant_id") == grant_id), None)
@@ -158,6 +158,12 @@ def authorize(grant_id: str, consumer_ref: str, capability: str, *, target_handl
         if provider is not None and scope.get("provider") != provider: reasons.append("provider")
         if thread_handle is not None and thread_handle not in scope.get("thread_handles", []): reasons.append("thread")
         if recipient_handle is not None and recipient_handle not in scope.get("recipient_handles", []): reasons.append("recipient")
+        if destination_handle is not None:
+            threads = scope.get("thread_handles") or []
+            recipients = scope.get("recipient_handles") or []
+            if not threads and not recipients: reasons.append("destination_unscoped")
+            if threads and destination_handle not in threads: reasons.append("destination_thread")
+            if recipients and destination_handle not in recipients: reasons.append("destination_recipient")
         if reasons:
             raise PermissionError("grant rejected")
         if consume:
@@ -319,21 +325,8 @@ def read_messages(thread_handle: str, limit: int) -> list[dict]:
 
 
 def authorize_send(grant_id: str, consumer_ref: str, thread_handle: str, *, consume: bool = False) -> dict:
-    """Bind the send grant to the actual thread; an unscoped send grant is invalid."""
-    grant = authorize(grant_id, consumer_ref, "send")
-    scope = grant.get("scope", {})
-    threads = scope.get("thread_handles") or []
-    recipients = scope.get("recipient_handles") or []
-    if not threads and not recipients:
-        raise PermissionError("send requires an exact destination scope")
-    if threads and thread_handle not in threads:
-        raise PermissionError("thread is outside send grant")
-    if recipients and thread_handle not in recipients:
-        raise PermissionError("recipient is outside send grant")
-    if consume:
-        # Recheck and atomically consume *before* any external browser effect.
-        return authorize(grant_id, consumer_ref, "send", consume=True)
-    return grant
+    """Enforce destination scope within the same usage-lock transaction as consumption."""
+    return authorize(grant_id, consumer_ref, "send", destination_handle=thread_handle, consume=consume)
 
 
 def idempotent_send(grant_id: str, consumer_ref: str, idempotency_key: str, recipient: str, body: str) -> tuple[str, bool, str]:
