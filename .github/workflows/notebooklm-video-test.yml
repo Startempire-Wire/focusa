@@ -1,4 +1,4 @@
-name: Locate Agent KB on KnownHost then OVH
+name: Query Agent KB for RBW unlock guidance
 on:
   push:
     branches: [test/notebooklm-video-20261116]
@@ -6,34 +6,18 @@ on:
 permissions:
   contents: read
 jobs:
-  discover:
+  inspect:
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
-      - name: Search KnownHost first for Agent KB and RBW documentation
+      - name: Inspect Agent KB help and RBW documentation references without secrets
         shell: bash
         run: |
           set -euo pipefail
-          echo "knownhost_search_begin"
-          python3 - <<'PY'
-          import subprocess,json
-          try:
-            j=json.loads(subprocess.check_output(['tailscale','status','--json'],timeout=8))
-            peers=list((j.get('Peer') or {}).values())
-            p=[x for x in peers if 'knownhost' in (str(x.get('HostName',''))+' '+str(x.get('DNSName',''))).lower() or str(x.get('DNSName','')).lower().startswith('host.philoveracity.com')]
-            print('knownhost_candidates',len(p))
-            if len(p)!=1: raise RuntimeError('knownhost identity ambiguous')
-            target=(p[0].get('DNSName') or p[0].get('HostName')).rstrip('.')
-            script="""set -eu; echo remote_host=$(hostname -s); for root in /root /home /opt /srv; do if test -d "$root"; then find "$root" -maxdepth 5 \( -iname '*agent*kb*' -o -iname '*agent*knowledge*' \) -print 2>/dev/null | head -n 25; fi; done; command -v rbw >/dev/null && echo rbw_present=yes || echo rbw_present=no"""
-            result=subprocess.run(['ssh','-o','BatchMode=yes','-o','ConnectTimeout=8',target,'sh','-c',script],capture_output=True,text=True,timeout=35)
-            print('knownhost_ssh_exit',result.returncode)
-            print(result.stdout[:4000])
-            print('knownhost_ssh_error_type', 'none' if result.returncode==0 else 'ssh_failed')
-          except Exception as e: print('knownhost_probe_error',type(e).__name__,str(e)[:140])
-          PY
-          echo "ovh_search_begin"
-          for root in /home /opt /srv; do
-            test -d "$root" || continue
-            find "$root" -maxdepth 5 \( -iname '*agent*kb*' -o -iname '*agent*knowledge*' \) -print 2>/dev/null | head -n 35 || true
-          done
-          for cmd in rbw agent-kb agentkb akb; do command -v "$cmd" >/dev/null && echo "command_present=$cmd" || true; done
+          echo 'agent_kb_cli_help'
+          timeout 8s agent-kb --help 2>&1 | head -n 70 || true
+          echo 'rbw_document_paths'
+          find /home/agent-kb/markdown -maxdepth 5 -type f \( -iname '*rbw*' -o -iname '*vault*' -o -iname '*bitwarden*' \) -printf '%P\n' 2>/dev/null | head -n 60 || true
+          echo 'rbw_reference_files'
+          grep -RilE 'rbw|vault.unlock|bitwarden' /home/agent-kb/markdown --include='*.md' 2>/dev/null | head -n 35 || true
+          echo 'probe_complete'
