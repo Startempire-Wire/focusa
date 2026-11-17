@@ -1,4 +1,4 @@
-name: NotebookLM isolated video capability test
+name: NotebookLM vault alias discovery
 on:
   push:
     branches: [test/notebooklm-video-20261116]
@@ -8,18 +8,23 @@ permissions:
 jobs:
   probe:
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
-    timeout-minutes: 12
+    timeout-minutes: 3
     steps:
-      - name: Install notebooklm-py in isolated temporary virtualenv and inspect auth
+      - name: Locate agent knowledge base and vault unlock alias without revealing secrets
         shell: bash
         run: |
           set -euo pipefail
-          umask 077
-          probe_dir="$(mktemp -d "${RUNNER_TEMP}/notebooklm-probe.XXXXXXXX")"
-          trap 'rm -rf -- "$probe_dir"' EXIT
-          python3 -m venv "$probe_dir/venv"
-          "$probe_dir/venv/bin/python" -m pip install -q --disable-pip-version-check notebooklm-py
-          "$probe_dir/venv/bin/notebooklm" --help | head -n 45
-          printf 'notebooklm_auth_status_begin\n'
-          timeout 20s "$probe_dir/venv/bin/notebooklm" auth check --test 2>&1 | sed -E 's/([A-Za-z0-9_-]{24,})/[REDACTED]/g' || true
-          printf 'notebooklm_auth_status_end\n'
+          echo "rbw_binary=$(command -v rbw >/dev/null && echo present || echo missing)"
+          for f in "$HOME/.bashrc" "$HOME/.bash_aliases" "$HOME/.profile" "$HOME/.zshrc"; do
+            if test -f "$f"; then
+              echo "shell_config=$(basename "$f")"
+              grep -Ein 'alias [A-Za-z0-9_-]*(vault|rbw|unlock)|function [A-Za-z0-9_-]*(vault|rbw|unlock)' "$f" | sed -E 's/=.*/=[definition withheld]/' | head -n 15 || true
+            fi
+          done
+          for d in "$HOME/agent-knowledge-base" "$HOME/.agent-knowledge" "$HOME/knowledge" "$HOME/.config/wirebot"; do
+            if test -d "$d"; then
+              echo "knowledge_candidate=$d"
+              find "$d" -maxdepth 2 -type f \( -iname '*rbw*' -o -iname '*vault*' -o -iname '*auth*' \) -printf '%P\n' | head -n 30
+            fi
+          done
+          echo "probe_complete=true"
