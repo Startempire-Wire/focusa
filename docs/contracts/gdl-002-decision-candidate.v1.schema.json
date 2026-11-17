@@ -1,0 +1,495 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://focusa.dev/schemas/gdl-002-decision-candidate.v1.schema.json",
+  "title": "GDL-002 DecisionCandidate v1 — proposal only",
+  "description": "Draft contract. No field in this object, including agent confidence, carries independent decision activation authority. Only Focusa's existing operator-rooted promotion path can do so.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "candidate_id",
+    "revision",
+    "tenant_ref",
+    "statement",
+    "claim_kind",
+    "status",
+    "scope",
+    "source_evidence",
+    "recommended_disposition",
+    "evaluation",
+    "created_at"
+  ],
+  "properties": {
+    "schema": {
+      "const": "focusa.gdl.decision_candidate.v1"
+    },
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cluster_id": {
+      "type": "string"
+    },
+    "decision_key": {
+      "type": "string",
+      "description": "Proposed semantic key; never itself authority."
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "description": "Single crystallized sentence, additionally validated with Focusa's decision validator."
+    },
+    "claim_kind": {
+      "type": "string",
+      "enum": [
+        "explicit_operator_decision",
+        "operator_preference",
+        "operator_instruction",
+        "operator_question",
+        "operator_hypothesis",
+        "operator_reconsideration",
+        "agent_recommendation",
+        "third_party_request",
+        "quoted_assertion",
+        "external_advice",
+        "documented_design",
+        "implemented_behavior",
+        "observed_outcome",
+        "undetermined"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "extracted",
+        "grounding_pending",
+        "reconciling",
+        "contested",
+        "ready_for_approval",
+        "deferred",
+        "rejected",
+        "linked_existing",
+        "promoted",
+        "quarantined",
+        "blocked"
+      ]
+    },
+    "tenant_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level"
+      ],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "tenant",
+            "ecosystem",
+            "product",
+            "organization",
+            "project",
+            "workstream",
+            "personal",
+            "customer"
+          ]
+        },
+        "product_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "project_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "workstream_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "project_lineage_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "continuity_ref": {
+          "type": "string"
+        },
+        "attachment_ref": {
+          "type": "string"
+        },
+        "effective_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "source_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_instance_id",
+          "native_item_id",
+          "native_revision",
+          "span_ref",
+          "content_sha256",
+          "grant_ref",
+          "attribution"
+        ],
+        "properties": {
+          "source_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "native_item_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "native_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "native_uri": {
+            "type": "string",
+            "description": "Exact actionable provider link if supported. Otherwise omit; never fabricate links."
+          },
+          "span_ref": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact line/page/turn/timecode reference in original source"
+          },
+          "content_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "grant_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acl_ref": {
+            "type": "string"
+          },
+          "quote_ref": {
+            "type": "string",
+            "description": "Authorized pointer, not necessarily replicated raw quote text"
+          },
+          "attribution": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "actor_ref",
+              "role",
+              "basis"
+            ],
+            "properties": {
+              "actor_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "operator",
+                  "agent",
+                  "third_party",
+                  "unknown"
+                ]
+              },
+              "basis": {
+                "type": "string",
+                "enum": [
+                  "verified_identity",
+                  "signed_record",
+                  "source_sender_metadata",
+                  "speaker_diarization",
+                  "inferred",
+                  "unknown"
+                ]
+              },
+              "quoted_party_ref": {
+                "type": "string"
+              },
+              "acknowledged_by_operator": {
+                "type": "boolean"
+              }
+            }
+          },
+          "authored_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "parser_version": {
+            "type": "string"
+          },
+          "extractor_version": {
+            "type": "string"
+          },
+          "independent_origin_ref": {
+            "type": "string",
+            "description": "Used to discount copied summaries"
+          }
+        }
+      }
+    },
+    "time_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claimed_decision_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_event_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "effective_after": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "effective_before": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "time_zone": {
+          "type": "string"
+        },
+        "freshness": {
+          "type": "string",
+          "enum": [
+            "current",
+            "historical",
+            "stale",
+            "uncertain",
+            "not_applicable"
+          ]
+        }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "target_ref"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "same_intent",
+              "refines",
+              "amends",
+              "supersedes_candidate",
+              "superseded_by_active",
+              "mutually_exclusive",
+              "depends_on",
+              "scope_ambiguous",
+              "time_ambiguous",
+              "speaker_ambiguous",
+              "policy_violation",
+              "derived_from"
+            ]
+          },
+          "target_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_ref": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "recommended_disposition": {
+      "type": "string",
+      "enum": [
+        "promote_new",
+        "amend_existing",
+        "replace_with_supersession",
+        "link_as_support",
+        "hold_for_question",
+        "reject_obsolete",
+        "no_action"
+      ]
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attribution",
+        "scope",
+        "freshness",
+        "conflict",
+        "approval_valid"
+      ],
+      "properties": {
+        "extraction_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Judgmental assessment, not calibrated probability nor permission."
+        },
+        "attribution_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "scope_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "attribution": {
+          "type": "string",
+          "enum": [
+            "verified_operator",
+            "verified_nonoperator",
+            "inferred",
+            "unknown"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "partial",
+            "ambiguous",
+            "mismatched"
+          ]
+        },
+        "freshness": {
+          "type": "string",
+          "enum": [
+            "fresh",
+            "historical",
+            "stale",
+            "unverifiable"
+          ]
+        },
+        "conflict": {
+          "type": "string",
+          "enum": [
+            "none_found",
+            "duplicate",
+            "compatible",
+            "conflicted",
+            "unknown"
+          ]
+        },
+        "approval_valid": {
+          "const": false,
+          "description": "A candidate is never an approved decision."
+        },
+        "risk": {
+          "type": "string",
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "constitutional"
+          ]
+        }
+      }
+    },
+    "gate_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate",
+          "status"
+        ],
+        "properties": {
+          "gate": {
+            "type": "string",
+            "enum": [
+              "G0",
+              "G1",
+              "G2",
+              "G3",
+              "G4",
+              "G5",
+              "G6",
+              "G7"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "held",
+              "blocked",
+              "not_applicable"
+            ]
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "impact_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "candidate_digest": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "parser_gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "review_question": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
