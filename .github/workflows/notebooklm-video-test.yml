@@ -1,4 +1,4 @@
-name: Query Agent KB for RBW unlock guidance
+name: Read RBW procedure from Agent KB
 on:
   push:
     branches: [test/notebooklm-video-20261116]
@@ -10,14 +10,18 @@ jobs:
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 3
     steps:
-      - name: Inspect Agent KB help and RBW documentation references without secrets
+      - name: Read RBW instructions, redact any credential-like values
         shell: bash
         run: |
           set -euo pipefail
-          echo 'agent_kb_cli_help'
-          timeout 8s agent-kb --help 2>&1 | head -n 70 || true
-          echo 'rbw_document_paths'
-          find /home/agent-kb/markdown -maxdepth 5 -type f \( -iname '*rbw*' -o -iname '*vault*' -o -iname '*bitwarden*' \) -printf '%P\n' 2>/dev/null | head -n 60 || true
-          echo 'rbw_reference_files'
-          grep -RilE 'rbw|vault.unlock|bitwarden' /home/agent-kb/markdown --include='*.md' 2>/dev/null | head -n 35 || true
-          echo 'probe_complete'
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/home/agent-kb/markdown/BITWARDEN_RBW.md')
+          lines=p.read_text().splitlines()
+          print('document_lines',len(lines))
+          for i,line in enumerate(lines[:180],1):
+            if any(s in line.lower() for s in ('password','token','secret','credential','key=','cookie','session','email','username')):
+              print(f'{i}: [sensitive or auth-related line withheld]')
+            else:
+              print(f'{i}: {line[:180]}')
+          PY
