@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "schema": "focusa.gdl.source_classes.v1",
   "status": "proposed_not_activated",
   "description": "Enumerated initial source kinds for GDL-002; non-exhaustive extensible registry. Examples are not claims of current connector installation, entitlement, or permission.",
