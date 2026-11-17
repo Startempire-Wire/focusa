@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://focusa.dev/schemas/gdl-002-decision-candidate.v1.schema.json",
+  "$id": "urn:focusa:gdl:decision-candidate:v1",
   "title": "GDL-002 DecisionCandidate v1 — proposal only",
   "description": "Draft contract. No field in this object, including agent confidence, carries independent decision activation authority. Only Focusa's existing operator-rooted promotion path can do so.",
   "type": "object",
