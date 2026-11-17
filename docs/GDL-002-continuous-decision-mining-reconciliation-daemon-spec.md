@@ -264,3 +264,43 @@ The following are *not* authorized by this draft: enabling any connector, openin
 - [MCP official documentation](https://modelcontextprotocol.io/specification) — adapter/tool discovery and authorization/security model; remote MCP content remains untrusted.
 
 **Requested disposition:** operator review of GDL-002 as a candidate Focusa subsystem. Approval of this *specification* would authorize planning/decomposition, not any connected-source read, decision promotion, or production deployment.
+
+
+## 16. Runtime boundary settlement — miner is a Focusa-owned worker, not the agent query server (2026-11-17)
+
+**Normative architecture refinement; see [GDL-001 sections 7–8](GDL-001-global-decision-ledger-contract.md).** "Decision Mining Daemon" is a *functional name* for a persistent mining capability, not a mandate for a second authoritative daemon/process with an independent database or API.
+
+**Required ownership:**
+1. **Focusa daemon on KH** (under currently documented KH/OVH topology) is the one canonical decision store, reducer, authority resolver, authenticated approval endpoint, search index owner and real-time agent query service.
+2. **Decision Miner workers** are separate and resource-bounded; heavy parsing, embeddings, history backfills, external connector reads and LLM adjudication run on approved OVH execution capacity when available. Schedule/stop/retry/reconcile via existing Focusa durable worker/Silent Session/background capability, not an independently authoritative cron manager. Do not run resource-spiking scans on KH or in request handlers.
+3. Workers send schema-valid **candidate submissions** with evidence/coverage through approved API and capability grants. No direct SQL, event-chain append, approval state writes, cross-tenant global index or private GDL authority token on workers. Submission can return duplicate/no-op under idempotency.
+4. **Agent clients** Pi, OpenClaw, Wirebot, SOVOS, UIAI and other MCP/REST/CLI consumers query Focusa's **committed read model** directly. They never need to call miner workers to resolve a decision. On-demand discovery and governing resolution are distinct, policy-checked operations.
+5. Existing **Focusa SSE durable replay/broadcast** carries decision-reference invalidations and revision/watermark hints to consumers; it is not a new event bus and must not stream arbitrary raw mined private excerpts.
+6. When mining lags or is offline, previously approved decisions remain searchable with truthful source-coverage freshness. No inferred refresh, stale authority or false denial of existing state.
+7. If a source changes while an agent searches, return the last **verified canonical decision revision** and independently disclose the miner's coverage/watermark. New unreviewed source text does not alter governing decisions.
+
+### 16.1 Proposed agent-facing retrieval behavior
+
+- Agent asks **"What was decided about Wirebot deployment levels?"** -> Focusa search yields source-backed active decisions in authorized scope; include optional clearly advisory candidate results only through a separate explicitly requested mode.
+- Agent asks **"What do I have to honor before this release?"** -> Focusa resolve computes all applicable current approved constraints from exact project/Workstream/continuity/attachment and action class; conflicting or stale governance yields an explicit denial/needs-review result, not probabilistic retrieval.
+- Agent asks **"What changed since I last loaded decisions?"** -> use durable stream cursor and bounded decision-version refresh.
+- Agent asks **"Why was this decided?"** -> use metadata/evidence refs with permission-bound exact source spans; ADR projection, if present, is human-readable expansion of the same GDL decision.
+- Agent asks **"Can you find older choices from archived projects?"** -> Search the historical/evidence corpus through an explicit **advisory historical mode**, preserving original project scopes and approval status, never applying retired decisions to a live project without reconciliation and owner approval.
+
+Use the existing Focusa machine-readable capability discovery/contract generation for read-only tools: focusa_gdl_search, focusa_gdl_resolve, focusa_gdl_get, focusa_gdl_context, focusa_gdl_status. None of them may spawn unbounded mining or model work. Review/promotion stays on the separate governed write path.
+
+### 16.2 ADR candidate enrichment without bureaucracy
+
+When a mined candidate is architecturally significant, extraction should also attach ADR-context source refs (problem, options, drivers, rationale and consequences). This **does not change the 160-character canonical statement**. Prefer Nygard/MADR-compatible derived templates. Mark speculative rationale/consequences as inferred; user review must distinguish direct historical choices from model reconstructions.
+
+After authenticated approval of the exact significant GDL decision, offer a Markdown ADR export **only when requested or required by an approved project policy**. Do not automatically open hundreds of PRs for every project-history decision. Do not mistake a historical document labeled \`ADR: Accepted\` for current signed operator approval. Keep original source and project lineage in the metadata graph.
+
+### 16.3 Additional acceptance cases
+
+- 10,000-asset historical backfill is in progress on bounded execution worker, while the Focusa daemon still resolves approved decisions within its interactive performance budget.
+- Index goes behind the canonical ledger for one approval: read-your-writes uses safe canonical fallback or honest read-model-lag posture, never silently stale data.
+- Scanner/connector/model unavailable: Focusa agent search stays available for previously approved decisions.
+- A newly approved decision issues a bounded durable invalidation; a connected Pi or OpenClaw agent sees the new applicable revision without process restart and cannot apply an outdated revoked record to a consequential action.
+- Search for a deliberately injected unapproved but high-similarity candidate does not include it among governing decisions.
+- Three old project identities with overlapping names cannot silently import each other's ADRs or decisions as active authority.
+- ADR projection and compact GDL statement agree on the decision ID, scope, approval revision and supersession history.
