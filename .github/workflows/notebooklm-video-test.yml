@@ -1,0 +1,25 @@
+name: NotebookLM isolated video capability test
+on:
+  push:
+    branches: [test/notebooklm-video-20261116]
+    paths: [.github/workflows/notebooklm-video-test.yml]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 12
+    steps:
+      - name: Install notebooklm-py in isolated temporary virtualenv and inspect auth
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          probe_dir="$(mktemp -d "${RUNNER_TEMP}/notebooklm-probe.XXXXXXXX")"
+          trap 'rm -rf -- "$probe_dir"' EXIT
+          python3 -m venv "$probe_dir/venv"
+          "$probe_dir/venv/bin/python" -m pip install -q --disable-pip-version-check notebooklm-py
+          "$probe_dir/venv/bin/notebooklm" --help | head -n 45
+          printf 'notebooklm_auth_status_begin\n'
+          timeout 20s "$probe_dir/venv/bin/notebooklm" auth check --test 2>&1 | sed -E 's/([A-Za-z0-9_-]{24,})/[REDACTED]/g' || true
+          printf 'notebooklm_auth_status_end\n'
