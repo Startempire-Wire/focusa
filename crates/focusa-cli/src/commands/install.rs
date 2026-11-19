@@ -1283,6 +1283,17 @@ fn uiai_engine_url() -> String {
     std::env::var("UIAI_ENGINE_URL").unwrap_or_else(|_| "http://127.0.0.1:7456".into())
 }
 
+// UIAI's actual /health contract (WPUIAI/uiai-engine internal/server/server.go)
+// includes BOTH status=healthy and service=uiai-engine. HTTP 200 alone could
+// be a different process, a proxy fallback or an unrelated private endpoint.
+fn verified_uiai_health_body(body: &[u8]) -> bool {
+    let Ok(payload) = serde_json::from_slice::<serde_json::Value>(body) else {
+        return false;
+    };
+    payload.get("status").and_then(|v| v.as_str()) == Some("healthy")
+        && payload.get("service").and_then(|v| v.as_str()) == Some("uiai-engine")
+}
+
 fn uiai_engine_healthy() -> bool {
     let health_url = format!("{}/health", uiai_engine_url().trim_end_matches('/'));
     let auth_header = std::env::var("UIAI_BEARER_TOKEN")
@@ -1292,15 +1303,14 @@ fn uiai_engine_healthy() -> bool {
         .map(|token| format!("Authorization: Bearer {token}"));
     let mut command = std::process::Command::new("curl");
     command.args(["--max-time", "2", "--fail", "--silent"]);
-    command.stdout(std::process::Stdio::null());
     command.stderr(std::process::Stdio::null());
     if let Some(header) = auth_header.as_deref() {
         command.args(["--header", header]);
     }
-    command
-        .arg(health_url)
-        .status()
-        .is_ok_and(|status| status.success())
+    match command.arg(health_url).output() {
+        Ok(result) => result.status.success() && verified_uiai_health_body(&result.stdout),
+        Err(_) => false,
+    }
 }
 
 fn uiai_engine_install_command() -> String {
@@ -1311,13 +1321,13 @@ fn uiai_engine_install_command() -> String {
         "https://github.com/WPUIAI/uiai-engine/releases/download/{UIAI_ENGINE_RELEASE_TAG}/uiai-engine-linux-amd64"
     );
     format!(
-        "set -eu; tmp=$(mktemp -d); trap 'rm -rf \"$tmp\"' EXIT; \
+        "set -eu; if [ -e \"$HOME/.focusa/bin/uiai-engine\" ] || [ -L \"$HOME/.focusa/bin/uiai-engine\" ] || [ -e \"$HOME/.config/systemd/user/focusa-uiai-engine.service\" ] || [ -L \"$HOME/.config/systemd/user/focusa-uiai-engine.service\" ] || [ -L \"$HOME/.focusa/bin\" ] || [ -L \"$HOME/.config/systemd/user\" ]; then printf '%s\\n' 'UIAI install blocked: existing engine/unit/linked directory; inspect and repair without overwrite' >&2; exit 4; fi; tmp=$(mktemp -d); trap 'rm -rf \"$tmp\"' EXIT; \
          curl -fsSLo \"$tmp/uiai-engine\" '{asset_url}'; \
          printf '%s  %s\\n' '{UIAI_ENGINE_LINUX_AMD64_SHA256}' uiai-engine > \"$tmp/SHA256SUMS\"; \
          (cd \"$tmp\" && sha256sum -c SHA256SUMS); \
          install -d \"$HOME/.focusa/bin\" \"$HOME/.config/systemd/user\" \"$HOME/.local/state/focusa\"; \
-         install -m 0755 \"$tmp/uiai-engine\" \"$HOME/.focusa/bin/uiai-engine\"; \
-         printf '%s\\n' '[Unit]' 'Description=Focusa-managed UIAI Engine' 'After=network-online.target' '' '[Service]' 'Type=simple' 'ExecStart=%h/.focusa/bin/uiai-engine' 'Restart=on-failure' 'RestartSec=3' 'StandardOutput=append:%h/.local/state/focusa/uiai-engine.log' 'StandardError=append:%h/.local/state/focusa/uiai-engine.log' '' '[Install]' 'WantedBy=default.target' > \"$HOME/.config/systemd/user/focusa-uiai-engine.service\"; \
+         ( set -C; cat \"$tmp/uiai-engine\" > \"$HOME/.focusa/bin/uiai-engine\" ); chmod 0755 \"$HOME/.focusa/bin/uiai-engine\"; \
+         ( set -C; printf '%s\\n' '[Unit]' 'Description=Focusa-managed UIAI Engine' 'After=network-online.target' '' '[Service]' 'Type=simple' 'ExecStart=%h/.focusa/bin/uiai-engine' 'Restart=on-failure' 'RestartSec=3' 'StandardOutput=append:%h/.local/state/focusa/uiai-engine.log' 'StandardError=append:%h/.local/state/focusa/uiai-engine.log' '' '[Install]' 'WantedBy=default.target' > \"$HOME/.config/systemd/user/focusa-uiai-engine.service\" ); \
          systemctl --user daemon-reload; systemctl --user enable --now \"$HOME/.config/systemd/user/focusa-uiai-engine.service\"; \
          i=0; until curl --max-time 1 --fail --silent '{}/health' >/dev/null; do i=$((i+1)); [ \"$i\" -lt 20 ] || exit 3; sleep 0.25; done",
         uiai_engine_url().trim_end_matches('/')
@@ -6165,10 +6175,76 @@ mod tests {
                 .contains(UIAI_ENGINE_LINUX_AMD64_SHA256)
         );
         assert!(!uiai.install_command.contains("/latest/"));
+        // Brownfield safety: no blind install over an existing UIAI binary,
+        // systemd unit or symlink; no-clobber holds even after initial probes.
+        assert!(uiai.install_command.contains("existing engine/unit/linked directory"));
+        assert!(uiai.install_command.contains("( set -C; cat"));
+        assert!(uiai.install_command.contains("( set -C; printf"));
         assert!(uiai.install_command.contains(
             "systemctl --user enable --now \"$HOME/.config/systemd/user/focusa-uiai-engine.service\""
         ));
         assert!(uiai.dry_run_command.contains("/health"));
+    }
+
+    #[test]
+    fn uiai_runtime_reuse_requires_actual_engine_identity_not_an_http_200() {
+        assert!(verified_uiai_health_body(
+            br#"{"status":"healthy","service":"uiai-engine","browserless":true}"#
+        ));
+        for invalid in [
+            br#"{"status":"healthy","service":"other-server"}"#.as_slice(),
+            br#"{"status":"healthy"}"#.as_slice(),
+            br#"{"status":"degraded","service":"uiai-engine"}"#.as_slice(),
+            b"<html>OK</html>".as_slice(),
+            b"".as_slice(),
+        ] {
+            assert!(!verified_uiai_health_body(invalid));
+        }
+    }
+
+    #[test]
+    fn uiai_dependency_never_clobbers_existing_customer_install_or_service() {
+        if !(cfg!(target_os = "linux") && cfg!(target_arch = "x86_64")) {
+            return;
+        }
+        let root = std::env::temp_dir().join(format!(
+            "focusa-uiai-brownfield-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let bin_dir = root.join(".focusa/bin");
+        let unit_dir = root.join(".config/systemd/user");
+        std::fs::create_dir_all(&bin_dir).unwrap();
+        std::fs::create_dir_all(&unit_dir).unwrap();
+        let binary = bin_dir.join("uiai-engine");
+        let unit = unit_dir.join("focusa-uiai-engine.service");
+        let command = uiai_engine_install_command();
+        // Both forms of pre-existing state must be preserved. The guard is
+        // before curl, so the fixture makes zero network/provider calls.
+        for existing in [&binary, &unit] {
+            std::fs::write(existing, b"existing-customer-state").unwrap();
+            let result = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(&command)
+                .env("HOME", &root)
+                .output()
+                .unwrap();
+            assert_eq!(result.status.code(), Some(4), "brownfield apply was not blocked");
+            assert!(
+                String::from_utf8_lossy(&result.stderr).contains("inspect and repair without overwrite"),
+                "operator needs an actionable refusal"
+            );
+            assert_eq!(
+                std::fs::read(existing).unwrap(),
+                b"existing-customer-state",
+                "existing UIAI state was modified"
+            );
+            std::fs::remove_file(existing).unwrap();
+        }
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]
