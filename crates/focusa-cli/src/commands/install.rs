@@ -1283,6 +1283,17 @@ fn uiai_engine_url() -> String {
     std::env::var("UIAI_ENGINE_URL").unwrap_or_else(|_| "http://127.0.0.1:7456".into())
 }
 
+// UIAI's actual /health contract (WPUIAI/uiai-engine internal/server/server.go)
+// includes BOTH status=healthy and service=uiai-engine. HTTP 200 alone could
+// be a different process, a proxy fallback or an unrelated private endpoint.
+fn verified_uiai_health_body(body: &[u8]) -> bool {
+    let Ok(payload) = serde_json::from_slice::<serde_json::Value>(body) else {
+        return false;
+    };
+    payload.get("status").and_then(|v| v.as_str()) == Some("healthy")
+        && payload.get("service").and_then(|v| v.as_str()) == Some("uiai-engine")
+}
+
 fn uiai_engine_healthy() -> bool {
     let health_url = format!("{}/health", uiai_engine_url().trim_end_matches('/'));
     let auth_header = std::env::var("UIAI_BEARER_TOKEN")
@@ -1292,15 +1303,14 @@ fn uiai_engine_healthy() -> bool {
         .map(|token| format!("Authorization: Bearer {token}"));
     let mut command = std::process::Command::new("curl");
     command.args(["--max-time", "2", "--fail", "--silent"]);
-    command.stdout(std::process::Stdio::null());
     command.stderr(std::process::Stdio::null());
     if let Some(header) = auth_header.as_deref() {
         command.args(["--header", header]);
     }
-    command
-        .arg(health_url)
-        .status()
-        .is_ok_and(|status| status.success())
+    match command.arg(health_url).output() {
+        Ok(result) => result.status.success() && verified_uiai_health_body(&result.stdout),
+        Err(_) => false,
+    }
 }
 
 fn uiai_engine_install_command() -> String {
@@ -6174,6 +6184,22 @@ mod tests {
             "systemctl --user enable --now \"$HOME/.config/systemd/user/focusa-uiai-engine.service\""
         ));
         assert!(uiai.dry_run_command.contains("/health"));
+    }
+
+    #[test]
+    fn uiai_runtime_reuse_requires_actual_engine_identity_not_an_http_200() {
+        assert!(verified_uiai_health_body(
+            br#"{"status":"healthy","service":"uiai-engine","browserless":true}"#
+        ));
+        for invalid in [
+            br#"{"status":"healthy","service":"other-server"}"#.as_slice(),
+            br#"{"status":"healthy"}"#.as_slice(),
+            br#"{"status":"degraded","service":"uiai-engine"}"#.as_slice(),
+            b"<html>OK</html>".as_slice(),
+            b"".as_slice(),
+        ] {
+            assert!(!verified_uiai_health_body(invalid));
+        }
     }
 
     #[test]
