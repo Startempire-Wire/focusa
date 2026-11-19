@@ -24,7 +24,11 @@
 .PARAMETER Uninstall
   Delegate preserve-by-default uninstall.
 .PARAMETER PurgeData
-  Separately confirm purge; valid only with -Uninstall.
+  Request deletion of Focusa-owned data; valid only with -Uninstall.
+.PARAMETER Confirm
+  Explicitly authorize an actual uninstall. Not necessary for -DryRun.
+.PARAMETER ConfirmPurgeData
+  Separately authorize destructive Focusa-owned data removal.
 #>
 param(
   [switch]$DryRun,
@@ -42,7 +46,9 @@ param(
   [switch]$AssumeYes,
   [switch]$NoService,
   [switch]$Uninstall,
-  [switch]$PurgeData
+  [switch]$PurgeData,
+  [switch]$Confirm,
+  [switch]$ConfirmPurgeData
 )
 
 $ErrorActionPreference = "Stop"
@@ -66,12 +72,24 @@ if ($args.Count -gt 0) {
 }
 
 if ($PurgeData -and -not $Uninstall) { Die "-PurgeData requires -Uninstall" }
+if ($Confirm -and -not $Uninstall) { Die "-Confirm requires -Uninstall" }
+if ($ConfirmPurgeData -and -not $PurgeData) { Die "-ConfirmPurgeData requires -PurgeData" }
 if ($Uninstall) {
+  if (-not $DryRun) {
+    if (-not $Confirm) { Die "-Uninstall requires -Confirm; preview safely with -Uninstall -DryRun" }
+    if ($PurgeData -and -not $ConfirmPurgeData) { Die "-PurgeData requires separate -ConfirmPurgeData" }
+  }
   $Focusa = Get-Command focusa -ErrorAction SilentlyContinue
   if (-not $Focusa) { Die "focusa is not installed; recovery: reinstall or invoke the preserved binary" }
   $UninstallArgs = @("uninstall")
-  if ($PurgeData) { $UninstallArgs += @("--purge-data", "--confirm-purge") }
-  else { $UninstallArgs += "--keep-data" }
+  if ($DryRun) { $UninstallArgs += "--dry-run" }
+  else { $UninstallArgs += "--yes" }
+  # Native Rust and public shell bootstrappers share the same exact safety gate.
+  $UninstallArgs += "--keep-license"
+  if ($PurgeData) {
+    if (-not $DryRun) { $UninstallArgs += "--confirm-purge-data" }
+  } else { $UninstallArgs += "--keep-data" }
+  # Never forward Rust --purge (which can remove unrelated Pi agent skills).
   & $Focusa @UninstallArgs
   exit $LASTEXITCODE
 }

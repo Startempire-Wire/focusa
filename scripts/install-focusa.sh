@@ -23,6 +23,8 @@ NO_SERVICE=0
 SYSTEM_INSTALL=0
 UNINSTALL=0
 PURGE_DATA=0
+CONFIRM_UNINSTALL=0
+CONFIRM_PURGE=0
 
 usage() {
   cat <<'USAGE'
@@ -44,8 +46,10 @@ Usage: install-focusa.sh [options]
   --assume-yes             approve dependency installation
   --no-service             skip service registration
   --system-install         atomically promote a verified Linux install to /usr/local/bin
-  --uninstall              delegate preserve-by-default uninstall
-  --purge-data             purge only with --uninstall and separate confirmation
+  --uninstall              preview or explicitly confirm preserved-data uninstall
+  --confirm                authorize an actual --uninstall operation (required)
+  --purge-data             request deletion of Focusa-owned data, never Pi/third-party skills
+  --confirm-purge-data     separately authorize the destructive --purge-data operation
   -h, --help               show this help
 
 Raw license keys and email addresses are intentionally not accepted. The Rust
@@ -92,6 +96,8 @@ for arg in "$@"; do
     --system-install) SYSTEM_INSTALL=1 ;;
     --uninstall) UNINSTALL=1 ;;
     --purge-data) PURGE_DATA=1 ;;
+    --confirm) CONFIRM_UNINSTALL=1 ;;
+    --confirm-purge-data) CONFIRM_PURGE=1 ;;
     --license-key=*|--email=*|--registry=*)
       die "E_AUTHORITY_RAW_KEY_FORBIDDEN: raw credentials and legacy registry overrides are forbidden; use signed authority device authorization"
       ;;
@@ -105,8 +111,14 @@ case "$CHANNEL" in
   *) die "unsupported channel: $CHANNEL" ;;
 esac
 [ "$PURGE_DATA" = 0 ] || [ "$UNINSTALL" = 1 ] || usage_die "--purge-data requires --uninstall"
+[ "$CONFIRM_UNINSTALL" = 0 ] || [ "$UNINSTALL" = 1 ] || usage_die "--confirm requires --uninstall"
+[ "$CONFIRM_PURGE" = 0 ] || [ "$PURGE_DATA" = 1 ] || usage_die "--confirm-purge-data requires --purge-data"
 
 if [ "$UNINSTALL" = 1 ]; then
+  if [ "$DRY_RUN" = 0 ]; then
+    [ "$CONFIRM_UNINSTALL" = 1 ] || usage_die "--uninstall requires --confirm; preview safely with --uninstall --dry-run"
+    [ "$PURGE_DATA" = 0 ] || [ "$CONFIRM_PURGE" = 1 ] || usage_die "--purge-data requires separate --confirm-purge-data"
+  fi
   # Prefer the canonical install location so delegated uninstall runs the
   # preserved binary (Spec 132 public uninstall preservation test).
   focusa_bin="$HOME/.focusa/bin/focusa"
@@ -114,11 +126,25 @@ if [ "$UNINSTALL" = 1 ]; then
     have focusa || die "focusa is not installed; recovery: reinstall or invoke the preserved binary directly"
     focusa_bin="$(command -v focusa)"
   fi
-  uninstall_args=(uninstall --yes)
-  if [ "$PURGE_DATA" = 0 ]; then
-    # Preserve by default: --keep-data is the safe posture (Spec 132).
-    uninstall_args+=(--keep-data)
+  uninstall_args=(uninstall)
+  if [ "$DRY_RUN" = 1 ]; then
+    # Rust owns the plan; never reach its mutation path from a dry-run.
+    uninstall_args+=(--dry-run)
+  else
+    # --confirm was explicitly supplied for this operation, never implied.
+    uninstall_args+=(--yes)
   fi
+  # Independently paid licenses are always preserved by this wrapper.
+  uninstall_args+=(--keep-license)
+  if [ "$PURGE_DATA" = 0 ]; then
+    # Default uninstall removes only managed software and preserves user state.
+    uninstall_args+=(--keep-data)
+  elif [ "$DRY_RUN" = 0 ]; then
+    # The Rust direct CLI independently enforces this second confirmation.
+    uninstall_args+=(--confirm-purge-data)
+  fi
+  # Purge-data intentionally does NOT forward Rust's broader --purge flag:
+  # unrelated Pi agent skills and customer extensions remain outside scope.
   exec "$focusa_bin" "${uninstall_args[@]}"
 fi
 

@@ -54,7 +54,11 @@ pub struct UninstallArgs {
     #[arg(long)]
     pub purge: bool,
 
-    /// Skip the "are you sure" prompt in interactive mode.
+    /// Explicitly confirm customer-data deletion, beyond ordinary software removal.
+    #[arg(long)]
+    pub confirm_purge_data: bool,
+
+    /// Confirm the requested non-dry-run uninstall operation.
     #[arg(long)]
     pub yes: bool,
 
@@ -116,6 +120,20 @@ pub enum UninstallStepStatus {
 }
 
 pub async fn run(args: UninstallArgs) -> Result<()> {
+    // No direct CLI invocation may bypass the public wrapper's safety model.
+    // --dry-run is always non-mutating. Actual software removal requires --yes;
+    // removing user data, license material or shared Pi assets needs a second
+    // explicit, independently named confirmation.
+    if !args.dry_run {
+        if !args.yes {
+            return Err(anyhow!("focusa uninstall requires --yes; preview safely with --dry-run"));
+        }
+        if (!args.keep_data || args.purge) && !args.confirm_purge_data {
+            return Err(anyhow!(
+                "destructive uninstall requires --confirm-purge-data; use --keep-data to preserve customer state"
+            ));
+        }
+    }
     let target = crate::commands::install::resolve_target(args.target)
         .map_err(|e| anyhow!("target resolve failed: {e}"))?;
 
@@ -905,6 +923,36 @@ fn print_result_human(report: &UninstallReport) {
 mod tests {
     use super::*;
 
+    #[tokio::test]
+    async fn real_uninstall_requires_confirmation_and_separate_data_purge_consent() {
+        let base = UninstallArgs {
+            target: crate::commands::install::InstallTarget::Auto,
+            dry_run: false,
+            keep_license: true,
+            keep_data: false,
+            keep_path_modifications: true,
+            purge: false,
+            confirm_purge_data: false,
+            yes: true,
+            json: true,
+        };
+        let err = run(base).await.unwrap_err().to_string();
+        assert!(err.contains("--confirm-purge-data"));
+        let without_yes = UninstallArgs {
+            target: crate::commands::install::InstallTarget::Auto,
+            dry_run: false,
+            keep_license: true,
+            keep_data: true,
+            keep_path_modifications: true,
+            purge: false,
+            confirm_purge_data: false,
+            yes: false,
+            json: true,
+        };
+        let err = run(without_yes).await.unwrap_err().to_string();
+        assert!(err.contains("--yes"));
+    }
+
     #[test]
     fn plan_includes_all_default_steps() {
         let target = crate::commands::install::InstallTarget::Auto;
@@ -915,6 +963,7 @@ mod tests {
             keep_data: false,
             keep_path_modifications: false,
             purge: false,
+            confirm_purge_data: false,
             yes: false,
             json: false,
         };
@@ -957,6 +1006,7 @@ mod tests {
             keep_data: false,
             keep_path_modifications: false,
             purge: false,
+            confirm_purge_data: false,
             yes: false,
             json: false,
         };
@@ -981,6 +1031,7 @@ mod tests {
             keep_data: false,
             keep_path_modifications: false,
             purge: false,
+            confirm_purge_data: false,
             yes: false,
             json: false,
         };
@@ -1005,6 +1056,7 @@ mod tests {
             keep_data: true,
             keep_path_modifications: false,
             purge: false,
+            confirm_purge_data: false,
             yes: false,
             json: false,
         };
@@ -1048,6 +1100,7 @@ mod tests {
             keep_data: true,
             keep_path_modifications: true,
             purge: false,
+            confirm_purge_data: false,
             yes: true,
             json: true,
         };
@@ -1083,6 +1136,7 @@ mod tests {
             keep_data: false,
             keep_path_modifications: true,
             purge: false,
+            confirm_purge_data: false,
             yes: false,
             json: false,
         };
@@ -1111,6 +1165,7 @@ mod tests {
             keep_data: false,
             keep_path_modifications: false,
             purge: true,
+            confirm_purge_data: false,
             yes: false,
             json: false,
         };

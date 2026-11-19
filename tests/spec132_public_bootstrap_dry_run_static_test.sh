@@ -33,9 +33,13 @@ delegate_tail = text[delegate_index:]
 assert 'if "$BOOTSTRAP_BIN" "${ARGS[@]}"; then' in delegate_tail, "delegation does not run the Rust installer"
 assert delegate_tail.count('if "$BOOTSTRAP_BIN" "${ARGS[@]}"; then') == 1, "delegation must execute exactly once"
 
-# Uninstall delegation preserves data by default (Spec 132).
-assert 'uninstall --yes' in text
-assert '--keep-data' in text
+# Uninstall dry-run must be delegated BEFORE any confirmed destructive operation.
+# Independent lifetime license material remains preserved on both paths.
+assert 'uninstall_args=(uninstall)' in text
+assert 'uninstall_args+=(--dry-run)' in text
+assert 'uninstall_args+=(--keep-license)' in text
+assert 'uninstall_args+=(--keep-data)' in text
+assert '--confirm-purge-data' in text
 
 print("Spec132 public bootstrap dry-run mutation fence: PASS")
 PY
