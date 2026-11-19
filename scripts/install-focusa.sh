@@ -139,6 +139,9 @@ if [ "$UNINSTALL" = 1 ]; then
   if [ "$PURGE_DATA" = 0 ]; then
     # Default uninstall removes only managed software and preserves user state.
     uninstall_args+=(--keep-data)
+  elif [ "$DRY_RUN" = 0 ]; then
+    # The Rust direct CLI independently enforces this second confirmation.
+    uninstall_args+=(--confirm-purge-data)
   fi
   # Purge-data intentionally does NOT forward Rust's broader --purge flag:
   # unrelated Pi agent skills and customer extensions remain outside scope.
