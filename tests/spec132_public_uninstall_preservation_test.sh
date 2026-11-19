@@ -6,27 +6,55 @@ WORK="$(mktemp -d /tmp/focusa-public-uninstall.XXXXXX)"
 trap 'rm -rf "$WORK"' EXIT
 
 mkdir -p "$WORK/home/.focusa/bin" "$WORK/home/.pi/agent/extensions/focusa"
+printf '%s\n' 'PRESERVE_PI_SKILLS' > "$WORK/home/.pi/agent/extensions/focusa/operator.txt"
 cat > "$WORK/home/.focusa/bin/focusa" <<'FAKE'
 #!/usr/bin/env bash
 printf '%s\n' "$*" > "$FOCUSA_TEST_ARGS"
 FAKE
 chmod +x "$WORK/home/.focusa/bin/focusa"
 
-FOCUSA_TEST_ARGS="$WORK/preserve.args" HOME="$WORK/home" bash "$INSTALLER" --uninstall >/dev/null
-[[ "$(cat "$WORK/preserve.args")" == "uninstall --yes --keep-data" ]] \
-  || { echo "FAIL: public uninstall did not preserve data by default" >&2; exit 1; }
+expect_refusal() {
+  local name="$1" match="$2"
+  shift 2
+  local output="$WORK/$name.log" marker="$WORK/$name.args"
+  set +e
+  FOCUSA_TEST_ARGS="$marker" HOME="$WORK/home" bash "$INSTALLER" "$@" >"$output" 2>&1
+  local status=$?
+  set -e
+  [[ "$status" -eq 64 ]] || { echo "FAIL: $name returned $status, wanted 64" >&2; exit 1; }
+  grep -qF -- "$match" "$output" || { echo "FAIL: $name lacked denial" >&2; exit 1; }
+  [[ ! -e "$marker" ]] || { echo "FAIL: $name reached an uninstall executable" >&2; exit 1; }
+}
 
-mkdir -p "$WORK/home/.pi/agent/extensions/focusa"
-FOCUSA_TEST_ARGS="$WORK/purge.args" HOME="$WORK/home" bash "$INSTALLER" --uninstall --purge-data >/dev/null
-[[ "$(cat "$WORK/purge.args")" == "uninstall --yes" ]] \
-  || { echo "FAIL: explicit purge did not select destructive CLI posture" >&2; exit 1; }
+run_delegated() {
+  local name="$1" expected="$2"
+  shift 2
+  local marker="$WORK/$name.args"
+  FOCUSA_TEST_ARGS="$marker" HOME="$WORK/home" bash "$INSTALLER" "$@" >/dev/null
+  [[ -f "$marker" && "$(cat "$marker")" == "$expected" ]] || {
+    echo "FAIL: $name delegated unsafe or unexpected Rust flags" >&2; exit 1;
+  }
+  grep -qF PRESERVE_PI_SKILLS "$WORK/home/.pi/agent/extensions/focusa/operator.txt" ||
+    { echo "FAIL: existing Pi customer data was modified" >&2; exit 1; }
+}
 
-set +e
-HOME="$WORK/home" bash "$INSTALLER" --purge-data >"$WORK/invalid.out" 2>&1
-status=$?
-set -e
-[[ $status -eq 64 ]] || { echo "FAIL: --purge-data without --uninstall exited $status, expected 64" >&2; exit 1; }
-grep -qF -- '--purge-data requires --uninstall' "$WORK/invalid.out" \
-  || { echo "FAIL: invalid purge posture lacked actionable error" >&2; exit 1; }
+# The old wrapper passed --yes before checking --dry-run, deleting customer
+# state despite a dry-run request. Preview must reach Rust's dry-run only.
+run_delegated preview 'uninstall --dry-run --keep-license --keep-data' --uninstall --dry-run
+run_delegated purge_preview 'uninstall --dry-run --keep-license' --uninstall --purge-data --dry-run
 
-echo "PASS: public uninstall preserves data by default and purge requires explicit intent"
+# No unconfirmed operation may reach the canonical product-owned Rust command.
+expect_refusal unconfirmed '--uninstall requires --confirm' --uninstall
+expect_refusal unconfirmed_purge '--uninstall requires --confirm' --uninstall --purge-data
+expect_refusal one_confirmation '--purge-data requires separate --confirm-purge-data' --uninstall --purge-data --confirm
+expect_refusal implicit_yes '--uninstall requires --confirm' --uninstall --assume-yes
+expect_refusal orphan_purge '--purge-data requires --uninstall' --purge-data
+expect_refusal orphan_confirm '--confirm requires --uninstall' --confirm
+expect_refusal orphan_purge_confirm '--confirm-purge-data requires --purge-data' --uninstall --confirm-purge-data
+
+# Explicitly authorized normal removal still preserves independent license and
+# data. Explicit purge removes Focusa-owned data only, never Pi agent skills.
+run_delegated preserve 'uninstall --yes --keep-license --keep-data' --uninstall --confirm
+run_delegated purge 'uninstall --yes --keep-license' --uninstall --purge-data --confirm --confirm-purge-data
+
+echo "PASS: public Focusa uninstall dry-run is nonmutating, confirmations and licenses preserved"
