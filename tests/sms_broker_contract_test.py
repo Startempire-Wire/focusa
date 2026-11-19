@@ -79,17 +79,28 @@ with tempfile.TemporaryDirectory(prefix="focusa-sms-broker-test-") as raw:
         module["audit"]("checkpoint", "ok", consumer_ref="consumer-2", grant_id="grant-2")
         visible = module["audit_events"]("consumer-1", False, 100)
         assert visible and all(item["consumer_ref"] == "consumer-1" for item in visible)
-        module["idempotent_send"].__globals__["send_message"] = lambda _recipient, _body: "send-test-receipt"
-        sent, replayed = module["idempotent_send"]("grant-1", "consumer-1", "idem-1", "thread-1", "bounded body")
-        assert sent == "send-test-receipt" and replayed is False
-        sent, replayed = module["idempotent_send"]("grant-1", "consumer-1", "idem-1", "thread-1", "bounded body")
-        assert sent == "send-test-receipt" and replayed is True
+        send_grant = {
+            **scoped_grant, "grant_id": "grant-send",
+            "scope": {"connector_id": "communications-1", "thread_handles": ["thread-allowed"], "recipient_handles": ["thread-allowed"]},
+        }
+        files["grants"].write_text(json.dumps({"grants": [grant, scoped_grant, send_grant]}))
+        broker_globals = module["idempotent_send"].__globals__
+        broker_globals["list_threads"] = lambda _limit: [{"thread_handle": "thread-allowed"}]
+        broker_globals["THREADS"]["thread-allowed"] = "/web/u/0/conversations/stable"
+        broker_globals["send_message"] = lambda _recipient, _body: "synthetic-browser-click"
+        sent, replayed, status = module["idempotent_send"]("grant-send", "consumer-1", "idem-1", "thread-allowed", "bounded body")
+        assert sent.startswith("send-") and replayed is False and status == "submission_unverified"
+        sent_again, replayed, status = module["idempotent_send"]("grant-send", "consumer-1", "idem-1", "thread-allowed", "bounded body")
+        assert sent_again == sent and replayed is True and status == "submission_unverified"
         try:
-            module["idempotent_send"]("grant-1", "consumer-1", "idem-1", "thread-1", "different body")
+            module["idempotent_send"]("grant-send", "consumer-1", "idem-1", "thread-allowed", "different body")
         except PermissionError:
             pass
         else:
             raise AssertionError("idempotency key accepted a different payload")
+        journal = json.loads((state / "send-idempotency.json").read_text())
+        assert "bounded body" not in json.dumps(journal)
+        assert next(iter(journal["entries"].values()))["status"] == "submission_unverified"
     finally:
         for name, value in previous.items():
             if value is None: os.environ.pop(name, None)
