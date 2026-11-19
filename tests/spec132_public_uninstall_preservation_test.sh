@@ -55,6 +55,6 @@ expect_refusal orphan_purge_confirm '--confirm-purge-data requires --purge-data'
 # Explicitly authorized normal removal still preserves independent license and
 # data. Explicit purge removes Focusa-owned data only, never Pi agent skills.
 run_delegated preserve 'uninstall --yes --keep-license --keep-data' --uninstall --confirm
-run_delegated purge 'uninstall --yes --keep-license' --uninstall --purge-data --confirm --confirm-purge-data
+run_delegated purge 'uninstall --yes --keep-license --confirm-purge-data' --uninstall --purge-data --confirm --confirm-purge-data
 
 echo "PASS: public Focusa uninstall dry-run is nonmutating, confirmations and licenses preserved"
