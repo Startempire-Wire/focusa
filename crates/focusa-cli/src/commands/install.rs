@@ -6177,6 +6177,51 @@ mod tests {
     }
 
     #[test]
+    fn uiai_dependency_never_clobbers_existing_customer_install_or_service() {
+        if !(cfg!(target_os = "linux") && cfg!(target_arch = "x86_64")) {
+            return;
+        }
+        let root = std::env::temp_dir().join(format!(
+            "focusa-uiai-brownfield-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let bin_dir = root.join(".focusa/bin");
+        let unit_dir = root.join(".config/systemd/user");
+        std::fs::create_dir_all(&bin_dir).unwrap();
+        std::fs::create_dir_all(&unit_dir).unwrap();
+        let binary = bin_dir.join("uiai-engine");
+        let unit = unit_dir.join("focusa-uiai-engine.service");
+        let command = uiai_engine_install_command();
+        // Both forms of pre-existing state must be preserved. The guard is
+        // before curl, so the fixture makes zero network/provider calls.
+        for existing in [&binary, &unit] {
+            std::fs::write(existing, b"existing-customer-state").unwrap();
+            let result = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(&command)
+                .env("HOME", &root)
+                .output()
+                .unwrap();
+            assert_eq!(result.status.code(), Some(4), "brownfield apply was not blocked");
+            assert!(
+                String::from_utf8_lossy(&result.stderr).contains("inspect and repair without overwrite"),
+                "operator needs an actionable refusal"
+            );
+            assert_eq!(
+                std::fs::read(existing).unwrap(),
+                b"existing-customer-state",
+                "existing UIAI state was modified"
+            );
+            std::fs::remove_file(existing).unwrap();
+        }
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
     fn dependency_execution_reports_success_and_failure_without_hiding_commands() {
         let mut dependencies = detect_dependencies(Some("dnf"));
         dependencies[0].present = false;
