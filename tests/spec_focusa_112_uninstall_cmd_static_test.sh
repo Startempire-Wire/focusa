@@ -30,7 +30,7 @@ grep -q 'Commands::Uninstall(args) => commands::uninstall::run(args).await' "$MA
 pass "main.rs registers Uninstall and dispatches commands::uninstall::run"
 
 # UninstallArgs flag surface
-for flag in "target:" "dry_run:" "keep_license:" "keep_data:" "keep_path_modifications:" "purge:" "yes:" "json:"; do
+for flag in "target:" "dry_run:" "keep_license:" "keep_data:" "keep_path_modifications:" "purge:" "confirm_purge_data:" "yes:" "json:"; do
   grep -q "pub $flag" "$MOD" \
     || fail "UninstallArgs missing field: $flag"
 done
