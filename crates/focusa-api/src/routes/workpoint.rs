@@ -2701,12 +2701,39 @@ async fn checkpoint(
     let promote = req.promote.unwrap_or(true);
     let requested_canonical = req.canonical.unwrap_or(true);
     if requested_canonical {
-        if let Some(reason) = unsafe_project_root_reason(req.project_root.as_deref()) {
-            return Err(unsafe_checkpoint_rejection(
-                reason,
-                "project_root",
-                req.project_root.as_deref(),
-            ));
+        // #89 slice 7: a verified/stale RemoteWorkspaceBinding owning this
+        // remote project root satisfies the bootstrap precondition. The
+        // controller daemon manages the workstream without a local checkout.
+        // Subpath-aware: an exact working-subpath match outranks root-only.
+        let binding_satisfied = match req.project_root.as_deref() {
+            Some(root) => {
+                let subpath = req.working_subpath_id.as_deref().or_else(|| {
+                    req.session_identity
+                        .as_ref()
+                        .and_then(|identity| identity.working_subpath_id.as_deref())
+                });
+                let db = crate::routes::events_sqlite::focusa_db_path(&state.config.data_dir);
+                rusqlite::Connection::open(&db)
+                    .ok()
+                    .and_then(|conn| {
+                        focusa_core::remote_workspace::resolve_binding_for_root_with_subpath(
+                            &conn, root, subpath, None,
+                        )
+                        .ok()
+                    })
+                    .flatten()
+                    .is_some()
+            }
+            None => false,
+        };
+        if !binding_satisfied {
+            if let Some(reason) = unsafe_project_root_reason(req.project_root.as_deref()) {
+                return Err(unsafe_checkpoint_rejection(
+                    reason,
+                    "project_root",
+                    req.project_root.as_deref(),
+                ));
+            }
         }
         if clean_resume_scope_value(req.continuity_id.as_deref()).is_none() {
             return Err(unsafe_checkpoint_rejection(

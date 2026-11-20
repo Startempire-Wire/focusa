@@ -276,6 +276,19 @@ pub fn resolve_binding_for_root(
     conn: &Connection,
     canonical_root: &str,
 ) -> Result<Option<RemoteWorkspaceBinding>> {
+    resolve_binding_for_root_with_subpath(conn, canonical_root, None, None)
+}
+
+/// Subpath-aware resolver (#89 slice 7): prefer an exact worktree match,
+/// then an exact working-subpath match, then a root-only binding.
+/// Verified bindings outrank stale ones; newest first. Revoked bindings
+/// are never returned.
+pub fn resolve_binding_for_root_with_subpath(
+    conn: &Connection,
+    canonical_root: &str,
+    working_subpath: Option<&str>,
+    worktree_identity: Option<&str>,
+) -> Result<Option<RemoteWorkspaceBinding>> {
     ensure_schema(conn)?;
     let mut statement = conn.prepare(
         "SELECT binding_id, project_id, repo_remote, continuity_id, status, binding_json, created_at, updated_at
@@ -297,9 +310,40 @@ pub fn resolve_binding_for_root(
             ))
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
-    Ok(rows
+    let mut candidates: Vec<RemoteWorkspaceBinding> = rows
         .into_iter()
-        .find(|binding| binding.roots.canonical_remote_root == canonical_root))
+        .filter(|binding| binding.roots.canonical_remote_root == canonical_root)
+        .collect();
+    if candidates.is_empty() {
+        return Ok(None);
+    }
+    let subpath = working_subpath.map(str::trim).filter(|v| !v.is_empty());
+    let worktree = worktree_identity.map(str::trim).filter(|v| !v.is_empty());
+    // Verified before stale, newest first is already the query order; keep it
+    // stable while ranking by specificity.
+    candidates.sort_by(|a, b| {
+        let rank = |binding: &RemoteWorkspaceBinding| {
+            let worktree_score = match (worktree, binding.roots.worktree_identity.as_deref()) {
+                (Some(wanted), Some(have)) if wanted == have => 2,
+                (Some(_), _) => 0,
+                (None, Some(_)) => 0,
+                (None, None) => 1,
+            };
+            let subpath_score = match (subpath, binding.roots.working_subpath.as_deref()) {
+                (Some(wanted), Some(have)) if wanted == have => 2,
+                (Some(_), _) => 0,
+                (None, Some(_)) => 0,
+                (None, None) => 1,
+            };
+            let status_score = match binding.state.status {
+                BindingStatus::Verified => 1,
+                _ => 0,
+            };
+            (worktree_score, subpath_score, status_score)
+        };
+        rank(b).cmp(&rank(a))
+    });
+    Ok(candidates.into_iter().next())
 }
 
 /// Transport probe outcome (docs/162 transport verification).
@@ -532,6 +576,47 @@ mod tests {
         };
         let outcome = probe_transport(&transport);
         assert!(outcome.reachable);
+    }
+
+    #[test]
+    fn resolves_binding_prefers_exact_subpath_and_worktree() {
+        let conn = conn();
+        let mut root_only = binding("b-root", "ptm", "remote-a");
+        root_only.roots.canonical_remote_root = "/repo".into();
+        upsert_binding(&conn, &root_only).unwrap();
+        let mut sub = binding("b-sub", "ptm", "remote-a");
+        sub.roots.canonical_remote_root = "/repo".into();
+        sub.roots.working_subpath = Some("worktrees/a".into());
+        upsert_binding(&conn, &sub).unwrap();
+        let mut tree = binding("b-tree", "ptm", "remote-a");
+        tree.roots.canonical_remote_root = "/repo".into();
+        tree.roots.working_subpath = Some("worktrees/a".into());
+        tree.roots.worktree_identity = Some("wt-a".into());
+        upsert_binding(&conn, &tree).unwrap();
+        // No subpath requested: root-only wins over more specific bindings.
+        let root = resolve_binding_for_root_with_subpath(&conn, "/repo", None, None)
+            .unwrap()
+            .unwrap();
+        assert_eq!(root.binding_id, "b-root");
+        // Exact subpath wins.
+        let sub_hit =
+            resolve_binding_for_root_with_subpath(&conn, "/repo", Some("worktrees/a"), None)
+                .unwrap()
+                .unwrap();
+        assert_eq!(sub_hit.binding_id, "b-sub");
+        // Exact worktree wins.
+        let tree_hit = resolve_binding_for_root_with_subpath(
+            &conn,
+            "/repo",
+            Some("worktrees/a"),
+            Some("wt-a"),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(tree_hit.binding_id, "b-tree");
+        // Legacy entry point stays root-compatible.
+        let legacy = resolve_binding_for_root(&conn, "/repo").unwrap().unwrap();
+        assert_eq!(legacy.roots.canonical_remote_root, "/repo");
     }
 
     #[test]

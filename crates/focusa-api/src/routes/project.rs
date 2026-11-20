@@ -3149,10 +3149,44 @@ fn project_identity_inspection(query: ProjectIdentityQuery) -> Json<Value> {
 
 async fn verify(
     _scope: ScopeContext,
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(body): Json<ProjectVerifyRequest>,
 ) -> Json<Value> {
-    project_inspection_response(move || verify_project_inspection(body)).await
+    let data_dir = state.config.data_dir.clone();
+    let project_root = body.project_root.clone();
+    let mut response = project_inspection_response(move || verify_project_inspection(body)).await;
+    // #89 slice 7: surface the controller-owned binding for this root when
+    // present. Read-only; never creates markers or claims repair authority.
+    if let Some(root) = project_root.as_deref() {
+        let root = root.to_string();
+        if let Some(binding) = tokio::task::spawn_blocking(move || {
+            let path = crate::routes::events_sqlite::focusa_db_path(&data_dir);
+            let conn = rusqlite::Connection::open(path).ok()?;
+            // Root-level lookup preserves backward compatibility; subpath
+            // and worktree callers use the subpath-aware resolver directly.
+            focusa_core::remote_workspace::resolve_binding_for_root(&conn, &root).ok()?
+        })
+        .await
+        .unwrap_or(None)
+        {
+            if let Some(object) = response.as_object_mut() {
+                object.insert(
+                    "controller_binding".to_string(),
+                    serde_json::json!({
+                        "binding_id": binding.binding_id,
+                        "status": binding.state.status,
+                        "continuity_id": binding.session.continuity_id,
+                        "project_id": binding.project.project_id,
+                        "repo_remote": binding.project.repo_remote,
+                        "canonical_remote_root": binding.roots.canonical_remote_root,
+                        "working_subpath": binding.roots.working_subpath,
+                        "worktree_identity": binding.roots.worktree_identity,
+                    }),
+                );
+            }
+        }
+    }
+    response
 }
 
 fn verify_project_inspection(body: ProjectVerifyRequest) -> Json<Value> {
