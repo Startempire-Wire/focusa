@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:focusa:gdl:decision-candidate:v1",
   "title": "GDL-002 DecisionCandidate v1 — proposal only",
-  "description": "Draft contract. No field in this object, including agent confidence, carries independent decision activation authority. Only Focusa's existing operator-rooted promotion path can do so.",
+  "description": "Draft GDL-002 decision-specific candidate payload for Focusa semantic_candidate.v2 integration, not a competing root candidate store. A proposed decision is never active without Focusa policy-verified operator approval.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -81,7 +81,8 @@
     },
     "tenant_ref": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Authorized external tenant/security partition identifier, not a native Focusa ScopeRef kind or permission grant."
     },
     "scope": {
       "type": "object",
@@ -143,7 +144,8 @@
             "type": "string"
           }
         }
-      }
+      },
+      "description": "HUMAN-FACING applicability labels, not an authoritative Focusa ScopeRef. Canonical ownership is independently resolved through focusa_mapping; tenant/ecosystem labels cannot create ScopeKind."
     },
     "source_evidence": {
       "type": "array",
@@ -490,6 +492,204 @@
     "updated_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "focusa_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Adapter binding to Focusa's shared Decision semantic primitive. Can remain unresolved during extraction; must be verified before ready_for_approval.",
+      "required": [
+        "schema",
+        "semantic_candidate_schema",
+        "owner_plane",
+        "mapping_status"
+      ],
+      "properties": {
+        "schema": {
+          "const": "focusa.gdl.semantic_mapping.v1"
+        },
+        "semantic_candidate_schema": {
+          "const": "focusa.semantic_candidate.v2"
+        },
+        "registered_decision_type_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Actual verified Spec135F shared Decision definition ID; never invent an ID."
+        },
+        "semantic_candidate_ref": {
+          "type": "string"
+        },
+        "semantic_id": {
+          "type": "string"
+        },
+        "owner_plane": {
+          "type": "string",
+          "enum": [
+            "workstream",
+            "project_shared",
+            "external_constitution_reference",
+            "unresolved_historical"
+          ]
+        },
+        "mapping_status": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "unresolved",
+            "ambiguous",
+            "legacy_compatibility"
+          ]
+        },
+        "scope_kind": {
+          "type": "string",
+          "enum": [
+            "project",
+            "host"
+          ],
+          "description": "Only native Focusa ScopeRef kinds; omit if external constitution or unresolved."
+        },
+        "canonical_scope_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workstream_root_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable WorkstreamRoot identity; NEVER substitute continuity_id."
+        },
+        "continuity_id": {
+          "type": "string"
+        },
+        "attachment_ref": {
+          "type": "string"
+        },
+        "project_shared_policy_ref": {
+          "type": "string"
+        },
+        "external_authority_ref": {
+          "type": "string",
+          "description": "Reference to verified existing operator-rooted constitutional authority, not a new ScopeRef kind."
+        },
+        "verification_policy_ref": {
+          "type": "string"
+        },
+        "promotion_policy_ref": {
+          "type": "string"
+        },
+        "mapping_evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "v1_compatibility_ref": {
+          "type": "string"
+        }
+      }
+    },
+    "context_review_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional ContextDecisionRecord claim-review/contradiction-resolution refs as evidence ONLY. These are not GDL operator approval."
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ready_for_approval"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "focusa_mapping"
+        ],
+        "properties": {
+          "focusa_mapping": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "owner_plane": {
+                      "const": "workstream"
+                    }
+                  },
+                  "required": [
+                    "owner_plane"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "scope_kind",
+                    "canonical_scope_ref",
+                    "workstream_root_id"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "owner_plane": {
+                      "const": "project_shared"
+                    }
+                  },
+                  "required": [
+                    "owner_plane"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "scope_kind",
+                    "canonical_scope_ref",
+                    "project_shared_policy_ref"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "owner_plane": {
+                      "const": "external_constitution_reference"
+                    }
+                  },
+                  "required": [
+                    "owner_plane"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "external_authority_ref"
+                  ]
+                }
+              }
+            ],
+            "required": [
+              "registered_decision_type_id",
+              "mapping_status",
+              "verification_policy_ref",
+              "promotion_policy_ref"
+            ],
+            "properties": {
+              "mapping_status": {
+                "const": "verified"
+              },
+              "owner_plane": {
+                "enum": [
+                  "workstream",
+                  "project_shared",
+                  "external_constitution_reference"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
