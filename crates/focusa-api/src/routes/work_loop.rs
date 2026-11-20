@@ -710,16 +710,94 @@ fn temporal_context_for_scope(scope: &WorkLoopScope) -> Value {
 }
 
 fn writer_claim_scope_prefix(project_root: &str, continuity_id: &str) -> String {
-    format!(
-        "project:{}|workstream:{}|work_item:",
-        normalize_partition_segment(project_root, "blocked"),
-        normalize_partition_segment(continuity_id, "blocked"),
-    )
+    writer_claim_scope_prefix_with_subpath(project_root, continuity_id, None)
+}
+
+fn writer_claim_scope_prefix_with_subpath(
+    project_root: &str,
+    continuity_id: &str,
+    working_subpath_id: Option<&str>,
+) -> String {
+    let subpath = working_subpath_id
+        .map(str::trim)
+        .filter(|v| !v.is_empty() && *v != "primary");
+    match subpath {
+        Some(subpath) => format!(
+            "project:{}|workstream:{}|subpath:{}|work_item:",
+            normalize_partition_segment(project_root, "blocked"),
+            normalize_partition_segment(continuity_id, "blocked"),
+            normalize_partition_segment(subpath, "blocked"),
+        ),
+        None => format!(
+            "project:{}|workstream:{}|work_item:",
+            normalize_partition_segment(project_root, "blocked"),
+            normalize_partition_segment(continuity_id, "blocked"),
+        ),
+    }
+}
+
+fn active_working_subpath_for_scope(
+    scope: &WorkLoopScope,
+    focusa: &focusa_core::types::FocusaState,
+) -> Option<String> {
+    // Prefer the bound execution workpoint's session subpath; fall back to
+    // the active workpoint record for the same project/continuity.
+    let root = scope.0.root_scope.root_path.to_string_lossy().to_string();
+    let continuity = scope.0.continuity_id.clone();
+    let candidates: Vec<&focusa_core::types::WorkpointRecord> = focusa
+        .workpoint
+        .records
+        .iter()
+        .filter(|record| {
+            record.project_root.as_deref() == Some(root.as_str())
+                && record.continuity_id.as_deref() == Some(continuity.as_str())
+        })
+        .collect();
+    // Bound execution workpoint first.
+    if let Some(bound) = focusa.work_loop.execution_workpoint_id.as_ref() {
+        if let Some(record) = candidates
+            .iter()
+            .find(|record| &record.workpoint_id == bound)
+        {
+            if let Some(subpath) = record
+                .session_identity
+                .as_ref()
+                .and_then(|identity| identity.working_subpath_id.clone())
+            {
+                let trimmed = subpath.trim().to_string();
+                if !trimmed.is_empty() {
+                    return Some(trimmed);
+                }
+            }
+        }
+    }
+    for record in candidates {
+        if let Some(subpath) = record
+            .session_identity
+            .as_ref()
+            .and_then(|identity| identity.working_subpath_id.clone())
+        {
+            let trimmed = subpath.trim().to_string();
+            if !trimmed.is_empty() {
+                return Some(trimmed);
+            }
+        }
+    }
+    None
 }
 
 pub(crate) fn writer_claim_key_for_partition(
     project_root: &str,
     continuity_id: &str,
+    work_item_id: &str,
+) -> String {
+    writer_claim_key_for_partition_with_subpath(project_root, continuity_id, None, work_item_id)
+}
+
+pub(crate) fn writer_claim_key_for_partition_with_subpath(
+    project_root: &str,
+    continuity_id: &str,
+    working_subpath_id: Option<&str>,
     work_item_id: &str,
 ) -> String {
     if project_root.trim().is_empty() || continuity_id.trim().is_empty() {
@@ -730,7 +808,7 @@ pub(crate) fn writer_claim_key_for_partition(
     }
     format!(
         "{}{}",
-        writer_claim_scope_prefix(project_root, continuity_id),
+        writer_claim_scope_prefix_with_subpath(project_root, continuity_id, working_subpath_id),
         normalize_partition_segment(work_item_id, "blocked"),
     )
 }
@@ -745,9 +823,15 @@ pub(crate) fn has_live_workstream_writer(
     if scope.validate().is_err() {
         return true;
     }
-    let prefix = writer_claim_scope_prefix(
-        scope.root_scope.root_path.to_string_lossy().as_ref(),
-        &scope.continuity_id,
+    // Any subpath under the same project/continuity blocks: legacy 3-part
+    // primary keys and newer subpath-scoped keys share this prefix.
+    let prefix = format!(
+        "project:{}|workstream:{}|",
+        normalize_partition_segment(
+            scope.root_scope.root_path.to_string_lossy().as_ref(),
+            "blocked"
+        ),
+        normalize_partition_segment(&scope.continuity_id, "blocked"),
     );
     claims
         .iter()
@@ -766,9 +850,11 @@ fn writer_claim_key_from_scope(
     else {
         return "blocked:active_work_item_required".to_string();
     };
-    writer_claim_key_for_partition(
+    let subpath = active_working_subpath_for_scope(scope, focusa);
+    writer_claim_key_for_partition_with_subpath(
         scope.0.root_scope.root_path.to_string_lossy().as_ref(),
         &scope.0.continuity_id,
+        subpath.as_deref(),
         work_item_id,
     )
 }
@@ -4978,6 +5064,39 @@ mod tests {
         assert_eq!(
             base,
             "project:/home/wirebot/focusa|workstream:cont-focusa|work_item:focusa-workloop-completion.1"
+        );
+    }
+
+    #[test]
+    fn writer_claim_keys_isolate_working_subpaths() {
+        let primary = writer_claim_key_for_partition_with_subpath(
+            "/home/wirebot/focusa",
+            "cont-focusa",
+            None,
+            "focusa-workloop-completion.1",
+        );
+        let explicit_primary = writer_claim_key_for_partition_with_subpath(
+            "/home/wirebot/focusa",
+            "cont-focusa",
+            Some("primary"),
+            "focusa-workloop-completion.1",
+        );
+        let other_subpath = writer_claim_key_for_partition_with_subpath(
+            "/home/wirebot/focusa",
+            "cont-focusa",
+            Some("worktrees/a"),
+            "focusa-workloop-completion.1",
+        );
+        // Primary stays on the legacy 3-part key for backward compatibility.
+        assert_eq!(
+            primary,
+            "project:/home/wirebot/focusa|workstream:cont-focusa|work_item:focusa-workloop-completion.1"
+        );
+        assert_eq!(explicit_primary, primary);
+        assert_ne!(primary, other_subpath);
+        assert_eq!(
+            other_subpath,
+            "project:/home/wirebot/focusa|workstream:cont-focusa|subpath:worktrees/a|work_item:focusa-workloop-completion.1"
         );
     }
 
