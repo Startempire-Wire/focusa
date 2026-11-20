@@ -195,3 +195,25 @@ ADR references:
 - [Nygard-style ADR structure](https://www.adr.zone/adr-template/nygard).
 
 **Proposal, not owner approval:** Focusa-native real-time ledger plus isolated mining workers, and GDL-native optional ADR projections.
+
+
+## 9. Focusa data-model binding — two-pass audit correction (2026-11-20)
+
+**Source-linked integration audit:** [GDL ↔ Focusa data-model reconciliation](GDL-FOCUSA-DATA-MODEL-RECONCILIATION-2026-11-20.md). It distinguishes actual code capabilities from 135F/158 normative target requirements. This paragraph takes precedence over any ambiguous illustrative examples above; GDL-001 remains **proposed**.
+
+**Canonical structure:** GDL's durable \`DecisionRecord\` is the **decision-specific payload** of the shared cognition \`Decision\` type, represented in Spec135F \`focusa.canonical_semantic_record.v2\` through the registered decision definition/verification/promotion policies. It is NOT permission to add a new unconnected \`FocusaState.gdl\` singleton, a new general ontology, independent SQL authority store, or parallel approval pipeline. GDL-specific candidate data is a decision-profile payload of \`focusa.semantic_candidate.v2\` with separate candidate/canonical storage. Where V2 isn't implemented, explicitly surface its dependency and use governed migration rather than create a shadow second canonical writer.
+
+**Owner and reach:** Spec158's native \`ScopeRef\` initially admits **project or host only**. A host is NOT automatically an ecosystem tenant. Native project-shared and Workstream-specific decisions must use **verified actual Focusa ScopeRef + stable WorkstreamRoot identity**, separating the latter from changing ContinuityId/Attachment. The historical GDL example's \`scope.level: ecosystem\` and \`tenant_ref\` are **external/UX applicability labels**, NOT an invented native ScopeRef or security grant. Ecosystem-wide applicability is an **authorized resolver projection** over genuine separately owned, explicitly linked decisions plus existing verified operator-rooted architecture policy. Cross-Workstream references are permission/evidence-gated, never copied as foreign cognition.
+
+**Named existing objects:**
+- \`FocusState.decisions\` is a **bounded hot-context projection of up to 30 strings**, never GDL history or approval.
+- \`ContextDecisionRecord\` is an **append-only review outcome for ContextClaim review or contradiction resolution**, NOT the GDL's architecture/product approval type. It can supply evidence refs only.
+- PRE's competing operational proposal winner is NOT a GDL owner-approval receipt; semantic candidate verification and explicit promotion policy govern GDL.
+- \`OntologyState\` V1 generic JSON and Rust \`semantic_registry.rs\` artifact graph registration do not prove full Spec135F shared ontology V2 behavior is shipped; run capability/compatibility proof.
+- ContextSource and Evidence own source spans/proof; GDL preserves pointers and digests, not a duplicate corpus.
+
+**Proposed required mappings:** \`focusa.core.cognition\` \`Decision\` registered type ID (verify actual ID before activation); \`focusa.semantic_candidate.v2\`; \`focusa.semantic_verification_record.v2\`; \`focusa.semantic_promotion_record.v2\`; \`focusa.canonical_semantic_record.v2\`; Spec70 Scoped/Verifiable/ArtifactBacked/Ownable lifecycle; Spec74 identity/supersession; Spec75 projection; Spec77 version/migration; Spec135F slice/delta; Spec158/164 Workstream root. GDL-only fields must be approved additions to a typed payload/contract, not implicit new universal primitives.
+
+**Read surface correction:** Reuse Focusa FTS5/context retrieval machinery for a **typed GDL derived index** (candidate and governing corpora separate) and existing SSE infrastructure for scoped invalidation/semantic-delta references; a permission-checked deterministic resolver, not embedding ranking, decides governing status. Ensure read-model revision tracks committed canonical event head; return explicit lag/degraded posture instead of stale 'current' records.
+
+**Implementation admission gate:** A source audit isn't installed proof. Map active 135F+158+164 implementation/migration status and versioned compatibility before adding new reducer actions. Do NOT silently use GDL to expand source access, change constitutional authority, or force a new ScopeRef kind. Producer/consumer/cross-version/live E2E acceptance remains required.
