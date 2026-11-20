@@ -304,3 +304,22 @@ After authenticated approval of the exact significant GDL decision, offer a Mark
 - Search for a deliberately injected unapproved but high-similarity candidate does not include it among governing decisions.
 - Three old project identities with overlapping names cannot silently import each other's ADRs or decisions as active authority.
 - ADR projection and compact GDL statement agree on the decision ID, scope, approval revision and supersession history.
+
+
+## 17. Focusa ontology binding and mining-candidate migration (2026-11-20 audit correction)
+
+**Source-linked:** [GDL ↔ Focusa two-pass data-model reconciliation](GDL-FOCUSA-DATA-MODEL-RECONCILIATION-2026-11-20.md) and [Focusa candidate JSON Schema](contracts/gdl-002-decision-candidate.v1.schema.json).
+
+The miner is a Focusa-supervised **producer of candidate semantic Decision objects**. It must submit its GDL-002 decision-specific payload **through the existing Focusa authorization/candidate ingestion owner**, mapped to \`focusa.semantic_candidate.v2\` per Spec135F, with registered \`Decision\` definition, verified scope, source/evidence refs, parser/attribution policy and stable candidate identity. Candidate status or LLM confidence **never** authorizes promotion. Only the Focusa semantic verification + operator-rooted approval + promotion policy/reducer may create \`focusa.canonical_semantic_record.v2\` Decision state.
+
+**Existing code distinctions that must survive:**
+- Source and claim reads link to \`ContextSourceRecord\` / \`ContextClaimRecord\`. A historical \`ContextDecisionRecord\` is a narrow claim-review or contradiction-resolution outcome, not operator architectural approval. Link it as evidence only.
+- \`FocusState.decisions\` (30 strings) and Context Cognition are bounded read models, not historical decision storage. Do not fill context with every mined record.
+- Project and Workstream identity must be resolved from actual ScopeRef/WorkstreamRoot binding; \`tenant\`/\`ecosystem\` candidate labels describe applicability, not a canonical Focusa scope kind. A \`continuity_id\` alone cannot own a decision. Historical cross-project decisions remain in originating scopes unless explicitly authorized by approved reference/migration.
+- Shared cognition and Spec135F semantic registry MUST own type/relationship/verification/promotion/slice rules; don't create GDL-only route-local type IDs without registration, or a new "mining approval" store.
+- GDL candidate and active search indexes must be **separate derived projections**. Agent queries never run miner LLMs or crawl external history synchronously.
+- Existing SSE + Spec135F semantic delta contracts own change signals; model/proposal update events cannot appear as canonical activation.
+
+**Candidate readiness check:** Before an item is \`ready_for_approval\`, it must have a verified \`focusa_mapping\` (actual Decision type definition ID, source/owner plane, canonical scope binding, applicable WorkstreamRoot if required, verification policy ref and promotion policy ref). The [JSON Schema](contracts/gdl-002-decision-candidate.v1.schema.json) now enforces this mapping for approval-ready candidates. An ambiguous historical project remains \`reconciling/contested/blocked\`, not eligible for approval. Neither a fictional \`ecosystem\` ScopeRef nor a reused GDL agent credential can bypass it.
+
+**Rollout gates:** 1) audit current installed Spec135F/158/164 capabilities; 2) map and verify shared cognition Decision semantics and versioned candidate/canonical schema; 3) ingest one Workstream's historical source revisions as proposals; 4) verify explicit human approval and semantic promotion; 5) prove correct read-only search/scope inheritance across two Workstreams; 6) verify SSE, revision lag, cross-version replay, privacy and exported ADR consistency; 7) then broaden connectors and backfill. Do not silently enlarge Focusa's foundations under GDL.
