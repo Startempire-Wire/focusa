@@ -599,7 +599,10 @@
       "if": {
         "properties": {
           "status": {
-            "const": "ready_for_approval"
+            "enum": [
+              "ready_for_approval",
+              "promoted"
+            ]
           }
         },
         "required": [
