@@ -1,0 +1,29 @@
+name: Focusa buyer FAQ contract and founder identity gate
+on:
+  pull_request:
+    paths:
+      - "docs/public/buyer-faq/**"
+      - "scripts/focusa_public_claims.py"
+      - "tests/test_focusa_public_claims.py"
+      - ".github/workflows/focusa-public-faq-contract.yml"
+      - "AGENTS.md"
+  push:
+    branches: [main]
+    paths:
+      - "docs/public/buyer-faq/**"
+      - "scripts/focusa_public_claims.py"
+      - "tests/test_focusa_public_claims.py"
+      - ".github/workflows/focusa-public-faq-contract.yml"
+jobs:
+  faq-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify 55 FAQ entries and owner/company provenance
+        run: python3 scripts/focusa_public_claims.py --check
+      - name: Exercise fail-closed email and WordPress-parity tests
+        run: python3 -m unittest discover -s tests -p 'test_focusa_public_claims.py' -v
