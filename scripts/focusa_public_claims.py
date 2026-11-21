@@ -71,6 +71,10 @@ def validate_contract() -> list[str]:
             errors.append(f"FAQ ID/order drift at entry {idx}")
         if not item.get("answer", "").strip():
             errors.append(f"Empty answer at entry {idx}")
+        if not item.get("claim_class") or not item.get("evidence_refs"):
+            errors.append(f"Missing machine-readable provenance at entry {idx}")
+        if not isinstance(item.get("requires_customer_proof_before_guarantee"), bool):
+            errors.append(f"Missing customer-proof constraint at entry {idx}")
         if item.get("review_state") == "proposed_correction" and not re.fullmatch(r"[a-f0-9]{64}", item.get("source_answer_sha256", "")):
             errors.append(f"Missing original answer digest required for safe WordPress patch: {idx}")
     p = facts.get("identity", {}).get("person", {})
@@ -96,7 +100,10 @@ def validate_contract() -> list[str]:
         ("What is the implementer authorized to do?", ["Verious Smith III", "creator", "architect", "Startempire Wire LLC"]),
     ]
     for q, required in important:
-        answer = by_q.get(q, {}).get("answer", "")
+        owner_record = by_q.get(q, {})
+        if owner_record.get("claim_class") != "owner_attested_identity":
+            errors.append(f"Ownership FAQ lost owner-attested provenance: {q}")
+        answer = owner_record.get("answer", "")
         for phrase in required:
             if phrase.casefold() not in answer.casefold():
                 errors.append(f"Ownership FAQ missing {phrase!r}: {q}")
