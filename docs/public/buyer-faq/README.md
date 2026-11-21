@@ -2,8 +2,8 @@
 
 This package is a **proposed correction**. The WordPress page is still live independently; merging the repository PR does not change it.
 
-- `authority.v1.json`: founder/ownership, product/legal provenance, offer, confidence/release and outbound-send policy.
-- `buyer-faq.v1.json`: 55 existing visible buyer questions, in original order, with reviewed answer corrections.
+- `authority.v1.json` + `authority.schema.v1.json`: founder/ownership, product/legal provenance, offer, confidence/release and outbound-send policy with JSON Schema.
+- `buyer-faq.v1.json` + `buyer-faq.schema.v1.json`: 55 existing visible buyer questions, original order, question-level provenance and proof gates; old answers retained as SHA-256 migration digests only, not deprecated public machine answers.
 - `FAQPage.v1.jsonld`: Schema.org FAQPage semantic representation; JSON-LD does not guarantee search rich results, and must exactly match visible copy.
 - `wordpress-page-14.proposed.html`: WordPress-rendered-source snapshot with a surgical correction of 13 answer bodies and introduction; reference only, **not a blind POST replacement of native post_content**.
 - `audit-2026-11-20.md`: per-question audit and provenance.
