@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Focusa public authority facts v1",
+  "type": "object",
+  "required": [
+    "format",
+    "recorded_at",
+    "identity",
+    "commercial",
+    "release_claim_policy",
+    "outbound_policy"
+  ],
+  "properties": {
+    "format": {
+      "const": "focusa.public_authority.v1"
+    },
+    "status": {
+      "type": "string"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "canonical_product": {
+      "const": "Focusa"
+    },
+    "site_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "canonical_repository": {
+      "type": "string",
+      "format": "uri"
+    },
+    "evidence_policy": {
+      "type": "object"
+    },
+    "identity": {
+      "type": "object",
+      "required": [
+        "person",
+        "software_company",
+        "philoveracity"
+      ],
+      "properties": {
+        "person": {
+          "type": "object",
+          "required": [
+            "name",
+            "role",
+            "implementation",
+            "provenance"
+          ],
+          "properties": {
+            "name": {
+              "const": "Verious Smith III"
+            },
+            "role": {
+              "type": "array",
+              "contains": {
+                "const": "Creator of Focusa"
+              },
+              "minItems": 2,
+              "uniqueItems": true
+            },
+            "implementation": {
+              "type": "string",
+              "minLength": 20
+            },
+            "provenance": {
+              "const": "owner_declared"
+            }
+          }
+        },
+        "software_company": {
+          "type": "object",
+          "required": [
+            "name",
+            "owner",
+            "products_owned_and_developed"
+          ],
+          "properties": {
+            "name": {
+              "const": "Startempire Wire LLC"
+            },
+            "owner": {
+              "const": "Verious Smith III"
+            },
+            "products_owned_and_developed": {
+              "type": "array",
+              "allOf": [
+                {
+                  "contains": {
+                    "const": "Focusa"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "UIAI Engine"
+                  }
+                }
+              ],
+              "minItems": 2,
+              "uniqueItems": true
+            }
+          }
+        },
+        "philoveracity": {
+          "type": "object",
+          "required": [
+            "name",
+            "owner",
+            "operating_since",
+            "dba",
+            "dba_legal_registrant"
+          ],
+          "properties": {
+            "name": {
+              "const": "Philoveracity"
+            },
+            "owner": {
+              "const": "Verious Smith III"
+            },
+            "operating_since": {
+              "const": 2010
+            },
+            "dba": {
+              "const": true
+            },
+            "dba_legal_registrant": {
+              "const": "not_verified_for_public_contract"
+            }
+          }
+        }
+      }
+    },
+    "commercial": {
+      "type": "object",
+      "required": [
+        "operator_deployment_usd",
+        "software_licenses_separate",
+        "operator_success_months"
+      ],
+      "properties": {
+        "operator_deployment_usd": {
+          "const": 5000
+        },
+        "software_licenses_separate": {
+          "const": true
+        },
+        "operator_success_months": {
+          "const": 12
+        }
+      }
+    },
+    "release_claim_policy": {
+      "type": "object",
+      "required": [
+        "levels",
+        "rule",
+        "no_unverified_claims"
+      ]
+    },
+    "outbound_policy": {
+      "type": "object",
+      "required": [
+        "ownership_claim_required_facts",
+        "blocked_shortcuts",
+        "human_approval_required_for",
+        "enforcement_note"
+      ]
+    }
+  }
+}

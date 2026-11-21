@@ -1,0 +1,458 @@
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "@id": "https://focusa.dev/faqs/#faq",
+  "url": "https://focusa.dev/faqs/",
+  "inLanguage": "en-US",
+  "author": {
+    "@type": "Person",
+    "name": "Verious Smith III",
+    "description": "Creator and principal architect of Focusa"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Startempire Wire LLC"
+  },
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Which work should we give Focusa first?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Start with one task that happens often and has a clear result. Good first choices include checking for missing information, updating a work status, preparing a follow-up, or making a daily work list. We will review the task with you and test it before wider use."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does the $5,000 setup include a review of how our business works?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The setup includes learning the agreed part of your business, mapping the work, deciding what Focusa can handle, and deciding what still needs a person. Your written proposal will list the processes we will review and what you will receive."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can Focusa track each customer, case, project, or matter?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "This can be proposed as a customer workflow. It may show what is complete, what is missing, what you are waiting for, the next deadline, the last contact, and the next action. It is not a proven standard feature for every record system. We must connect the real system and pass a full workflow test first."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can Focusa notice a new email or document and update the right record?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "This is a possible customer workflow, not a proven standard feature. We would need to connect the real inbox and record system, define the matching rules, and test the full path. If a match is not clear, Focusa should stop and ask a person instead of guessing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can Focusa give me a daily list of what needs attention?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "An approved daily operational summary can be configured from sources the customer authorizes: outstanding work, approaching deadlines, blocked items, and verified completed actions. It is not automatically available across every CRM or inbox. Each source and the complete summary workflow must be tested in the customer's environment before we represent it as reliable."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I ask, “Where are we with this customer?”",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "This can be proposed after the needed systems are connected. It is not a proven standard feature across every business system. The workflow must collect current facts from approved sources, show where each fact came from, and pass a full test before use."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which business systems can Focusa use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Focusa can use approved direct connections and controlled website access. The answer depends on the exact system, account, and action you need. Your proposal will name each supported system. We will test each one before live use."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can Focusa use a website when there is no direct connection?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sometimes. UIAI Engine can let Focusa work through a website in a controlled way. Each website must pass a real test first. Login checks, security codes, captchas, site rules, or page changes can stop the work."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What can make website-based work fail?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Common problems include expired logins, security prompts, captchas, changed pages, blocked controls, and website outages. Focusa should check the final result, report when it is blocked, and leave a clear manual option."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you prevent lost, duplicated, or overwritten documents?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We must name the main document system, approved templates, version rules, who can make changes, duplicate checks, backups, and restore steps. Focusa does not replace your official document system unless the written plan says so."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can Focusa check court websites, monitor dockets, and start the next task?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Possibly, but no court site is included until that exact site and action pass a real test. Focusa may be able to check a docket, notice a change, and prepare the next allowed task. Login rules, security prompts, site terms, and page changes can block the work. Filing, payment, and legal decisions require clear human approval."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can we set different approval levels for different actions?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Focusa is designed for scoped authority and named approvals. Routine low-risk tasks may be permitted while consequential communications, payments, court-related work, deadline changes, or other sensitive actions require a designated human decision. The precise rules, denied-action behavior, and supported release must be tested for the customer before we claim those protections are operating."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can Focusa prepare an action without sending or completing it?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Focusa supports a prepare-then-approve rule. A customer workflow can be set up to draft an action, explain the reason, show the supporting information, and wait. We must test that specific workflow and confirm that nothing is sent when approval is required."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What happens when a request is outside the approved process?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Focusa should stop and send the issue to the named person. It should not invent an answer or quietly continue. Your plan will say who handles each type of exception."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does Focusa prove that an action really happened?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Focusa keeps a record of what it tried and what information it used. For important work, it must also check the receiving system and confirm the real result. A log by itself is not proof that the other system changed."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What helps prevent a wrong or unintended action?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Safeguards include scoped permissions, explicit approval boundaries, trusted data sources, side-effect checks, evidence, outcome verification, and escalation when information is uncertain. These controls must be demonstrated for the specific workflow and installed release, not assumed simply because they exist in the architecture. No system is error-free."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does the published $5,000 Operator Deployment include?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It is a one-time setup service. It includes reviewing the agreed business work, configuring Focusa, connecting the systems listed in your proposal, testing real work, and handing over the working setup. Your proposal will list the exact tasks, systems, people, changes, and deliverables included."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are the Focusa and UIAI Engine software licenses included?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The $5,000 price covers the setup service. Focusa and UIAI Engine are separate products with separate licenses. Your quote will show which licenses you need and what they cost."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can we pay in installments?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, installments are available. Your quote will state the deposit, payment dates, late terms, cancellation terms, and any refund terms. We do not use one payment schedule for every buyer."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What work can cost extra?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Custom software, major new connections, large changes in scope, phone features, and support after the included support period can cost extra. We will not add paid work without showing the scope and price first."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does 12 months of Operator Success include?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The published Operator Deployment includes twelve months of Operator Success. Its published scope covers launch stabilization and tuning, workflow improvement and adoption help, periodic reviews, applicable upgrades, and troubleshooting. The order defines support channels, response expectations, included adjustments, and exclusions. The twelve-month period is part of the offer; substantial new custom development or expansion requires separately approved scope and price."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What monthly costs should we expect after setup?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "There is no single monthly price for every business. Focusa and UIAI Engine licenses are published as one-time purchases. Monthly or usage costs can include AI services, cloud hosting, storage, business-system connections, website access, and phone services. Your quote will list the services you need and the expected cost of each one."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Who pays the ongoing service providers?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Your quote will name each provider, who owns the account, who pays the bill, and whether you pay the provider directly or pay through us. It will also show any added fee."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What usage can raise the monthly cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "More users, more tasks at the same time, more AI use, more storage, more website work, or more phone minutes can raise the cost. Your quote will list the expected limits, alerts, and any extra charges."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What computer or cloud service is required?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Focusa is designed to run on a computer or server that the customer controls. The right size and monthly cost depend on the work. Your plan will name the provider, account owner, access, backups, and expected cost."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How long does setup take?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The time depends on the workflows, system access, security review, custom work, and testing. We will give you a schedule after we confirm those facts. The schedule will also list anything we need from you."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do we decide that the setup is complete?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Your agreement will list clear milestones and real workflow tests. It will say what proof you receive, how you review the result, what we must fix, and what happens if an agreed workflow cannot be made reliable."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How mature is Focusa?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Focusa is actively developed and currently marketed to early technical adopters through a guided Operator Preview. Core mission continuity, Workpoints, evidence and agent integration are implemented in source. Source implementation is not the same as a verified customer release or a successfully accepted customer-specific workflow. We identify the precise version, entitlement, supported surfaces and acceptance evidence before representing a capability as customer-ready."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Focusa ready for customer use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Guided planning, implementation and workflow verification are offered. Do not assume that every customer can self-install or activate every component without assistance: authority-issued licensing, release integrity, customer delivery and installed behavior must be verified for the specific offered version. We will not describe a complete customer activation path or an integration as proven without passing the actual release and workflow tests."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How many similar businesses use Focusa in daily operations?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We do not publish a verified number at this time. We will not use software tests or development work as a substitute for a customer reference. Any customer example we share will be current and shared with permission."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What limits or failures have appeared so far?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Current engineering records document customer entitlement and software-delivery prerequisites, unfinished planned features, and an unproven 15-minute rolling-backup recovery objective. This does not mean that Focusa's core Workpoints, evidence and continuity functions are absent. For an engagement, we identify the exact release's limitations and test its normal, blocked and recovery paths before relying on it for consequential work. We do not substitute internal tests for customer references."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can we test one real workflow instead of watching only a demonstration?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "That is the preferred proof. We can promise the test only after the customer release, licenses, approved information, and system access are ready. The test should use one real workflow and include both a normal result and a blocked or failed result."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What work should I no longer be doing six months after a successful setup?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Six months is a measurement horizon, not a guaranteed result. A successful accepted deployment should reduce time spent reconstructing work status, finding missing items, drafting routine follow-ups and coordinating repeat work. The proposal identifies the tasks to delegate, establishes a baseline, and defines measurable success criteria before making customer-specific claims."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where is our information stored, and how is it protected?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Focusa is designed to keep its main working data on a customer-controlled computer or server unless you approve another location. Your plan will list every storage location, outside provider, security setting, backup, retention rule, and recovery test."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which outside companies can receive our information?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "That depends on the AI, hosting, storage, website, phone, and business systems you choose. Before live use, you will receive a list of each provider, what it receives, why it receives it, who owns the account, and how long it keeps the information."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is our information used to train Focusa or outside AI models?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Startempire Wire will not intentionally use customer information to train or improve Focusa without separate written authorization. External AI and other service providers may have different training and retention terms. The customer-specific plan must document the actual providers, accounts, data sent, training and retention settings, deletion controls, and approvals before confidential information is processed."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can each person or AI worker see only what it needs?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Least-privilege access by person, agent, role, system, data class and permitted action is the intended configuration. It is not verified merely by describing the design. We must test the actual customer permissions—including denied-access cases—in the selected release and connected systems before using confidential data."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Will Focusa review our files, email, notes, and other business information to learn how we work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Only the information that you approve for the agreed review. This may include selected files, email, forms, notes, and process records when they are needed to map the work. We will state the purpose, limit access, set retention rules, and ask you to confirm what the information means."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Who owns and develops Focusa and UIAI Engine?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Verious Smith III is the creator and principal architect of Focusa. He continues to direct its architecture, product decisions and development, assisted by AI coding agents working under his direction. Verious owns Startempire Wire LLC. Both Focusa and UIAI Engine are software products developed under Startempire Wire, which owns and licenses the products. They are distinct products within the same founder-owned software business, not products from unrelated owners."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is Philoveracity’s role?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Philoveracity is also Verious Smith III's business: his longstanding brand-development agency and DBA, operating since 2010. It is not an unrelated software vendor or third-party reseller. Any Philoveracity consulting, brand-development, implementation or support responsibilities will be identified in the customer agreement alongside Startempire Wire's software licensing responsibilities, including the precise legal contracting entity."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the implementer authorized to do?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Verious Smith III is Focusa's creator and principal architect and the owner of Startempire Wire LLC. He directs the development of Focusa and UIAI Engine and leads their product and commercial direction. AI coding agents assist implementation under his authority; they do not own the products. A customer order identifies which of his businesses supplies software licensing, deployment, consulting and support, and the obligations of each."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can we buy Focusa directly, and how is the $5,000 divided?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Focusa has a direct commercial license. The published $5,000 price is for the setup service, not the software licenses. Your quote will separate setup, software, hosting, and outside service costs."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Who owns our data and the work created for us?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You own your business data and the outputs created from it. Startempire Wire keeps ownership of Focusa. Your agreement will state who owns custom code, connections, procedures, instructions, and settings made for your business."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can we export or delete our data, workflows, and settings?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The plan is to preserve safe backup, export, repair, removal, and deletion options. We must test these options for the version you receive. Your exit plan will list the file formats, delivery method, deletion steps, retention period, and treatment of outside copies."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What happens if Focusa or another provider closes?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Keeping data in a customer-controlled system reduces lock-in. It does not guarantee continued software updates, support, or access to an outside service. Your agreement should cover export help, documentation, account access, and the rights needed to continue or move your work."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do we have to use Discord, and which phone or computer tools can we use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Discord is not required. Focusa currently has technical tools for setup and operation, while simple desktop and phone experiences are still being developed or tested. Your proposal will name the exact screens or tools you will receive and the ones we will support."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When will phone integration be ready?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We do not publish a completion date for a standard phone feature. A phone system needs a chosen provider, an agreed call process, privacy controls, and a full test before we can sell it as ready."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can a phone system answer calls and tell prospects from current customers?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "This is a possible custom workflow, not a proven standard feature. The plan must define the calls it can handle, approved wording, privacy rules, when to transfer the call, and the test that must pass before use."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can the phone system verify callers before sharing private information?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "This needs its own security process. The plan must state how a caller is verified, what happens when verification fails, what information may be shared, and when a person takes over."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can the phone system handle sensitive calls with care?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No AI system can promise perfect empathy. A safer setup uses approved language, clear transfer rules, human help, and tests for distress, loss, conflict, and other sensitive situations."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can calls be transferred, summarized, and added to our follow-up list?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "These are possible custom workflows, not proven standard features. Each one needs a working phone connection, clear permission, privacy controls, a check of the final record, and a recovery test before use."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is phone service included in the $5,000 setup?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Not by default. Phone providers, AI use, custom development, recording or transcription, consent rules, monthly fees, and support must be listed and priced in your signed proposal."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What license do we need for business use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Business use requires a commercial agreement that states the product, features, users, computers, and allowed use. Access to source code or a working test does not give business-use rights by itself."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What happens if an evaluation or license ends?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The goal is to keep your data available and preserve needed backup, export, repair, removal, and deletion tools. Your signed agreement and setup test will confirm the exact functions that remain available for your version."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does Focusa promise legal advice, guaranteed results, perfect uptime, or no errors?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Focusa does not provide legal advice and cannot promise perfect uptime, guaranteed results, or error-free work. Any service promise, responsibility, or remedy must be written in your signed agreement."
+      }
+    }
+  ]
+}

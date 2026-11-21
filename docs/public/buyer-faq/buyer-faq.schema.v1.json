@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Focusa 55-question public buyer FAQ v1",
+  "type": "object",
+  "required": [
+    "format",
+    "status",
+    "page",
+    "authority_ref",
+    "revision_rule",
+    "changed_answers",
+    "questions"
+  ],
+  "properties": {
+    "format": {
+      "const": "focusa.buyer_faq.v1"
+    },
+    "status": {
+      "type": "string"
+    },
+    "page": {
+      "type": "object",
+      "required": [
+        "url",
+        "wordpress_page_id",
+        "question_count",
+        "section_count"
+      ],
+      "properties": {
+        "url": {
+          "const": "https://focusa.dev/faqs/"
+        },
+        "wordpress_page_id": {
+          "const": 14
+        },
+        "question_count": {
+          "const": 55
+        },
+        "section_count": {
+          "const": 9
+        }
+      }
+    },
+    "authority_ref": {
+      "const": "./authority.v1.json"
+    },
+    "revision_rule": {
+      "type": "string"
+    },
+    "changed_answers": {
+      "const": 13
+    },
+    "questions": {
+      "type": "array",
+      "minItems": 55,
+      "maxItems": 55,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "order",
+          "section",
+          "question",
+          "answer",
+          "review_state",
+          "claim_class",
+          "evidence_refs",
+          "requires_customer_proof_before_guarantee"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^focusa-faq-[0-9]{3}$"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 55
+          },
+          "section": {
+            "type": "string",
+            "minLength": 3
+          },
+          "question": {
+            "type": "string",
+            "minLength": 12
+          },
+          "answer": {
+            "type": "string",
+            "minLength": 15
+          },
+          "review_state": {
+            "enum": [
+              "proposed_correction",
+              "retained_from_verified_live_page"
+            ]
+          },
+          "source_answer_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "claim_class": {
+            "type": "string",
+            "minLength": 3
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "requires_customer_proof_before_guarantee": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}
