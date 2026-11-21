@@ -1,0 +1,93 @@
+{
+  "format": "focusa.public_authority.v1",
+  "status": "proposed_for_owner_review",
+  "recorded_at": "2026-11-20",
+  "canonical_product": "Focusa",
+  "site_url": "https://focusa.dev/",
+  "canonical_repository": "https://github.com/Startempire-Wire/focusa",
+  "evidence_policy": {
+    "owner_declared": "Owner directly stated these facts on 2026-11-20; verify registration details before inserting them in legal documents",
+    "published_site": "Facts taken from live site on 2026-11-20",
+    "repository_specification": "Design/specification does not itself establish released or accepted production behavior",
+    "customer_accepted": "Must have deployment-specific signed scope and passed test evidence"
+  },
+  "identity": {
+    "person": {
+      "name": "Verious Smith III",
+      "role": [
+        "Creator of Focusa",
+        "Principal architect of Focusa",
+        "Owner of Startempire Wire LLC",
+        "Owner of Philoveracity",
+        "Director of Focusa and UIAI Engine development"
+      ],
+      "implementation": "AI coding agents assist with coding under Verious Smith III's architecture and direction; they do not own or independently originate the products",
+      "provenance": "owner_declared"
+    },
+    "software_company": {
+      "name": "Startempire Wire LLC",
+      "owner": "Verious Smith III",
+      "products_owned_and_developed": [
+        "Focusa",
+        "UIAI Engine"
+      ],
+      "provenance": "owner_declared"
+    },
+    "philoveracity": {
+      "name": "Philoveracity",
+      "owner": "Verious Smith III",
+      "industry": "Brand-development agency",
+      "operating_since": 2010,
+      "dba": true,
+      "dba_legal_registrant": "not_verified_for_public_contract",
+      "relationship": "Owned by the same founder; not an unrelated third-party reseller",
+      "provenance": "owner_declared"
+    }
+  },
+  "commercial": {
+    "operator_deployment_usd": 5000,
+    "software_licenses_separate": true,
+    "operator_success_months": 12,
+    "price_source": "https://focusa.dev/operator-deployment/",
+    "contract_boundary": "Customer-specific workflows, users, systems, costs, support service levels, acceptance and remedies are defined in signed agreement; never invent values; do not silently expand or reduce the approved published offer"
+  },
+  "release_claim_policy": {
+    "levels": [
+      "specified_design",
+      "implemented_in_source",
+      "verified_in_release",
+      "verified_in_customer_environment",
+      "customer_accepted"
+    ],
+    "rule": "Never elevate a claim to a higher level without evidence for that exact release and customer environment.",
+    "no_unverified_claims": [
+      "Self-service installation works for all buyers",
+      "All Clio integrations are already supported",
+      "All court portals can be automated",
+      "Phone receptionist is a standard proven feature",
+      "15-minute recovery point is achieved",
+      "A successful architecture or internal test proves a customer deployment"
+    ]
+  },
+  "outbound_policy": {
+    "ownership_claim_required_facts": [
+      "Verious Smith III created and principally architected Focusa",
+      "Startempire Wire LLC is owned by Verious Smith III",
+      "Focusa and UIAI Engine are developed under Startempire Wire LLC",
+      "Philoveracity belongs to Verious Smith III and has operated as a brand-development agency/DBA since 2010"
+    ],
+    "blocked_shortcuts": [
+      "Verious is merely a commercial licensing contact",
+      "Philoveracity is an unrelated third-party reseller",
+      "UIAI Engine is owned by an unrelated company"
+    ],
+    "human_approval_required_for": [
+      "Ownership and company relationship statements",
+      "Commercial terms and deposits",
+      "Data security and model training commitments",
+      "Customer production capability, legal or confidentiality claims",
+      "Consequential prospect or customer correspondence"
+    ],
+    "enforcement_note": "A JSON file alone does not block a send; the sender integration must call the gate and require approval before external communications."
+  }
+}
