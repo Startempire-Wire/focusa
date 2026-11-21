@@ -56,7 +56,7 @@
       "answer": "An approved daily operational summary can be configured from sources the customer authorizes: outstanding work, approaching deadlines, blocked items, and verified completed actions. It is not automatically available across every CRM or inbox. Each source and the complete summary workflow must be tested in the customer's environment before we represent it as reliable.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "Yes. A daily summary can show urgent work, approaching deadlines, items waiting on someone else, blocked work, and work that Focusa completed. We must first connect and test the systems that supply this information."
+      "source_answer_sha256": "351868e4c7bd1bce359d93a6a3917008ec933e8dc027d259e8c5a63990d2f072"
     },
     {
       "id": "focusa-faq-006",
@@ -120,7 +120,7 @@
       "answer": "Focusa is designed for scoped authority and named approvals. Routine low-risk tasks may be permitted while consequential communications, payments, court-related work, deadline changes, or other sensitive actions require a designated human decision. The precise rules, denied-action behavior, and supported release must be tested for the customer before we claim those protections are operating.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "Yes. You can allow routine work while requiring a named person to approve messages, payments, court-related work, deadline changes, or other important actions. Your written plan will say who can approve each action."
+      "source_answer_sha256": "c2b34a2157559f13af421c9b93ee1f8ca4f152cb3556362a2d49c7a0308407d1"
     },
     {
       "id": "focusa-faq-013",
@@ -157,7 +157,7 @@
       "answer": "Safeguards include scoped permissions, explicit approval boundaries, trusted data sources, side-effect checks, evidence, outcome verification, and escalation when information is uncertain. These controls must be demonstrated for the specific workflow and installed release, not assumed simply because they exist in the architecture. No system is error-free.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "Focusa limits access, checks the task before acting, requires proof, and stops when key information is missing. Your setup can add approvals, monitoring, backups, and a manual recovery step. These controls reduce risk, but no software is error-free."
+      "source_answer_sha256": "ea86c9ec92eb27b5b83dde4dac8f549a7e1c67c0f9b8f1333af676a1488ab175"
     },
     {
       "id": "focusa-faq-017",
@@ -203,7 +203,7 @@
       "answer": "The published Operator Deployment includes twelve months of Operator Success. Its published scope covers launch stabilization and tuning, workflow improvement and adoption help, periodic reviews, applicable upgrades, and troubleshooting. The order defines support channels, response expectations, included adjustments, and exclusions. The twelve-month period is part of the offer; substantial new custom development or expansion requires separately approved scope and price.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "It starts with launch help and close tuning. It then covers workflow improvements, adoption help, periodic reviews, upgrades, and troubleshooting. Your order will state response times, how to ask for help, what changes are included, and what counts as new paid work."
+      "source_answer_sha256": "651d52ae85429f4f02bb1a71e3c4f20d5558d1031b32c319b1d57fa02ae3eb9e"
     },
     {
       "id": "focusa-faq-022",
@@ -267,7 +267,7 @@
       "answer": "Focusa is actively developed and currently marketed to early technical adopters through a guided Operator Preview. Core mission continuity, Workpoints, evidence and agent integration are implemented in source. Source implementation is not the same as a verified customer release or a successfully accepted customer-specific workflow. We identify the precise version, entitlement, supported surfaces and acceptance evidence before representing a capability as customer-ready.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "Focusa is currently an Operator Preview. This means it is an early product sold with guided setup. Only the features and workflows listed and proven in your signed plan should be treated as ready for your business."
+      "source_answer_sha256": "979f25da84714f8bb9ebfec25fa79cd65d5affdd6cbbc79159b26e88960fd253"
     },
     {
       "id": "focusa-faq-029",
@@ -277,7 +277,7 @@
       "answer": "Guided planning, implementation and workflow verification are offered. Do not assume that every customer can self-install or activate every component without assistance: authority-issued licensing, release integrity, customer delivery and installed behavior must be verified for the specific offered version. We will not describe a complete customer activation path or an integration as proven without passing the actual release and workflow tests.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "Focusa is available for guided planning and workflow testing. A customer cannot yet receive and activate the complete software package without guided help. The required license checks and secure software delivery must be finished for the version offered to a customer. Your proposal will name that version, the included systems, safeguards, and tests before you buy."
+      "source_answer_sha256": "e861eaf92ed21d2d7c8740bcbb0fe591ced848786aefc6d12f5da1739f7de8c8"
     },
     {
       "id": "focusa-faq-030",
@@ -296,7 +296,7 @@
       "answer": "Current engineering records document customer entitlement and software-delivery prerequisites, unfinished planned features, and an unproven 15-minute rolling-backup recovery objective. This does not mean that Focusa's core Workpoints, evidence and continuity functions are absent. For an engagement, we identify the exact release's limitations and test its normal, blocked and recovery paths before relying on it for consequential work. We do not substitute internal tests for customer references.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "A customer cannot yet receive and activate the complete software package without guided help. The required license checks and secure software delivery are still being finished. Some planned memory and desktop features are not complete. The current backup system also does not yet meet the stated goal of limiting possible data loss to 15 minutes. We do not have a verified customer-incident history to publish."
+      "source_answer_sha256": "b1da40b7357113647327f096267a4178da6c7ec07b15c17e9472d0df2bc6c477"
     },
     {
       "id": "focusa-faq-032",
@@ -315,7 +315,7 @@
       "answer": "Six months is a measurement horizon, not a guaranteed result. A successful accepted deployment should reduce time spent reconstructing work status, finding missing items, drafting routine follow-ups and coordinating repeat work. The proposal identifies the tasks to delegate, establishes a baseline, and defines measurable success criteria before making customer-specific claims.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "You should spend less time rebuilding status by hand, checking several systems, finding missing items, preparing routine follow-ups, and coordinating repeat work. Your proposal will name the exact tasks we plan to reduce and how we will measure the change. Results are measured, not guaranteed."
+      "source_answer_sha256": "fdc960b8de06c2e00a8e4f4f7a40520206608b1184e0136f0b874c9dad68e41f"
     },
     {
       "id": "focusa-faq-034",
@@ -343,7 +343,7 @@
       "answer": "Startempire Wire will not intentionally use customer information to train or improve Focusa without separate written authorization. External AI and other service providers may have different training and retention terms. The customer-specific plan must document the actual providers, accounts, data sent, training and retention settings, deletion controls, and approvals before confidential information is processed.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "We will not use your information to improve Focusa unless you separately agree in writing. Outside AI providers have their own rules. Your plan will name each provider and confirm its training, retention, deletion, and opt-out settings before your information is connected."
+      "source_answer_sha256": "5ea614383c0abbe729fe476921478475725edd56fb89fb52aafcb64331df714b"
     },
     {
       "id": "focusa-faq-037",
@@ -353,7 +353,7 @@
       "answer": "Least-privilege access by person, agent, role, system, data class and permitted action is the intended configuration. It is not verified merely by describing the design. We must test the actual customer permissions—including denied-access cases—in the selected release and connected systems before using confidential data.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "Yes. Access can be limited by person, role, system, information, and action. You approve these limits. We test them before live use, and access can be removed."
+      "source_answer_sha256": "381eeb38d582cd9702171374f3f15e9f84f653d259ede5d328ff1adf20f73161"
     },
     {
       "id": "focusa-faq-038",
@@ -372,7 +372,7 @@
       "answer": "Focusa was created and principally architected by Verious Smith III, who continues to direct its architecture, product decisions and development, assisted by AI coding agents working under his direction. Verious owns Startempire Wire LLC. Both Focusa and UIAI Engine are software products developed under Startempire Wire, which owns and licenses the products. They are distinct products within the same founder-owned software business, not products from unrelated owners.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "Startempire Wire owns and licenses Focusa. UIAI Engine is a separate product with a separate license. The customer papers will name the legal owner, developer, and authorized seller for each product before you buy."
+      "source_answer_sha256": "04d185d62e801edd58e45ea4469a001c50402112cf52d5efcab26bc9d54aba35"
     },
     {
       "id": "focusa-faq-040",
@@ -382,7 +382,7 @@
       "answer": "Philoveracity is also Verious Smith III's business: his longstanding brand-development agency and DBA, operating since 2010. It is not an unrelated software vendor or third-party reseller. Any Philoveracity consulting, brand-development, implementation or support responsibilities will be identified in the customer agreement alongside Startempire Wire's software licensing responsibilities, including the precise legal contracting entity.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "Philoveracity is a separate business. It does not own Focusa. If Philoveracity will provide setup, consulting, or support for a customer, the proposal will state that role and responsibility clearly."
+      "source_answer_sha256": "8aea3a5e7a0ef6dfdeddec1308bb4fd0f2bbcfeffa3bea169209e6a436bba485"
     },
     {
       "id": "focusa-faq-041",
@@ -392,7 +392,7 @@
       "answer": "Verious Smith III is Focusa's creator and principal architect and the owner of Startempire Wire LLC. He directs the development of Focusa and UIAI Engine and leads their product and commercial direction. AI coding agents assist implementation under his authority; they do not own the products. A customer order identifies which of his businesses supplies software licensing, deployment, consulting and support, and the obligations of each.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
-      "source_answer": "Startempire Wire names Verious Smith as the commercial licensing contact for Focusa. The proposal will also state whether each person or company acts as the seller, developer, setup provider, consultant, or support provider, and what each one is authorized to provide."
+      "source_answer_sha256": "8bd786832ccb2c49d9325f751a94b24d46ffa61ca53ca2f4f25c91f3914e4f65"
     },
     {
       "id": "focusa-faq-042",
