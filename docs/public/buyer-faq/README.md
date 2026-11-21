@@ -24,3 +24,16 @@ This package is a **proposed correction**. The WordPress page is still live inde
 - Keep business structures distinct from unverified legal DBA registration details.
 - Never downgrade approved responsibilities or commercially accepted terms without explicit owner approval; preserve 12 months of Operator Success.
 - Classify product facts as specified, source-implemented, release-verified, environment-verified or customer-accepted. No upward inference.
+
+## Safe WordPress publication commands
+
+From the exact existing WordPress origin, with WP-CLI access and the Focusa repository checked out:
+
+```bash
+WP_ROOT=/absolute/path/to/wordpress bash scripts/publish_focusa_buyer_faq_wordpress.sh --dry-run
+# Only after owner review of PR #726 and source diff:
+FOCUSA_FAQ_OWNER_APPROVED=YES-REVIEWED-PR-726 WP_ROOT=/absolute/path/to/wordpress \\
+  bash scripts/publish_focusa_buyer_faq_wordpress.sh --apply
+```
+
+The script snapshots, compares revision/content before writes, patches only accepted question/answer bodies, saves a private backup, and verifies exact post-write parity. It does **not** silently publish the proposed machine endpoints or inject JSON-LD: those require an authorized host integration and a live reader/agent parity test.
