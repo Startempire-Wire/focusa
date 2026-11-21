@@ -369,7 +369,7 @@
       "order": 39,
       "section": "Ownership, export, and continuity",
       "question": "Who owns and develops Focusa and UIAI Engine?",
-      "answer": "Focusa was created and principally architected by Verious Smith III, who continues to direct its architecture, product decisions and development, assisted by AI coding agents working under his direction. Verious owns Startempire Wire LLC. Both Focusa and UIAI Engine are software products developed under Startempire Wire, which owns and licenses the products. They are distinct products within the same founder-owned software business, not products from unrelated owners.",
+      "answer": "Verious Smith III is the creator and principal architect of Focusa. He continues to direct its architecture, product decisions and development, assisted by AI coding agents working under his direction. Verious owns Startempire Wire LLC. Both Focusa and UIAI Engine are software products developed under Startempire Wire, which owns and licenses the products. They are distinct products within the same founder-owned software business, not products from unrelated owners.",
       "review_state": "proposed_correction",
       "source_page": "https://focusa.dev/faqs/",
       "source_answer_sha256": "04d185d62e801edd58e45ea4469a001c50402112cf52d5efcab26bc9d54aba35"
