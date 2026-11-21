@@ -1,5 +1,11 @@
 # Agent Instructions
 
+## Public buyer facts and outbound claims (mandatory)
+
+Before writing or sending any Focusa or UIAI Engine buyer FAQ, ownership, product-readiness, license, support or contract statement, consult `docs/public/buyer-faq/authority.v1.json` and `buyer-faq.v1.json`. Verious Smith III is the **creator and principal architect of Focusa**, owns **Startempire Wire LLC** (the company developing/licensing **Focusa and UIAI Engine**), and owns **Philoveracity**, his brand-development agency/DBA operating since 2010. AI coding agents assist development under his authority; he is **not merely a licensing contact**. The legal DBA registrant is not independently verified in these documents; do not invent it.
+
+Preserve all 55 published FAQ questions and the approved $5,000 deployment plus twelve-month Operator Success scope. Do not inflate source implementation into release/customer-acceptance proof, guarantee integrations or change scope. Run `python3 scripts/focusa_public_claims.py --check` and validate any prepared identity-related message using `--outbound-file PATH`. **This local validation is not permission to send**: the actual Gmail/CRM/OpenClaw outbound action still requires owner-approved content, source truth, and explicit send authority. Block rather than guess if source facts conflict.
+
 ## Agent-KB API Default Reference
 
 For KH/OVH/operator policy, inherit `/root/AGENTS.md`: query `agent-kb-api` first, verify freshness, use exact document lookup after empty searches, and treat local Agent KB files as read-only fallback.
