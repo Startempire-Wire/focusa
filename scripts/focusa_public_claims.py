@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import hashlib
 import json
 import re
 import sys
@@ -70,8 +71,8 @@ def validate_contract() -> list[str]:
             errors.append(f"FAQ ID/order drift at entry {idx}")
         if not item.get("answer", "").strip():
             errors.append(f"Empty answer at entry {idx}")
-        if item.get("review_state") == "proposed_correction" and not item.get("source_answer"):
-            errors.append(f"Missing original answer required for safe WordPress patch: {idx}")
+        if item.get("review_state") == "proposed_correction" and not re.fullmatch(r"[a-f0-9]{64}", item.get("source_answer_sha256", "")):
+            errors.append(f"Missing original answer digest required for safe WordPress patch: {idx}")
     p = facts.get("identity", {}).get("person", {})
     corp = facts.get("identity", {}).get("software_company", {})
     agency = facts.get("identity", {}).get("philoveracity", {})
@@ -133,7 +134,8 @@ def patch_wordpress(existing: str) -> str:
         found_a = html.unescape(match.group("answer")).strip()
         if found_q != q["question"]:
             raise ValueError(f"Refuse WordPress patch: question {i} changed or moved")
-        if found_a not in {q["answer"], q.get("source_answer", q["answer"])}:
+        original_digest = hashlib.sha256(found_a.encode("utf-8")).hexdigest()
+        if found_a != q["answer"] and original_digest != q.get("source_answer_sha256"):
             raise ValueError(f"Refuse WordPress patch: answer {i} has unseen concurrent changes")
     it = iter(qs)
     def substitute(match: re.Match) -> str:
