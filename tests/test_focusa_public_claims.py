@@ -42,7 +42,9 @@ class TestBuyerFaqContract(unittest.TestCase):
         self.assertEqual(doc, gate.patch_wordpress(doc))
         faq = gate.read(gate.FAQ)
         first = next(i for i in faq["questions"] if i.get("review_state") == "proposed_correction")
-        old = doc.replace(first["answer"], first["source_answer"], 1)
+        old_answer = "Yes. A daily summary can show urgent work, approaching deadlines, items waiting on someone else, blocked work, and work that Focusa completed. We must first connect and test the systems that supply this information."
+        self.assertEqual("focusa-faq-005", first["id"])
+        old = doc.replace(first["answer"], old_answer, 1)
         self.assertEqual(doc, gate.patch_wordpress(old))
 
     def test_wordpress_new_unapproved_change_is_blocked(self):
