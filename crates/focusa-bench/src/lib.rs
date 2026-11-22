@@ -3,7 +3,7 @@
 //! Provides:
 //! - model_matrix: pinned LLM provider/version/class/pricing metadata
 //! - arms: no_focusa | passive_focusa | tool_only_focusa | full_focusa
-//! - task: 150-task public/private benchmark suite
+//! - task: 150 placeholder task definitions (78 public / 72 private), not executed benchmark data
 //! - metrics: Agent Power Index, Focusa Uplift Score, groundedness, etc.
 //! - eval ledger API: append-only runs/events/complete/read/compare
 //! - public-safe snapshots with redaction, hash chain, claim generation
@@ -37,8 +37,8 @@ pub use spec144::{COMPARISON_COHORTS, EvaluationMetrics, PromotionThresholds};
 pub use task_suite::{Task, TaskKind, TaskPool};
 
 pub const BENCH_SCHEMA: &str = "focusa.bench.v1";
-pub const PUBLIC_TASK_COUNT: usize = 75;
-pub const PRIVATE_TASK_COUNT: usize = 75;
+pub const PUBLIC_TASK_COUNT: usize = 78;
+pub const PRIVATE_TASK_COUNT: usize = 72;
 pub const TOTAL_TASK_COUNT: usize = PUBLIC_TASK_COUNT + PRIVATE_TASK_COUNT;
 
 /// Library version: aligns with focusa workspace.
