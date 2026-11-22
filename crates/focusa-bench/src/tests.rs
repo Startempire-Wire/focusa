@@ -17,6 +17,8 @@ fn canonical_pool_has_150_tasks() {
         72,
         "72 private tasks (12 per kind * 6 kinds = 72)"
     );
+    assert_eq!(PUBLIC_TASK_COUNT, pool.public_count());
+    assert_eq!(PRIVATE_TASK_COUNT, pool.private_count());
 }
 
 #[test]
