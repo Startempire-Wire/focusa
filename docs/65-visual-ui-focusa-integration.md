@@ -100,3 +100,10 @@ A consuming product such as Wirebot may define higher-order human-facing composi
 - browser/computer proof remains owned by UIAI Engine and enters Focusa as bounded Evidence rather than a competing browser/proof subsystem.
 
 This seam allows Focusa to remain a reusable engine behind multiple product families while preserving product ownership and avoiding UI-framework duplication.
+
+
+## Continuous agent visual perception — UIAI P0 integration binding
+
+For an agent that watches the rendered browser UI as it works, the implementation/transport owner is **UIAI Engine**, not a second Focusa browser watcher. Actual pixel-grounded visual findings feed back through the established Focusa Workpoint/Trajectory, verified Evidence, candidate-graph promotion, prediction/metacognition, and—only when actually installed—Spec182 Foreman and Spec183 Radar contracts.
+
+The complete requirement/authority/placement/identity/QA/learning/closure handoff is the addendum in [`docs/current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md`](current/UIAI_BROWSER_DIAGNOSTICS_FOCUSA_INTEGRATION_SPEC.md#12-p0-uiai-agent-owned-continuous-visual-perception--focusa-feedback-contract-2026-11-21), linked to [UIAI P0 PR #321](https://github.com/WPUIAI/uiai-engine/pull/321). This does not add an ontology owner, new scheduler, evidence database, competing visual engine, unapproved memory authority or a new 135-letter companion. A spec is not installed capability.
