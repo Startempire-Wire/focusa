@@ -1,0 +1,84 @@
+{
+  "schema": "focusa.sovos_paper_benchmark_result.v1",
+  "experiment_id": "sovos-paper-on-off-v1",
+  "status": "unmeasured",
+  "source_revision": null,
+  "research_pr": "https://github.com/Startempire-Wire/agent-driven-life-business-os/pull/49",
+  "handoff_ref": "docs/research/SOVOS_PAPER_EXPERIMENT_SERVER_AGENT_HANDOFF_2026-11-22.md",
+  "task_manifest_ref": "docs/research/SOVOS_PAPER_BENCHMARK_MVP_CASES_2026-11-22.json",
+  "task_manifest_sha256": null,
+  "model": {
+    "provider": null,
+    "model_id": null,
+    "exact_version": null,
+    "temperature": null,
+    "sampling": null,
+    "token_budget": null,
+    "pricing_snapshot_ref": null
+  },
+  "harness": {
+    "name": null,
+    "version": null,
+    "installed_fingerprint": null,
+    "git_commit": null
+  },
+  "environment": {
+    "host_label_redacted": null,
+    "os": null,
+    "arch": null,
+    "daemon_version": null,
+    "uiai_version": null,
+    "focusa_version": null,
+    "environment_digest": null
+  },
+  "authorizations": {
+    "synthetic_fixture_only": true,
+    "provider_live_approved": false,
+    "approved_budget_usd": null,
+    "scope_ref_redacted": null
+  },
+  "arms": {
+    "baseline": "no_focusa",
+    "intervention": "full_focusa",
+    "isolation_verified": false,
+    "isolation_proof_ref": null
+  },
+  "preregistered_plan_ref": null,
+  "independent_scorer": {
+    "scorer_commit": null,
+    "oracle_rev": null,
+    "blind_review": false,
+    "reviewer_ref": null,
+    "oracle_evidence_refs": []
+  },
+  "attempts": [],
+  "summary": {
+    "n_total": 0,
+    "n_measured": 0,
+    "n_passed": 0,
+    "n_failed": 0,
+    "n_inconclusive": 0,
+    "n_unavailable": 0,
+    "primary_accepted_outcome_rate": null,
+    "comparison_delta": null,
+    "ci95": null,
+    "cost_per_accepted_outcome_usd": null
+  },
+  "artifacts": {
+    "redacted_run_jsonl_ref": null,
+    "source_proof_refs": [],
+    "artifact_digests_sha256": [],
+    "statistical_method_ref": null,
+    "figures": []
+  },
+  "limitations": [
+    "UNMEASURED template: no trials executed and no efficacy claim may be derived from this document."
+  ],
+  "public_release": {
+    "publish_allowed": false,
+    "redaction_status": "not_run",
+    "secret_scan_status": "not_run",
+    "independent_review_status": "not_run"
+  },
+  "result_pr_url": null
+}
