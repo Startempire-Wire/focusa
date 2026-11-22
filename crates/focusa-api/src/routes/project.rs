@@ -2257,6 +2257,172 @@ fn candidate_payload(
     })
 }
 
+// #89: a controller-owned, verified RemoteWorkspaceBinding is canonical
+// authority for its remote root. Filesystem lineage on the controller (for
+// example a git common-dir ancestor) is not a project-identity conflict when
+// the root is owned by such a binding. These helpers are deliberately narrow:
+// only verified/stale, non-revoked bindings that exactly own the requested
+// root are accepted, and the original mismatches are preserved for audit.
+fn binding_db_path() -> Option<PathBuf> {
+    let dir = std::env::var_os("FOCUSA_DATA_DIR")
+        .map(PathBuf::from)
+        .or_else(|| Some(focusa_data_dir()))?;
+    Some(crate::routes::events_sqlite::focusa_db_path(
+        &dir.to_string_lossy(),
+    ))
+}
+
+fn binding_to_json(binding: &focusa_core::remote_workspace::RemoteWorkspaceBinding) -> Value {
+    serde_json::json!({
+        "binding_id": binding.binding_id,
+        "status": binding.state.status,
+        "continuity_id": binding.session.continuity_id,
+        "project_id": binding.project.project_id,
+        "repo_remote": binding.project.repo_remote,
+        "canonical_remote_root": binding.roots.canonical_remote_root,
+        "working_subpath": binding.roots.working_subpath,
+        "worktree_identity": binding.roots.worktree_identity,
+        "transport": {
+            "kind": binding.transport.kind,
+            "host": binding.transport.host,
+            "user": binding.transport.user,
+            "port": binding.transport.port,
+            "verified_at": binding.transport.verified_at,
+        }
+    })
+}
+
+fn binding_identity_override(project_root: &str) -> Option<Value> {
+    let path = binding_db_path()?;
+    let conn = rusqlite::Connection::open_with_flags(
+        path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .ok()?;
+    let trimmed = project_root.trim_end_matches('/');
+    let binding =
+        focusa_core::remote_workspace::resolve_binding_for_root(&conn, trimmed).ok()??;
+    if !matches!(
+        binding.state.status,
+        focusa_core::remote_workspace::BindingStatus::Verified
+            | focusa_core::remote_workspace::BindingStatus::Stale
+    ) || binding.state.revocation.is_some()
+    {
+        return None;
+    }
+    if binding
+        .roots
+        .canonical_remote_root
+        .trim_end_matches('/')
+        != trimmed
+    {
+        return None;
+    }
+    Some(binding_to_json(&binding))
+}
+
+fn apply_binding_identity_override(obj: &mut serde_json::Map<String, Value>, binding: &Value) {
+    obj.insert("status".to_string(), json!("completed"));
+    obj.insert("canonical".to_string(), json!(true));
+    obj.insert("degraded".to_string(), json!(false));
+    obj.remove("mismatch_reason");
+    obj.insert("controller_binding".to_string(), binding.clone());
+
+    let Some(identity) = obj.get_mut("project_identity").and_then(Value::as_object_mut) else {
+        return;
+    };
+    identity.insert("status".to_string(), json!("verified"));
+    identity.insert("canonical".to_string(), json!(true));
+    identity.insert("confidence".to_string(), json!("high"));
+    if let Some(value) = binding.get("project_id") {
+        identity.insert("project_id".to_string(), value.clone());
+    }
+    if let Some(value) = binding.get("repo_remote") {
+        identity.insert("repo_remote".to_string(), value.clone());
+    }
+    // Controller filesystem lineage is not a conflict for a root owned by a
+    // verified binding; keep the originals as an explicit audit trail.
+    if let Some(mismatches) = identity.get_mut("mismatches").and_then(Value::as_array_mut) {
+        if !mismatches.is_empty() {
+            let suppressed = std::mem::take(mismatches);
+            identity.insert("suppressed_controller_lineage_mismatches".to_string(), json!(suppressed));
+        }
+    }
+    let mut remote_context = identity
+        .get("remote_context")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    if let Some(context) = remote_context.as_object_mut() {
+        context.insert("verification_status".to_string(), json!("verified"));
+        context.insert("source".to_string(), json!("verified_controller_binding"));
+        for (target, pointer) in [
+            ("binding_id", "/binding_id"),
+            ("verified_at", "/transport/verified_at"),
+            ("transport_kind", "/transport/kind"),
+            ("transport_host", "/transport/host"),
+            ("transport_user", "/transport/user"),
+            ("transport_port", "/transport/port"),
+            ("continuity_id", "/continuity_id"),
+        ] {
+            if let Some(value) = binding.pointer(pointer) {
+                context.insert(target.to_string(), value.clone());
+            }
+        }
+    }
+    identity.insert("remote_context".to_string(), remote_context);
+
+    // Trajectory's verified-project anchor requires an exact ScopeRef. Local
+    // identity only emits one when the controller filesystem is canonical;
+    // for a bound remote root the binding is that authority, so derive the
+    // same typed shape from the verified payload fields.
+    let scope_ref_missing = identity
+        .get("scope_ref")
+        .map(|value| value.is_null())
+        .unwrap_or(true);
+    if scope_ref_missing {
+        let root = identity.get("project_root").cloned().unwrap_or(Value::Null);
+        let project_id = identity
+            .get("project_id")
+            .and_then(Value::as_str)
+            .unwrap_or("project");
+        let canonical_name = identity
+            .get("canonical_name")
+            .and_then(Value::as_str)
+            .unwrap_or(project_id);
+        let fingerprint = identity.get("fingerprint").cloned().unwrap_or(Value::Null);
+        identity.insert(
+            "scope_ref".to_string(),
+            json!({
+                "scope_kind": "project",
+                "scope_id": format!("project:{}", project_id),
+                "root_path": root,
+                "canonical_name": canonical_name,
+                "fingerprint": fingerprint,
+            }),
+        );
+    }
+
+    if let Some(summary) = identity
+        .get_mut("project_summary")
+        .and_then(Value::as_object_mut)
+    {
+        summary.insert("status".to_string(), json!("verified"));
+        if let Some(project) = summary.get_mut("project").and_then(Value::as_object_mut) {
+            project.insert("status".to_string(), json!("verified"));
+            if let Some(value) = binding.get("repo_remote") {
+                project.insert("repo_remote".to_string(), value.clone());
+            }
+        }
+        if let Some(lines) = summary.get_mut("summary_lines").and_then(Value::as_array_mut) {
+            for line in lines.iter_mut() {
+                if let Some(text) = line.as_str() {
+                    *line = json!(text.replace("status=mismatch", "status=verified"));
+                }
+            }
+        }
+    }
+}
+
 fn project_identity_payload_for_scope_with_remote(
     cwd: Option<&str>,
     project_root: Option<&str>,
@@ -2266,10 +2432,17 @@ fn project_identity_payload_for_scope_with_remote(
 ) -> Value {
     // Identity discovery is intentionally uncached. A process-global cache can
     // return stale authority across alternating project/workstream requests.
-    candidate_payload(
+    let mut payload = candidate_payload(
         discover_identity(cwd, project_root, current_ask, remote_hint),
         None,
-    )
+    );
+    if let Some(root) = project_root
+        && let Some(binding) = binding_identity_override(root)
+        && let Some(object) = payload.as_object_mut()
+    {
+        apply_binding_identity_override(object, &binding);
+    }
+    payload
 }
 
 pub(crate) fn project_identity_payload_for_scope(
@@ -3169,20 +3342,9 @@ async fn verify(
         .await
         .unwrap_or(None)
         {
+            let binding_value = binding_to_json(&binding);
             if let Some(object) = response.as_object_mut() {
-                object.insert(
-                    "controller_binding".to_string(),
-                    serde_json::json!({
-                        "binding_id": binding.binding_id,
-                        "status": binding.state.status,
-                        "continuity_id": binding.session.continuity_id,
-                        "project_id": binding.project.project_id,
-                        "repo_remote": binding.project.repo_remote,
-                        "canonical_remote_root": binding.roots.canonical_remote_root,
-                        "working_subpath": binding.roots.working_subpath,
-                        "worktree_identity": binding.roots.worktree_identity,
-                    }),
-                );
+                apply_binding_identity_override(object, &binding_value);
             }
         }
     }
