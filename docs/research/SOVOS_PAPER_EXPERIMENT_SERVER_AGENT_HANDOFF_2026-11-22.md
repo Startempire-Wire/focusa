@@ -128,3 +128,13 @@ SOVOS PR #49 may cite the benchmark only after a real measured-result PR is revi
 This effort does not independently verify machine consciousness. IIT 4.0 is a separately version-pinned finite-model research track under SOVOS Master Loop §12, not a substitute for measured Focusa performance or source outcome acceptance.
 
 **Deliverable acceptance:** a reviewer can clone the pinned source, run the supplied synthetic fixtures and published scoring, independently reproduce reported results (or see exact environmental constraints), inspect every negative outcome, and connect each numerical chart to immutable underlying recorded observations. Anything short of that remains engineering evidence or planned research, not a peer-review-ready efficacy claim.
+
+## 9. Embedded cross-vertical substrate experiment (additional study)
+
+The author has identified a second research claim: **the same Focusa runtime and UIAI Engine primitives can be embedded across Wirebot, WorkRouter, Wirebase and Focusa Market Lab** with each domain retaining independent business/source truth. This is an additional controlled study, not replacement of the original Spec 114 18-task starter.
+
+- Read `docs/research/SOVOS_PAPER_CROSS_VERTICAL_RESEARCH_HANDOFF_2026-11-22.md` and its paired `docs/research/SOVOS_PAPER_CROSS_VERTICAL_PORTABILITY_STUDY_2026-11-22.json` (12 design-only test cases, zero measurements).
+- Include one or more **implemented** cross-vertical synthetic test cases and their actual source-domain oracles in the eventual results PR. Preserve `unmeasured` or `incomparable` on any not executed or non-equivalent arm. Test both ad hoc and formal scoped uses where appropriate.
+- The core scientific controls compare agent/harness-only, Focusa addition, UIAI verified interaction where applicable, and composed Focusa/UIAI—**without denying the baseline equivalent source access or pretending a browser is needed for deterministic finance operations**.
+- Market Lab is paper/synthetic-fixture only, not an order/trading authority. Separate a simulated fast clock from real uninterrupted 24-hour operational monitoring. Autonomous duty cycle means verified goal maintenance and selective event-driven work; it does not mean constant LLM calls.
+- Return cross-domain results, failure/effect traces, 95% uncertainty where justified, and genuinely observed scientific figures through the **same source-owned benchmark/result PR**. The reusable underlying primitive contracts are the scientific subject; each application supplies its own source records and evaluation oracle.
