@@ -2294,11 +2294,9 @@ fn binding_to_json(binding: &focusa_core::remote_workspace::RemoteWorkspaceBindi
 
 fn binding_identity_override(project_root: &str) -> Option<Value> {
     let path = binding_db_path()?;
-    let conn = rusqlite::Connection::open_with_flags(
-        path,
-        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
-    )
-    .ok()?;
+    let conn =
+        rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .ok()?;
     let trimmed = project_root.trim_end_matches('/');
     let binding =
         focusa_core::remote_workspace::resolve_binding_for_root(&conn, trimmed).ok()??;
@@ -2310,12 +2308,7 @@ fn binding_identity_override(project_root: &str) -> Option<Value> {
     {
         return None;
     }
-    if binding
-        .roots
-        .canonical_remote_root
-        .trim_end_matches('/')
-        != trimmed
-    {
+    if binding.roots.canonical_remote_root.trim_end_matches('/') != trimmed {
         return None;
     }
     Some(binding_to_json(&binding))
@@ -2328,7 +2321,10 @@ fn apply_binding_identity_override(obj: &mut serde_json::Map<String, Value>, bin
     obj.remove("mismatch_reason");
     obj.insert("controller_binding".to_string(), binding.clone());
 
-    let Some(identity) = obj.get_mut("project_identity").and_then(Value::as_object_mut) else {
+    let Some(identity) = obj
+        .get_mut("project_identity")
+        .and_then(Value::as_object_mut)
+    else {
         return;
     };
     identity.insert("status".to_string(), json!("verified"));
@@ -2345,7 +2341,10 @@ fn apply_binding_identity_override(obj: &mut serde_json::Map<String, Value>, bin
     if let Some(mismatches) = identity.get_mut("mismatches").and_then(Value::as_array_mut) {
         if !mismatches.is_empty() {
             let suppressed = std::mem::take(mismatches);
-            identity.insert("suppressed_controller_lineage_mismatches".to_string(), json!(suppressed));
+            identity.insert(
+                "suppressed_controller_lineage_mismatches".to_string(),
+                json!(suppressed),
+            );
         }
     }
     let mut remote_context = identity
@@ -2413,7 +2412,10 @@ fn apply_binding_identity_override(obj: &mut serde_json::Map<String, Value>, bin
                 project.insert("repo_remote".to_string(), value.clone());
             }
         }
-        if let Some(lines) = summary.get_mut("summary_lines").and_then(Value::as_array_mut) {
+        if let Some(lines) = summary
+            .get_mut("summary_lines")
+            .and_then(Value::as_array_mut)
+        {
             for line in lines.iter_mut() {
                 if let Some(text) = line.as_str() {
                     *line = json!(text.replace("status=mismatch", "status=verified"));
