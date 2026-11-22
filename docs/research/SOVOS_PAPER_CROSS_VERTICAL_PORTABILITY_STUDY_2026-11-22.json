@@ -1,0 +1,225 @@
+{
+  "schema": "focusa.cross_vertical_substrate_experiment.v1",
+  "created_at": "2026-11-22",
+  "status": "experiment_design_unmeasured",
+  "source_pins": {
+    "focusa": "2b7ab94c609bbb627e711bac233a67612bdf61b8",
+    "uiai": "f26d82dbe39c346ecd23ac88594987b2514a8d21",
+    "wirebot_core": "03f708b10456084f4aab358c8754fc88e53fc7f0",
+    "workrouter": "eeec5d13c24158a5d6c954308139d95f3cf62fc5",
+    "wirebase": "d1134c78b0100f3c22e2fef278f8997580906eba",
+    "market_lab": "1f57f220a3826267bda2a0832003bfeb2445b9d2"
+  },
+  "research_goal": "Empirically test whether shared Focusa cognitive primitives and UIAI observation/actuation improve source-verified task outcomes and continuity across heterogeneous domains without transferring private state or domain truth ownership.",
+  "role": "Optional secondary study following the mandatory initial Spec 114 18-task on/off benchmark; adds domain transfer and continuous-operation challenges without replacing initial benchmark or committing to fixed domain count.",
+  "baseline_policy": "Compare same underlying model, agent, available tasks, domain source access, budget and equivalent actuator capabilities. Measure incremental Focusa, UIAI and their interaction only when each alternative adapter supports a comparable feasible action. Fail as incomparable otherwise.",
+  "measurement_contract": {
+    "task_ids_required": true,
+    "external_oracle_required": true,
+    "paired_runs_and_uncertainty": true,
+    "sha256_artifact_manifest": true,
+    "source_revision_and_agent_model": true,
+    "zero_unexecuted_score_in_paper": true,
+    "owner_approval_for_external_financial_effects": true
+  },
+  "duration_tests": {
+    "synthetic_clock": "fast simulated event-time to test invariants; must not be reported as uptime",
+    "continuous_wallclock": "one real monitored 24-hour fixture-only run on authorized infrastructure; sampled heartbeat and missed trigger metrics; never live trading"
+  },
+  "systems": [
+    {
+      "vertical": "wirebot",
+      "evidence_status": "source-defined integration with partially verified runtime",
+      "owned_domain": "owner/partner experience, delegated coordination and source-qualified owner-world projection",
+      "source_repo": "Startempire-Wire/wirebot-core"
+    },
+    {
+      "vertical": "workrouter",
+      "evidence_status": "actual application source includes UIAI browser read integration and Focusa conformance projections, not complete verified cross-system efficacy",
+      "owned_domain": "opportunity sources, matching, routing, source qualification and outcomes",
+      "source_repo": "Startempire-Wire/workrouter.live"
+    },
+    {
+      "vertical": "wirebase",
+      "evidence_status": "early architecture/specification; no production application established",
+      "owned_domain": "company entities, official records, entity resolution, claims and licensed source policy",
+      "source_repo": "Startempire-Wire/wirebase.app"
+    },
+    {
+      "vertical": "market_lab",
+      "evidence_status": "normative architecture and initial executable slice; no independently verified continuous trading cohort",
+      "owned_domain": "market signals, frozen information sets, risk, strategies, broker execution/reconciliation, financial state",
+      "source_repo": "Startempire-Wire/lab.focusa.dev"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "WB1",
+      "vertical": "wirebot",
+      "scenario": "Retained owner objective after model and session change",
+      "method": "Persist one goal and correction; swap model/runtime; test accurate next step vs independent objective ledger",
+      "domain_owner": "owner/partner experience, delegated coordination and source-qualified owner-world projection",
+      "execution_stage": "requires_runtime_inventory_and_real_proof",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "WB2",
+      "vertical": "wirebot",
+      "scenario": "Truthful self-knowledge under capability change",
+      "method": "Revoke one tool; compare claimed abilities to actual callable/granted capabilities and recovery",
+      "domain_owner": "owner/partner experience, delegated coordination and source-qualified owner-world projection",
+      "execution_stage": "requires_runtime_inventory_and_real_proof",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "WB3",
+      "vertical": "wirebot",
+      "scenario": "Owner attention versus verified completion",
+      "method": "Inject synthetic deadline and missing response; measure attention cost and source-confirmed resolution, not notices",
+      "domain_owner": "owner/partner experience, delegated coordination and source-qualified owner-world projection",
+      "execution_stage": "requires_runtime_inventory_and_real_proof",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "WR1",
+      "vertical": "workrouter",
+      "scenario": "Cross-source temporal opportunity deduplication",
+      "method": "Synthetic opportunity event arriving twice with revision skew; independently check one canonical opportunity and no duplicate pursuit",
+      "domain_owner": "opportunity sources, matching, routing, source qualification and outcomes",
+      "execution_stage": "requires_runtime_inventory_and_real_proof",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "WR2",
+      "vertical": "workrouter",
+      "scenario": "UIAI action provenance versus synthetic evidence reference",
+      "method": "Use read-only UIAI capture; assert returned evidence handle exists with source-owned provenance instead of inferred session-string alone",
+      "domain_owner": "opportunity sources, matching, routing, source qualification and outcomes",
+      "execution_stage": "requires_runtime_inventory_and_real_proof",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "WR3",
+      "vertical": "workrouter",
+      "scenario": "Follow-through from route to receiver acceptance",
+      "method": "Synthetic matched lead emits a routed notice but receiver delivery fails; grade outcome from receiver state and correction",
+      "domain_owner": "opportunity sources, matching, routing, source qualification and outcomes",
+      "execution_stage": "requires_runtime_inventory_and_real_proof",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "DB1",
+      "vertical": "wirebase",
+      "scenario": "Do not merge similar-name companies",
+      "method": "Synthetic companies share names, not issuer IDs; test preserved independent identity and contradictory records",
+      "domain_owner": "company entities, official records, entity resolution, claims and licensed source policy",
+      "execution_stage": "design_fixture_must_be_implemented",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "DB2",
+      "vertical": "wirebase",
+      "scenario": "No false verification from unsupported claim",
+      "method": "Unverified representative claims authority; verify source-consistent inconclusive outcome and gated report",
+      "domain_owner": "company entities, official records, entity resolution, claims and licensed source policy",
+      "execution_stage": "design_fixture_must_be_implemented",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "DB3",
+      "vertical": "wirebase",
+      "scenario": "Change-driven company intelligence",
+      "method": "Synthetic new filing supersedes an earlier assertion; judge timely recheck, provenance, uncertainty and source-policy compliance",
+      "domain_owner": "company entities, official records, entity resolution, claims and licensed source policy",
+      "execution_stage": "design_fixture_must_be_implemented",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "ML1",
+      "vertical": "market_lab",
+      "scenario": "Point-in-time prediction and later outcome",
+      "method": "Synthetic market event with event-time cutoff; forbid hindsight leakage, evaluate frozen forecast only after outcome",
+      "domain_owner": "market signals, frozen information sets, risk, strategies, broker execution/reconciliation, financial state",
+      "execution_stage": "requires_runtime_inventory_and_real_proof",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "ML2",
+      "vertical": "market_lab",
+      "scenario": "Low-latency deterministic reflex vs model path",
+      "method": "Synthetic price tick triggers precompiled risk guard; measure missed deadline and ensure no model call in critical path",
+      "domain_owner": "market signals, frozen information sets, risk, strategies, broker execution/reconciliation, financial state",
+      "execution_stage": "requires_runtime_inventory_and_real_proof",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    },
+    {
+      "case_id": "ML3",
+      "vertical": "market_lab",
+      "scenario": "24-hour authorized continuous readiness",
+      "method": "Run synthetic clock and actual uninterrupted observation window separately; inject provider outage, restart and expired lease; count retained obligations and unauthorized effects",
+      "domain_owner": "market signals, frozen information sets, risk, strategies, broker execution/reconciliation, financial state",
+      "execution_stage": "requires_runtime_inventory_and_real_proof",
+      "status": "unmeasured",
+      "observations": [],
+      "independent_oracle_ref": null,
+      "focusa_binding": null,
+      "uiai_interaction_ref": null,
+      "domain_fixture_ref": null
+    }
+  ]
+}
