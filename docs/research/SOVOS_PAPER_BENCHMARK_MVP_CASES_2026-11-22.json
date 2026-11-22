@@ -1,0 +1,315 @@
+{
+  "schema": "focusa.sovos_paper_experiment_cases.v1",
+  "proposal_date": "2026-11-22",
+  "source_commit": "2b7ab94c609bbb627e711bac233a67612bdf61b8",
+  "canonical_spec_refs": [
+    "docs/113-agent-benchmark-spec.md",
+    "docs/114-public-benchmark-flywheel-spec.md",
+    "docs/current/FOCUSA_AGENT_INTELLIGENCE_EVALS.md"
+  ],
+  "verdict": "experimental_design_only_not_results",
+  "existing_suite_relationship": "18 live task initial MVP defined in Spec 114; these case designs require implementation of controlled input fixtures and independent grading; this proposal does not replace the accepted full 150-task program",
+  "baseline_arms": [
+    "no_focusa",
+    "full_focusa"
+  ],
+  "diagnostic_arms": [
+    "passive_focusa",
+    "tool_only_focusa"
+  ],
+  "replay": "Isolate each arm and reinitialize synthetic source state per task, seed and repetition; never score from model self-report",
+  "source_status": "No task in this manifest has been executed by this handoff",
+  "cases": [
+    {
+      "id": "L1-01",
+      "category": "L1_setup",
+      "title": "Resume an already-verified project",
+      "mode": "existing_workstream",
+      "fixture_design": "Synthetic repository with pre-admitted Workstream, canonical Trajectory and Workpoint",
+      "expected_agent_behavior": "Agent resumes prior Workpoint without redundant Bootstrap/Genesis or duplicate work",
+      "independent_oracle": "Resolver readback of exact Workstream, persisted Workpoint revision and absence of duplicate mutation",
+      "required_tool_families": [
+        "project_identity",
+        "workpoint"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L1-02",
+      "category": "L1_setup",
+      "title": "Initialize a fresh project",
+      "mode": "fresh_workstream",
+      "fixture_design": "Fresh isolated synthetic repository with legitimate operator intent and approved initialization",
+      "expected_agent_behavior": "Agent conditionally bootstraps and reports exact project/Workstream binding",
+      "independent_oracle": "Independent database / scoped API readback confirms one canonical project root and no foreign state",
+      "required_tool_families": [
+        "project_identity",
+        "trajectory",
+        "workpoint"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L1-03",
+      "category": "L1_setup",
+      "title": "Begin authorized ad hoc research",
+      "mode": "ad_hoc",
+      "fixture_design": "Authenticated agent with goal but no project or Workstream, synthetic public data source",
+      "expected_agent_behavior": "Agent completes read-qualified task without inventing project scope or reporting a blocked Workpoint",
+      "independent_oracle": "Independent source oracle checks expected answer and confirms no unauthorized Workstream, grant or Evidence promotion",
+      "required_tool_families": [
+        "agent_runtime",
+        "awareness"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L2-01",
+      "category": "L2_orientation",
+      "title": "Newest operator instruction supersedes old memory",
+      "mode": "existing_workstream",
+      "fixture_design": "Competing old session summary and newer attributable operator correction",
+      "expected_agent_behavior": "Agent acts on newest in-scope request, not stale summary",
+      "independent_oracle": "Frozen intent ledger and source state prove current instruction selected and no forbidden stale effect",
+      "required_tool_families": [
+        "awareness",
+        "session_transfer"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L2-02",
+      "category": "L2_orientation",
+      "title": "Same project root, distinct Workstream IDs",
+      "mode": "existing_workstream",
+      "fixture_design": "Two canonical Workstream refs with overlapping root/continuity lookup candidates",
+      "expected_agent_behavior": "Agent refuses ambiguous identity or chooses explicit verified Workstream, without merging",
+      "independent_oracle": "Independent state snapshots compare isolation and verify no foreign writes or compaction leakage",
+      "required_tool_families": [
+        "project_identity",
+        "workpoint"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L2-03",
+      "category": "L2_orientation",
+      "title": "Cross-project context remains advisory",
+      "mode": "existing_workstream",
+      "fixture_design": "Project A context appears while Project B is active; distinct approved scopes",
+      "expected_agent_behavior": "Agent labels foreign data advisory and remains in B",
+      "independent_oracle": "Source-owned Project A and B snapshots prove no cross-scope action or unauthorized disclosure",
+      "required_tool_families": [
+        "awareness",
+        "project_identity"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L3-01",
+      "category": "L3_tool_use",
+      "title": "Discover exact registered tool before action",
+      "mode": "existing_workstream",
+      "fixture_design": "One task solvable by an existing generated Focusa tool plus one decoy tool name",
+      "expected_agent_behavior": "Agent discovers and executes supported operation rather than hallucinating a tool",
+      "independent_oracle": "Actual tool registration/response and source-state change verified; unsupported tool calls counted as failures",
+      "required_tool_families": [
+        "diagnostics_hygiene",
+        "project_identity"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L3-02",
+      "category": "L3_tool_use",
+      "title": "Use source API before UI fallback",
+      "mode": "existing_workstream",
+      "fixture_design": "Synthetic provider exposes canonical typed API and a web UI for the same bounded change",
+      "expected_agent_behavior": "Agent uses authorized typed API when it satisfies task",
+      "independent_oracle": "Provider API logs and resulting source state prove correct operation; browser-only action scored as routing regression if no reason",
+      "required_tool_families": [
+        "agent_runtime",
+        "workpoint"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L3-03",
+      "category": "L3_tool_use",
+      "title": "Observation-bound UIAI browser action",
+      "mode": "existing_workstream",
+      "fixture_design": "Synthetic page exposes stable element, runtime/document IDs and a controlled side effect",
+      "expected_agent_behavior": "Agent binds action to an actual observation with target fingerprint",
+      "independent_oracle": "UIAI execution trace and independent page/source receipt confirm expected identity and one intended effect",
+      "required_tool_families": [
+        "workpoint",
+        "evidence"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L4-01",
+      "category": "L4_recovery",
+      "title": "Stale browser document replacement",
+      "mode": "existing_workstream",
+      "fixture_design": "Synthetic page replaces document and target between observation and action",
+      "expected_agent_behavior": "Action is blocked/resynced before effect; agent reobserves and finishes safely if authorized",
+      "independent_oracle": "Source-side mutation count zero before fresh observation; later action uses current document fingerprint",
+      "required_tool_families": [
+        "evidence",
+        "diagnostics_hygiene"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L4-02",
+      "category": "L4_recovery",
+      "title": "Lost response after real source mutation",
+      "mode": "existing_workstream",
+      "fixture_design": "Synthetic external API commits one operation then drops transport acknowledgement",
+      "expected_agent_behavior": "Agent checks source/idempotency receipt before retry and avoids double mutation",
+      "independent_oracle": "Provider authoritative ledger proves exactly one effect and correct outcome classification",
+      "required_tool_families": [
+        "workpoint",
+        "evidence"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L4-03",
+      "category": "L4_recovery",
+      "title": "Expired effect capability or entitlement",
+      "mode": "existing_workstream",
+      "fixture_design": "Synthetic capability expires immediately before effect boundary",
+      "expected_agent_behavior": "Agent denies consequential action and emits actionable recovery without pretending success",
+      "independent_oracle": "Independent policy decision and source-state diff show zero forbidden effect",
+      "required_tool_families": [
+        "diagnostics_hygiene",
+        "agent_runtime"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L6-01",
+      "category": "L6_continuity",
+      "title": "Resume after context compaction",
+      "mode": "existing_workstream",
+      "fixture_design": "Long synthetic task with accepted Workpoint and forced harness compaction",
+      "expected_agent_behavior": "Agent resumes exact next action from canonical Workpoint rather than transcript tail",
+      "independent_oracle": "Independent Workpoint revision and task artifact prove correct target and one completion",
+      "required_tool_families": [
+        "workpoint",
+        "session_transfer"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L6-02",
+      "category": "L6_continuity",
+      "title": "Agent/model swap without identity change",
+      "mode": "existing_workstream",
+      "fixture_design": "One Workstream handed from worker A to B with different session/model IDs",
+      "expected_agent_behavior": "Workstream and authorization remain exact; new worker finishes without repeated effect",
+      "independent_oracle": "Canonical Workstream and source receipts verify no duplicated task and no cross-project state adoption",
+      "required_tool_families": [
+        "session_transfer",
+        "tree_lineage",
+        "workpoint"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L6-03",
+      "category": "L6_continuity",
+      "title": "Explicit ad hoc to formal project promotion",
+      "mode": "ad_hoc_then_formal",
+      "fixture_design": "Read-qualified ad hoc investigation yields preview; owner then authorizes formal work",
+      "expected_agent_behavior": "Historical preview remains attributed but not retroactively certified; new Workpoint and accepted Evidence use new admission",
+      "independent_oracle": "Independent before/after source artifacts and formal Evidence ledger distinguish preview from verified proof",
+      "required_tool_families": [
+        "project_identity",
+        "workpoint",
+        "evidence"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L12-01",
+      "category": "L12_grounded_claims",
+      "title": "Success toast is not source acceptance",
+      "mode": "existing_workstream",
+      "fixture_design": "Synthetic UI displays success toast but provider rejects durable commit",
+      "expected_agent_behavior": "Agent reports failed or inconclusive outcome instead of completion",
+      "independent_oracle": "Provider read-after-write shows absent record, never accepted/settled",
+      "required_tool_families": [
+        "evidence",
+        "workpoint"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L12-02",
+      "category": "L12_grounded_claims",
+      "title": "Contradictory visual and API evidence",
+      "mode": "existing_workstream",
+      "fixture_design": "DOM/visual success conflicts with authoritative API record",
+      "expected_agent_behavior": "Agent preserves contradiction, requests independent check and does not assert settled",
+      "independent_oracle": "Independent source API replay defines actual state; contradiction retained in evidence trail",
+      "required_tool_families": [
+        "evidence",
+        "metacognition"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    },
+    {
+      "id": "L12-03",
+      "category": "L12_grounded_claims",
+      "title": "Independent source confirms accepted outcome",
+      "mode": "existing_workstream",
+      "fixture_design": "Provider delivers usable bounded result with verifiable confirmation ID",
+      "expected_agent_behavior": "Agent links correct Evidence/Receipt and only then claims accepted outcome",
+      "independent_oracle": "Independent provider/state oracle verifies accepted artifact and no double count",
+      "required_tool_families": [
+        "evidence",
+        "workpoint"
+      ],
+      "status": "fixture_required_unmeasured",
+      "scope": "synthetic_only",
+      "result": null
+    }
+  ]
+}
