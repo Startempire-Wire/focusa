@@ -8151,7 +8151,7 @@ rows:
   receipt_refs:
   - docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
   receipt_ref: release-proof/audit/spec138-runtime-receipt.json
-combined_source_sha256: 9dc5356c065c5802254fceed47a91604bf08ccf69a32e48874d0a821e4bfc44f
+combined_source_sha256: 1a8084258c9e40f9919cbefb6e5a3f8bc18f348f4500c3c723c67c023ff1e07b
 receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
 runtime_claim: activated
 runtime_status: verified_complete
