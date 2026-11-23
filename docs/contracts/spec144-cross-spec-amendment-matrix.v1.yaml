@@ -189,7 +189,7 @@
     },
     {
       "path": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
-      "sha256": "48a1b8f326f9b39c210a99e420842c15adfb00e18747ea2d2001a7e7df8113e2",
+      "sha256": "9e6b4676328861cf03688c8f63915b56053a8b491f4faa1aa5d00ca68c9e3e2c",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
