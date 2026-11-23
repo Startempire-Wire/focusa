@@ -7,7 +7,7 @@
   "sources": [
     {
       "path": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
-      "sha256": "48a1b8f326f9b39c210a99e420842c15adfb00e18747ea2d2001a7e7df8113e2",
+      "sha256": "9e6b4676328861cf03688c8f63915b56053a8b491f4faa1aa5d00ca68c9e3e2c",
       "line_count": 2502,
       "nonempty_source_atom_count": 2085,
       "normative_requirement_count": 271
@@ -20,7 +20,7 @@
       "normative_requirement_count": 269
     }
   ],
-  "combined_normative_source_hash": "9dc5356c065c5802254fceed47a91604bf08ccf69a32e48874d0a821e4bfc44f",
+  "combined_normative_source_hash": "1a8084258c9e40f9919cbefb6e5a3f8bc18f348f4500c3c723c67c023ff1e07b",
   "source_atom_count": 2736,
   "normative_requirement_count": 540,
   "unmapped_source_atom_refs": [],
