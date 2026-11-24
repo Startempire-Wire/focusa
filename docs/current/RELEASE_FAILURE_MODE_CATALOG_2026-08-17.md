@@ -2,6 +2,41 @@
 
 For every future agent touching the focusa release line. Each entry = a mode we hit, the cost, and the rule that prevents it.
 
+## 2026-11-24 — Documentation sweep and release preflight incident
+
+The [canonical release rules](RELEASE_RULES_2026-08-19.md) take precedence over historical entries below. This incident involved independent transport, CI, evidence, and deployment failures. A repair in one lane does not clear the others.
+
+### OVH → KnownHost SSH health check
+
+- **Symptom:** `check-release-resource-gate.py` exited before checking resources: `ssh: Could not resolve hostname kh: Temporary failure in name resolution`.
+- **Verified root cause:** the OVH build account had no effective `Host kh` entry. `ssh -G -T kh` resolved the destination to the literal name `kh` and defaulted to the build account's username. KnownHost's private Tailscale route and loopback Agent-KB service were reachable using the existing approved SSH identity and pinned host key. This was an account-local alias problem, not a failed daemon, a public DNS incident, or a disk-cap rejection. Why the alias was absent was not established.
+- **Recovery:** as the actual OVH build user, back up the user SSH config and atomically restore the approved `kh` alias from current topology and credential references. Use the verified private destination, existing authorized identity, `IdentitiesOnly yes`, and strict host-key checking. Verify the host key against trusted KnownHost evidence before use. Do not expose the loopback port, disable key checking, add credentials, or edit global DNS. Roll back only the affected SSH config change from the protected backup if it causes a regression; preserve concurrent edits.
+- **Verify from OVH as the workflow user:**
+
+  ```bash
+  ssh -G -T kh | grep -E '^(hostname|user|stricthostkeychecking) '
+  ssh -n -o BatchMode=yes -o ConnectTimeout=5 kh \
+    curl -fsS --max-time 10 http://127.0.0.1:8791/v1/health
+  FOCUSA_KH_RESOURCE_HEALTH_SSH_HOST=kh \
+    AGENT_KB_API_URL=http://127.0.0.1:8791 \
+    python3 scripts/check-release-resource-gate.py
+  ```
+
+  Require exit zero and both host rows `passed`. After recovery KnownHost was at 86.96% disk used and OVH at 89.08% with 31.59 GiB free; both had zero pending replication. Use the gate's live numeric values, not rounded `df` alone. No service was stopped. If the check fails later, distinguish alias resolution, host key, login, SSH transport, loopback HTTP, and JSON threshold failures in that order. Check the effective alias on new or reprovisioned runners before spending CI capacity.
+
+### CI, release evidence, and process lessons
+
+| Symptom | Verified cause or limit | Prevention and recovery |
+|---|---|---|
+| [CI run 45413832073](https://github.com/Startempire-Wire/focusa/actions/runs/45413832073) failed the distribution source contract | Agent-capability and documentation edits changed tracked input hashes; the manifest was stale. | After the last covered change, use the canonical stamp writer at the approved version, then run `python3 scripts/distribution_manifest.py --check` and strict release preflight. Never hand-edit hashes. |
+| [CI run 45420623926](https://github.com/Startempire-Wire/focusa/actions/runs/45420623926) failed the Rust operator-reservation test | The test chose an evidence-link route whose effective policy did not report a metering bucket, so it failed before proving reservation behavior. | Test a currently metered route through the effective policy resolver. The source correction uses prediction recording for the evidence bucket; it does not change production policy. Verify the Rust test on the new candidate. |
+| The same run failed strict browser evidence | The aggregate required `passed`, while five committed browser summaries were explicitly `incomplete`; provider conformance was only the first assertion. Reported success and redacted private references were not verified acceptance. | Run the supported UIAI evidence path with verifiable artifacts for provider conformance, interview strategy and resume, spec workbench, and task planning. Reconcile the aggregate against those receipts. Never relabel incomplete evidence, switch browser drivers, or expect a dev tag to repair the proof. |
+| Production deployment runner offline | GitHub reported `host-focusa-deploy` offline and its local unit was inactive and disabled; the reason for disablement was not verified. | Verify the approved deploy runner and its label before publication. Diagnose through the owning runbook; do not enable the unit or move deployment to the build runner by assumption. Require terminal installed acceptance before Latest promotion. |
+| Source checks mistaken for installed proof; advisory context mistaken for a denied write | Route inventory and packaged-skill parity did not prove installed discovery or activation, and a stale context projection was not an actual denial of an independently authorized action. | Read owning docs, probe the exact installed route or harness, and record what each layer proves. Distinguish a warning from a rejected operation; do not bypass actual admission. Keep the existing CI attempt running, diagnose its terminal failures before retrying, and never treat a tag as release completion. |
+
+At this incident checkpoint the SSH/resource lane was verified repaired, the Rust fixture correction was on `main` at `60bb358f8`, and [replacement CI run 45468482490](https://github.com/Startempire-Wire/focusa/actions/runs/45468482490) had been queued. No tag or installed rollout was claimed.
+
+
 ## A. Squash / branch-interleave modes (the big ones)
 
 1. **Never big-squash a branch hundreds of commits behind main.** Mixing two lineages file-by-file produces an unbounded error-wave grind (we burned ~4h). RULE: main-wins ALL shared files; re-apply only (a) additive new files, (b) surgical known patches. Keep a written list of the surgical patches FIRST.
