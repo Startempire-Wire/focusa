@@ -195,16 +195,18 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
             .as_ref()
             .is_some_and(|active| active != &key)
         {
+            let active = focusa
+                .work_loop
+                .execution_scope
+                .as_ref()
+                .expect("active scope checked above");
             let approved = parts
                 .headers
                 .get("x-focusa-approval")
                 .and_then(|value| value.to_str().ok())
                 .is_some_and(|value| value == "approved");
-            let active_scope_orphaned = focusa
-                .work_loop
-                .execution_scope
-                .as_ref()
-                .is_some_and(|active| !canonical_workpoint_exists_for_scope(&focusa, active));
+            let active_scope_orphaned =
+                !canonical_workpoint_exists_for_scope(&focusa, active);
             let stale_enable_rebind = parts.uri.path() == "/v1/work-loop/enable"
                 && approved
                 && stale_scope_rebind_allowed(
@@ -213,8 +215,26 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
                     focusa.work_loop.current_task.is_some(),
                     active_scope_orphaned,
                 );
+            let active_has_live_writer = {
+                let claims = state.writer_claims.read().await;
+                has_live_workstream_writer(&claims, active, Utc::now())
+            };
+            // A dormant foreign loop (no live writer, no current task) must not
+            // block unrelated project workstreams (#716). Mutation protection is
+            // preserved because no active writer lease exists on the foreign scope.
+            let dormant_foreign_scope = !active_has_live_writer
+                && focusa.work_loop.current_task.is_none()
+                && matches!(
+                    focusa.work_loop.status,
+                    WorkLoopStatus::Paused
+                        | WorkLoopStatus::Idle
+                        | WorkLoopStatus::Completed
+                        | WorkLoopStatus::Aborted
+                        | WorkLoopStatus::Blocked
+                );
             if stale_enable_rebind
                 || read_only_scope_inspection_allowed(&parts.method, parts.uri.path())
+                || dormant_foreign_scope
             {
                 return Ok(Self(key));
             }
