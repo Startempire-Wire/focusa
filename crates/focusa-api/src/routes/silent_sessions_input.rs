@@ -355,7 +355,9 @@ async fn deliver(
         kind: kind.event_kind().into(),
         payload: json!({
             "delivery_kind": kind,
-            "delivery_status": "queued",
+            "delivery_status": "queued_pending_runner_delivery",
+            "runner_delivery_attempted": false,
+            "runner_delivery_status": "not_attempted_no_runner",
             "request_hash": request_hash,
             "content": payload,
             "side_effects": side_effects,
@@ -404,17 +406,20 @@ fn success(
             "run_id": target.run_id,
             "generation": target.generation,
             "delivery_kind": kind,
-            "delivery_status": "queued",
+            "delivery_status": if replayed { "queued_pending_runner_delivery" } else { "queued_pending_runner_delivery" },
+            "runner_delivery_attempted": false,
+            "runner_delivery_status": "not_attempted_no_runner",
             "replayed": replayed,
             "temporal_context":temporal_context,
             "mutation_temporal_guard":temporal_guard,
+            "warning": "input accepted into the durable session ledger but no POSIX runner delivery was attempted; do not treat this as proof the agent received or started execution",
         }),
     );
     envelope
         .side_effects
         .extend(side_effects.into_iter().map(|effect| ApiSideEffect {
             effect,
-            status: "requested".into(),
+            status: "queued_pending_runner_delivery".into(),
             target_ref: Some(target.run_id.to_string()),
         }));
     envelope.receipt_refs.push(target.approval_id.to_string());
