@@ -6,8 +6,14 @@ VERSION=$(grep -m1 '^version = ' "$ROOT_DIR/Cargo.toml" | sed -E 's/version = "(
 TOOL_COUNT=$(jq -r '.tool_count' "$ROOT_DIR/docs/current/focusa-tool-contracts.json")
 SUMMARY_REF='generated/tool-surface-summary.md'
 SKILL_COUNT=$(jq -r '.skills | length' "$ROOT_DIR/config/agent-skills-v2.json")
-STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-{
+case "${1:-}" in
+  '') STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ) ;;
+  --check)
+    STAMP=$(grep -m1 -E '^Generated: [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$OUT" | cut -d ' ' -f2)
+    ;;
+  *) printf 'usage: %s [--check]\n' "$0" >&2; exit 2 ;;
+esac
+render() {
   echo '# Current Runtime Status'
   echo
   echo '<!-- GENERATED: scripts/generate-current-runtime-status. Do not edit by hand. -->'
@@ -34,5 +40,11 @@ STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   echo '- version consistency: scripts/verify-doc-version-consistency'
   echo '- tool contracts: docs/current/focusa-tool-contracts.json'
   echo '- proof command: focusa release prove --tag <tag>'
-} > "$OUT"
-echo "wrote $OUT"
+}
+
+if [[ "${1:-}" == --check ]]; then
+  diff -u "$OUT" <(render)
+else
+  render > "$OUT"
+  echo "wrote $OUT"
+fi

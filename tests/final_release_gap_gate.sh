@@ -55,6 +55,7 @@ python3 scripts/generate-agent-skills.py --check
 bun scripts/generate-agent-capability-descriptors.ts --check
 bun scripts/generate-agent-tool-docs.ts --check
 node scripts/generate-agent-operation-docs.mjs --check
+scripts/generate-current-runtime-status --check
 node scripts/audit-skill-ownership.mjs
 python3 scripts/generate_skill-ownership-manifest.py --check
 node --test tests/callgraph-discovery-parity.test.mjs tests/prediction-discovery-routes.test.mjs
