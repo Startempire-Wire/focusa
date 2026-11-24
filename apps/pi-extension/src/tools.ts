@@ -5287,10 +5287,21 @@ pi.registerTool({
         sessionResolution?.projectRoot || resolvePiProjectRoot(getSessionCwd() || process.cwd());
       const sessionScopeSafe = isProjectRootAuthoritySafe(sessionRoot);
       const projectRootNeedsConfirmation = sessionResolution?.requiresOperatorConfirmation === true;
-      const workpointStatus = String(workpoint.body?.status || (workpoint.ok ? "ok" : "blocked"));
+      // Resume/current return operation status="completed" with workpoint_status="active|..."
+      // (see workpoint_response_status). Prefer the actual Workpoint record status so an
+      // active mission is never reported as completed/terminal (#701).
+      const workpointRecordStatus = String(
+        workpoint.body?.workpoint_status ||
+          workpoint.body?.resume_packet?.status ||
+          workpoint.body?.workpoint?.status ||
+          ""
+      );
+      const workpointOperationStatus = String(workpoint.body?.status || (workpoint.ok ? "ok" : "blocked"));
+      const workpointStatus = workpointRecordStatus || workpointOperationStatus;
       const workpointCanonical =
         workpoint.body?.canonical !== false &&
-        (workpoint.body?.canonical === true || workpointStatus === "active");
+        (workpoint.body?.canonical === true ||
+          ["active", "proposed", "degraded_fallback"].includes(workpointStatus));
       // Diagnostic dependencies are not evidence that individual operations execute.
       const ready = health.ok && workpoint.ok && workpointCanonical &&
         sessionScopeSafe && !projectRootNeedsConfirmation && loop.ok &&
