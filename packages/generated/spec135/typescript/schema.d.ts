@@ -111,13 +111,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
          * Awareness Packet
          * @description Awareness Packet — family=awareness budget=standard_read materialization=advisory_read
          */
-        post: operations["focusa.awareness.packet"];
+        get: operations["focusa.awareness.packet"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -911,13 +911,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /**
          * Project Verify
          * @description Project Verify — family=project budget=light_read materialization=advisory_read
          */
-        get: operations["focusa.project.verify"];
-        put?: never;
-        post?: never;
+        post: operations["focusa.project.verify"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6976,19 +6976,12 @@ export interface operations {
     };
     "focusa.awareness.packet": {
         parameters: {
-            query: {
-                /** @description Required Focusa scope key: project_root */
-                project_root: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_awareness_packet_request_v1"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Awareness Packet response */
             200: {
@@ -8429,15 +8422,16 @@ export interface operations {
     };
     "focusa.project.verify": {
         parameters: {
-            query: {
-                /** @description Required Focusa scope key: project_root */
-                project_root: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_verify_request_v1"];
+            };
+        };
         responses: {
             /** @description Project Verify response */
             200: {

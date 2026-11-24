@@ -4745,7 +4745,7 @@
       "family": "awareness",
       "namespace": "focusa.awareness",
       "operation_policy": {
-        "operation_id": null,
+        "operation_id": "focusa.awareness.packet",
         "method": "GET",
         "path": "/v1/awareness/packet",
         "operation_class": "read",
@@ -4755,12 +4755,12 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "read_projection",
-        "source_owner": "agent_capability_contracts",
+        "source_owner": "awareness",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": null,
+          "operation_id": "focusa.awareness.packet",
           "method": "GET",
           "path": "/v1/awareness/packet",
           "operation_class": "read",
@@ -4770,7 +4770,7 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "awareness",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
@@ -4795,7 +4795,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "awareness",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -5297,7 +5297,7 @@
         "snippet": "Render a surface-aware AwarenessPacket with DVS-scored visible lines, suppressed lines, metadata, next_tools, and recovery_tools, including Spec 111 preload status surfaces.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d17e3cbb384807bc9a10692eb7290fbc806f692b63538fc39067fcad9e3284a2"
+      "descriptor_digest": "sha256:b4d7d984e8eeaf6f66b98d87237d0cbcf913cd2c0675b3c960b5e163a612dedd"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -56102,7 +56102,7 @@
       "family": "project_identity",
       "namespace": "focusa.project_identity",
       "operation_policy": {
-        "operation_id": null,
+        "operation_id": "focusa.project.verify",
         "method": "POST",
         "path": "/v1/project/verify",
         "operation_class": "read",
@@ -56112,12 +56112,12 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "read_projection",
-        "source_owner": "agent_capability_contracts",
+        "source_owner": "project",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": null,
+          "operation_id": "focusa.project.verify",
           "method": "POST",
           "path": "/v1/project/verify",
           "operation_class": "read",
@@ -56127,7 +56127,7 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "project",
           "policy_owner": "entitlement_policy_resolver"
         }
       ],
@@ -56138,7 +56138,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "project",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -56629,7 +56629,7 @@
         "snippet": "Use when project folder or session identity is ambiguous before accepting a Workpoint/Trajectory packet as canonical.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:21755584ed92bc9d67c73155805bf68f1e1fe1bc768ab36cf6e7fcc56e8e73eb"
+      "descriptor_digest": "sha256:08c9a7eb876596ee4c66b86250987e91b6c2a1c0d86b55aa010d02737e5ece33"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87773,5 +87773,5 @@
       "descriptor_digest": "sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae"
     }
   ],
-  "registry_digest": "sha256:1bffff270ff46662a4ac84b8d93273bcd958e6aa18ad2ea4418e5e3d7bc3c7f5"
+  "registry_digest": "sha256:d958a5ee2428cb86c66036fbb8f03717a47d5f0a948902fce0e5922424379495"
 }

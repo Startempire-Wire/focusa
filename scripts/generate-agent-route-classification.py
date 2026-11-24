@@ -107,18 +107,23 @@ def main() -> int:
         for constant_name in constant_route_names:
             paths.setdefault(string_constants[constant_name], set()).add(relative_source)
 
-        for path, method in re.findall(
-            r'\.route\(\s*"([^"]+)"\s*,\s*(?:axum::routing::)?(get|post|patch|delete|put|head|options)\(',
-            body,
-            re.S,
-        ):
-            methods.setdefault(path, set()).add(method.upper())
-        for constant_name, method in re.findall(
-            r'^\s*\.route\(\s*([A-Z][A-Z0-9_]*)\s*,\s*(?:axum::routing::)?(get|post|patch|delete|put|head|options)\(',
-            body,
-            re.M | re.S,
-        ):
-            methods.setdefault(string_constants[constant_name], set()).add(method.upper())
+        # The first verb is known even for a closure; follow chained verbs
+        # only across simple handler names so unrelated code cannot add methods.
+        verb = r"get|post|patch|delete|put|head|options"
+        route_method = re.compile(
+            rf'\.route\(\s*(?:"([^"]+)"|([A-Z][A-Z0-9_]*))\s*,\s*'
+            rf'(?:axum::routing::)?({verb})\('
+        )
+        next_method = re.compile(rf'[\w:]+\s*\)\s*\.\s*({verb})\(')
+        for route in route_method.finditer(body):
+            literal, constant, method = route.groups()
+            path = literal or string_constants[constant]
+            route_methods = methods.setdefault(path, set())
+            route_methods.add(method.upper())
+            end = route.end()
+            while follow := next_method.match(body, end):
+                route_methods.add(follow[1].upper())
+                end = follow.end()
 
     registry = json.loads(
         (
@@ -127,6 +132,17 @@ def main() -> int:
         ).read_text(encoding="utf-8")
     )
     agent_paths = {item["path"] for item in registry["operations"]}
+    # Check parsed Axum methods before overlaying registry entries. Otherwise a
+    # misdocumented verb appears to exist merely because it is documented.
+    for operation in registry["operations"]:
+        path = operation["path"]
+        method = operation.get("method", "").upper()
+        observed = methods.get(path)
+        if method and observed and method not in observed:
+            raise SystemExit(
+                f"{operation['operation_id']}: registry advertises {method} {path}; "
+                f"direct Axum registrations: {', '.join(sorted(observed))}"
+            )
     for operation in registry["operations"]:
         method = operation.get("method")
         if method:

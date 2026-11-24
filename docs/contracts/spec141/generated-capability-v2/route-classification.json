@@ -192,6 +192,7 @@
         "crates/focusa-api/src/routes/adapters.rs"
       ],
       "methods": [
+        "GET",
         "POST"
       ],
       "operation_refs": []
@@ -1006,8 +1007,7 @@
         "crates/focusa-api/src/routes/utility.rs"
       ],
       "methods": [
-        "GET",
-        "POST"
+        "GET"
       ],
       "operation_refs": [
         "focusa.awareness.packet"
@@ -1033,6 +1033,7 @@
         "crates/focusa-api/src/routes/background_jobs.rs"
       ],
       "methods": [
+        "GET",
         "POST"
       ],
       "operation_refs": []
@@ -1057,7 +1058,8 @@
         "crates/focusa-api/src/routes/background_jobs.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1213,7 +1215,8 @@
         "crates/focusa-api/src/routes/bloatgaurd_optical.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1629,6 +1632,7 @@
         "crates/focusa-api/src/routes/callgraph.rs"
       ],
       "methods": [
+        "GET",
         "POST"
       ],
       "operation_refs": []
@@ -2853,6 +2857,7 @@
         "crates/focusa-api/src/routes/direction.rs"
       ],
       "methods": [
+        "GET",
         "POST"
       ],
       "operation_refs": []
@@ -4713,7 +4718,8 @@
         "crates/focusa-api/src/routes/prediction_authority.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": [
         "focusa.prediction_authority.projection"
@@ -4847,7 +4853,8 @@
         "crates/focusa-api/src/routes/preload.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -4859,7 +4866,8 @@
         "crates/focusa-api/src/routes/preload.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -4895,7 +4903,8 @@
         "crates/focusa-api/src/routes/preload.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -4907,7 +4916,8 @@
         "crates/focusa-api/src/routes/preload.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -4919,7 +4929,8 @@
         "crates/focusa-api/src/routes/preload.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -5217,7 +5228,8 @@
         "crates/focusa-api/src/routes/project.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -5289,7 +5301,6 @@
         "crates/focusa-api/src/routes/project.rs"
       ],
       "methods": [
-        "GET",
         "POST"
       ],
       "operation_refs": [
@@ -5316,7 +5327,8 @@
         "crates/focusa-api/src/routes/proposals.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -5512,7 +5524,8 @@
         "crates/focusa-api/src/routes/reflection.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -5572,6 +5585,7 @@
         "crates/focusa-api/src/routes/remote_workspaces.rs"
       ],
       "methods": [
+        "GET",
         "POST"
       ],
       "operation_refs": []
@@ -5835,7 +5849,8 @@
         "crates/focusa-api/src/routes/silent_sessions.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -5955,6 +5970,7 @@
         "crates/focusa-api/src/routes/silent_sessions.rs"
       ],
       "methods": [
+        "DELETE",
         "GET"
       ],
       "operation_refs": []
@@ -6585,7 +6601,8 @@
         "crates/focusa-api/src/routes/sync.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -7180,7 +7197,8 @@
         "crates/focusa-api/src/routes/threads.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -7572,7 +7590,8 @@
         "crates/focusa-api/src/routes/turn_recent.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -7620,7 +7639,8 @@
         "crates/focusa-api/src/routes/update.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -7644,7 +7664,8 @@
         "crates/focusa-api/src/routes/update.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -7656,7 +7677,8 @@
         "crates/focusa-api/src/routes/update.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -7668,7 +7690,8 @@
         "crates/focusa-api/src/routes/update.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -7692,7 +7715,8 @@
         "crates/focusa-api/src/routes/update.rs"
       ],
       "methods": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -8396,6 +8420,7 @@
         "crates/focusa-api/src/routes/worksets.rs"
       ],
       "methods": [
+        "GET",
         "POST"
       ],
       "operation_refs": []

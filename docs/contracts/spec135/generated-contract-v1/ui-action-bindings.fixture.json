@@ -194,7 +194,7 @@
         "idempotency_required": false,
         "mode": "read",
         "optimistic_concurrency_required": false,
-        "receipt_required": true,
+        "receipt_required": false,
         "reversible": false
       },
       "operation_descriptor_ref": "/v1/agent/operations#focusa.awareness.packet",
@@ -214,10 +214,7 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "project_root": "/example",
-        "required_keys": [
-          "project_root"
-        ]
+        "required_keys": []
       }
     },
     {

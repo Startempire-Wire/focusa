@@ -32,3 +32,21 @@ test('CallGraph validation is a standalone read, not a dispatch contract', () =>
   assert.deepEqual(openapi.components.schemas[request.split('/').at(-1)].properties.schema.enum, ['focusa.callgraph.v1']);
   assert.ok(read('packages/generated/spec135/typescript/schema.d.ts').includes(`"${path}": {`));
 });
+
+
+test('project verification and awareness discovery match the registered read handlers', () => {
+  for (const [path, method, file, binding] of [
+    ['/v1/project/verify', 'post', 'project', 'verify'],
+    ['/v1/awareness/packet', 'get', 'utility', 'awareness_packet'],
+  ]) {
+    assert.ok(read(`crates/focusa-api/src/routes/${file}.rs`).includes(`.route("${path}", ${method}(${binding}))`));
+    const op = registry.operations.find(op => op.path === path);
+    const advertised = openapi.paths[path];
+    assert.deepEqual(Object.keys(advertised), [method]);
+    assert.equal(advertised[method].operationId, op.operation_id);
+    assert.equal(op.control.mode, 'read');
+    assert.equal(op.control.receipt_required, false);
+    assert.deepEqual(advertised[method].parameters, []);
+    assert.equal(Boolean(advertised[method].requestBody), method === 'post');
+  }
+});

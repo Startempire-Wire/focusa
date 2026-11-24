@@ -4,8 +4,8 @@
   "why_a_ratchet": "A strict set-parity gate cannot be adopted today: most descriptors are not yet bound. This records the measured baseline and forbids regression, so coverage can only improve.",
   "measured_at": "2026-11-24",
   "invariants": {
-    "min_bound_descriptors": 41,
-    "max_unbound_http_descriptors": 137
+    "min_bound_descriptors": 43,
+    "max_unbound_http_descriptors": 135
   },
   "notes": [
     "min_bound_descriptors may only increase; max_unbound_http_descriptors may only decrease.",

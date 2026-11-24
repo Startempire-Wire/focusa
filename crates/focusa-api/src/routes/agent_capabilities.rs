@@ -207,11 +207,14 @@ fn op(
     docs: &'static str,
     deprecation: Option<DeprecationEntry>,
 ) -> OperationEntry {
-    let read_only_operation =
-        method == "GET" || matches!(id, "focusa.callgraph.validate" | "focusa.workpoint.resume");
+    let read_only_operation = method == "GET"
+        || matches!(
+            id,
+            "focusa.callgraph.validate" | "focusa.workpoint.resume" | "focusa.project.verify"
+        );
     let project_scoped = !matches!(family, "health" | "device" | "license" | "events")
         && id != "focusa.compatibility_lock.read"
-        && id != "focusa.callgraph.validate";
+        && !matches!(id, "focusa.callgraph.validate" | "focusa.awareness.packet");
     let workstream_scoped = matches!(
         family,
         "trajectory"
@@ -400,7 +403,7 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.project.verify",
             "Project Verify",
             "project",
-            "GET",
+            "POST",
             "/v1/project/verify",
             true,
             None,
@@ -1561,7 +1564,7 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.awareness.packet",
             "Awareness Packet",
             "awareness",
-            "POST",
+            "GET",
             "/v1/awareness/packet",
             true,
             None,
@@ -4535,6 +4538,7 @@ fn openapi_document() -> Value {
                 .scope
                 .required_keys
                 .iter()
+                .filter(|_| op.operation_id != "focusa.project.verify")
                 .map(|key| {
                     json!({
                         "name": key,

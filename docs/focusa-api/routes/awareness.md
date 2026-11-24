@@ -6,7 +6,7 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 
 ## `focusa.awareness.packet`
 
-- Method/path: `POST /v1/awareness/packet`
+- Method/path: `GET /v1/awareness/packet`
 - Family: `awareness`
 - Input schema: `focusa.awareness_packet.request.v1`
 - Output schema: `focusa.awareness_packet.response.v1`
@@ -14,9 +14,9 @@ These operations preserve daemon scope, permission, confirmation, idempotency, r
 - Permission scopes: `awareness:read`
 - Confirmation: `none`
 - Idempotency key required: `false`
-- Receipt required: `true`
+- Receipt required: `false`
 - Reversible: `false`
-- Required scope keys: `project_root`
+- Required scope keys: none
 
 ### Example request
 

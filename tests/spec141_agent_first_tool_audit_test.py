@@ -89,6 +89,13 @@ with tempfile.TemporaryDirectory(prefix="focusa-spec141-") as tmp:
         ).read_text()
     )
     classified_paths = {item["path"] for item in classification["routes"]}
+    methods_by_path = {item["path"]: set(item["methods"]) for item in classification["routes"]}
+    for path in (
+        "/v1/prediction-authority/projection", "/v1/preload/build", "/v1/preload/doctor",
+        "/v1/preload/render", "/v1/preload/verify", "/v1/preload/receipt-preview",
+    ):
+        assert methods_by_path[path] == {"GET", "POST"}, path
+
     constant_route_paths = set()
     for source in sorted((ROOT / "crates/focusa-api/src").rglob("*.rs")):
         body = route_classifier.without_inline_test_modules(source.read_text(errors="strict"))

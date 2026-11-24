@@ -4,7 +4,7 @@ Use [one cohesive project journey](../agent/02-focusa-cohesive-project-flow.md).
 
 Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains weighted advisory links and `per_tool_next_tools`; these are discovery suggestions, not task execution dependencies or grants. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
 
-## v0.9.142 capability additions
+## How the capabilities fit together
 
 - **Bounded context cognition:** build, render, curate, prove, and optimize project context under an explicit token budget.
 - **Typed project lifecycle:** project identity/card, Genesis/bootstrap, temporal authority, and session transfer remain scope-bound and evidence-backed.

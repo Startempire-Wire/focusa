@@ -371,7 +371,7 @@
         "permission_scopes": [
           "awareness:read"
         ],
-        "receipt_required": true,
+        "receipt_required": false,
         "reversible": false
       },
       "deprecation": null,
@@ -381,7 +381,7 @@
       "family": "awareness",
       "label": "Awareness Packet",
       "materialization_mode": "advisory_read",
-      "method": "POST",
+      "method": "GET",
       "operation_id": "focusa.awareness.packet",
       "operation_version": "1.0.0",
       "ownership": {
@@ -405,10 +405,8 @@
       "schema_version": "focusa.awareness_packet.request.v1",
       "scope": {
         "attachment_scoped": false,
-        "project_scoped": true,
-        "required_keys": [
-          "project_root"
-        ],
+        "project_scoped": false,
+        "required_keys": [],
         "workstream_scoped": false
       },
       "side_effect_profile": "read_awareness",
@@ -9274,7 +9272,7 @@
       "family": "project",
       "label": "Project Verify",
       "materialization_mode": "advisory_read",
-      "method": "GET",
+      "method": "POST",
       "operation_id": "focusa.project.verify",
       "operation_version": "1.0.0",
       "ownership": {

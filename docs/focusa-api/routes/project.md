@@ -38,7 +38,7 @@ Use the structured error recovery field, preserve the original scope and idempot
 
 ## `focusa.project.verify`
 
-- Method/path: `GET /v1/project/verify`
+- Method/path: `POST /v1/project/verify`
 - Family: `project`
 - Input schema: `focusa.project_verify.request.v1`
 - Output schema: `focusa.project_verify.response.v1`

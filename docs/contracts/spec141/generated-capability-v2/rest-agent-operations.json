@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:1bffff270ff46662a4ac84b8d93273bcd958e6aa18ad2ea4418e5e3d7bc3c7f5",
+  "registry_digest": "sha256:d958a5ee2428cb86c66036fbb8f03717a47d5f0a948902fce0e5922424379495",
   "operations": [
     {
       "method": "POST",
@@ -2809,7 +2809,7 @@
       "path": "/v1/awareness/packet",
       "capability_id": "focusa.awareness.packet",
       "operation_id": "focusa_awareness_packet",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.awareness.packet",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -3176,7 +3176,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "awareness",
       "policy_owner": "entitlement_policy_resolver"
     },
     {
@@ -57744,7 +57744,7 @@
       "path": "/v1/project/verify",
       "capability_id": "focusa.project.verify",
       "operation_id": "focusa_project_verify",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.project.verify",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -58092,7 +58092,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "project",
       "policy_owner": "entitlement_policy_resolver"
     },
     {

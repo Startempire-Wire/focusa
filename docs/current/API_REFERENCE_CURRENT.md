@@ -130,7 +130,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/adapters`
 
-- Methods: `POST /v1/adapters`
+- Methods: `GET /v1/adapters`, `POST /v1/adapters`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/adapters.rs`
@@ -666,7 +666,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/awareness/packet`
 
-- Methods: `GET /v1/awareness/packet`, `POST /v1/awareness/packet`
+- Methods: `GET /v1/awareness/packet`
 - Classification: `agent_eligible`
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/utility.rs`
@@ -682,7 +682,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/background-jobs`
 
-- Methods: `POST /v1/background-jobs`
+- Methods: `GET /v1/background-jobs`, `POST /v1/background-jobs`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/background_jobs.rs`
@@ -698,7 +698,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/background-jobs/{job_id}`
 
-- Methods: `GET /v1/background-jobs/{job_id}`
+- Methods: `GET /v1/background-jobs/{job_id}`, `POST /v1/background-jobs/{job_id}`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/background_jobs.rs`
@@ -802,7 +802,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/bloatgaurd/optical/ledger`
 
-- Methods: `GET /v1/bloatgaurd/optical/ledger`
+- Methods: `GET /v1/bloatgaurd/optical/ledger`, `POST /v1/bloatgaurd/optical/ledger`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/bloatgaurd_optical.rs`
@@ -1074,7 +1074,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/callgraphs`
 
-- Methods: `POST /v1/callgraphs`
+- Methods: `GET /v1/callgraphs`, `POST /v1/callgraphs`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/callgraph.rs`
@@ -1866,7 +1866,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/direction/operations`
 
-- Methods: `POST /v1/direction/operations`
+- Methods: `GET /v1/direction/operations`, `POST /v1/direction/operations`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/direction.rs`
@@ -3034,7 +3034,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/prediction-authority/projection`
 
-- Methods: `GET /v1/prediction-authority/projection`
+- Methods: `GET /v1/prediction-authority/projection`, `POST /v1/prediction-authority/projection`
 - Classification: `agent_eligible`
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority.rs`
@@ -3114,7 +3114,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/preload/build`
 
-- Methods: `GET /v1/preload/build`
+- Methods: `GET /v1/preload/build`, `POST /v1/preload/build`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/preload.rs`
@@ -3122,7 +3122,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/preload/doctor`
 
-- Methods: `GET /v1/preload/doctor`
+- Methods: `GET /v1/preload/doctor`, `POST /v1/preload/doctor`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/preload.rs`
@@ -3146,7 +3146,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/preload/receipt-preview`
 
-- Methods: `GET /v1/preload/receipt-preview`
+- Methods: `GET /v1/preload/receipt-preview`, `POST /v1/preload/receipt-preview`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/preload.rs`
@@ -3154,7 +3154,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/preload/render`
 
-- Methods: `GET /v1/preload/render`
+- Methods: `GET /v1/preload/render`, `POST /v1/preload/render`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/preload.rs`
@@ -3162,7 +3162,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/preload/verify`
 
-- Methods: `GET /v1/preload/verify`
+- Methods: `GET /v1/preload/verify`, `POST /v1/preload/verify`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/preload.rs`
@@ -3346,7 +3346,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/project/settings`
 
-- Methods: `GET /v1/project/settings`
+- Methods: `GET /v1/project/settings`, `POST /v1/project/settings`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/project.rs`
@@ -3394,7 +3394,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/project/verify`
 
-- Methods: `GET /v1/project/verify`, `POST /v1/project/verify`
+- Methods: `POST /v1/project/verify`
 - Classification: `agent_eligible`
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/project.rs`
@@ -3410,7 +3410,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/proposals`
 
-- Methods: `GET /v1/proposals`
+- Methods: `GET /v1/proposals`, `POST /v1/proposals`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/proposals.rs`
@@ -3538,7 +3538,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/reflect/scheduler`
 
-- Methods: `GET /v1/reflect/scheduler`
+- Methods: `GET /v1/reflect/scheduler`, `POST /v1/reflect/scheduler`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/reflection.rs`
@@ -3578,7 +3578,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/remote-workspaces/bindings`
 
-- Methods: `POST /v1/remote-workspaces/bindings`
+- Methods: `GET /v1/remote-workspaces/bindings`, `POST /v1/remote-workspaces/bindings`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/remote_workspaces.rs`
@@ -3746,7 +3746,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/silent-sessions`
 
-- Methods: `GET /v1/silent-sessions`
+- Methods: `GET /v1/silent-sessions`, `POST /v1/silent-sessions`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/silent_sessions.rs`
@@ -3826,7 +3826,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/silent-sessions/{session_id}`
 
-- Methods: `GET /v1/silent-sessions/{session_id}`
+- Methods: `DELETE /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/silent_sessions.rs`
@@ -4242,7 +4242,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/sync/peers`
 
-- Methods: `GET /v1/sync/peers`
+- Methods: `GET /v1/sync/peers`, `POST /v1/sync/peers`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/sync.rs`
@@ -4618,7 +4618,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/threads`
 
-- Methods: `GET /v1/threads`
+- Methods: `GET /v1/threads`, `POST /v1/threads`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/threads.rs`
@@ -4858,7 +4858,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/turns/recent`
 
-- Methods: `GET /v1/turns/recent`
+- Methods: `GET /v1/turns/recent`, `POST /v1/turns/recent`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/turn_recent.rs`
@@ -4890,7 +4890,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/update/check`
 
-- Methods: `GET /v1/update/check`
+- Methods: `GET /v1/update/check`, `POST /v1/update/check`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/update.rs`
@@ -4906,7 +4906,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/update/notifications`
 
-- Methods: `GET /v1/update/notifications`
+- Methods: `GET /v1/update/notifications`, `POST /v1/update/notifications`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/update.rs`
@@ -4914,7 +4914,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/update/plan`
 
-- Methods: `GET /v1/update/plan`
+- Methods: `GET /v1/update/plan`, `POST /v1/update/plan`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/update.rs`
@@ -4922,7 +4922,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/update/policy`
 
-- Methods: `GET /v1/update/policy`
+- Methods: `GET /v1/update/policy`, `POST /v1/update/policy`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/update.rs`
@@ -4938,7 +4938,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/update/scheduler`
 
-- Methods: `GET /v1/update/scheduler`
+- Methods: `GET /v1/update/scheduler`, `POST /v1/update/scheduler`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/update.rs`
@@ -5394,7 +5394,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 ### `/v1/worksets`
 
-- Methods: `POST /v1/worksets`
+- Methods: `GET /v1/worksets`, `POST /v1/worksets`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/worksets.rs`

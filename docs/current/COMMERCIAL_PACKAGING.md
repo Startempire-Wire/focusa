@@ -58,7 +58,7 @@ No package includes authority signing private keys, reusable capsule content key
 
 ## Current implementation status
 
-Focusa v0.9.142 contains strong lifecycle and release machinery, but the mandatory signed-entitlement integration is still open. The legacy installer and runtime Evaluation behavior must not be used to claim evaluator/customer distribution readiness.
+At v0.9.142, the mandatory signed-entitlement integration was still open. Do not use that installer or its runtime Evaluation behavior as evidence of current evaluator/customer distribution readiness; verify the current release and installed signed-entitlement path separately.
 
 Current truthful claim:
 

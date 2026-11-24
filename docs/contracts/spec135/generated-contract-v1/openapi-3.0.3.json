@@ -13782,30 +13782,10 @@
       }
     },
     "/v1/awareness/packet": {
-      "post": {
+      "get": {
         "description": "Awareness Packet \u2014 family=awareness budget=standard_read materialization=advisory_read",
         "operationId": "focusa.awareness.packet",
-        "parameters": [
-          {
-            "description": "Required Focusa scope key: project_root",
-            "in": "query",
-            "name": "project_root",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/focusa_awareness_packet_request_v1"
-              }
-            }
-          },
-          "required": true
-        },
+        "parameters": [],
         "responses": {
           "200": {
             "content": {
@@ -13870,12 +13850,10 @@
           "awareness:read"
         ],
         "x-focusa-plain-label": "Awareness Packet",
-        "x-focusa-receipt": true,
+        "x-focusa-receipt": false,
         "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
-        "x-focusa-scope-keys": [
-          "project_root"
-        ],
+        "x-focusa-scope-keys": [],
         "x-focusa-sensitive": "scoped_mutation",
         "x-focusa-subsystem": "awareness"
       }
@@ -17998,20 +17976,10 @@
       }
     },
     "/v1/project/verify": {
-      "get": {
+      "post": {
         "description": "Project Verify \u2014 family=project budget=light_read materialization=advisory_read",
         "operationId": "focusa.project.verify",
-        "parameters": [
-          {
-            "description": "Required Focusa scope key: project_root",
-            "in": "query",
-            "name": "project_root",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "content": {
@@ -18083,7 +18051,17 @@
           "project_root"
         ],
         "x-focusa-sensitive": "routine",
-        "x-focusa-subsystem": "project"
+        "x-focusa-subsystem": "project",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_project_verify_request_v1"
+              }
+            }
+          }
+        }
       }
     },
     "/v1/providers/conformance": {
