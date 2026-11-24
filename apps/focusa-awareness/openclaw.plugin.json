@@ -2,17 +2,18 @@
   "id": "focusa-awareness",
   "kind": "extension",
   "name": "Focusa Awareness",
-  "description": "Injects a Focusa Utility Card into OpenClaw/Wirebot agent starts.",
+  "description": "Provides Focusa advisory context and read-only capability discovery.",
+  "contracts": { "tools": ["focusa_capabilities", "focusa_reflex_primitives"] },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
       "focusaUrl": { "type": "string", "default": "http://127.0.0.1:8787" },
       "adapterId": { "type": "string", "default": "openclaw" },
-      "workspaceId": { "type": "string", "default": "wirebot" },
-      "agentId": { "type": "string", "default": "wirebot" },
-      "operatorId": { "type": "string", "default": "verious.smith" },
-      "projectRoot": { "type": "string", "default": "/data/wirebot/users/verious", "description": "Verified project root to pass through as project_root scope." },
+      "workspaceId": { "type": "string" },
+      "agentId": { "type": "string" },
+      "operatorId": { "type": "string" },
+      "projectRoot": { "type": "string", "description": "Project root lookup input; not proof of attachment or execution authority." },
       "continuityId": { "type": "string", "default": "", "description": "Stable logical workstream id passed through as continuity_id; required for canonical Workpoint binding." },
       "timeoutMs": { "type": "number", "default": 1500 },
       "enabled": { "type": "boolean", "default": true }

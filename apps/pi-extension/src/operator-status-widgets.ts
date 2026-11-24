@@ -220,6 +220,26 @@ export function migrateOperatorStatusSettings(
   return { version: OPERATOR_STATUS_SETTINGS_VERSION, enabled };
 }
 
+export function effectiveOperatorStatusSettings(cfg: {
+  operatorStatusWidgets?: unknown;
+  operatorStatusTimeEnabled?: boolean;
+  operatorStatusDeadlineEnabled?: boolean;
+  operatorStatusPredictionEnabled?: boolean;
+  operatorStatusVersionEnabled?: boolean;
+  operatorStatusOtaEnabled?: boolean;
+  operatorStatusModelUsageEnabled?: boolean;
+} | undefined): OperatorStatusSettings {
+  const time = cfg?.operatorStatusTimeEnabled;
+  const deadline = cfg?.operatorStatusDeadlineEnabled;
+  return migrateOperatorStatusSettings(cfg?.operatorStatusWidgets, {
+    time: time == null && deadline == null ? undefined : Boolean(time || deadline),
+    prediction: cfg?.operatorStatusPredictionEnabled,
+    version: cfg?.operatorStatusVersionEnabled,
+    ota: cfg?.operatorStatusOtaEnabled,
+    "provider-usage": cfg?.operatorStatusModelUsageEnabled,
+  });
+}
+
 export function operatorStatusRollbackPatch(settings: OperatorStatusSettings): Record<string, boolean> {
   return {
     operatorStatusTimeEnabled: settings.enabled.time ?? true,

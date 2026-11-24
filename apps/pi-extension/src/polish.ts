@@ -10,13 +10,15 @@ import {
 } from "./shell-reminder-classification.js";
 import {
   createOperatorWidgetRegistry,
-  migrateOperatorStatusSettings,
+  effectiveOperatorStatusSettings,
   operatorStatusRollbackPatch,
   renderOperatorStatusBar,
   type OperatorWidgetId,
 } from "./operator-status-widgets.js";
 import {
+  currentAttachmentKey,
   getAttachmentRuntime,
+  isProjectRootAuthoritySafe,
   focusaFetch,
   focusaPost,
   getFocusaAvailable,
@@ -287,16 +289,6 @@ function updateProviderUsageFromHeaders(event: any): void {
 
 const operatorWidgetRegistry = createOperatorWidgetRegistry();
 
-function operatorWidgetSettings(cfg: any) {
-  return migrateOperatorStatusSettings(cfg?.operatorStatusWidgets, {
-    time: Boolean(cfg?.operatorStatusTimeEnabled || cfg?.operatorStatusDeadlineEnabled),
-    prediction: cfg?.operatorStatusPredictionEnabled,
-    version: cfg?.operatorStatusVersionEnabled,
-    ota: cfg?.operatorStatusOtaEnabled,
-    "provider-usage": cfg?.operatorStatusModelUsageEnabled,
-  }, operatorWidgetRegistry);
-}
-
 function parseObservedAt(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   const parsed = Date.parse(String(value ?? ""));
@@ -330,7 +322,7 @@ function renderOperatorStatus(ctx: any): void {
     usagePercent: runtime.providerUsagePercent,
     renewalAt: runtime.providerRenewalAt,
     providerObservedAt: runtime.providerUsageObservedAt || undefined,
-  }, operatorWidgetSettings(cfg), Math.max(24, Number(process.stdout.columns || 120)), operatorWidgetRegistry);
+  }, effectiveOperatorStatusSettings(cfg), Math.max(24, Number(process.stdout.columns || 120)), operatorWidgetRegistry);
   ctx?.ui?.setStatus?.("focusa-operator-status", result.text || undefined);
   ctx?.ui?.setWidget?.("focusa-next-prediction", undefined);
 }
@@ -376,8 +368,13 @@ export function registerPolishHooks(pi: ExtensionAPI) {
   pi.registerCommand("focusa-bar", {
     description: "Show or change Focusa operator status widgets",
     handler: async (args: string, ctx: any) => {
-      const runtime = getAttachmentRuntime();
-      const settings = operatorWidgetSettings(runtime.cfg);
+      const attachment = currentAttachmentKey();
+      if (!attachment) {
+        ctx.ui.notify("Focusa bar unavailable: no current attachment.", "warning");
+        return;
+      }
+      const runtime = getAttachmentRuntime(attachment);
+      const settings = effectiveOperatorStatusSettings(runtime.cfg);
       const tokens = String(args || "").trim().split(/\s+/).filter(Boolean);
       if (tokens[0] === "list") {
         const summary = operatorWidgetRegistry.map((widget) => `${settings.enabled[widget.id] ? "on" : "off"} ${widget.id}`).join(" · ");
@@ -386,14 +383,16 @@ export function registerPolishHooks(pi: ExtensionAPI) {
       }
       let widgetId: string | undefined = tokens[0];
       if (!widgetId) {
+        if (!ctx.hasUI) return;
         const choice = await ctx.ui.select("Focusa bar widgets", operatorWidgetRegistry.map((widget) =>
           `${settings.enabled[widget.id] ? "✓" : "○"} ${widget.label} (${widget.id})`
         ));
-        widgetId = operatorWidgetRegistry.find((widget) => choice?.endsWith(`(${widget.id})`))?.id;
+        if (!choice || currentAttachmentKey() !== attachment) return;
+        widgetId = operatorWidgetRegistry.find((widget) => choice.endsWith(`(${widget.id})`))?.id;
       }
       const widget = operatorWidgetRegistry.find((candidate) => candidate.id === widgetId);
-      if (!widget) {
-        ctx.ui.notify("Usage: /focusa-bar <time|prediction|version|ota|provider-usage> <on|off|toggle>, or /focusa-bar list", "warning");
+      if (!widget || tokens.length > 2) {
+        ctx.ui.notify(`Usage: /focusa-bar <${operatorWidgetRegistry.map(entry => entry.id).join("|")}> [on|off|toggle], or /focusa-bar list`, "warning");
         return;
       }
       const requested = tokens[1];
@@ -401,12 +400,18 @@ export function registerPolishHooks(pi: ExtensionAPI) {
         ctx.ui.notify("Widget state must be on, off, or toggle; no setting was changed.", "warning");
         return;
       }
+      const project = attachment.workstream.root_scope;
+      if (project.scope_kind !== "project" || !isProjectRootAuthoritySafe(project.root_path)) {
+        ctx.ui.notify("Focusa bar settings require an attached project; nothing was saved.", "warning");
+        return;
+      }
       settings.enabled[widget.id as OperatorWidgetId] = requested === "on" ? true : requested === "off" ? false : !settings.enabled[widget.id];
       try {
-        const saved = saveConfigOverrides(ctx.cwd, {
+        const saved = saveConfigOverrides(project.root_path, {
           operatorStatusWidgets: settings,
           ...operatorStatusRollbackPatch(settings),
         });
+        if (saved.errors.length) throw new Error(saved.errors.join("; "));
         runtime.cfg = saved.config;
         renderOperatorStatus(ctx);
         ctx.ui.notify(`${widget.label} ${settings.enabled[widget.id] ? "enabled" : "disabled"}; saved in ${saved.path}.`, "info");

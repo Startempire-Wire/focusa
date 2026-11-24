@@ -13,7 +13,6 @@ import { evaluateWorkpointMutation } from "./workpoint-mutation-enforcement.js";
 import type { PiGoverningPriorKind } from "./state.js";
 import {
   getAttachmentRuntime,
-  currentProjectBindingDecision,
   nativeSessionAllowsNonessentialPersistence,
   focusaFetch,
   focusaPost,
@@ -104,8 +103,7 @@ import {
   markRecentTurnsSliceEmitted,
   type RecentTurnSlice,
 } from "./state.js";
-import { renderWorkRailWidget, workRailSnapshotFromPacket } from "./work-rail-widget.js";
-import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
+import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 import { buildFocusaUtilityCard } from "./awareness.js";
@@ -2667,58 +2665,6 @@ export function registerTurns(pi: ExtensionAPI) {
         tools: getToolUsageBatch(),
       });
       resetToolUsageBatch();
-    }
-
-    // §37.3 + §10.4: Widget with all badges
-    const w: string[] = [];
-    const liveFocus = getCachedFocusState();
-    const snapshot = getEffectiveFocusSnapshot(liveFocus?.fs);
-    if (snapshot.decisions.length) w.push(`📌 ${snapshot.decisions.length} decisions`);
-    if (snapshot.constraints.length) w.push(`🔒 ${snapshot.constraints.length} constraints`);
-    if (snapshot.failures.length) w.push(`⚠️ ${snapshot.failures.length} failures`);
-    if (getAttachmentRuntime().wbmEnabled)
-      w.push(getAttachmentRuntime().wbmDeep ? "⚡ WBM deep" : "🤖 WBM on");
-    if (getAttachmentRuntime().currentTier && typeof getAttachmentRuntime().currentContextPct === "number") {
-      const label = contextTierLabel(getAttachmentRuntime().currentTier);
-      w.push(`📦 Context ${getAttachmentRuntime().currentContextPct.toFixed(0)}% ${label}`);
-    }
-    // §10.4: Degraded-context badge
-    if (!getAttachmentRuntime().focusaAvailable) w.push("⚪ degraded");
-    // §10.4: Thesis snippet
-    if (liveFocus?.frame?.thread_thesis) w.push(`🎯 ${liveFocus.frame.thread_thesis.slice(0, 50)}`);
-    // §30: Metacognitive indicator
-    if (getAttachmentRuntime().lastMetacogEvent) w.push(`✨ ${getAttachmentRuntime().lastMetacogEvent}`);
-    const workRailWidget = workRailSnapshotFromPacket(getActiveWorkpointPacket());
-    workRailWidget.badges = w;
-    const asciiWorkRail = process.env.FOCUSA_ASCII_UI === "1" || process.env.TERM === "dumb";
-    // Pi ExtensionContext exposes hasUI, not a runtime mode discriminator.
-    // Keep widgets out of print/RPC surfaces while remaining compatible across Pi builds.
-    const projectBinding = currentProjectBindingDecision();
-    if (!projectBinding || projectBinding.state !== "BOUND") {
-      ctx.ui.setWidget("focusa", undefined);
-    } else if (ctx.hasUI) {
-      ctx.ui.setWidget("focusa", (_tui, theme) => ({
-        render(width: number) {
-          return renderWorkRailWidget(
-            workRailWidget,
-            width,
-            {
-              accent: (text) => theme.fg("accent", text),
-              dim: (text) => theme.fg("dim", text),
-              good: (text) => theme.fg("accent", text),
-            },
-            asciiWorkRail
-          );
-        },
-        invalidate() {},
-      }));
-    } else {
-      const plain = {
-        accent: (text: string) => text,
-        dim: (text: string) => text,
-        good: (text: string) => text,
-      };
-      ctx.ui.setWidget("focusa", renderWorkRailWidget(workRailWidget, 80, plain, true));
     }
 
     // §34.2C: Update Focus State on significant progress

@@ -1,4 +1,14 @@
 interface OpenClawPluginApi {
+  registerTool?(tool: {
+    name: string;
+    label: string;
+    description: string;
+    parameters: Record<string, unknown>;
+    execute(callId: string, args: unknown, signal?: AbortSignal): Promise<{
+      content: Array<{ type: "text"; text: string }>;
+      details: Record<string, unknown>;
+    }>;
+  }): void;
   pluginConfig?: Record<string, unknown>;
   logger: {
     info(message: string): void;
@@ -31,12 +41,14 @@ function cfg(api: OpenClawPluginApi): Required<FocusaAwarenessConfig> {
     focusaUrl:
       raw.focusaUrl || process.env.FOCUSA_API_URL || "http://127.0.0.1:8787",
     adapterId: raw.adapterId || "openclaw",
-    workspaceId: raw.workspaceId || "wirebot",
-    agentId: raw.agentId || "wirebot",
-    operatorId: raw.operatorId || "verious.smith",
+    workspaceId: raw.workspaceId?.trim() || "",
+    agentId: raw.agentId?.trim() || "",
+    operatorId: raw.operatorId?.trim() || "",
     projectRoot: raw.projectRoot || process.env.FOCUSA_PROJECT_ROOT || "",
     continuityId: raw.continuityId || process.env.FOCUSA_CONTINUITY_ID || "",
-    timeoutMs: Number(raw.timeoutMs || 1500),
+    timeoutMs: typeof raw.timeoutMs === "number" && Number.isFinite(raw.timeoutMs)
+      ? Math.trunc(Math.max(100, Math.min(raw.timeoutMs, 5000)))
+      : 1500,
     enabled: raw.enabled !== false,
   };
 }
@@ -44,7 +56,9 @@ function cfg(api: OpenClawPluginApi): Required<FocusaAwarenessConfig> {
 function sessionIdFromContext(
   ctx: { sessionKey?: string } | undefined,
 ): string {
-  return String(ctx?.sessionKey || "openclaw-session").slice(0, 240);
+  return typeof ctx?.sessionKey === "string" && ctx.sessionKey.length <= 240
+    ? ctx.sessionKey.trim()
+    : "";
 }
 
 function fallbackCard(
@@ -81,12 +95,12 @@ async function fetchCard(
 ): Promise<string> {
   const qs = new URLSearchParams({
     adapter_id: c.adapterId,
-    workspace_id: c.workspaceId,
-    agent_id: c.agentId,
-    operator_id: c.operatorId,
     session_id: sessionId,
     project_root: c.projectRoot,
   });
+  if (c.workspaceId) qs.set("workspace_id", c.workspaceId);
+  if (c.agentId) qs.set("agent_id", c.agentId);
+  if (c.operatorId) qs.set("operator_id", c.operatorId);
   if (c.continuityId) qs.set("continuity_id", c.continuityId);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), c.timeoutMs);
@@ -95,6 +109,7 @@ async function fetchCard(
       `${c.focusaUrl.replace(/\/$/, "")}/v1/awareness/card?${qs.toString()}`,
       {
         signal: controller.signal,
+        redirect: "error",
         headers: { accept: "application/json" },
       },
     );
@@ -106,6 +121,76 @@ async function fetchCard(
   } finally {
     clearTimeout(timer);
   }
+}
+
+type ReadTool = NonNullable<OpenClawPluginApi["registerTool"]> extends (tool: infer T) => void ? T : never;
+
+function registerBoundedRead(
+  api: OpenClawPluginApi,
+  c: Required<FocusaAwarenessConfig>,
+  metadata: Pick<ReadTool, "name" | "label" | "description">,
+  path: string,
+  project: (body: Record<string, unknown>) => Record<string, unknown>,
+) {
+  api.registerTool?.({
+    ...metadata,
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { query: { type: "string", maxLength: 120 } },
+    },
+    async execute(_callId, args, signal) {
+      const reply = (details: Record<string, unknown>) => ({
+        content: [{ type: "text" as const, text: JSON.stringify(details) }], details,
+      });
+      const query = (args as { query?: unknown } | null)?.query;
+      if (query !== undefined && (typeof query !== "string" || query.length > 120)) {
+        return reply({ status: "invalid_input", message: "Use a search query of at most 120 characters." });
+      }
+      try {
+        const expiry = AbortSignal.timeout(c.timeoutMs);
+        const params = new URLSearchParams({ limit: "8", query: typeof query === "string" ? query.trim() : "" });
+        const response = await fetch(`${c.focusaUrl.replace(/\/$/, "")}${path}?${params}`, {
+          headers: { accept: "application/json" },
+          redirect: "error",
+          signal: signal ? AbortSignal.any([signal, expiry]) : expiry,
+        });
+        if (!response.ok) throw new Error("read rejected");
+        const body = await response.json() as Record<string, unknown>;
+        if (!body || typeof body !== "object" || body.ok === false || body.degraded === true) {
+          throw new Error("read did not complete");
+        }
+        return reply(project(body));
+      } catch {
+        return reply({ status: signal?.aborted ? "cancelled" : "unavailable", message: "Focusa read did not complete. Other authorized work can continue." });
+      }
+    },
+  });
+}
+
+const boundedText = (value: unknown, max: number) => typeof value === "string" ? value.slice(0, max) : "";
+
+function registerReads(api: OpenClawPluginApi, c: Required<FocusaAwarenessConfig>) {
+  registerBoundedRead(api, c, {
+    name: "focusa_capabilities", label: "Focusa capabilities",
+    description: "Search the Focusa catalog. Catalog entries do not imply current OpenClaw tool access.",
+  }, "/v1/agent/tools", body => {
+    if (!Array.isArray(body.tools)) throw new Error("invalid catalog");
+    return { status: "completed", catalog_only: true, total: body.total,
+      capabilities: body.tools.slice(0, 8).map(row => ({ id: boundedText(row.capability_id, 160), description: boundedText(row.summary, 240) })) };
+  });
+  registerBoundedRead(api, c, {
+    name: "focusa_reflex_primitives", label: "Focusa recovery guidance",
+    description: "Find advisory recovery or evidence guidance for a situation. Does not authorize or execute actions.",
+  }, "/v1/reflex/primitives", body => {
+    if (body.status !== "completed" || body.degraded === true || body.read_only !== true || body.advisory_only !== true || !Array.isArray(body.items)) {
+      throw new Error("unqualified guidance");
+    }
+    return { status: "completed", advisory_only: true, read_only: true, items: body.items.slice(0, 8).map(row => ({
+      id: boundedText(row.primitive_id, 160), family: boundedText(row.family, 80),
+      trigger: boundedText(row.trigger, 240), recommended_tool: boundedText(row.recommended_tool, 120),
+    })) };
+  });
 }
 
 const focusaAwareness = {
@@ -121,37 +206,23 @@ const focusaAwareness = {
       return;
     }
 
+    registerReads(api, c);
     api.on(
       "before_prompt_build",
       async (_event: unknown, ctx: { sessionKey?: string }) => {
         const sessionId = sessionIdFromContext(ctx);
-        if (!c.projectRoot || !c.continuityId) {
-          const reason =
-            "project_root and continuity_id lookup inputs are missing; no inferred/global fallback. Their presence alone would not establish exact Workstream/attachment or current action admission";
-          api.logger.warn(
-            `focusa-awareness: blocked injection session=${sessionId.slice(0, 80)} reason=${reason}`,
-          );
-          return { prependContext: fallbackCard(c, reason) };
+        if (!sessionId || !c.projectRoot || !c.continuityId) {
+          return { prependContext: "Focusa: no scoped project context for this conversation. Continue ordinary work without assuming project authority." };
         }
         try {
-          const card = await fetchCard(c, sessionId);
-          api.logger.info(
-            `focusa-awareness: injected card session=${sessionId.slice(0, 80)}`,
-          );
-          return { prependContext: card };
-        } catch (err) {
-          const reason = String(err instanceof Error ? err.message : err);
-          api.logger.warn(
-            `focusa-awareness: degraded injection session=${sessionId.slice(0, 80)} reason=${reason}`,
-          );
-          return { prependContext: fallbackCard(c, reason) };
+          return { prependContext: await fetchCard(c, sessionId) };
+        } catch {
+          return { prependContext: fallbackCard(c, "Focusa awareness read did not complete") };
         }
       },
     );
 
-    api.logger.info(
-      `focusa-awareness: active url=${c.focusaUrl} workspace=${c.workspaceId}`,
-    );
+    api.logger.info("focusa-awareness: adapter registered");
   },
 };
 

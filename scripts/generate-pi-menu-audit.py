@@ -3,12 +3,14 @@ import hashlib, json, re
 from pathlib import Path
 
 root=Path(__file__).resolve().parents[1]
-commands_path=root/'apps/pi-extension/src/commands.ts'
-session_path=root/'apps/pi-extension/src/session.ts'
+src=root/'apps/pi-extension/src'
+commands_path=src/'commands.ts'
+command_sources=[commands_path, *(src/name for name in ('auto-compaction.ts','polish.ts','wbm.ts'))]
+session_path=src/'session.ts'
 out=root/'docs/contracts/48-49-focusa-pi-menu-inventory.json'
 source=commands_path.read_text()
 commands=[]
-for match in re.finditer(r'pi\.registerCommand\("([^"]+)",\s*\{\s*description:\s*(?:"([^"]+)"|`([^`]+)`)',source):
+for match in re.finditer(r'pi\.registerCommand\("([^"]+)",\s*\{\s*description:\s*(?:"([^"]+)"|`([^`]+)`)', '\n'.join(path.read_text() for path in command_sources)):
     name=match.group(1); desc=match.group(2) or match.group(3)
     commands.append({
       'id':name,'kind':'command','owner':'focusa-pi-extension','user_job':desc,
@@ -30,6 +32,9 @@ def setting_items(marker,end):
       raw=vm.group(1) if vm else '[]'
       values=re.findall(r'"([^"]+)"',raw) if raw.startswith('[') else constants.get(raw,[])
       items.append((m.group(1),m.group(2),values))
+    for group, values_name in re.findall(r'\.\.\.\(\[(.*?)\]\s+as const\)\.map\(\(\[id, label\]\).*?values:\s*([A-Z_]+)',text,re.S):
+      for ident,label in re.findall(r'\["([^"]+)",\s*"([^"]+)"\]',group):
+        items.append((ident,label,constants.get(values_name,[])))
     return items
 simple=setting_items('const buildSimpleItems','const buildAdvancedItems')
 advanced=setting_items('const buildAdvancedItems','await ctx.ui.custom')
@@ -54,7 +59,7 @@ for row in prompts:
              'scope':'session','risk':'authority_selection','interaction_test':'session interaction contract'})
 payload={
  'schema':'focusa.pi_menu_inventory.v1','generated':True,
- 'source_sha256':hashlib.sha256((source+session_path.read_text()).encode()).hexdigest(),
+ 'source_sha256':hashlib.sha256((''.join(path.read_text() for path in command_sources)+session_path.read_text()).encode()).hexdigest(),
  'baseline':{'top_level_commands':9,'simple_settings':11,'advanced_settings':29,'simple_choice_depth':11},
  'after':{'top_level_commands':len(commands),'simple_settings':len(simple),'advanced_settings':len(advanced),'simple_choice_depth':len(simple)},
  'items':commands+settings+prompts,

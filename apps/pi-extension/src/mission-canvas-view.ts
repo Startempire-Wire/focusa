@@ -80,6 +80,8 @@ export class MissionCanvasView implements Component {
   private selected = 0;
   private selectedSurface = 0;
   private refreshing = false;
+  private disposed = false;
+  private refreshFailed = false;
   private readonly refreshTimer: ReturnType<typeof setInterval>;
   private model: MissionCanvasModel;
   private readonly theme: Theme;
@@ -109,6 +111,7 @@ export class MissionCanvasView implements Component {
   invalidate(): void {}
 
   dispose(): void {
+    this.disposed = true;
     clearInterval(this.refreshTimer);
   }
 
@@ -180,7 +183,7 @@ export class MissionCanvasView implements Component {
       ),
       this.theme.fg(
         "muted",
-        `${this.model.scopeStatus} · ${text(this.model.projectRoot)} · ${this.refreshing ? "refreshing" : "live"} · N/W/S/P/H/C panels · Y copy ref · R refresh · Esc close · ←/→ panel · Alt+←/→ surface`
+        `${this.model.scopeStatus} · ${text(this.model.projectRoot)} · ${this.refreshing ? "refreshing" : this.refreshFailed ? "refresh unavailable" : "snapshot"} · N/W/S/P/H/C panels · Y copy ref · R refresh · Esc close · ←/→ panel · Alt+←/→ surface`
       ),
       this.surfaceStrip(),
       "",
@@ -198,15 +201,20 @@ export class MissionCanvasView implements Component {
   }
 
   private async refresh(): Promise<void> {
-    if (this.refreshing) return;
+    if (this.refreshing || this.disposed) return;
     this.refreshing = true;
     this.requestRender();
     try {
-      this.model = await this.reload();
+      const model = await this.reload();
+      if (this.disposed) return;
+      this.model = model;
+      this.refreshFailed = false;
       this.selectedSurface = Math.min(this.selectedSurface, Math.max(0, this.model.workSurfaces.length - 1));
+    } catch {
+      this.refreshFailed = true;
     } finally {
       this.refreshing = false;
-      this.requestRender();
+      if (!this.disposed) this.requestRender();
     }
   }
 

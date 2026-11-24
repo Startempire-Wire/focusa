@@ -18,8 +18,11 @@ export function loadPureTypeScript(url) {
 export function loadRegisteredTool(name, dependencies, helperSections = [], sourceOverride = source) {
   const source = sourceOverride;
   const anchor = source.indexOf(`name: "${name}"`);
-  const start = source.lastIndexOf('pi.registerTool({', anchor);
-  const end = source.indexOf('pi.registerTool({', anchor);
+  const named = /const (\w+) = \{\s*$/.exec(source.slice(0, anchor));
+  const start = named ? named.index : source.lastIndexOf('pi.registerTool({', anchor);
+  const end = named
+    ? source.indexOf(`pi.registerTool(${named[1]});`, anchor) + `pi.registerTool(${named[1]});`.length
+    : source.indexOf('pi.registerTool({', anchor);
   assert.ok(anchor >= 0 && start >= 0 && end > anchor, `Missing bounded registration: ${name}`);
   const helpers = helperSections.map(([first, last]) => {
     const i = source.indexOf(first), j = source.indexOf(last, i + first.length);

@@ -165,8 +165,8 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
       () => getAttachmentRuntime().cfg
     );
     if (!ownsCompactionCoordinator) return;
-    registerTools(pi);
-    registerCommands(pi);
+    const commandActions = registerTools(pi);
+    registerCommands(pi, commandActions);
     registerMissionCanvasWidget(pi);
     registerAutomaticOtaActivation(pi);
     registerWbm(pi);

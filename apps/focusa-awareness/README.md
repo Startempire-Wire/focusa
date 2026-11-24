@@ -26,13 +26,19 @@ Run `npm test` on a supported Node runtime; this builds and tests the actual dec
 
 For an approved hot deployment, preserve exact source/config preimages with ownership and hashes; change only the necessary hook and permission; use the native plugin reload; then verify the loaded generation and a real prompt preparation. Keep canonical-source and legacy-deployment differences explicit instead of copying unrelated behavior changes. Roll back only the changed files/field and reload again, preserving concurrent config changes. No host package upgrade or full-service restart is implied.
 
+## Capability discovery
+
+Where OpenClaw permits the declared `focusa_capabilities` tool, it searches the configured Focusa service's catalog without sending project, operator or conversation identifiers. It returns at most eight summaries. A search result documents a Focusa capability; it does not grant access or imply that OpenClaw can invoke the listed operation. Timeouts or unavailable catalog responses do not prevent unrelated work. Test package registration with `npm test`; qualify native tool eligibility and execution separately in an authorized OpenClaw conversation on the target version.
+
+OpenClaw can also expose `focusa_reflex_primitives`, the bounded advisory read from [Spec 97](../../docs/97-focusa-reflex-primitives-spec.md). It returns recovery guidance, not a grant or an execution result. A recommended tool may not be available in the current conversation.
+
 ## Runtime config
 
 See `openclaw.plugin.json` for supported config fields:
 
 - `focusaUrl` — Focusa daemon URL, default `http://127.0.0.1:8787`.
-- `adapterId`, `workspaceId`, `agentId`, `operatorId` — adapter identity echoed into the awareness card.
-- `projectRoot` — verified project root passed as `project_root`.
+- `adapterId`, `workspaceId`, `agentId`, `operatorId` — adapter metadata; workspace, agent and operator are optional and have no deployment-specific defaults.
+- `projectRoot` — project lookup input passed as `project_root`, not proof of binding.
 - `continuityId` — stable logical workstream id passed as `continuity_id`.
 - `timeoutMs` — awareness request timeout.
 - `enabled` — disable injection when false.
@@ -42,9 +48,9 @@ See `openclaw.plugin.json` for supported config fields:
 Adapter surfaces must preserve Focusa scope semantics:
 
 1. Pass `project_root` and `continuity_id` whenever known.
-2. Treat `project_root + continuity_id` as the Workpoint authority boundary.
-3. Treat Workpoint resume/checkpoint as immediate action authority.
-4. Treat Trajectory and awareness cards as advisory unless the response explicitly says `canonical=true` for the verified scope.
+2. Treat `project_root + continuity_id` as lookup inputs; exact Workstream and attachment verification remain server-owned.
+3. A saved packet is not current action admission. Require daemon authorization for the current operation.
+4. Treat injected awareness as advisory, even when it refers to canonical records.
 5. Preserve labels such as `canonical`, `advisory`, `degraded`, `stale`, `scope_status`, and `scope_conflict_reason` in any UI or log surface.
 
 If `continuityId` is not configured, the card is allowed to be advisory/unbound. Do not promote it to canonical task authority.

@@ -4006,7 +4006,7 @@ pi.registerTool({
     },
   });
 
-  pi.registerTool({
+  const workLoopControl = {
     name: "focusa_work_loop_control",
     label: "Work Loop Control",
     description:
@@ -4226,7 +4226,8 @@ pi.registerTool({
         },
       };
     },
-  });
+  } satisfies Parameters<ExtensionAPI["registerTool"]>[0];
+  pi.registerTool(workLoopControl);
 
   pi.registerTool({
     name: "focusa_work_loop_context",
@@ -4288,7 +4289,7 @@ pi.registerTool({
     },
   });
 
-  pi.registerTool({
+  const workLoopCheckpoint = {
     name: "focusa_work_loop_checkpoint",
     label: "Work Loop Checkpoint",
     description: "Create a manual continuous-loop checkpoint.",
@@ -4314,7 +4315,8 @@ pi.registerTool({
         details: { ok: res.ok, status: res.status, response: compactApiEcho(res.body) },
       };
     },
-  });
+  } satisfies Parameters<ExtensionAPI["registerTool"]>[0];
+  pi.registerTool(workLoopCheckpoint);
 
   pi.registerTool({
     name: "focusa_work_loop_select_next",
@@ -16085,4 +16087,5 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       };
     },
   });
+  return { workLoopControl: workLoopControl.execute, workLoopCheckpoint: workLoopCheckpoint.execute };
 }

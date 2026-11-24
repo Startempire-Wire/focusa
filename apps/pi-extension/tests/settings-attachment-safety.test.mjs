@@ -34,7 +34,7 @@ assert.match(
   commandsSource,
   /const WORK_LOOP_TURN_OPTIONS = \["6", "10", "12", "16", "24", "60", "120", "200"\]/
 );
-assert.match(commandsSource, /const WORK_LOOP_RETRY_OPTIONS = \["1", "2", "3", "4", "8"\]/);
+assert.match(commandsSource, /const WORK_LOOP_RETRY_OPTIONS = \["0", "1", "2", "3", "4", "8"\]/);
 assert.match(commandsSource, /const WORK_LOOP_SAME_SUBPROBLEM_OPTIONS = \["1", "2", "3", "4"\]/);
 
 const outDir = mkdtempSync(join(tmpdir(), "focusa-settings-runtime-"));

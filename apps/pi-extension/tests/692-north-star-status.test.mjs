@@ -62,6 +62,14 @@ for (const body of [
   assert.equal(result.details.ok, false, `unsupported or foreign projection promoted: ${JSON.stringify(body)}`);
   assert.doesNotMatch(result.content[0].text, /NORTH STAR READY/);
 }
+const missingLadder = ready('HLT_IMPASSE');
+missingLadder.status = 'blocked';
+missingLadder.projection.status = 'missing';
+missingLadder.workpoint_linkage.status = 'missing';
+const { result: missingResult } = await run(missingLadder);
+assert.equal(missingResult.details.ok, false);
+assert.equal(missingResult.details.status, 'trajectory_projection_missing');
+assert.doesNotMatch(missingResult.content[0].text, /stale_or_unsupported|NORTH STAR READY/);
 assert.equal((await run(ready('READY'), false)).result.details.ok, false);
 const reconcile = await run({ ...ready('READY'), status: 'reconcile', code: 'WORKPOINT_FRONTIER_MISSING' });
 assert.equal(reconcile.result.details.status, 'reconcile');

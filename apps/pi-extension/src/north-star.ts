@@ -30,9 +30,10 @@ export function canonicalDaemonNorthStarReadiness(
     return blocked("scope_mismatch");
   }
   if (body.projection && (body.projection.schema !== "focusa.north_star_projection.v1" ||
-      !["complete", "incomplete"].includes(body.projection.status))) {
+      !["complete", "incomplete", "missing"].includes(body.projection.status))) {
     return blocked("projection_stale_or_unsupported");
   }
+  if (body.projection?.status === "missing") return blocked("trajectory_projection_missing", true);
   const guardStatus = body.trajectory_integrity_guard?.status;
   if (guardStatus !== "READY" && guardStatus !== "ready") return blocked("trajectory_guard_not_ready", true);
   const reconcile = body.status === "reconcile" && body.code === "WORKPOINT_FRONTIER_MISSING";
@@ -272,12 +273,7 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
 export function updateNorthStarCard(ctx: any, trigger: string): NorthStarSnapshot {
   const snapshot = buildNorthStarSnapshot(trigger);
   getAttachmentRuntime().northStarSnapshot = snapshot;
-  if (ctx?.hasUI) {
-    if (getAttachmentRuntime().startupReceptionistActive) {
-      ctx.ui.setWidget("focusa-north-star", undefined);
-    } else {
-      ctx.ui.setWidget("focusa-north-star", renderNorthStarCard(snapshot), { placement: "aboveEditor" });
-    }
-  }
+  // Keep readiness evaluation available without duplicating the persistent Focusa widget.
+  if (ctx?.hasUI) ctx.ui.setWidget("focusa-north-star", undefined);
   return snapshot;
 }

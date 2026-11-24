@@ -427,10 +427,19 @@ function resolveSettingsPaths(cwd?: string): string[] {
 
 export interface FocusaInteractionModeResolution {
   mode: FocusaInteractionMode;
-  source: "session-env" | "project" | "user" | "default";
+  source: "session" | "session-env" | "project" | "user" | "default";
 }
 
-export function resolveInteractionMode(cwd?: string): FocusaInteractionModeResolution {
+const interactionModeOverrides = new WeakMap<object, FocusaInteractionMode>();
+
+export function setSessionInteractionMode(attachment: object, mode?: FocusaInteractionMode): void {
+  if (mode === undefined) interactionModeOverrides.delete(attachment);
+  else interactionModeOverrides.set(attachment, mode);
+}
+
+export function resolveInteractionMode(cwd?: string, attachment?: object): FocusaInteractionModeResolution {
+  const override = attachment && interactionModeOverrides.get(attachment);
+  if (override) return { mode: override, source: "session" };
   const env = process.env.FOCUSA_PI_INTERACTION_MODE as FocusaInteractionMode | undefined;
   if (env && ["canvas-guided", "terminal-guided", "headless"].includes(env)) {
     return { mode: env, source: "session-env" };
@@ -446,10 +455,14 @@ export function resolveInteractionMode(cwd?: string): FocusaInteractionModeResol
 
 // Precedence: bounded session env > project override > user default > defaults.
 export function loadConfig(cwd?: string): { config: FocusaConfig; errors: string[] } {
+  return resolveConfig(cwd);
+}
+
+function resolveConfig(cwd?: string, candidate?: { path: string; raw: unknown }): { config: FocusaConfig; errors: string[] } {
   let fileConfig: Partial<FocusaConfig> = {};
 
   for (const p of resolveSettingsPaths(cwd)) {
-    const raw = readSettingsFile(p);
+    const raw = candidate?.path === p ? candidate.raw : readSettingsFile(p);
     const ext = extractFocusaConfig(raw);
     fileConfig = { ...fileConfig, ...ext };
   }
@@ -488,9 +501,17 @@ export function saveConfigOverrides(
       ? join(cwd, ".pi/settings.json")
       : join(process.env.HOME || "", ".pi/agent/settings.json");
 
-  const raw = readSettingsFile(path);
-  if (!isPlainObject(raw))
-    throw new Error(`Refusing to write Focusa config into non-object settings file: ${path}`);
+  let raw: Record<string, any> = {};
+  try {
+    const existing: unknown = JSON.parse(readFileSync(path, "utf-8"));
+    if (!isPlainObject(existing)) throw new Error("settings must contain an object");
+    raw = existing;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw new Error(`Refusing to overwrite unreadable or invalid Pi settings: ${path}`, { cause: error });
+    }
+  }
+  const prior = loadConfig(cwd);
   if (
     RESERVED_PI_KEYS.has("extensions") &&
     isPlainObject(raw.extensions) &&
@@ -504,11 +525,12 @@ export function saveConfigOverrides(
     ...overrides,
   };
 
+  const next = resolveConfig(cwd, { path, raw });
+  if (next.errors.length) return { config: prior.config, errors: next.errors, path };
+
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(raw, null, 2)}\n`, "utf-8");
-
-  const { config, errors } = loadConfig(cwd);
-  return { config, errors, path };
+  return { ...next, path };
 }
 
 // §23: Get preset names

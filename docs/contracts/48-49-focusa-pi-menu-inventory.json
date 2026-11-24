@@ -1,7 +1,7 @@
 {
   "schema": "focusa.pi_menu_inventory.v1",
   "generated": true,
-  "source_sha256": "5a4d3984703b041588a96405d57ab2b0a496aa7c156bbaed6abc89b3f5df34ed",
+  "source_sha256": "fc2e3520f8aa895df9d044110107e9ead5d6c39f3c244a896ad7ed61736e90a9",
   "baseline": {
     "top_level_commands": 9,
     "simple_settings": 11,
@@ -9,9 +9,9 @@
     "simple_choice_depth": 11
   },
   "after": {
-    "top_level_commands": 13,
+    "top_level_commands": 16,
     "simple_settings": 9,
-    "advanced_settings": 29,
+    "advanced_settings": 35,
     "simple_choice_depth": 9
   },
   "items": [
@@ -163,10 +163,46 @@
       "id": "focusa-reset",
       "kind": "command",
       "owner": "focusa-pi-extension",
-      "user_job": "Clear Focus State in Focusa + push fresh Pi frame",
+      "user_job": "Reset local Pi focus state and request a Focusa frame; retains saved history",
       "placement": "top_level_command",
       "rationale": "direct operator action or compatibility entrypoint",
-      "help": "Clear Focus State in Focusa + push fresh Pi frame",
+      "help": "Reset local Pi focus state and request a Focusa frame; retains saved history",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-compaction-policy",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Show or override the scoped adaptive compaction policy",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Show or override the scoped adaptive compaction policy",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-bar",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Show or change Focusa operator status widgets",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Show or change Focusa operator status widgets",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "wbm",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Wirebot Mode \u2014 /wbm on|off|status|deep|flush|decisions|ships",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Wirebot Mode \u2014 /wbm on|off|status|deep|flush|decisions|ships",
       "scope": "attachment_or_explicit_project",
       "risk": "mutation_gated_by_handler",
       "interaction_test": "Pi typecheck plus command-specific contract test"
@@ -683,6 +719,7 @@
       "scope": "project_config",
       "risk": "persistent_config_write",
       "values": [
+        "0",
         "1",
         "2",
         "3",
@@ -703,6 +740,7 @@
       "scope": "project_config",
       "risk": "persistent_config_write",
       "values": [
+        "0",
         "500",
         "800",
         "1000",
@@ -884,6 +922,108 @@
         "2000",
         "3000",
         "5000"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "operatorStatusBarEnabled",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Operator status bar",
+      "placement": "advanced_searchable",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Operator status bar",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "operatorStatusVersionEnabled",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Status: Focusa version",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Status: Focusa version",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "operatorStatusOtaEnabled",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Status: OTA state",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Status: OTA state",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "operatorStatusModelUsageEnabled",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Status: model/provider usage",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Status: model/provider usage",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "operatorStatusTimeEnabled",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Status: local time and deadline",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Status: local time and deadline",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "operatorStatusPredictionEnabled",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Status: next prediction",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Status: next prediction",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
       ],
       "interaction_test": "settings attachment safety + exhaustive value callback gate"
     },
