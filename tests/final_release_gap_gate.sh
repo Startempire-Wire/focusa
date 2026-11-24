@@ -54,6 +54,10 @@ pass 'public uninstall preserves user data unless purge is explicit'
 python3 scripts/generate-agent-skills.py --check
 bun scripts/generate-agent-capability-descriptors.ts --check
 bun scripts/generate-agent-tool-docs.ts --check
+node scripts/generate-agent-operation-docs.mjs --check
+node scripts/audit-skill-ownership.mjs
+python3 scripts/generate_skill-ownership-manifest.py --check
+node --test tests/callgraph-discovery-parity.test.mjs tests/prediction-discovery-routes.test.mjs
 bun tests/spec141_agent_conformance_test.ts
 python3 tests/spec141_agent_first_tool_audit_test.py
 bash tests/spec129_agent_docs_surface_static_test.sh

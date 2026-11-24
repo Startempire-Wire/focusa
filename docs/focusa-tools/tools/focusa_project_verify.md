@@ -92,4 +92,4 @@ Likely next: `focusa_project_bootstrap`, `focusa_project_genesis`, `focusa_traje
 - CLI: `focusa project verify`.
 - REST: `POST /v1/project/verify`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:21755584ed92bc9d67c73155805bf68f1e1fe1bc768ab36cf6e7fcc56e8e73eb`.
+- Descriptor digest: `sha256:08c9a7eb876596ee4c66b86250987e91b6c2a1c0d86b55aa010d02737e5ece33`.

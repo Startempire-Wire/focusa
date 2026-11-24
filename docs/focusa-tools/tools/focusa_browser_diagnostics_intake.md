@@ -89,4 +89,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_
 - CLI: `focusa workpoint evidence-link`, `focusa predict record`, `focusa metacognition capture`.
 - REST: `POST /v1/workpoint/evidence/link`, `POST /v1/predictions`, `POST /v1/metacognition/capture`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:9b9b04b925f418adf42da4931a4057f6440afd8f53cc0b8f13231ac41595322b`.
+- Descriptor digest: `sha256:ad90da2a8f3c3cdc51a8cde9600333afeeebcab93f9721473346867f7ea79fc4`.

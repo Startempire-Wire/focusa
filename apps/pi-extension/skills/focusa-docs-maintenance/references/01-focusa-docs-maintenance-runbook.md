@@ -26,7 +26,7 @@ For resume, normally omit `current_ask` so the adapter forwards the exact latest
 1. Audit the connected Bootstrap/Genesis/Ladder/Workpoint/execution/reconciliation journey, not isolated page completeness.
 2. Follow Documentation-first diagnosis in `docs/agent/02-focusa-cohesive-project-flow.md`; check published machine contracts and installed behavior independently.
 3. Update canonical registry/generator and maintained guidance; regenerate machine/tool/skill consumers through their existing writers, preserving authored files and mirrors.
-4. Discover the current inventory instead of hard-coding skill counts; check source/generated/runtime parity separately.
+4. Discover the current inventory instead of hard-coding skill counts; check source/generated/runtime parity separately. Check both generated route docs and per-tool docs: `node scripts/generate-agent-operation-docs.mjs --check` and `bun scripts/generate-agent-tool-docs.ts --check` cover different outputs. After descriptor generation, rerun the per-tool writer before validating.
 5. Refresh the actual agent through its native supported path only after authorized delivery; source edits do not prove installed guidance or model refresh.
 6. Use focused transition regressions plus real supported-agent/daemon consumer evidence; static checks cannot prove proactivity.
 7. Review after behavior, contract, SDK or workflow changes, before release, and periodically between releases through the existing owning maintenance queue; record the actual review and unresolved drift, not a claimed unattended schedule.

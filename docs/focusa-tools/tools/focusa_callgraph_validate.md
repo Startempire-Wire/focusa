@@ -78,4 +78,4 @@ Likely next: `focusa_callgraph_observe`, `focusa_tool_describe`.
 - CLI: none.
 - REST: `POST /v1/callgraphs/validate`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c4f12e6697f37ec662270a742d84f9b2a48e807f405244b22495718a3d1cea79`.
+- Descriptor digest: `sha256:aed2d06f4094c2c26a2b371aac2d3d6c39ee6b56ceb7815ae5ecfea74dd3889f`.

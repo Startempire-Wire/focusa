@@ -79,4 +79,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_tool_d
 - CLI: none.
 - REST: `GET /v1/awareness/packet`, `GET /v1/awareness/packet/{surface}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:d17e3cbb384807bc9a10692eb7290fbc806f692b63538fc39067fcad9e3284a2`.
+- Descriptor digest: `sha256:b4d7d984e8eeaf6f66b98d87237d0cbcf913cd2c0675b3c960b5e163a612dedd`.
