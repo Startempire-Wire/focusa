@@ -455,15 +455,20 @@ fn reserve_route_limit(
             required_feature: policy.required_feature.clone(),
             limit_bucket: Some(bucket.to_string()),
         })?;
-    let lease_id = snapshot.lease_id.as_deref().unwrap_or_default();
+    let test_mode = std::env::var("FOCUSA_TEST_MODE")
+        .map(|value| value == "1")
+        .unwrap_or(false);
+    let lease_id = snapshot
+        .lease_id
+        .as_deref()
+        .filter(|v| !v.trim().is_empty())
+        .map(str::to_string)
+        .or_else(|| test_mode.then_some("focusa-test-mode-lease".to_string()))
+        .unwrap_or_default();
     let lease_sequence = snapshot.sequence.unwrap_or_default();
     let mut available = snapshot.limits.get(bucket).copied().unwrap_or(0);
     // CI test-mode daemons bypass real limit enforcement (bounded: 1k units, not MAX, and only when FOCUSA_TEST_MODE=1).
-    if std::env::var("FOCUSA_TEST_MODE")
-        .map(|value| value == "1")
-        .unwrap_or(false)
-        && available == 0
-    {
+    if test_mode && available == 0 {
         available = 1000;
     }
     let reservation_id = format!(
