@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-08-02T14:32:52.996466+00:00",
-  "operation_count": 157,
+  "operation_count": 158,
   "operations": [
     {
       "alias_of": null,
@@ -789,6 +789,91 @@
       "source_owner": "call_stack",
       "policy_owner": "entitlement_policy_resolver",
       "spec172_family": "manual_basic_evidence",
+      "product_owner": "focusa",
+      "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "compact",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.callgraph_validate.request.v1",
+        "output_schema_ref": "focusa.callgraph_validate.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "callgraph"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "callgraph:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/155-focusa-callgraph-workflow-and-flow-mesh-execution-integration-spec.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "callgraph",
+      "label": "Validate CallGraph Definition",
+      "materialization_mode": "inline",
+      "method": "POST",
+      "operation_id": "focusa.callgraph.validate",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.callgraph.validate",
+        "subsystem": "callgraph"
+      },
+      "path": "/v1/callgraphs/validate",
+      "permissions_required": [
+        "callgraph:read"
+      ],
+      "request_schema_ref": "focusa.callgraph_validate.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.callgraph_validate.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.callgraph_validate.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": false,
+        "required_keys": [],
+        "workstream_scoped": false
+      },
+      "side_effect_profile": "read_validation",
+      "supports_side_effect_policy": [
+        "inspect"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Validate CallGraph Definition",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Validate CallGraph Definition",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "operation_class": "read",
+      "capability_family": "read_projection",
+      "commercial_treatment": "read_allowance",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": null,
+      "recovery_allowance": "read_projection",
+      "source_owner": "callgraph",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": null,
       "product_owner": "focusa",
       "side_effect_class": "none"
     },

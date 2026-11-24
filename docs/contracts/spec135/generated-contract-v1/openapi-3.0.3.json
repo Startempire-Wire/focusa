@@ -13137,6 +13137,171 @@
             "type": "boolean"
           }
         }
+      },
+      "focusa_callgraph_validate_request_v1": {
+        "type": "object",
+        "required": [
+          "schema",
+          "graph_id",
+          "revision",
+          "scope",
+          "mission_ref",
+          "title",
+          "description",
+          "entry_frame_ids",
+          "frames",
+          "edges",
+          "created_at",
+          "created_by"
+        ],
+        "properties": {
+          "schema": {
+            "type": "string",
+            "enum": [
+              "focusa.callgraph.v1"
+            ]
+          },
+          "graph_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "scope": {
+            "type": "object",
+            "required": [
+              "project_root",
+              "continuity_id"
+            ],
+            "properties": {
+              "project_root": {
+                "type": "string",
+                "minLength": 1
+              },
+              "continuity_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "mission_ref": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "entry_frame_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "frames": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object"
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "type": "object"
+          },
+          "trajectory_ref": {
+            "type": "string",
+            "nullable": true
+          },
+          "workpoint_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "policies": {
+            "type": "object"
+          },
+          "required_evidence": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "focusa_callgraph_validate_response_v1": {
+        "type": "object",
+        "required": [
+          "status",
+          "valid",
+          "issues",
+          "graph_id",
+          "revision",
+          "canonical"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "invalid"
+            ]
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "severity",
+                "path",
+                "message"
+              ],
+              "properties": {
+                "severity": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "graph_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "canonical": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "additionalProperties": false
       }
     }
   },
@@ -28540,6 +28705,92 @@
           "product_owner": "focusa",
           "side_effect_class": "none"
         }
+      }
+    },
+    "/v1/callgraphs/validate": {
+      "post": {
+        "description": "Validate a CallGraph definition without creating or dispatching a run.",
+        "operationId": "focusa.callgraph.validate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_callgraph_validate_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_callgraph_validate_response_v1"
+                }
+              }
+            },
+            "description": "Validate CallGraph Definition response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Validate CallGraph Definition",
+        "tags": [
+          "callgraph"
+        ],
+        "x-focusa": {
+          "family": "callgraph",
+          "canonical": true,
+          "budget_profile": "compact",
+          "materialization_mode": "inline",
+          "side_effect_profile": "read_validation",
+          "supports_side_effect_policy": [
+            "inspect"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "read",
+          "capability_family": "read_projection",
+          "commercial_treatment": "read_allowance",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": null,
+          "recovery_allowance": "read_projection",
+          "source_owner": "callgraph",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "none"
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "callgraph"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.callgraph.validate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "callgraph:read"
+        ],
+        "x-focusa-plain-label": "Validate CallGraph Definition",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "callgraph"
       }
     }
   },

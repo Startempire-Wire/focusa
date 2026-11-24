@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:ebe68605068cf941eda90ed44c3b26d69ca5d83262f2ebf494825e6ec8f70f65`
+Registry digest: `sha256:1bffff270ff46662a4ac84b8d93273bcd958e6aa18ad2ea4418e5e3d7bc3c7f5`
 
 This file is generated. Use the descriptor registry for source schemas and machine metadata; generation is not installed or cross-harness behavioral proof.
 Shared conditional journey: docs/agent/02-focusa-cohesive-project-flow.md. Discover only the capabilities needed by the verified current action; next-tool lists are not execution dependencies.

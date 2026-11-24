@@ -16041,7 +16041,7 @@
       "family": "callgraph",
       "namespace": "focusa.callgraph",
       "operation_policy": {
-        "operation_id": null,
+        "operation_id": "focusa.callgraph.validate",
         "method": "POST",
         "path": "/v1/callgraphs/validate",
         "operation_class": "read",
@@ -16051,12 +16051,12 @@
         "required_feature": null,
         "limit_bucket": null,
         "recovery_allowance": "read_projection",
-        "source_owner": "agent_capability_contracts",
+        "source_owner": "callgraph",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": null,
+          "operation_id": "focusa.callgraph.validate",
           "method": "POST",
           "path": "/v1/callgraphs/validate",
           "operation_class": "read",
@@ -16066,7 +16066,7 @@
           "required_feature": null,
           "limit_bucket": null,
           "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "callgraph",
           "policy_owner": "entitlement_policy_resolver"
         }
       ],
@@ -16077,7 +16077,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "callgraph",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -16512,7 +16512,7 @@
         "snippet": "Use before creating or dispatching any CallGraph.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c4f12e6697f37ec662270a742d84f9b2a48e807f405244b22495718a3d1cea79"
+      "descriptor_digest": "sha256:aed2d06f4094c2c26a2b371aac2d3d6c39ee6b56ceb7815ae5ecfea74dd3889f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87773,5 +87773,5 @@
       "descriptor_digest": "sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae"
     }
   ],
-  "registry_digest": "sha256:ebe68605068cf941eda90ed44c3b26d69ca5d83262f2ebf494825e6ec8f70f65"
+  "registry_digest": "sha256:1bffff270ff46662a4ac84b8d93273bcd958e6aa18ad2ea4418e5e3d7bc3c7f5"
 }

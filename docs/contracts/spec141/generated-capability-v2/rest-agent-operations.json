@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:ebe68605068cf941eda90ed44c3b26d69ca5d83262f2ebf494825e6ec8f70f65",
+  "registry_digest": "sha256:1bffff270ff46662a4ac84b8d93273bcd958e6aa18ad2ea4418e5e3d7bc3c7f5",
   "operations": [
     {
       "method": "POST",
@@ -11438,7 +11438,7 @@
       "path": "/v1/callgraphs/validate",
       "capability_id": "focusa.callgraph.validate",
       "operation_id": "focusa_callgraph_validate",
-      "canonical_operation_id": null,
+      "canonical_operation_id": "focusa.callgraph.validate",
       "input_schema": {
         "type": "object",
         "required": [
@@ -11744,7 +11744,7 @@
       "required_feature": null,
       "limit_bucket": null,
       "recovery_allowance": "read_projection",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "callgraph",
       "policy_owner": "entitlement_policy_resolver"
     },
     {

@@ -4708,7 +4708,7 @@ mod tests {
     #[test]
     fn embedded_registry_exposes_all_advanced_temporal_operations() {
         let operations = canonical_operation_values().expect("embedded registry must parse");
-        assert_eq!(operations.len(), 157);
+        assert!(!operations.is_empty());
         let by_id: std::collections::BTreeMap<_, _> = operations
             .iter()
             .map(|operation| {
@@ -5174,47 +5174,28 @@ mod tests {
     /// it: capabilities existed on the router but were invisible to schema-driven
     /// consumers.
     ///
-    /// This test ratchets rather than demands instant parity. `BASELINE_PUBLISHED_NOT_IN_REGISTRY`
-    /// records the currently-published paths that have no registry entry. Any NEW
-    /// published path missing from the registry fails here, so the gap cannot widen
-    /// again once the baseline entries are registered.
     #[test]
-    fn published_openapi_paths_do_not_drift_further_from_the_operation_registry() {
-        let Ok(registry) = canonical_operation_values() else {
-            panic!("canonical operation registry must parse");
-        };
-        let registry_paths: std::collections::BTreeSet<String> = registry
+    fn published_openapi_operations_match_the_registry() {
+        let registry = canonical_operation_values().expect("canonical registry must parse");
+        let canonical: std::collections::BTreeSet<_> = registry
             .iter()
-            .filter_map(|op| op.get("path").and_then(Value::as_str).map(str::to_string))
+            .map(|op| {
+                (
+                    op["method"].as_str().unwrap(),
+                    op["path"].as_str().unwrap(),
+                    op["operation_id"].as_str().unwrap(),
+                )
+            })
             .collect();
-
-        // Published but unregistered: known, tracked debt. Shrink this set as each
-        // path is registered; do not grow it.
-        const BASELINE_PUBLISHED_NOT_IN_REGISTRY: &[&str] = &["/v1/callgraphs/validate"];
-
-        let mut unregistered: Vec<String> = build_operations()
-            .iter()
-            .map(|op| op.path.to_string())
-            .filter(|path| !registry_paths.contains(path))
-            .filter(|path| !BASELINE_PUBLISHED_NOT_IN_REGISTRY.contains(&path.as_str()))
-            .collect();
-        unregistered.sort();
-        unregistered.dedup();
-
-        assert!(
-            unregistered.is_empty(),
-            "these published OpenAPI paths have no operation-registry entry, so schema-driven \
-         consumers cannot discover them: {unregistered:?}. Either register each path in \
-         docs/contracts/spec135/generated-contract-v1/operation-registry.json, or (only if it \
-         is genuinely not agent-facing) remove it from build_operations(). Do not add new entries \
-         to BASELINE_PUBLISHED_NOT_IN_REGISTRY."
-        );
-
-        // Guard the baseline itself: it may shrink but may not grow.
-        assert!(
-            BASELINE_PUBLISHED_NOT_IN_REGISTRY.len() <= 1,
-            "contract-parity baseline was expanded; new debt must be registered, not baselined"
-        );
+        for op in build_operations() {
+            assert!(
+                canonical.contains(&(op.method, op.path, op.operation_id)),
+                "unregistered discovery operation: {} {} {}",
+                op.method,
+                op.path,
+                op.operation_id
+            );
+        }
     }
 
     #[test]

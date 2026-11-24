@@ -3072,6 +3072,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/callgraphs/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate CallGraph Definition
+         * @description Validate a CallGraph definition without creating or dispatching a run.
+         */
+        post: operations["focusa.callgraph.validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6738,6 +6758,45 @@ export interface components {
             canonical: boolean;
         } & {
             [key: string]: unknown;
+        };
+        focusa_callgraph_validate_request_v1: {
+            /** @enum {string} */
+            schema: "focusa.callgraph.v1";
+            graph_id: string;
+            revision: number;
+            scope: {
+                project_root: string;
+                continuity_id: string;
+            };
+            mission_ref: string;
+            title: string;
+            description: string;
+            entry_frame_ids: string[];
+            frames: Record<string, never>[];
+            edges: Record<string, never>[];
+            /** Format: date-time */
+            created_at: string;
+            created_by: Record<string, never>;
+            trajectory_ref?: string | null;
+            workpoint_refs?: string[];
+            policies?: Record<string, never>;
+            required_evidence?: Record<string, never>[];
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_callgraph_validate_response_v1: {
+            /** @enum {string} */
+            status: "valid" | "invalid";
+            valid: boolean;
+            issues: {
+                severity: string;
+                path: string;
+                message: string;
+            }[];
+            graph_id: string;
+            revision: number;
+            /** @enum {boolean} */
+            canonical: true;
         };
     };
     responses: never;
@@ -11819,6 +11878,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_spec138_operation_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.callgraph.validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_callgraph_validate_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Validate CallGraph Definition response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_callgraph_validate_response_v1"];
                 };
             };
             /** @description Standard error envelope */
