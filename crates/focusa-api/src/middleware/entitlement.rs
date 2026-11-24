@@ -575,7 +575,18 @@ fn resolve_route_entitlement_policy(method: &Method, path: &str) -> Option<Route
         });
     }
 
-    if let Some(policy) = route_entitlement_policy_from_classification(method, path) {
+    if let Some(mut policy) = route_entitlement_policy_from_classification(method, path) {
+        // The reviewed generated entitlement table is the canonical owner of
+        // feature/limit metering. A classification entry that omits a bucket
+        // must not shadow the bucket that table assigns to the same route
+        // (observed for focusa.workpoint.link_evidence / workpoints).
+        if policy.limit_bucket.is_none() {
+            if let Some(requirement) = requirement_for_path(path) {
+                if let Some(bucket) = requirement.limit_bucket {
+                    policy.limit_bucket = Some(bucket.to_string());
+                }
+            }
+        }
         return Some(policy);
     }
 

@@ -29,6 +29,21 @@ RECOVERY_PATHS = {
     "/v1/update/rollback",
 }
 
+# #713: reviewed route-level entitlement decisions that cannot be re-derived
+# from operation families or path segments. These are explicit authority, not
+# inference: changing one requires owner review. Regeneration must preserve
+# them byte-for-byte (feature + limit bucket).
+EXPLICIT_ROUTE_GUARDS = {
+    "/v1/cockpit/projection": ("focusa.core.workpoint", "workpoints"),
+    "/v1/shutdown": ("focusa.core.mission", None),
+    "/v1/sms/checkpoint": ("focusa.core.mission", None),
+    "/v1/sms/otp/challenges": ("focusa.core.mission", None),
+    "/v1/sms/otp/inject": ("focusa.core.mission", None),
+    "/v1/sms/revoke": ("focusa.core.mission", None),
+    "/v1/sms/send": ("focusa.core.mission", None),
+    "/v1/project/north-star-gate": ("focusa.core.mission", None),
+}
+
 def _rest_segment(path):
     """Extract the first /v1/ segment from a REST path, normalising hyphens to underscores."""
     parts = path.strip("/").split("/")
@@ -48,6 +63,13 @@ def requirements():
     for route in routes:
         # Recovery paths are handled by the middleware's route_recovery_allowance
         if route["path"] in RECOVERY_PATHS:
+            continue
+        # Reviewed guards win over inferred families/buckets (#713).
+        if route["path"] in EXPLICIT_ROUTE_GUARDS:
+            feature, bucket = EXPLICIT_ROUTE_GUARDS[route["path"]]
+            if feature not in buckets:
+                raise ValueError(f"unregistered feature {feature}")
+            result.append((route["path"], feature, bucket))
             continue
         features = set()
         # 1) Canonical operation refs (exact family → feature)
@@ -129,9 +151,47 @@ mod tests {{
     #[test]
     fn exact_and_parameterized_routes_match_without_prefix_guessing() {{
         assert!(requirement_for_path("/v1/workpoint/checkpoint").is_some());
+        assert!(requirement_for_path("/v1/cockpit/projection").is_some());
         assert!(requirement_for_path("/not/a/focusa/route").is_none());
         assert!(!template_matches("/v1/items/{{id}}", "/v1/items"));
         assert!(template_matches("/v1/items/{{id}}", "/v1/items/item-1"));
+    }}
+
+    #[test]
+    fn reviewed_route_guards_survive_regeneration() {{
+        // #713: independently assert every reviewed exception so a future
+        // generator change cannot silently drop these protections.
+        for path in [
+            "/v1/cockpit/projection",
+            "/v1/shutdown",
+            "/v1/sms/checkpoint",
+            "/v1/sms/otp/challenges",
+            "/v1/sms/otp/inject",
+            "/v1/sms/revoke",
+            "/v1/sms/send",
+            "/v1/project/north-star-gate",
+        ] {{
+            assert!(
+                requirement_for_path(path).is_some(),
+                "reviewed guard was dropped: {{path}}"
+            );
+        }}
+        assert_eq!(
+            requirement_for_path("/v1/cockpit/projection")
+                .unwrap()
+                .limit_bucket,
+            Some("workpoints")
+        );
+        assert_eq!(
+            requirement_for_path("/v1/project/north-star-gate")
+                .unwrap()
+                .limit_bucket,
+            None
+        );
+        assert_eq!(
+            requirement_for_path("/v1/sms/send").unwrap().limit_bucket,
+            None
+        );
     }}
 }}
 '''

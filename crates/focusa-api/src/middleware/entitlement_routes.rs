@@ -1799,6 +1799,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("missions"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/project/north-star-gate",
+        feature: "focusa.core.mission",
+        limit_bucket: None,
+    },
+    RouteEntitlementRequirement {
         template: "/v1/project/remove",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
@@ -1827,11 +1832,6 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         template: "/v1/project/templates",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),
-    },
-    RouteEntitlementRequirement {
-        template: "/v1/project/north-star-gate",
-        feature: "focusa.core.mission",
-        limit_bucket: None,
     },
     RouteEntitlementRequirement {
         template: "/v1/project/trajectory-guard",
@@ -3016,5 +3016,42 @@ mod tests {
         assert!(requirement_for_path("/not/a/focusa/route").is_none());
         assert!(!template_matches("/v1/items/{id}", "/v1/items"));
         assert!(template_matches("/v1/items/{id}", "/v1/items/item-1"));
+    }
+
+    #[test]
+    fn reviewed_route_guards_survive_regeneration() {
+        // #713: independently assert every reviewed exception so a future
+        // generator change cannot silently drop these protections.
+        for path in [
+            "/v1/cockpit/projection",
+            "/v1/shutdown",
+            "/v1/sms/checkpoint",
+            "/v1/sms/otp/challenges",
+            "/v1/sms/otp/inject",
+            "/v1/sms/revoke",
+            "/v1/sms/send",
+            "/v1/project/north-star-gate",
+        ] {
+            assert!(
+                requirement_for_path(path).is_some(),
+                "reviewed guard was dropped: {path}"
+            );
+        }
+        assert_eq!(
+            requirement_for_path("/v1/cockpit/projection")
+                .unwrap()
+                .limit_bucket,
+            Some("workpoints")
+        );
+        assert_eq!(
+            requirement_for_path("/v1/project/north-star-gate")
+                .unwrap()
+                .limit_bucket,
+            None
+        );
+        assert_eq!(
+            requirement_for_path("/v1/sms/send").unwrap().limit_bucket,
+            None
+        );
     }
 }
