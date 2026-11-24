@@ -18,7 +18,7 @@ for needle in \
   'Minute 3' \
   'Minute 4' \
   'Minute 5' \
-  'scripts/install-daemon.sh /usr/local' \
+  'https://install.focusa.dev/focusa' \
   'focusa init --quickstart' \
   'focusa deck' \
   'focusa-tui --headless-self-test' \

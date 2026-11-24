@@ -48,7 +48,7 @@ Shared cross-harness references: [Authority Model](docs/current/AUTHORITY_MODEL.
 
 ## Install
 
-[Release Install Postcard](docs/RELEASE_INSTALL_POSTCARD.md) — install, verify health, quickstart, and open Mission Deck.
+[Release Install Postcard](docs/RELEASE_INSTALL_POSTCARD.md) — install, verify health, quickstart, and open Mission Deck. For a guided demonstration, see the [GTM Five-Minute Proof](docs/GTM_FIVE_MINUTE_PROOF.md).
 
 ```bash
 curl -fsS https://install.focusa.dev/focusa | bash

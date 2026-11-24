@@ -49,7 +49,7 @@ These historical roadmap beads are not used as release acceptance claims; each r
 - `focusa-117-arch.28` — Final pre-MVP polish across every layer.
 - `focusa-117-arch.29` — Expand Mission Recall into a full dedicated specification.
 
-## Sync checklist before public v0.9.142 claim
+## Sync checklist before making a current public claim
 
 - [ ] README Quickstart matches current installer behavior.
 - [ ] Release Install Postcard commands verified.

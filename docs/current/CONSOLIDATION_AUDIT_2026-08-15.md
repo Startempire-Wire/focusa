@@ -26,7 +26,7 @@ silent-session completion notification (#311)
 
 - Marker production now routes through `focusa-core/src/project_marker.rs`
   (init + onboard wired; API parity next in IR2).
-- `focusa setup walkthrough` registered — the deprecation alias now points at
+- Historical claim (not reproduced on v0.9.209-nightly.20261120): `focusa setup walkthrough` was reported to be registered, with the deprecation alias pointing at
   a real subcommand (#303).
 - Developer-origin entitlement (#307) removes the evaluation/commercial gate
   friction on trusted machines; feature gates resolve through

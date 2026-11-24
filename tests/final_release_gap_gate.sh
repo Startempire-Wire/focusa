@@ -62,6 +62,9 @@ node --test tests/callgraph-discovery-parity.test.mjs tests/prediction-discovery
 bun tests/spec141_agent_conformance_test.ts
 python3 tests/spec141_agent_first_tool_audit_test.py
 bash tests/spec129_agent_docs_surface_static_test.sh
+bash tests/spec_focusa_117_release_install_postcard_static_test.sh
+bash tests/spec_focusa_117_gtm_five_minute_proof_static_test.sh
+bash tests/spec_focusa_117_public_docs_sync_static_test.sh
 pass 'all-Pi-tool, Agent Card, skill/runbook, and onboarding documentation gates'
 
 # Worktree/authority aggregate proof. Provider status never substitutes for

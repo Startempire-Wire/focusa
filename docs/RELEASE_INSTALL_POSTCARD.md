@@ -1,6 +1,6 @@
 # Focusa Release Install Postcard
 
-Fast path for a first-time evaluator: install Focusa, see the daemon alive, bind a project, then open Mission Deck.
+Fast path for a first-time evaluator: install Focusa, verify daemon health, write a project marker, then open Mission Deck.
 
 For the buyer-facing demo script, see the [GTM Five-Minute Proof](GTM_FIVE_MINUTE_PROOF.md).
 
@@ -59,6 +59,8 @@ Expected outcome:
 
 ## 5. What “done” means
 
+The quickstart only writes the marker. It does not verify a live agent attachment or create a canonical Workpoint. For an existing project, verify scope and resume its saved work using the [agent project flow](agent/02-focusa-cohesive-project-flow.md).
+
 A Focusa mission is not done merely because an agent says it is done.
 
 Before launch/evaluator handoff, expect:
@@ -74,7 +76,7 @@ Before launch/evaluator handoff, expect:
 | Symptom | Safe next step |
 |---|---|
 | Daemon unavailable | `focusa start`; then `focusa doctor --scope host` |
-| Project unbound | `focusa init --quickstart` |
+| Project unbound | Verify the exact project and agent attachment. Use `focusa init --quickstart` only when creating a marker is intended. |
 | No Workpoint | `focusa workpoint checkpoint` |
 | Proof missing | Attach a test/file/screenshot/command output or declare a proof gap |
 | Scope conflict | Verify project root before editing files |

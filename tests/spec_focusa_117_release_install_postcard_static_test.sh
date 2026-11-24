@@ -11,7 +11,7 @@ README="$ROOT_DIR/README.md"
 
 for needle in \
   'Focusa Release Install Postcard' \
-  'scripts/install-daemon.sh /usr/local' \
+  'https://install.focusa.dev/focusa' \
   'focusa start' \
   'http://127.0.0.1:8787/v1/health' \
   'focusa doctor --scope host' \
@@ -26,6 +26,9 @@ for needle in \
   grep -qF -- "$needle" "$CARD" || fail "postcard missing: $needle"
 done
 pass "postcard highlights install, post-install, quickstart, and Mission Deck"
+grep -Fq 'Commands::Walkthrough(args) => commands::walkthrough::run(args, cli.json).await' "$ROOT_DIR/crates/focusa-cli/src/main.rs" || fail "walkthrough must dispatch without a dead replacement hint"
+grep -Fq 'The quickstart only writes the marker.' "$CARD" || fail "postcard conflates a marker with attachment"
+
 
 grep -qF 'Release Install Postcard](docs/RELEASE_INSTALL_POSTCARD.md)' "$README" || fail "README Quickstart missing postcard link"
 pass "README links launch postcard from Quickstart"

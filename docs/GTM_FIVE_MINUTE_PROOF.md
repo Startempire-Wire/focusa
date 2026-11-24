@@ -14,20 +14,20 @@ Proof expectation: repository clone succeeds and the evaluator can see `README.m
 ## Minute 1 — install and start
 
 ```bash
-bash scripts/install-daemon.sh /usr/local
+curl -fsS https://install.focusa.dev/focusa | bash
 focusa start
 curl -fsS http://127.0.0.1:8787/v1/health
 ```
 
 Proof expectation: health endpoint responds and the daemon is local-only by default.
 
-## Minute 2 — bind the project
+## Minute 2 — write the project marker
 
 ```bash
 focusa init --quickstart
 ```
 
-Proof expectation: `.focusa-project.json` exists and reports a project identity.
+Proof expectation: `.focusa-project.json` exists. This is marker creation, not proof of an agent attachment or Workpoint.
 
 ## Minute 3 — open Mission Deck
 
@@ -66,7 +66,7 @@ Evidence to show:
 
 - [ ] Install command succeeds or gives clear recovery hint.
 - [ ] Daemon health endpoint responds.
-- [ ] Quickstart binds project identity.
+- [ ] Quickstart writes the intended project marker.
 - [ ] Mission Deck opens or headless self-test returns Deck metadata.
 - [ ] First Mission walkthrough renders.
 - [ ] Agent Handoff walkthrough renders.

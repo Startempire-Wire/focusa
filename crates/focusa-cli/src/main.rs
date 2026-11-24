@@ -1235,10 +1235,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Callgraph(args) => commands::callgraph::run(args.cmd, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
         Commands::Init(args) => commands::init::run(args, cli.json).await,
-        Commands::Walkthrough(args) => {
-            commands::help::warn_alias("focusa walkthrough", "focusa setup walkthrough");
-            commands::walkthrough::run(args, cli.json).await
-        }
+        Commands::Walkthrough(args) => commands::walkthrough::run(args, cli.json).await,
         Commands::Preload(args) => commands::preload::run(args, cli.json).await,
         Commands::Deck(args) => commands::deck::run(args, cli.json).await,
         Commands::Workflow(cmd) => commands::workflow::run(cmd, cli.json).await,

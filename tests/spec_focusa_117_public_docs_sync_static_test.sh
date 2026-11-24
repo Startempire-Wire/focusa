@@ -12,14 +12,14 @@ README="$ROOT_DIR/README.md"
 for needle in \
   'Focusa Public Docs Sync' \
   'Proven public entry points' \
-  'Public claims allowed now' \
+  'Public claims recorded for v0.9.142' \
   'Public claims to avoid until separately proven' \
-  'Current launch-blocking polish beads' \
+  'Remaining bounded polish boundaries' \
   'RELEASE_INSTALL_POSTCARD.md' \
   'GTM_FIVE_MINUTE_PROOF.md' \
   'Mission Deck has Deck Home' \
-  'Recall is advisory' \
-  'PWA work remains roadmap/deferred' \
+  'advisory Recall' \
+  'Full PWA and full Recall expansion remain roadmap/deferred' \
   'focusa-117-arch.24' \
   'focusa-117-arch.25' \
   'focusa-117-arch.26' \
