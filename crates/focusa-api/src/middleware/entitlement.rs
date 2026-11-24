@@ -1031,7 +1031,8 @@ mod tests {
         snapshot.lease_id = Some("lease-operator".into());
         snapshot.lease_digest = Some("sha256:operator-test".into());
         // No counters, allowances, or Idempotency-Key are needed for Operator usage.
-        for path in ["/v1/workpoint/item/create", "/v1/workpoint/evidence/link"] {
+        // Exercise both the Workpoint and the registry-backed evidence-record buckets.
+        for path in ["/v1/workpoint/item/create", "/v1/predictions"] {
             let request = Request::builder()
                 .method(Method::POST)
                 .uri(path)
