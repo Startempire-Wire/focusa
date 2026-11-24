@@ -36,3 +36,11 @@ for (const [operation, handler] of [
     }
   });
 }
+
+const adapterGuide = read('docs/current/AGENT_ADAPTER_CONTRACT.md');
+test('adapter guide recommends only the canonical evidence-link endpoint', () => {
+  const evidence = adapterGuide.split('\n').find(line => line.startsWith('6. **Link evidence**'));
+  assert.ok(evidence?.startsWith('6. **Link evidence** — `POST /v1/workpoint/evidence/link`'));
+  assert.match(evidence, /deprecated `POST \/v1\/workpoint\/link-evidence`/);
+  assert.match(adapterGuide, /\*\*Resume Workpoint\*\* — `POST \/v1\/workpoint\/resume`/);
+});

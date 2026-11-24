@@ -554,7 +554,7 @@ pub fn app_state_for_token_lookup() -> Option<Arc<AppState>> {
 pub fn build_router(state: Arc<AppState>) -> Router {
     set_app_state(state.clone());
 
-    Router::new()
+    let app = Router::new()
         .merge(routes::agent_capabilities::routes())
         .merge(routes::health::router())
         .merge(routes::info::router())
@@ -692,7 +692,26 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .layer(axum_mw::from_fn(
             middleware::error_envelope::error_envelope_layer,
         ))
-        .with_state(state)
+        .with_state(state);
+    with_legacy_evidence_link(app)
+}
+
+fn with_legacy_evidence_link(app: Router) -> Router {
+    // Clients generated from v0.9.207 used this URL. Rewrite before the
+    // protected router sees the request so every policy resolves the same route.
+    const LEGACY: &str = "/v1/workpoint/link-evidence";
+    const CANONICAL: &str = "/v1/workpoint/evidence/link";
+    let service = tower::util::MapRequest::new(app.clone(), |mut req: axum::extract::Request| {
+        let mut parts = req.uri().clone().into_parts();
+        let path = match req.uri().query() {
+            Some(query) => format!("{CANONICAL}?{query}"),
+            None => CANONICAL.to_owned(),
+        };
+        parts.path_and_query = Some(path.parse().expect("valid evidence link path and query"));
+        *req.uri_mut() = axum::http::Uri::from_parts(parts).expect("valid evidence link URI");
+        req
+    });
+    app.route_service(LEGACY, axum::routing::post_service(service))
 }
 
 fn scheduler_base_url(bind_addr: &str) -> String {
@@ -1306,6 +1325,64 @@ mod tests {
         supervisor_should_start_pi_driver, was_explicit_operator_stop,
     };
     use focusa_core::types::WorkLoopStatus;
+
+    #[tokio::test]
+    async fn legacy_evidence_link_uses_the_canonical_policy_and_handler() {
+        use axum::{
+            Router,
+            body::{Body, to_bytes},
+            extract::Request,
+            http::StatusCode,
+            middleware::{Next, from_fn},
+            routing::post,
+        };
+        use tower::ServiceExt;
+
+        let protected = Router::new()
+            .route(
+                "/v1/workpoint/evidence/link",
+                post(|body: String| async move { body }),
+            )
+            .layer(from_fn(|req: Request, next: Next| async move {
+                assert_eq!(req.uri().path(), "/v1/workpoint/evidence/link");
+                assert_eq!(req.uri().query(), Some("source=legacy%20client"));
+                if !req.headers().contains_key("authorization") {
+                    return axum::response::IntoResponse::into_response(StatusCode::FORBIDDEN);
+                }
+                next.run(req).await
+            }));
+        let app = super::with_legacy_evidence_link(protected);
+        for path in ["/v1/workpoint/evidence/link", "/v1/workpoint/link-evidence"] {
+            for authorized in [false, true] {
+                let mut req = Request::post(format!("{path}?source=legacy%20client"));
+                if authorized {
+                    req = req.header("authorization", "test");
+                }
+                let response = app
+                    .clone()
+                    .oneshot(req.body(Body::from("evidence")).unwrap())
+                    .await
+                    .unwrap();
+                assert_eq!(
+                    response.status(),
+                    if authorized {
+                        StatusCode::OK
+                    } else {
+                        StatusCode::FORBIDDEN
+                    }
+                );
+                let body = to_bytes(response.into_body(), 32).await.unwrap();
+                assert_eq!(
+                    body.as_ref(),
+                    if authorized {
+                        &b"evidence"[..]
+                    } else {
+                        &b""[..]
+                    }
+                );
+            }
+        }
+    }
 
     #[test]
     fn scheduler_base_url_uses_localhost_port() {

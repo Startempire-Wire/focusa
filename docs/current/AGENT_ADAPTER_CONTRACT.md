@@ -16,10 +16,10 @@ Every agent adapter supports these capabilities, either through Pi tools, Focusa
 
 1. **Read awareness card** — `GET /v1/awareness/card` or `focusa awareness card`.
 2. **Verify project identity** — `GET /v1/project/verify` / `focusa project verify` / equivalent project identity route.
-3. **Resume Workpoint** — `/v1/workpoint/resume` / `focusa workpoint resume`.
+3. **Resume Workpoint** — `POST /v1/workpoint/resume` / `focusa workpoint resume`.
 4. **Create Workpoint checkpoint** — `/v1/workpoint/checkpoint` / `focusa workpoint checkpoint`.
 5. **Capture evidence** — `/v1/evidence/capture` / `focusa_evidence_capture`.
-6. **Link evidence** — `/v1/workpoint/link-evidence` / `focusa_workpoint_link_evidence`.
+6. **Link evidence** — `POST /v1/workpoint/evidence/link` / `focusa_workpoint_link_evidence`. New clients use this URL. The deprecated `POST /v1/workpoint/link-evidence` URL is accepted by servers with the compatibility fix for clients generated from the v0.9.207 contract; it uses the same handler and permissions. Servers without the fix require the canonical URL.
 7. **Run Context Authority preflight** — `focusa action preflight` or `/v1/action/preflight` before risky mutation.
 8. **Render Context Cognition compact packet** — `/v1/context-cognition/render` or `focusa context-cognition render`.
 9. **Surface `tool_result_v1` envelopes** — expose `status`, `failure_class`, `canonical`, `advisory`, `degraded`, `next_tools`, evidence refs, and recovery hints.
