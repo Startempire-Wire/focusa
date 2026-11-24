@@ -17633,7 +17633,7 @@
         }
       }
     },
-    "/v1/predictions/record": {
+    "/v1/predictions": {
       "post": {
         "description": "Prediction Record \u2014 family=prediction budget=standard_mutation materialization=daemon_dispatch",
         "operationId": "focusa.prediction.record",
@@ -17711,7 +17711,7 @@
           "commercial_treatment": "base_entitlement",
           "policy_activation": "active",
           "required_feature": null,
-          "limit_bucket": null,
+          "limit_bucket": "evidence_records",
           "recovery_allowance": "none",
           "source_owner": "prediction",
           "policy_owner": "entitlement_policy_resolver",

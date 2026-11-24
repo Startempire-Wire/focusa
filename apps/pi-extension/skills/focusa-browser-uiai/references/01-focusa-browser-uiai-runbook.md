@@ -21,6 +21,10 @@ Owning guide: `docs/agent/02-focusa-cohesive-project-flow.md`; contracts: Specs 
 
 For resume, normally omit `current_ask` so the adapter forwards the exact latest instruction. A paraphrase can produce `resume_evaluated_different_ask`; use the exact request-bound ask, not a permission override. Bootstrap/Genesis readiness is not current-frontier admission. No repeated onboarding, new HLT or restore operation is implied by a routine transition.
 
+## Current domain procedure
+
+1. Follow Documentation-first diagnosis in `docs/agent/02-focusa-cohesive-project-flow.md`; consult the active UIAI Engine documentation and exact schema before browser tests.
+
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.

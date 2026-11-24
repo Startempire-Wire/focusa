@@ -175,6 +175,62 @@
       "runbook": ".pi/skills/focusa-deslop/references/01-focusa-deslop-runbook.md",
       "owner_ref": "deslop research synthesis (2026-08-16) \u2014 operator-directed",
       "packaging": "repo .pi/skills + .deslop.toml + CI deslop gate"
+    },
+    {
+      "skill": "focusa-trajectory",
+      "skill_md": ".pi/skills/focusa-trajectory/SKILL.md",
+      "runbook": ".pi/skills/focusa-trajectory/references/01-focusa-trajectory-runbook.md",
+      "owner_ref": "config/agent-skills-v2.json#focusa-trajectory",
+      "packaging": "repo .pi/skills (mirrored to apps/pi-extension/skills)"
+    },
+    {
+      "skill": "focusa-context-cognition",
+      "skill_md": ".pi/skills/focusa-context-cognition/SKILL.md",
+      "runbook": ".pi/skills/focusa-context-cognition/references/01-focusa-context-cognition-runbook.md",
+      "owner_ref": "config/agent-skills-v2.json#focusa-context-cognition",
+      "packaging": "repo .pi/skills (mirrored to apps/pi-extension/skills)"
+    },
+    {
+      "skill": "focusa-focus-state",
+      "skill_md": ".pi/skills/focusa-focus-state/SKILL.md",
+      "runbook": ".pi/skills/focusa-focus-state/references/01-focusa-focus-state-runbook.md",
+      "owner_ref": "config/agent-skills-v2.json#focusa-focus-state",
+      "packaging": "repo .pi/skills (mirrored to apps/pi-extension/skills)"
+    },
+    {
+      "skill": "focusa-device-pairing",
+      "skill_md": ".pi/skills/focusa-device-pairing/SKILL.md",
+      "runbook": ".pi/skills/focusa-device-pairing/references/01-focusa-device-pairing-runbook.md",
+      "owner_ref": "config/agent-skills-v2.json#focusa-device-pairing",
+      "packaging": "repo .pi/skills (mirrored to apps/pi-extension/skills)"
+    },
+    {
+      "skill": "focusa-lineage",
+      "skill_md": ".pi/skills/focusa-lineage/SKILL.md",
+      "runbook": ".pi/skills/focusa-lineage/references/01-focusa-lineage-runbook.md",
+      "owner_ref": "config/agent-skills-v2.json#focusa-lineage",
+      "packaging": "repo .pi/skills (mirrored to apps/pi-extension/skills)"
+    },
+    {
+      "skill": "focusa-project-card",
+      "skill_md": ".pi/skills/focusa-project-card/SKILL.md",
+      "runbook": ".pi/skills/focusa-project-card/references/01-focusa-project-card-runbook.md",
+      "owner_ref": "config/agent-skills-v2.json#focusa-project-card",
+      "packaging": "repo .pi/skills (mirrored to apps/pi-extension/skills)"
+    },
+    {
+      "skill": "focusa-dxux-recovery",
+      "skill_md": ".pi/skills/focusa-dxux-recovery/SKILL.md",
+      "runbook": ".pi/skills/focusa-dxux-recovery/references/01-focusa-dxux-recovery-runbook.md",
+      "owner_ref": "config/agent-skills-v2.json#focusa-dxux-recovery",
+      "packaging": "repo .pi/skills (mirrored to apps/pi-extension/skills)"
+    },
+    {
+      "skill": "focusa-roadmap-to-workpoint",
+      "skill_md": ".pi/skills/focusa-roadmap-to-workpoint/SKILL.md",
+      "runbook": ".pi/skills/focusa-roadmap-to-workpoint/references/01-focusa-roadmap-to-workpoint-runbook.md",
+      "owner_ref": "config/agent-skills-v2.json#focusa-roadmap-to-workpoint",
+      "packaging": "repo .pi/skills (mirrored to apps/pi-extension/skills)"
     }
   ]
 }

@@ -143,6 +143,10 @@ Inspect a bounded expanded response when compact output omits the required field
 
 Inspect the selected operation's actual payload and implementation: a profile-only `render`, `verify` or `doctor` can generate a template rather than verify a delivered artifact, exact binding or a running process. A successful profile/template response, listed `checks`, written file or committed preview receipt does not prove scope admission, resource reload or model behavior. Synthetic context placeholders are not project facts. Scoped context selection remains advisory and must not replace explicit current steering with an old Workpoint next-slice. Use actual artifact verification and native refresh/consumer proof for their separate obligations.
 
+## Documentation-first diagnosis
+
+Read the owning documentation and exact installed operation schema before testing. Test the original path on the actual version, harness, and scope; if the docs and the runtime disagree, record the discrepancy rather than guessing. Conclude only what the test proves, distinguishing source, release, and installed behavior. For browser work, read the UIAI Engine guide and operation schema before testing through the registered UIAI adapter; use its diagnostics for failures and rendered pixels for visual claims.
+
 ## Coherent publication and acceptance
 
 Update the canonical skill registry/generator, maintained guide/index and owning tool descriptors together. Regenerate project/packaged skills and machine/human tool projections through their existing writers; preserve authored skills and byte-identical mirrors. Discover inventory counts rather than hard-coding them. Validate freshness/parity and links. Approved installation and native refresh are separate from source generation.

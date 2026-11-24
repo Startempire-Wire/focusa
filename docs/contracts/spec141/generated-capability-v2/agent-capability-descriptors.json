@@ -13240,17 +13240,17 @@
           "policy_owner": "entitlement_policy_resolver"
         },
         {
-          "operation_id": null,
+          "operation_id": "focusa.prediction.record",
           "method": "POST",
           "path": "/v1/predictions",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
           "policy_activation": "active",
           "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
+          "limit_bucket": "evidence_records",
+          "recovery_allowance": "none",
+          "source_owner": "prediction",
           "policy_owner": "entitlement_policy_resolver"
         },
         {
@@ -13774,7 +13774,7 @@
         "snippet": "Use after UIAI browser diagnostics/error envelopes to standardize evidence + learning intake before manual interpretation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:9b9b04b925f418adf42da4931a4057f6440afd8f53cc0b8f13231ac41595322b"
+      "descriptor_digest": "sha256:ad90da2a8f3c3cdc51a8cde9600333afeeebcab93f9721473346867f7ea79fc4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -46920,7 +46920,7 @@
       "family": "metacognition",
       "namespace": "focusa.metacognition",
       "operation_policy": {
-        "operation_id": null,
+        "operation_id": "focusa.prediction.record",
         "method": "POST",
         "path": "/v1/predictions",
         "operation_class": "value_mutation",
@@ -46928,14 +46928,14 @@
         "commercial_treatment": "base_entitlement",
         "policy_activation": "active",
         "required_feature": null,
-        "limit_bucket": null,
+        "limit_bucket": "evidence_records",
         "recovery_allowance": "none",
-        "source_owner": "agent_capability_contracts",
+        "source_owner": "prediction",
         "policy_owner": "entitlement_policy_resolver"
       },
       "operation_policies": [
         {
-          "operation_id": null,
+          "operation_id": "focusa.prediction.record",
           "method": "POST",
           "path": "/v1/predictions",
           "operation_class": "value_mutation",
@@ -46943,9 +46943,9 @@
           "commercial_treatment": "base_entitlement",
           "policy_activation": "active",
           "required_feature": null,
-          "limit_bucket": null,
+          "limit_bucket": "evidence_records",
           "recovery_allowance": "none",
-          "source_owner": "agent_capability_contracts",
+          "source_owner": "prediction",
           "policy_owner": "entitlement_policy_resolver"
         }
       ],
@@ -46954,9 +46954,9 @@
       "commercial_treatment": "base_entitlement",
       "policy_activation": "active",
       "required_feature": null,
-      "limit_bucket": null,
+      "limit_bucket": "evidence_records",
       "recovery_allowance": "none",
-      "source_owner": "agent_capability_contracts",
+      "source_owner": "prediction",
       "policy_owner": "entitlement_policy_resolver",
       "availability": {
         "requires_daemon": true,
@@ -47440,7 +47440,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:392a8b1e1dab1eb622e9b6cf045b20640fcf6166a235ec23391fb6dedbb21dfd"
+      "descriptor_digest": "sha256:379640d603b0d06994d9e9c80a3450d6e30b0f7568bfdf1eefb935c0a677ef10"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87773,5 +87773,5 @@
       "descriptor_digest": "sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae"
     }
   ],
-  "registry_digest": "sha256:c01e036479378644c82fd3ff7c13cc8bef16afaf7dfd1f7f2b39bf039ea941bb"
+  "registry_digest": "sha256:ebe68605068cf941eda90ed44c3b26d69ca5d83262f2ebf494825e6ec8f70f65"
 }

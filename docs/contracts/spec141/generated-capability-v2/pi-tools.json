@@ -1,6 +1,6 @@
 {
   "schema": "focusa.pi_tool_projection.v2",
-  "registry_digest": "sha256:c01e036479378644c82fd3ff7c13cc8bef16afaf7dfd1f7f2b39bf039ea941bb",
+  "registry_digest": "sha256:ebe68605068cf941eda90ed44c3b26d69ca5d83262f2ebf494825e6ec8f70f65",
   "tools": [
     {
       "name": "focusa_active_object_resolve",

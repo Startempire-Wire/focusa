@@ -33,6 +33,9 @@ fi
 echo "checking $TAG (from $V)"
 python3 scripts/verify-version-surfaces.py "$TAG" || { echo "FAIL verify-version-surfaces"; exit 1; }
 node scripts/validate-docs-runtime-parity.mjs || { echo "FAIL docs/runtime parity"; exit 1; }
+node scripts/generate-agent-operation-docs.mjs --check || { echo "FAIL generated operation docs"; exit 1; }
+node scripts/audit-skill-ownership.mjs || { echo "FAIL shipped skill ownership"; exit 1; }
+python3 scripts/generate_skill-ownership-manifest.py --check || { echo "FAIL capability skill ownership"; exit 1; }
 echo "version surfaces: PASS"
 
 echo "=== local preflight: distribution-manifest freshness (continually fresh) ==="

@@ -7,9 +7,7 @@ For the buyer-facing demo script, see the [GTM Five-Minute Proof](GTM_FIVE_MINUT
 ## 1. Install
 
 ```bash
-git clone https://github.com/Startempire-Wire/focusa.git
-cd focusa
-bash scripts/install-daemon.sh /usr/local
+curl -fsS https://install.focusa.dev/focusa | bash
 ```
 
 Expected outcome:

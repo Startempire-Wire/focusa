@@ -99,7 +99,9 @@ def operation_policy(descriptor):
         "commercial_treatment": treatments[capability_family],
         "policy_activation": "active",
         "required_feature": None,
-        "limit_bucket": None,
+        # Preserve the reviewed /v1/predictions charge when the corrected
+        # path starts resolving through the canonical operation catalog.
+        "limit_bucket": "evidence_records" if operation_id == "focusa.prediction.record" else None,
         "recovery_allowance": recovery_allowance,
         "source_owner": descriptor["ownership"]["subsystem"],
         "policy_owner": POLICY_OWNER,

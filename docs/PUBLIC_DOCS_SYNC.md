@@ -1,10 +1,17 @@
 # Focusa Public Docs Sync
 
-Purpose: keep public-facing docs aligned with the v0.9.142 stable-release surface and its verified proof boundaries.
+| Surface | Authority |
+|---|---|
+| Latest stable | [GitHub Latest release](https://github.com/Startempire-Wire/focusa/releases/latest): exact tag, platform assets, notes and proof. |
+| Nightly or prerelease | [GitHub Releases](https://github.com/Startempire-Wire/focusa/releases): opt-in only; verify tag and supported platforms. |
+| Source | [Current source inventory](current/CURRENT_RUNTIME_STATUS.md) and [agent project flow](agent/02-focusa-cohesive-project-flow.md). A source capability is not a release claim. |
+| Installed behavior | Verify the exact CLI, daemon, active harness and consumer path; use the [install postcard](RELEASE_INSTALL_POSTCARD.md) for entry checks. |
 
-## v0.9.142 public surface
+A closed issue may prove a source fix, a released fix, or verified installed behavior. Report only the layer supported by its evidence; verify the actual installed consumer before claiming rollout. Historical proof below must not be used as current release inventory.
 
-The current release surface includes the Rust daemon/CLI/TUI, Pi extension, menubar preview, typed project/workstream scope, Trajectory and Workpoints, evidence/prediction/metacognition/work-loop routes, Context Cognition, Mission Canvas, browser/UIAI interoperability, device pairing, preload, Silent Sessions, Temporal Authority, and progressive Tool Discovery. Claims remain bounded by the linked runtime and release evidence.
+## Historical v0.9.142 public surface
+
+That release surface included the Rust daemon/CLI/TUI, Pi extension, menubar preview, typed project/workstream scope, Trajectory and Workpoints, evidence/prediction/metacognition/work-loop routes, Context Cognition, Mission Canvas, browser/UIAI interoperability, device pairing, preload, Silent Sessions, Temporal Authority, and progressive Tool Discovery. Claims remain bounded by the linked runtime and release evidence.
 
 ## Proven public entry points
 
@@ -15,7 +22,7 @@ The current release surface includes the Rust daemon/CLI/TUI, Pi extension, menu
 | Five-minute buyer proof | [`GTM_FIVE_MINUTE_PROOF.md`](GTM_FIVE_MINUTE_PROOF.md) | Clone/install/start/init/deck/walkthrough/API/CI proof path |
 | Deep Mission Deck plan | [`117-mission-deck-onboarding-recall-pwa-spec.md`](117-mission-deck-onboarding-recall-pwa-spec.md) | Spec roadmap; PWA/full Recall are not all complete |
 
-## Public claims allowed now
+## Public claims recorded for v0.9.142
 
 - Focusa has a Rust daemon, CLI, TUI/Mission Deck, typed API, Pi extension, and menubar preview build proof.
 - Mission Deck has Deck Home, Beginner Mode, Help Overlay, Next Safe Action, Mission Ladder, Proof Meter, Scope Badge, advisory Recall, and read-only Deck API routes.

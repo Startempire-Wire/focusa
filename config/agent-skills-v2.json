@@ -158,6 +158,9 @@
         "focusa_tool_doctor",
         "focusa_resource_mode"
       ],
+      "runbook_notes": [
+        "Follow Documentation-first diagnosis in `docs/agent/02-focusa-cohesive-project-flow.md`; consult the active UIAI Engine documentation and exact schema before browser tests."
+      ],
       "done": "Browser result is proven in the bound session/origin, diagnostics are ingested, evidence is linked, and unused sessions are closed."
     },
     {
@@ -710,6 +713,7 @@
       ],
       "runbook_notes": [
         "Audit the connected Bootstrap/Genesis/Ladder/Workpoint/execution/reconciliation journey, not isolated page completeness.",
+        "Follow Documentation-first diagnosis in `docs/agent/02-focusa-cohesive-project-flow.md`; check published machine contracts and installed behavior independently.",
         "Update canonical registry/generator and maintained guidance; regenerate machine/tool/skill consumers through their existing writers, preserving authored files and mirrors.",
         "Discover the current inventory instead of hard-coding skill counts; check source/generated/runtime parity separately.",
         "Refresh the actual agent through its native supported path only after authorized delivery; source edits do not prove installed guidance or model refresh.",

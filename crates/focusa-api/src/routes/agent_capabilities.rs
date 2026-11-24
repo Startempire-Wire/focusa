@@ -751,7 +751,7 @@ fn build_operations() -> Vec<OperationEntry> {
             "Prediction Record",
             "prediction",
             "POST",
-            "/v1/predictions/record",
+            "/v1/predictions",
             true,
             None,
             "write_prediction",
@@ -766,52 +766,6 @@ fn build_operations() -> Vec<OperationEntry> {
             vec!["compact", "standard"],
             "focusa.prediction_record.request.v1",
             "focusa.prediction_record.response.v1",
-            "docs/focusa-api/routes/predictions.md",
-            None,
-        ),
-        op(
-            "focusa.prediction.evaluate",
-            "Prediction Evaluate",
-            "prediction",
-            "POST",
-            "/v1/predictions/evaluate",
-            true,
-            None,
-            "write_prediction_eval",
-            "daemon_dispatch",
-            vec!["dry_run", "preview", "commit"],
-            true,
-            false,
-            false,
-            vec!["prediction:write"],
-            false,
-            "standard_mutation",
-            vec!["compact", "standard"],
-            "focusa.prediction_evaluate.request.v1",
-            "focusa.prediction_evaluate.response.v1",
-            "docs/focusa-api/routes/predictions.md",
-            None,
-        ),
-        op(
-            "focusa.prediction.recent",
-            "Prediction Recent",
-            "prediction",
-            "GET",
-            "/v1/predictions/recent",
-            true,
-            None,
-            "read_prediction",
-            "advisory_read",
-            vec!["preview", "commit"],
-            false,
-            false,
-            false,
-            vec!["prediction:read"],
-            false,
-            "light_read",
-            vec!["compact", "standard"],
-            "focusa.prediction_recent.request.v1",
-            "focusa.prediction_recent.response.v1",
             "docs/focusa-api/routes/predictions.md",
             None,
         ),
@@ -5236,8 +5190,7 @@ mod tests {
 
         // Published but unregistered: known, tracked debt. Shrink this set as each
         // path is registered; do not grow it.
-        const BASELINE_PUBLISHED_NOT_IN_REGISTRY: &[&str] =
-            &["/v1/callgraphs/validate", "/v1/predictions/evaluate"];
+        const BASELINE_PUBLISHED_NOT_IN_REGISTRY: &[&str] = &["/v1/callgraphs/validate"];
 
         let mut unregistered: Vec<String> = build_operations()
             .iter()
@@ -5257,12 +5210,37 @@ mod tests {
          to BASELINE_PUBLISHED_NOT_IN_REGISTRY."
         );
 
-        // Guard the baseline itself: it must never shrink unexpectedly without an
-        // intentional edit, and it must not exceed the known debt of two.
+        // Guard the baseline itself: it may shrink but may not grow.
         assert!(
-            BASELINE_PUBLISHED_NOT_IN_REGISTRY.len() <= 2,
+            BASELINE_PUBLISHED_NOT_IN_REGISTRY.len() <= 1,
             "contract-parity baseline was expanded; new debt must be registered, not baselined"
         );
+    }
+
+    #[test]
+    fn prediction_discovery_uses_registered_routes_and_canonical_contracts() {
+        let served = openapi_document();
+        let canonical = CANONICAL_OPENAPI
+            .as_ref()
+            .expect("generated contract must parse");
+        for (path, method, id) in [
+            ("/v1/predictions", "post", "focusa.prediction.record"),
+            (
+                "/v1/evaluations/predictions",
+                "post",
+                "focusa.prediction.evaluate",
+            ),
+            ("/v1/predictions/recent", "get", "focusa.prediction.list"),
+        ] {
+            let entry = &served["paths"][path][method];
+            assert_eq!(entry["operationId"], id);
+            if id != "focusa.prediction.record" {
+                assert_eq!(entry, &canonical["paths"][path][method]);
+            }
+        }
+        for path in ["/v1/predictions/record", "/v1/predictions/evaluate"] {
+            assert!(served["paths"][path].get("post").is_none());
+        }
     }
 
     /// The published contract is the canonical generated artifact; it must never be

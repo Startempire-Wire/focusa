@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.9.121--dev-blue">
+  <a href="https://github.com/Startempire-Wire/focusa/releases/latest">Latest stable release</a>
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.91%2B-dea584?logo=rust">
   <img alt="License" src="https://img.shields.io/badge/license-BSL--1.1-orange">
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
@@ -52,12 +52,12 @@ Shared cross-harness references: [Authority Model](docs/current/AUTHORITY_MODEL.
 
 ```bash
 curl -fsS https://install.focusa.dev/focusa | bash
-
-Evaluation and entitlement issuance are authority-issued under Spec 152 (spec152): the bootstrapper resolves a signed, node-bound authority lease and never creates local evaluation state. Recovery posture: the same authority reissues device grants; no local credential persistence.
 focusa start
 focusa setup wizard --dry-run
 focusa doctor
 ```
+
+Evaluation and entitlement issuance are authority-issued under Spec 152 (spec152): the bootstrapper resolves a signed, node-bound authority lease and does not create local evaluation state. Recovery uses the same authority to reissue device grants.
 
 Interactive install offers the complete agent workflow and asks before installing missing Node.js/npm, Pi, the bundled Focusa Pi extension, and UIAI Engine. For unattended installation, pass `--install-dependencies --assume-yes`. Linux/amd64 can install the pinned checksummed UIAI binary; other platforms must set `UIAI_ENGINE_URL` to a healthy private endpoint. Focusa does not report full workflow readiness until Pi/plugin and `${UIAI_ENGINE_URL:-http://127.0.0.1:7456}/v1/health` checks pass.
 

@@ -1,12 +1,30 @@
 {
   "schema": "focusa.skill_ownership_manifest.v1",
-  "advertised_capability_count": 129,
-  "tool_contract_sha256": "e30ff4bcad3e531bd12b3811e8f6e7b7b75b1b229bcce833957814273294b4b3",
+  "advertised_capability_count": 157,
+  "tool_contract_sha256": "60d853b0a292ca5028a70d4cece9d9a871128d50716169907172910c130304d8",
   "generated": true,
   "capabilities": [
     {
       "tool": "focusa_active_object_resolve",
       "owner_skill": "focusa-workpoint",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_agent_artifact_delivery",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_agent_artifact_preview",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_agent_artifact_verify",
+      "owner_skill": "focusa-security-auth-licensing",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
     },
@@ -19,6 +37,24 @@
     {
       "tool": "focusa_agent_prompt",
       "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_agent_runtime_doctor",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_agent_runtime_effective",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_agent_runtime_headless_verify",
+      "owner_skill": "focusa-security-auth-licensing",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
     },
@@ -151,6 +187,18 @@
     {
       "tool": "focusa_callgraph_validate",
       "owner_skill": "focusa",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_canonical_instruction_amendment_activate",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_canonical_instruction_amendment_propose",
+      "owner_skill": "focusa-security-auth-licensing",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
     },
@@ -319,6 +367,42 @@
     {
       "tool": "focusa_hlt_history",
       "owner_skill": "focusa-trajectory",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_instruction_conflicts",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_instruction_explain",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_instruction_integrity_evaluate",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_instruction_integrity_status",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_instruction_simulate",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_instruction_sources",
+      "owner_skill": "focusa-security-auth-licensing",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
     },
@@ -539,6 +623,18 @@
       "failure_handoff": "focusa-troubleshooting"
     },
     {
+      "tool": "focusa_prompt_variant_diff",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_prompt_variant_preview",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
       "tool": "focusa_recent_result",
       "owner_skill": "focusa",
       "authority_boundary": "tool contract and daemon remain canonical",
@@ -557,6 +653,12 @@
       "failure_handoff": "focusa-troubleshooting"
     },
     {
+      "tool": "focusa_runtime_constitution_preview",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
       "tool": "focusa_scratch",
       "owner_skill": "focusa",
       "authority_boundary": "tool contract and daemon remain canonical",
@@ -571,6 +673,72 @@
     {
       "tool": "focusa_silent_sessions",
       "owner_skill": "focusa-silent-sessions",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_checkpoint",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_enrollment",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_events",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_health",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_otp_challenge",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_otp_inject",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_read_thread",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_revoke",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_search",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_send",
+      "owner_skill": "focusa-security-auth-licensing",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_sms_threads",
+      "owner_skill": "focusa-security-auth-licensing",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"
     },

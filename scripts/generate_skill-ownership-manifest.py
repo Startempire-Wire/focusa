@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-import hashlib, json, re
+import argparse, hashlib, json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TOOLS = ROOT / "apps/pi-extension/src/tools.ts"
+TOOLS = ROOT / "docs/current/focusa-tool-contracts.json"
+SKILLS = ROOT / "config/agent-skills-v2.json"
 CONTRACTS = ROOT / "apps/pi-extension/src/tool-contracts.ts"
 OUT = ROOT / "docs/contracts/65-focusa-skill-ownership-manifest.json"
 
 RULES = [
+    ("focusa-security-auth-licensing", ("sms_", "instruction_", "agent_artifact_", "prompt_variant_", "runtime_constitution", "agent_runtime_")),
     ("focusa-device-pairing", ("device_pair",)),
     ("focusa-context-cognition", ("context_cognition",)),
     ("focusa-project-card", ("project_card",)),
@@ -37,19 +39,14 @@ def owner(name: str) -> str:
             return skill
     return "focusa"
 
-text = TOOLS.read_text()
-names = set(re.findall(r'name:\s*"(focusa_[^"]+)"', text))
-names.update({f"focusa_preload_{suffix}" for suffix in ["build", "render", "verify", "doctor"]})
-names = sorted(names)
-if len(names) != 129:
-    raise SystemExit(f"expected 129 current advertised Focusa tools, found {len(names)}")
-contracts = set(re.findall(r'name:\s*"(focusa_[^"]+)"', CONTRACTS.read_text()))
-contracts.update({f"focusa_preload_{suffix}" for suffix in [
-    "profiles", "build", "render", "write", "verify", "doctor", "receipt_preview", "receipt_commit"
-]})
-missing = sorted(set(names) - contracts)
-if missing:
-    raise SystemExit(f"missing tool contracts: {missing}")
+catalog = json.loads(TOOLS.read_text())
+names = sorted(row["name"] for row in catalog["contracts"])
+if not names or len(names) != len(set(names)) or len(names) != catalog["tool_count"]:
+    raise SystemExit("tool catalog must be nonempty, have unique names and match its count")
+known_skills = {row["name"] for row in json.loads(SKILLS.read_text())["skills"]}
+invalid_owners = sorted({owner(name) for name in names} - known_skills)
+if invalid_owners:
+    raise SystemExit(f"unknown owner skills: {invalid_owners}")
 rows = [{
     "tool": name,
     "owner_skill": owner(name),
@@ -63,5 +60,12 @@ payload = {
     "generated": True,
     "capabilities": rows,
 }
-OUT.write_text(json.dumps(payload, indent=2) + "\n")
-print(f"generated {OUT.relative_to(ROOT)}: {len(rows)} capabilities")
+args = argparse.ArgumentParser()
+args.add_argument("--check", action="store_true")
+body = json.dumps(payload, indent=2) + "\n"
+if args.parse_args().check:
+    if not OUT.exists() or OUT.read_text() != body:
+        raise SystemExit(f"{OUT.relative_to(ROOT)} is stale; regenerate with {Path(__file__).name}")
+else:
+    OUT.write_text(body)
+print(f"{OUT.relative_to(ROOT)}: {len(rows)} capabilities")

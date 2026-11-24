@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Skill ownership audit (#259 slice 1): every SKILL.md must appear in the
 // manifest with an assigned owner, and every referenced runbook must exist.
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -12,6 +12,15 @@ const skills = manifest.skills;
 console.log(`manifest skills: ${skills.length}`);
 
 let failures = 0;
+const roster = new Set(skills.map(entry => entry.skill_md));
+const skillRoot = join(repoRoot, ".pi/skills");
+for (const dir of readdirSync(skillRoot, { withFileTypes: true })) {
+  const ref = `.pi/skills/${dir.name}/SKILL.md`;
+  if (dir.isDirectory() && existsSync(join(repoRoot, ref)) && !roster.has(ref)) {
+    console.error(`MISSING owner for shipped skill: ${ref}`);
+    failures++;
+  }
+}
 for (const entry of skills) {
   const skillMd = join(repoRoot, entry.skill_md);
   if (!existsSync(skillMd)) {

@@ -864,7 +864,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/predictions/record": {
+    "/v1/predictions": {
         parameters: {
             query?: never;
             header?: never;

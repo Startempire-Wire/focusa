@@ -2,9 +2,9 @@
   "schema": "focusa.agent_route_classification.v1",
   "route_count": 680,
   "classification_counts": {
-    "agent_eligible": 165,
+    "agent_eligible": 166,
     "internal": 6,
-    "operator_only": 503,
+    "operator_only": 502,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -4733,15 +4733,17 @@
     },
     {
       "path": "/v1/predictions",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/predictions.rs"
       ],
       "methods": [
         "POST"
       ],
-      "operation_refs": []
+      "operation_refs": [
+        "focusa.prediction.record"
+      ]
     },
     {
       "path": "/v1/predictions/capture-outcome",

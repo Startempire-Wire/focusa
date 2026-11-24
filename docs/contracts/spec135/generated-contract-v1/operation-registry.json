@@ -7836,7 +7836,7 @@
         "core_action_ref": "focusa.prediction.record",
         "subsystem": "prediction"
       },
-      "path": "/v1/predictions/record",
+      "path": "/v1/predictions",
       "permissions_required": [
         "prediction:write"
       ],
@@ -7880,7 +7880,7 @@
       "commercial_treatment": "base_entitlement",
       "policy_activation": "active",
       "required_feature": null,
-      "limit_bucket": null,
+      "limit_bucket": "evidence_records",
       "recovery_allowance": "none",
       "source_owner": "prediction",
       "policy_owner": "entitlement_policy_resolver",
