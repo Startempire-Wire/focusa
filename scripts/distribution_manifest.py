@@ -65,6 +65,8 @@ COMPONENT_PATHS: dict[str, tuple[str, ...]] = {
         "scripts/distribution_manifest.py",
         "scripts/audit-distribution-parity.mjs",
         "scripts/stamp-menubar-version.py",
+        "scripts/generate-current-runtime-status",
+        "scripts/generate-pi-menu-audit.py",
         "scripts/local-release-preflight.sh",
         "scripts/create-dev-release-tag.sh",
         "scripts/run-guardian-release-cleanup.sh",

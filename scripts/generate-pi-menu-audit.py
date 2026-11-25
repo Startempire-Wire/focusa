@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-import hashlib, json, re
+import hashlib, json, re, sys
 from pathlib import Path
+
+args = sys.argv[1:]
+if args not in ([], ["--check"]):
+    raise SystemExit("usage: generate-pi-menu-audit.py [--check]")
 
 root=Path(__file__).resolve().parents[1]
 src=root/'apps/pi-extension/src'
@@ -68,5 +72,10 @@ payload={
    'vitalInfoPromptSurfaces':'advanced settings search'
  }
 }
-out.write_text(json.dumps(payload,indent=2)+'\n')
-print(f"generated {out.relative_to(root)}: {len(payload['items'])} interactive entries")
+rendered = json.dumps(payload, indent=2) + '\n'
+if args:
+    if not out.is_file() or out.read_text(encoding='utf-8') != rendered:
+        raise SystemExit(f"stale {out.relative_to(root)}; run scripts/generate-pi-menu-audit.py")
+else:
+    out.write_text(rendered, encoding='utf-8')
+    print(f"generated {out.relative_to(root)}: {len(payload['items'])} interactive entries")

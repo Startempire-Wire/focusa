@@ -23,6 +23,8 @@ echo '=== local preflight: release versions, source digests and provenance ==='
 VERSION="$(tr -d '[:space:]' < docs/current/.release-version-stamp)"
 python3 scripts/verify-version-surfaces.py "v${VERSION}"
 scripts/verify-doc-version-consistency
+scripts/generate-current-runtime-status --check
+python3 scripts/generate-pi-menu-audit.py --check
 python3 scripts/distribution_manifest.py --check --source-ancestor
 
 echo '=== local preflight: formatting ==='

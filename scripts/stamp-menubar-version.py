@@ -237,11 +237,10 @@ def main() -> int:
 
     # README source-version badge (validate-docs-runtime-parity requires v< Cargo version).
     replace_readme_version("README.md", version)
-    # Release stamp artifact first: it lives inside docs/current, a manifest
-    # component, so the manifest must be regenerated after it to embed final
-    # digests (nightly --check failed with a stale documentation digest).
+    # Both files live in the manifest's documentation component. Refresh them
+    # after the workspace version changes and before hashing the final tree.
     (ROOT / "docs/current/.release-version-stamp").write_text(version + "\n", encoding="utf-8")
-    # Distribution manifest — single-source: recompute sha256 + source_commit + generated_at.
+    subprocess.run([str(ROOT / "scripts/generate-current-runtime-status")], check=True)
     regenerate_distribution_manifest(version)
 
     print(f"Stamped Focusa version {version} (including distribution-manifest)")

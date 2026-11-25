@@ -34,6 +34,15 @@ assert (
     < stamp_main.index('scripts/generate-pi-menu-audit.py')
     < stamp_main.index('regenerate_distribution_manifest(version)')
 ), "stamping the Pi build ID must refresh its menu audit before the manifest"
+assert (
+    stamp_main.index('"docs/current/.release-version-stamp"')
+    < stamp_main.index('scripts/generate-current-runtime-status')
+    < stamp_main.index('regenerate_distribution_manifest(version)')
+), "the generated runtime status must describe the new stamp before manifest hashing"
+preflight = (ROOT / "scripts/local-release-preflight.sh").read_text(encoding="utf-8")
+for generator in ("scripts/generate-current-runtime-status", "scripts/generate-pi-menu-audit.py"):
+    assert generator in module.COMPONENT_PATHS['release_tooling'], generator
+    assert f"{generator} --check" in preflight, f"preflight must check {generator}"
 assert "docs/contracts/48-49-focusa-pi-menu-inventory.json" in publisher.split(
     "readonly -a RELEASE_STAMP_PATHS=(", 1
 )[1].split("\n)", 1)[0], "the menu audit is a tracked stamp output"

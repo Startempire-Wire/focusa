@@ -79,7 +79,7 @@ Internally the script does the 7-step checklist deterministically — the agent 
 
 ```
 1. git status — clean, no ':' in evidence paths (Windows lint would FAIL)
-2. stamp-menubar-version.py vX.Y.Z — stamp release surfaces, regenerate the Pi menu audit after stamping the extension build ID, then recompute the distribution manifest.
+2. stamp-menubar-version.py vX.Y.Z — stamp release surfaces, refresh the Pi menu audit and source runtime-status page, then recompute the distribution manifest. Local preflight rejects stale generated outputs.
 3. local-release-preflight.sh --strict — checks source integrity only
 4. Commit stamped surfaces and candidate proof, then push main and require exact-source CI on the final SHA. Pending exit 78 yields without tagging.
 5. Retain Spec178 platform proof obligations; binding provider receipts come from packaging, not from duplicate source tests.
