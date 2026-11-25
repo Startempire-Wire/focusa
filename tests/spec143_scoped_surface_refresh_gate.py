@@ -25,10 +25,14 @@ for token in [
 
 assert "publishScopedStateChange" in TOOLS
 assert "responseRoot === requestedRoot" in TOOLS
+# The extension lifecycle owns packet refresh. The Work Rail consumes the
+# verified packet on a matching receipt and never starts another reader.
 assert "subscribeScopedStateChanges" in WIDGET
-assert "scopedReceiptMatchesCurrentScope" in WIDGET
-assert "age >= 60_000" in WIDGET
-assert 'focusaFetch("/workpoint/resume"' in WIDGET
+assert "scopedReceiptMatchesCurrentScope(receipt)" in WIDGET
+assert "refreshMissionCanvasWidget(latestUiContext)" in WIDGET
+assert "getScopedWorkpointPacket()" in WIDGET
+assert "packet?.canonical === true" in WIDGET
+assert not any(token in WIDGET for token in ("setInterval(", "focusaFetch(", "/workpoint/resume"))
 assert "scopedRefreshEvents" in SESSION
 assert "eventRoot === currentRoot" in SESSION
 assert "eventContinuity === currentContinuity" in SESSION

@@ -90,9 +90,11 @@ fn spec172_family_inheritance_registry_is_fail_closed_default() {
         .get("operations")
         .and_then(serde_json::Value::as_array)
         .expect("operations list");
+    assert!(!operations.is_empty(), "canonical registry is empty");
     assert_eq!(
-        registry.get("operation_count"),
-        Some(&serde_json::Value::from(157_u64))
+        registry["operation_count"].as_u64(),
+        Some(operations.len() as u64),
+        "declared operation count must match the canonical registry"
     );
 
     let allowed: HashSet<&str> = allowed_focusa_families().iter().copied().collect();
