@@ -124,7 +124,7 @@ export function workRailDetailRows(snapshot: WorkRailWidgetSnapshot): string[] {
   return [
     `Provider: ${snapshot.provider} · ${snapshot.providerItemId} · ${snapshot.providerStatus} · ${snapshot.providerCapability}`,
     `Focusa: ${snapshot.focusaStatus} · Workpoint ${snapshot.workpointId}`,
-    `Scope: ${snapshot.projectRoot} · ${snapshot.continuityId}`,
+    `Scope: ${snapshot.projectRoot} · ${snapshot.continuityId} · ${snapshot.mode}`,
     `Origin: ${snapshot.instanceId} · ${snapshot.sessionId} · ${snapshot.attachmentId}`,
     `Priority/rank: ${snapshot.priority}/${snapshot.rank}`,
     `Dependencies: ${snapshot.dependencies.join(", ") || "none"}`,
@@ -155,17 +155,22 @@ export function renderWorkRailWidget(
   const workpoint = bounded(snapshot.workpointId, 22);
   const nextAction = bounded(snapshot.nextAction, Math.max(18, width - 11));
   const state = workRailState(snapshot.focusaStatus || snapshot.status);
-  const mode = snapshot.mode ?? "surface-local";
-  const capability = snapshot.providerCapability ?? "adapter-unavailable";
+  const scopeLabel =
+    snapshot.mode === "cross-project-advisory"
+      ? "Advisory"
+      : snapshot.mode === "project-aggregate"
+        ? "Project-wide"
+        : "";
+  const scope = scopeLabel ? palette.dim(`${scopeLabel} · `) : "";
   if (width < 48) {
     return fitToWidth(
-      [`${palette.accent(active)} ${item} · ${proof} · ${next} ${bounded(nextAction, 18)}`],
+      [`${scope}${palette.accent(active)} ${item} · ${proof} · ${next} ${bounded(nextAction, 18)}`],
       width
     );
   }
   const lines = [
-    `${palette.accent(active)} ${palette.good(item)}  ${palette.dim(`[${state}]`)}  WP ${workpoint}  P${snapshot.priority}/${snapshot.rank}`,
-    `${palette.dim(`${proof} · ${snapshot.dependencies?.length ?? 0} deps · ${snapshot.blockers?.length ?? 0} blockers · ${snapshot.artifactRefs?.length ?? 0} artifacts · ${mode} · ${capability}`)}  ${next} ${nextAction}`,
+    `${scope}${palette.accent(active)} ${palette.good(item)}  ${palette.dim(`[${state}]`)}  WP ${workpoint}  P${snapshot.priority}/${snapshot.rank}`,
+    `${palette.dim(proof)} · ${next} ${nextAction}`,
   ];
   if (width >= 76 && snapshot.badges?.length) lines.push(palette.dim(snapshot.badges.join(" · ")));
   return fitToWidth(lines, width);

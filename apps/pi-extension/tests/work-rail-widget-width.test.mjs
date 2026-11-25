@@ -50,6 +50,10 @@ try {
         );
       }
     }
+    for (const width of [48, 72, 80, 120]) {
+      const rendered = renderWorkRailWidget(snapshot, width, palette, ascii);
+      assert.match(rendered[1], /proof 2.*Locate/, `next action hidden at ${width}, ascii=${ascii}`);
+    }
   }
 
   const crashCase = renderWorkRailWidget(snapshot, 166, palette, false);
