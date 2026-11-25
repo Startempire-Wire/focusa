@@ -32,7 +32,6 @@ PROJECT_ID = "focusa"
 DEFAULT_API = "http://127.0.0.1:8791"
 DEFAULT_FOCUSA_API = "http://127.0.0.1:8787"
 FOCUSA_PROJECT_ROOT = os.environ.get("FOCUSA_PROJECT_ROOT", "/home/wirebot/focusa")
-FOCUSA_PROJECT_FINGERPRINT = os.environ.get("FOCUSA_PROJECT_FINGERPRINT", "project-fnv1a64:c435b14d4fb3ab67")
 FOCUSA_CONTINUITY_ID = os.environ.get("FOCUSA_CONTINUITY_ID", "focusa-v0.9.135-locked-14")
 WORKFLOW_NAMES = ("CI", "Release", "Deploy Live Daemon")
 COMMAND_DIAGNOSTIC_BYTES = 2048
@@ -210,171 +209,6 @@ def focusa_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 def focusa_get(path: str) -> dict[str, Any]:
     return focusa_http("GET", path)
-
-
-def learning_http(method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Optional learning may defer only when a connection was refused before use."""
-    try:
-        response = focusa_http(method, path, payload)
-    except urllib.error.URLError as error:
-        if (os.environ.get("FOCUSA_RELEASE_JOURNAL_MODE", "auto") != "auto"
-                or isinstance(error, urllib.error.HTTPError)
-                or not isinstance(error.reason, ConnectionRefusedError)):
-            raise
-        return {"status": "unavailable", "failure_class": "daemon_connection_refused"}
-    if not isinstance(response, dict) or response.get("status") in {"blocked", "error", "failed", "unavailable", "degraded"} or response.get("ok") is False:
-        raise ValueError("Focusa learning operation was not accepted")
-    return response
-
-
-def prediction_scope() -> dict[str, Any]:
-    return {
-        "root_scope": {
-            "scope_kind": "project",
-            "scope_id": "focusa",
-            "root_path": FOCUSA_PROJECT_ROOT,
-            "canonical_name": "focusa",
-            "fingerprint": FOCUSA_PROJECT_FINGERPRINT,
-        },
-        "continuity_id": FOCUSA_CONTINUITY_ID,
-    }
-
-
-def retrieve_release_lessons(tag: str) -> dict[str, Any]:
-    response = learning_http(
-        "POST", "/v1/metacognition/retrieve",
-        {
-            "current_ask": f"Plan {tag} without repeating canonical release failures or slowdowns",
-            "scope_tags": ["release", "canonical-release", "failure-prevention"],
-            "k": 10,
-            "project_root": FOCUSA_PROJECT_ROOT,
-            "continuity_id": FOCUSA_CONTINUITY_ID,
-        },
-    )
-    if response.get("status") == "unavailable":
-        return response
-    candidates = response.get("candidates")
-    if not isinstance(candidates, list):
-        raise ValueError("Focusa lesson retrieval did not return a candidate list")
-    candidates = candidates[:10]
-    return {
-        "candidate_count": len(candidates),
-        "lessons": [
-            {
-                "capture_id": row.get("capture_id"),
-                "kind": row.get("kind"),
-                "strategy_class": row.get("strategy_class"),
-                "summary": row.get("summary"),
-                "confidence": row.get("confidence"),
-            }
-            for row in candidates
-        ],
-    }
-
-
-def record_release_predictions(tag: str) -> dict[str, Any]:
-    predictions = {}
-    query = urllib.parse.urlencode(
-        {
-            "scope_kind": "project",
-            "scope_id": "focusa",
-            "root_path": FOCUSA_PROJECT_ROOT,
-            "canonical_name": "focusa",
-            "fingerprint": FOCUSA_PROJECT_FINGERPRINT,
-            "continuity_id": FOCUSA_CONTINUITY_ID,
-            "limit": 100,
-        }
-    )
-    response = learning_http("GET", "/v1/predictions/recent?" + query)
-    if response.get("status") == "unavailable":
-        return {**response, "predictions": predictions}
-    recent = response.get("data", {}).get("predictions")
-    if not isinstance(recent, list):
-        raise ValueError("Focusa prediction lookup did not return a prediction list")
-    stages = {
-        "candidate-ci": "exact stamped candidate CI passes before immutable tagging",
-        "release": "GitHub Release completes with signed complete assets",
-        "deploy": "production Deploy completes and post-install OTA trust resolves",
-        "final": "release finalizes within its journal estimate with production and learning proof",
-    }
-    for stage, outcome in stages.items():
-        predicted_outcome = f"{tag}: {outcome}"
-        existing = next(
-            (
-                row for row in recent
-                if row.get("prediction", {}).get("prediction_type") == f"release_{stage}_success"
-                and row.get("prediction", {}).get("predicted_outcome") == predicted_outcome
-                and row.get("prediction", {}).get("evaluated_at") is None
-            ),
-            None,
-        )
-        if existing:
-            prediction_id = existing.get("record_id")
-            if not isinstance(prediction_id, str) or not prediction_id.strip():
-                raise ValueError("Focusa prediction lookup returned an invalid durable id")
-            predictions[stage] = prediction_id
-            continue
-        response = learning_http(
-            "POST", "/v1/predictions",
-            {
-                "scope": prediction_scope(),
-                "prediction_type": f"release_{stage}_success",
-                "context_refs": [f"release:{tag}"],
-                "predicted_outcome": predicted_outcome,
-                "confidence": 0.9,
-                "recommended_action": f"Run and evidence the {stage} guard before settlement",
-                "why": "Prior release problems are now explicit recurrence guards in the measured release cycle",
-            },
-        )
-        if response.get("status") == "unavailable":
-            return {**response, "predictions": predictions}
-        prediction_id = response.get("data", {}).get("record", {}).get("record_id")
-        if not isinstance(prediction_id, str) or not prediction_id.strip():
-            raise ValueError("Focusa prediction creation did not return a durable record id")
-        predictions[stage] = prediction_id
-    return {"status": "completed", "predictions": predictions}
-
-
-def capture_release_lesson(stage: str, diagnosis: str, recovery: str, evidence_refs: list[str]) -> dict[str, Any]:
-    response = learning_http(
-        "POST", "/v1/metacognition/capture",
-        {
-            "kind": "release_failure_lesson",
-            "content": f"{stage}: {diagnosis}",
-            "rationale": recovery,
-            "evidence_refs": evidence_refs,
-            "confidence": 1.0,
-            "strategy_class": f"release_{stage.replace('-', '_')}",
-            "project_root": FOCUSA_PROJECT_ROOT,
-            "continuity_id": FOCUSA_CONTINUITY_ID,
-        },
-    )
-    if response.get("status") == "unavailable":
-        return response
-    capture_id = response.get("capture_id") or response.get("id")
-    if not isinstance(capture_id, str) or not capture_id.strip():
-        raise ValueError("Focusa lesson capture did not return a durable id")
-    return {"status": "completed", "capture_id": capture_id}
-
-
-def prediction_for_stage(tag: str, stage: str) -> str | None:
-    plan = next((row for row in release_events(tag) if row.get("phase") == "plan"), {})
-    return plan.get("measurements", {}).get("learning", {}).get("predictions", {}).get(stage)
-
-
-def evaluate_stage_prediction(tag: str, stage: str, outcome: str, score: float, lesson_ref: str | None = None) -> dict[str, Any]:
-    prediction_id = prediction_for_stage(tag, stage)
-    if not prediction_id:
-        return {"status": "not_recorded", "reason": "no_prediction_id"}
-    return learning_http(
-        "POST", f"/v1/predictions/{prediction_id}/evaluate",
-        {
-            "scope": prediction_scope(),
-            "actual_outcome": outcome,
-            "score": score,
-            "learning_signal_ref": lesson_ref,
-        },
-    )
 
 
 def query_events(release_id: str | None = None, *, view: str | None = None, limit: int = 1000) -> dict[str, Any]:
@@ -655,7 +489,6 @@ def estimate_from_history() -> dict[str, Any]:
         "asset_count": round(median(assets) or 60),
         "problems_count": round(median(problems) or 0),
         "required_workflow_count": len(WORKFLOW_NAMES),
-        "agent_intelligence_minimum_score": 0.8,
         "estimate_source": "historical_median_plus_explicit_1200s_local_preparation",
         "historical_samples": len(actuals),
     }
@@ -666,12 +499,6 @@ def cmd_plan(args: argparse.Namespace) -> dict[str, Any]:
     existing = existing_phase(args.tag, "plan")
     if existing:
         return {"status": "already_present", "event_id": existing["event_id"], "event_hash": existing["event_hash"]}
-    lessons = retrieve_release_lessons(args.tag)
-    prediction_recording = (
-        {**lessons, "predictions": {}} if lessons.get("status") == "unavailable"
-        else record_release_predictions(args.tag)
-    )
-    predictions = prediction_recording["predictions"]
     guard_config = json.loads((ROOT / "config/release-learning-guards.json").read_text())
     guards = {
         "status": "planned",
@@ -681,9 +508,6 @@ def cmd_plan(args: argparse.Namespace) -> dict[str, Any]:
             for row in guard_config.get("guards", [])
         ],
     }
-    learning_refs = [
-        f"metacog:{row['capture_id']}" for row in lessons.get("lessons", []) if row.get("capture_id")
-    ] + [f"prediction:{value}" for value in predictions.values()]
     payload = event(
         args.tag, "plan", 1, event_id=f"{rid}:plan:v1",
         estimates=estimate_from_history(),
@@ -698,14 +522,12 @@ def cmd_plan(args: argparse.Namespace) -> dict[str, Any]:
                 "production version mismatch",
             ],
             "learning": {
-                "status": "deferred" if prediction_recording["status"] == "unavailable" else "completed",
-                "retrieved_lessons": lessons,
-                "predictions": predictions,
-                "prediction_recording": {key: value for key, value in prediction_recording.items() if key != "predictions"},
+                "status": "deferred",
+                "reason": "learning_runs_outside_publication",
                 "recurrence_guards": guards,
             },
         },
-        evidence_refs=[f"git:commit:{git('rev-parse', 'HEAD')}", "agent-kb-api:view=releases", "config:release-learning-guards", *learning_refs],
+        evidence_refs=[f"git:commit:{git('rev-parse', 'HEAD')}", "agent-kb-api:view=releases", "config:release-learning-guards"],
     )
     return publish(payload)
 
@@ -734,11 +556,6 @@ def cmd_benchmark(args: argparse.Namespace) -> dict[str, Any]:
 def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
     sequence = next_sequence(args.tag)
     evidence_refs = args.evidence_ref or [f"release-stage:{args.stage}"]
-    evaluation = None
-    if args.status == "completed" and args.stage in {"candidate-ci", "release", "deploy"}:
-        evaluation = evaluate_stage_prediction(
-            args.tag, args.stage, f"{args.tag} {args.stage} completed", 1.0
-        )
     payload = event(
         args.tag, "progress", sequence,
         event_id=f"{release_id(args.tag)}:progress:{args.stage}:{sequence}",
@@ -746,7 +563,6 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
             "stage": args.stage,
             "stage_status": args.status,
             "details": args.details or "",
-            "learning": {"prediction_evaluation": evaluation},
         },
         evidence_refs=evidence_refs,
     )
@@ -756,15 +572,6 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
 def cmd_problem(args: argparse.Namespace) -> dict[str, Any]:
     sequence = next_sequence(args.tag)
     evidence_refs = args.evidence_ref or [f"release-problem:{args.stage}"]
-    lesson = capture_release_lesson(args.stage, args.diagnosis, args.recovery, evidence_refs)
-    lesson_ref = lesson.get("capture_id")
-    evaluation = evaluate_stage_prediction(
-        args.tag,
-        args.stage,
-        f"{args.tag} {args.stage} failed: {args.diagnosis}",
-        0.0,
-        f"metacog:{lesson_ref}" if lesson_ref else None,
-    )
     problem = {
         "stage": args.stage, "diagnosis": args.diagnosis, "impact": args.impact,
         "recovery": args.recovery, "added_duration_seconds": args.added_duration_seconds,
@@ -773,16 +580,9 @@ def cmd_problem(args: argparse.Namespace) -> dict[str, Any]:
     payload = event(
         args.tag, "problem", sequence,
         event_id=f"{release_id(args.tag)}:problem:{args.stage}:{sequence}",
-        measurements={
-            "stage": args.stage,
-            "learning": {
-                "metacog_capture_id": lesson_ref,
-                "capture": lesson,
-                "prediction_evaluation": evaluation,
-            },
-        },
+        measurements={"stage": args.stage},
         problems=[problem],
-        evidence_refs=[*evidence_refs, *([f"metacog:{lesson_ref}"] if lesson_ref else [])],
+        evidence_refs=evidence_refs,
     )
     return publish(payload)
 
@@ -831,42 +631,19 @@ def cmd_finalize(args: argparse.Namespace) -> dict[str, Any]:
         "against_estimate": estimate_deltas(actuals, plan.get("estimates", {})),
         "against_previous_release": historical_comparison(actuals, baseline),
     }
-    final_lesson = capture_release_lesson(
-        "finalized",
-        f"{args.tag} completed with {len(all_problems)} recorded problems",
-        "Reuse evaluated recurrence guards and timing deltas in the next release plan",
-        refs,
-    )
-    final_lesson_ref = final_lesson.get("capture_id")
-    prediction_evaluations = {
-        stage: evaluate_stage_prediction(
-            args.tag,
-            stage,
-            f"{args.tag} {stage} succeeded with canonical evidence",
-            1.0,
-            f"metacog:{final_lesson_ref}" if final_lesson_ref else None,
-        )
-        for stage in ("release", "deploy", "final")
-    }
-    plan_learning = plan.get("measurements", {}).get("learning", {})
     guard_artifact = Path(
         os.environ.get("FOCUSA_LEARNING_GUARDS_ARTIFACT", "").strip()
         or f"/tmp/focusa-{os.getuid()}-{args.tag.removeprefix('v')}-learning-guards.json"
     )
     guard_result = json.loads(guard_artifact.read_text()) if guard_artifact.exists() else {"guards": []}
     actuals["learning"] = {
-        "retrieved_lesson_count": plan_learning.get("retrieved_lessons", {}).get("candidate_count"),
+        "status": "deferred",
         "recurrence_guards_total": guard_result.get("guards_total", 0),
         "recurrence_guards_passed": len([
             row for row in guard_result.get("guards", []) if row.get("status") == "passed"
         ]),
-        "final_metacog_capture_id": final_lesson_ref,
-        "final_capture": final_lesson,
-        "prediction_evaluations": prediction_evaluations,
     }
     evidence_refs = refs + ["production:http://127.0.0.1:8787/v1/health"]
-    if final_lesson_ref:
-        evidence_refs.append(f"metacog:{final_lesson_ref}")
     payload = event(
         args.tag, "final", next_sequence(args.tag), event_id=f"{rid}:final:v1",
         estimates=plan.get("estimates", {}), measurements=actuals, problems=all_problems,
@@ -886,16 +663,12 @@ def cmd_correction(args: argparse.Namespace) -> dict[str, Any]:
         "added_duration_seconds": None,
     }
     evidence_refs = args.evidence_ref or [f"release:{args.tag}:correction"]
-    lesson = capture_release_lesson(args.stage, args.corrected_fact, args.recovery, evidence_refs)
-    lesson_ref = lesson.get("capture_id")
-    if lesson_ref:
-        evidence_refs.append(lesson_ref)
     payload = event(
         args.tag,
         "correction",
         next_sequence(args.tag),
         event_id=f"{rid}:correction:{args.stage}:v1",
-        measurements={"status": "corrected", "corrected_fact": args.corrected_fact, "learning": lesson},
+        measurements={"status": "corrected", "corrected_fact": args.corrected_fact},
         problems=[problem],
         comparison={"supersedes_event_id": args.supersedes_event_id},
         evidence_refs=evidence_refs,

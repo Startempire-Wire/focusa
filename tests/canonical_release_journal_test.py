@@ -58,20 +58,6 @@ finally:
     else:
         module.os.environ["FOCUSA_AUTH_TOKEN"] = original_focusa_token
 
-original_focusa_http = module.focusa_http
-try:
-    module.focusa_http = lambda *_args, **_kwargs: (_ for _ in ()).throw(
-        module.urllib.error.HTTPError("http://focusa.test", 403, "Forbidden", {}, None)
-    )
-    try:
-        module.record_release_predictions("v0.9.151")
-    except urllib.error.HTTPError as error:
-        assert error.code == 403
-    else:
-        raise AssertionError("permission denial is not an empty prediction history")
-finally:
-    module.focusa_http = original_focusa_http
-
 improved = module.metric_comparison(80, 100, "seconds", True)
 assert improved == {
     "current": 80,
@@ -419,91 +405,46 @@ assert "Resuming exact stamped release surfaces" in release_script
 assert "RELEASE_RETRY_DIRTY" in release_script
 assert "--tag" in release_script
 
-client_source = SCRIPT.read_text()
-for learning_binding in ("retrieve_release_lessons", "record_release_predictions", "capture_release_lesson", "evaluate_stage_prediction", "cmd_correction"):
-    assert learning_binding in client_source
-
-# Exercise outage behavior in the existing client contract, without a daemon or publisher.
-learning_originals = {name: getattr(module, name) for name in (
+# Publication journals evidence without requiring a prediction/learning service.
+originals = {name: getattr(module, name) for name in (
     "focusa_http", "existing_phase", "estimate_from_history", "git", "publish",
-    "record_release_predictions", "prediction_for_stage",
+    "query_events", "next_sequence", "release_measurements", "latest_final",
 )}
-previous_mode = module.os.environ.get("FOCUSA_RELEASE_JOURNAL_MODE")
 try:
     published = []
-    module.os.environ["FOCUSA_RELEASE_JOURNAL_MODE"] = "auto"
-    module.existing_phase = lambda *_args: None
+    module.existing_phase = lambda *_: None
     module.estimate_from_history = lambda: {}
-    module.git = lambda *_args: "synthetic-journal-fixture"
+    module.git = lambda *_: "synthetic-journal-fixture"
     module.publish = lambda payload: published.append(payload) or {"status": "accepted"}
-    def refuse_learning(*_args, **_kwargs):
-        raise urllib.error.URLError(ConnectionRefusedError("synthetic daemon unavailable"))
-    module.focusa_http = refuse_learning
-    def predictions_must_not_run(*_args):
-        raise AssertionError("prediction writes must not follow unavailable lesson retrieval")
-    module.record_release_predictions = predictions_must_not_run
+    def only_health(method, path, payload=None):
+        assert (method, path, payload) == ("GET", "/v1/health", None)
+        return {"version": "0.9.999"}
+    module.focusa_http = only_health
     args = module.argparse.Namespace(tag="v0.9.999", channel="stable")
     module.cmd_plan(args)
+    plan = published[-1]
+    assert plan["measurements"]["benchmark"] == module.UNMEASURED_BENCHMARK
+    assert plan["measurements"]["learning"]["status"] == "deferred"
+    module.next_sequence = lambda *_: 2
+    module.latest_final = lambda *_: None
+    module.query_events = lambda *_: {"events": [plan]}
+    measurements = {"workflow_count": len(module.WORKFLOW_NAMES),
+                    "checksum_manifest_present": True, "release_manifest_present": True,
+                    "deploy_receipt_present": True}
+    module.release_measurements = lambda *_: (dict(measurements), [], ["test:release"])
+    module.cmd_finalize(args)
+    assert published[-1]["phase"] == "final"
     assert published[-1]["measurements"]["benchmark"] == module.UNMEASURED_BENCHMARK
-    learning = published[-1]["measurements"]["learning"]
-    assert learning["status"] == "deferred"
-    assert learning["retrieved_lessons"]["status"] == "unavailable"
-    assert "candidate_count" not in learning["retrieved_lessons"]
-    assert learning["predictions"] == {}
-    assert module.capture_release_lesson("fixture", "fixture", "fixture", ["fixture:evidence"])["status"] == "unavailable"
-    module.prediction_for_stage = lambda *_args: "synthetic-prediction"
-    assert module.evaluate_stage_prediction(args.tag, "release", "fixture", 0)["status"] == "unavailable"
-    module.os.environ["FOCUSA_RELEASE_JOURNAL_MODE"] = "required"
+    measurements["deploy_receipt_present"] = False
     try:
-        module.cmd_plan(args)
-    except urllib.error.URLError:
-        pass
+        module.cmd_finalize(args)
+    except RuntimeError as error:
+        assert "required release assets are incomplete" in str(error)
     else:
-        raise AssertionError("required mode must preserve refused-connection failure")
-    module.os.environ["FOCUSA_RELEASE_JOURNAL_MODE"] = "auto"
-    for error in [
-        urllib.error.HTTPError("http://fixture.invalid", code, "denied", {}, None)
-        for code in (401, 403, 409, 503)
-    ] + [urllib.error.URLError("unclassified transport"), TimeoutError("unknown effects")]:
-        def fail_learning(*_args, **_kwargs):
-            raise error
-        module.focusa_http = fail_learning
-        try:
-            module.cmd_plan(args)
-        except type(error):
-            pass
-        else:
-            raise AssertionError("auth, scope and ambiguous failures must not become deferred success")
-    for response in [{"status": "blocked", "candidates": []}, {"candidates": {}}]:
-        module.focusa_http = lambda *_args, **_kwargs: response
-        try:
-            module.cmd_plan(args)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError("malformed/denied learning must not become empty history")
-    assert len(published) == 1, "only the explicit auto outage plan may publish"
-    module.record_release_predictions = learning_originals["record_release_predictions"]
-    writes = []
-    def partial_predictions(method, path, _payload=None):
-        if method == "GET":
-            return {"data": {"predictions": []}}
-        writes.append(path)
-        if len(writes) == 1:
-            return {"data": {"record": {"record_id": "synthetic-durable-prediction"}}}
-        return refuse_learning()
-    module.focusa_http = partial_predictions
-    result = module.record_release_predictions(args.tag)
-    assert result["status"] == "unavailable"
-    assert result["predictions"] == {"candidate-ci": "synthetic-durable-prediction"}
-    assert len(writes) == 2, "a refused mutation must not be automatically replayed"
+        raise AssertionError("missing deploy proof was accepted")
 finally:
-    for name, original in learning_originals.items():
+    for name, original in originals.items():
         setattr(module, name, original)
-    if previous_mode is None:
-        module.os.environ.pop("FOCUSA_RELEASE_JOURNAL_MODE", None)
-    else:
-        module.os.environ["FOCUSA_RELEASE_JOURNAL_MODE"] = previous_mode
 
 
 guards = json.loads((ROOT / "config/release-learning-guards.json").read_text())
