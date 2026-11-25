@@ -79,6 +79,6 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - Runbooks: `runbook:session_fanout`
 - Pi: `focusa_fast_forward`; MCP: `focusa.fast.forward`; OpenAI: `focusa_fast_forward`.
 - CLI: none.
-- REST: `/v1/silent-sessions/fanout `.
+- REST: `POST /v1/silent-sessions/fanout`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:881cc8406b413422ced84875de562b2d85240cfd976b7ba28e4880518ded45ae`.
+- Descriptor digest: `sha256:ac7d13c7817c6c6ea227f7b7c0d790832338474158d9f30e1b0a13836bba0782`.

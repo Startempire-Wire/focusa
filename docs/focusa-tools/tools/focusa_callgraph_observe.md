@@ -76,6 +76,6 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`.
 - Runbooks: `runbook:callgraph`
 - Pi: `focusa_callgraph_observe`; MCP: `focusa.callgraph.observe`; OpenAI: `focusa_callgraph_observe`.
 - CLI: none.
-- REST: `/v1/callgraph-runs/{run_id}/frontier `.
+- REST: `GET /v1/callgraph-runs/{run_id}/frontier`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:1b6cd729ee8227d9dc4d0aac91c39ce9daa97ed933b2ff6095ec63212e1f03ad`.
+- Descriptor digest: `sha256:2fa8ccd783889161194d6f7f45eba68d22d9f65c1d0a91dfcd766fbc95da6359`.

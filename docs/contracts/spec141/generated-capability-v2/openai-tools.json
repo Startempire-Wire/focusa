@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:d958a5ee2428cb86c66036fbb8f03717a47d5f0a948902fce0e5922424379495",
+  "registry_digest": "sha256:21752667c76237c03ce202514362c5b39c3dcc53cbe675f6f2263acf7d6a9b78",
   "tools": [
     {
       "type": "function",
@@ -244,104 +244,6 @@
                   "type": "string"
                 }
               ]
-            }
-          },
-          "additionalProperties": false
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "focusa_bg_run",
-        "description": "Run a terminal-blocking command in the background as a first-class Focusa job. Daemon creation requires exact attachment-backed North Star admission; completion receipts remain writable for already-admitted jobs. The front terminal receives completion with bounded output tail (no polling). Use instead of raw setsid/nohup shells whenever Focusa is up. Use it when Dispatch one terminal-blocking command through `focusa bg run --detach` and report success only with a durable job receipt. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
-        "strict": true,
-        "parameters": {
-          "type": "object",
-          "required": [
-            "name",
-            "command"
-          ],
-          "properties": {
-            "name": {
-              "minLength": 1,
-              "description": "Human job name (appears in the completion notification).",
-              "type": "string"
-            },
-            "command": {
-              "minLength": 1,
-              "description": "The full command line to execute (after -- semantics).",
-              "type": "string"
-            },
-            "cwd": {
-              "minLength": 1,
-              "description": "Working directory (defaults to the current session cwd).",
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "focusa_bg_run_many",
-        "description": "Dispatch multiple terminal-blocking jobs in parallel as first-class Focusa jobs. Each creation requires exact attachment-backed North Star admission; admitted jobs complete independently and deliver bounded output through SSE. Returns the job ledger immediately; never blocks. Use it when Dispatch independent jobs in parallel and report each durable receipt or an explicit partial-dispatch failure. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
-        "strict": true,
-        "parameters": {
-          "type": "object",
-          "required": [
-            "jobs"
-          ],
-          "properties": {
-            "jobs": {
-              "minItems": 1,
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "name",
-                  "command"
-                ],
-                "properties": {
-                  "name": {
-                    "minLength": 1,
-                    "description": "Job name (appears in its completion notification).",
-                    "type": "string"
-                  },
-                  "command": {
-                    "minLength": 1,
-                    "description": "Full command line to execute.",
-                    "type": "string"
-                  },
-                  "cwd": {
-                    "minLength": 1,
-                    "description": "Working directory override.",
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": false
-              }
-            }
-          },
-          "additionalProperties": false
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "focusa_bg_status",
-        "description": "Instant single-query status for Focusa background jobs (bg list / bg status). Use for at-a-glance state; the completion notification is the primary delivery path. Never use in a polling loop. Use it when Read one durable background-job row or the bounded ledger list and fail closed on HTTP or envelope errors. Source capability metadata is not installed support or action admission; discover the exact active schema, scope and selected operation. Likely-next capabilities are advisory, not an execution sequence. Shared journey: docs/agent/02-focusa-cohesive-project-flow.md.",
-        "strict": true,
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "job_id": {
-              "minLength": 1,
-              "description": "Optional job id; omit to list recent jobs.",
-              "type": "string"
             }
           },
           "additionalProperties": false

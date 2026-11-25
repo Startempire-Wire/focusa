@@ -93,6 +93,6 @@ Likely next: `focusa_credentials_verify`, `focusa_tool_doctor`.
 - Runbooks: `runbook:credential`
 - Pi: `focusa_credentials_verify`; MCP: `focusa.credentials.verify`; OpenAI: `focusa_credentials_verify`.
 - CLI: none.
-- REST: `/v1/credentials/verify-requirement `.
+- REST: `POST /v1/credentials/verify-requirement`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:59bc25a97f8ea66486567c90630a5a6397025a0826e014379081192dd571f4ad`.
+- Descriptor digest: `sha256:9bed6de0ca3a98260195ca32b5ecaa34e6c28d34e748c0c72eec9a2752a97e9d`.

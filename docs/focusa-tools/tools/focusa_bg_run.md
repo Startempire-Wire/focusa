@@ -79,6 +79,6 @@ Likely next: `focusa_bg_status`, `focusa_workpoint_checkpoint`.
 - Runbooks: `runbook:background_job`
 - Pi: `focusa_bg_run`; MCP: `focusa.bg.run`; OpenAI: `focusa_bg_run`.
 - CLI: `focusa bg run --detach`.
-- REST: `/v1/background-jobs `.
+- REST: Pi-local only.
 - Specification: contract registry.
-- Descriptor digest: `sha256:48ba205475b0bc4db2c9f9c2ea4de1daa38cddd4a476e6feb75f0734c8d1a037`.
+- Descriptor digest: `sha256:1dfb7c2934efc96f8cf2f377595bf65d7c4a9ad37e8c2701520be30c9a55e82f`.

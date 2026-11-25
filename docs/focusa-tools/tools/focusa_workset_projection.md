@@ -76,6 +76,6 @@ Likely next: `focusa_workpoint_resume`, `focusa_callgraph_validate`.
 - Runbooks: `runbook:workset`
 - Pi: `focusa_workset_projection`; MCP: `focusa.workset.projection`; OpenAI: `focusa_workset_projection`.
 - CLI: none.
-- REST: `/v1/worksets/{workset_id}/projection `.
+- REST: `GET /v1/worksets/{workset_id}/projection`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae`.
+- Descriptor digest: `sha256:5e954f714a7dd1eb550e556057359e276248034c86801b60d003e4593769332b`.

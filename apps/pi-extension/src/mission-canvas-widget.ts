@@ -5,6 +5,7 @@ import {
   getAttachmentRuntime,
   currentProjectBindingDecision,
   getSessionCwd,
+  getScopedWorkpointPacket,
 } from "./state.js";
 import { resolveInteractionMode } from "./config.js";
 import { LifecycleGenerationGuard } from "./lifecycle-guard.js";
@@ -12,6 +13,8 @@ import {
   scopedReceiptMatchesCurrentScope,
   subscribeScopedStateChanges,
 } from "./scoped-surface-refresh.js";
+
+import { renderWorkRailWidget, workRailSnapshotFromPacket } from "./work-rail-widget.js";
 
 let refreshUnsubscribe: (() => void) | null = null;
 let latestUiContext: ExtensionContext | null = null;
@@ -36,16 +39,24 @@ export function refreshMissionCanvasWidget(ctx: ExtensionContext): void {
       ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
       return;
     }
-    // A Pi-local project selection is not a verified daemon workstream attachment.
-    // Until that proof is available to this view, do not expose cached work or say Connected.
+    const bound = currentProjectBindingDecision()?.state === "BOUND";
+    const packet = runtime.focusaAvailable && bound ? getScopedWorkpointPacket() : null;
+    const rail = packet?.canonical === true ? workRailSnapshotFromPacket(packet) : null;
+    const ascii = process.env.FOCUSA_ASCII_UI === "1";
     const status = !runtime.focusaAvailable
       ? "Connection unavailable"
-      : currentProjectBindingDecision()?.state === "BOUND"
+      : bound
         ? "Workstream not verified"
         : "No project connected";
     ctx.ui.setWidget("focusa-mission-canvas-work-rail", (_tui, theme) => ({
-      render: (width: number) => [
-        truncateToWidth(theme.fg("accent", `Focusa · ${status}`), width),
+      render: (width: number) => rail
+        ? renderWorkRailWidget(rail, width, {
+          accent: text => theme.fg("accent", text),
+          dim: text => theme.fg("dim", text),
+          good: text => theme.fg("accent", text),
+        }, ascii)
+        : [
+        truncateToWidth(theme.fg("accent", `Focusa ${ascii ? "-" : "·"} ${status}`), width),
         truncateToWidth(theme.fg("dim", "Details: /focusa-status"), width),
       ],
       invalidate() {},

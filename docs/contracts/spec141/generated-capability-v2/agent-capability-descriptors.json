@@ -5328,12 +5328,7 @@
         "cli": [
           "focusa bg run --detach"
         ],
-        "rest": [
-          {
-            "method": "/v1/background-jobs",
-            "path": ""
-          }
-        ]
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa BG Run",
@@ -5343,8 +5338,8 @@
       "namespace": "focusa.background_job",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/background-jobs",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -5355,22 +5350,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/background-jobs",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -5384,14 +5364,13 @@
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
-          "mcp",
-          "openai",
-          "rest",
           "cli"
         ],
         "parity_status": "full",
         "evidence_boundary": "declared source/interface mapping; verify installed registration, health and scoped admission separately; null confirmation/preview metadata is unknown: inspect selected action/schema/policy, never infer from a name or safety hint",
-        "exemptions": []
+        "exemptions": [
+          "domain_cli_only"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -5697,15 +5676,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/background-jobs",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5826,7 +5797,7 @@
         "snippet": "The canonical non-blocking dispatch for builds/tests/long scans.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:48ba205475b0bc4db2c9f9c2ea4de1daa38cddd4a476e6feb75f0734c8d1a037"
+      "descriptor_digest": "sha256:1dfb7c2934efc96f8cf2f377595bf65d7c4a9ad37e8c2701520be30c9a55e82f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5857,12 +5828,7 @@
         "cli": [
           "focusa bg run --detach"
         ],
-        "rest": [
-          {
-            "method": "/v1/background-jobs",
-            "path": ""
-          }
-        ]
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa BG Run Many (parallel orchestration)",
@@ -5872,8 +5838,8 @@
       "namespace": "focusa.background_job",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/background-jobs",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -5884,22 +5850,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/background-jobs",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -5913,14 +5864,13 @@
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
-          "mcp",
-          "openai",
-          "rest",
           "cli"
         ],
         "parity_status": "full",
         "evidence_boundary": "declared source/interface mapping; verify installed registration, health and scoped admission separately; null confirmation/preview metadata is unknown: inspect selected action/schema/policy, never infer from a name or safety hint",
-        "exemptions": []
+        "exemptions": [
+          "domain_cli_only"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -6239,15 +6189,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/background-jobs",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -6372,7 +6314,7 @@
         "snippet": "Use to parallelize independent long-running commands.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2fd9591bed1aa67b2afc5028df1806837b141818eb0520d494584b560111a478"
+      "descriptor_digest": "sha256:8548ad4c44e1031413d8ad3649cdf140571014d8cd4a30926bb93c0eb843c416"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -6404,12 +6346,7 @@
           "focusa bg status --job",
           "focusa bg list"
         ],
-        "rest": [
-          {
-            "method": "/v1/background-jobs",
-            "path": ""
-          }
-        ]
+        "rest": []
       },
       "version": "2.0.0",
       "title": "Focusa BG Status",
@@ -6419,8 +6356,8 @@
       "namespace": "focusa.background_job",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/background-jobs",
-        "path": "",
+        "method": null,
+        "path": null,
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -6431,22 +6368,7 @@
         "source_owner": "agent_capability_contracts",
         "policy_owner": "entitlement_policy_resolver"
       },
-      "operation_policies": [
-        {
-          "operation_id": null,
-          "method": "/v1/background-jobs",
-          "path": "",
-          "operation_class": "read",
-          "capability_family": "read_projection",
-          "commercial_treatment": "read_allowance",
-          "policy_activation": "active",
-          "required_feature": null,
-          "limit_bucket": null,
-          "recovery_allowance": "read_projection",
-          "source_owner": "agent_capability_contracts",
-          "policy_owner": "entitlement_policy_resolver"
-        }
-      ],
+      "operation_policies": [],
       "operation_class": "read",
       "capability_family": "read_projection",
       "commercial_treatment": "read_allowance",
@@ -6460,14 +6382,13 @@
         "requires_daemon": true,
         "supported_harnesses": [
           "pi",
-          "mcp",
-          "openai",
-          "rest",
           "cli"
         ],
         "parity_status": "full",
         "evidence_boundary": "declared source/interface mapping; verify installed registration, health and scoped admission separately; null confirmation/preview metadata is unknown: inspect selected action/schema/policy, never infer from a name or safety hint",
-        "exemptions": []
+        "exemptions": [
+          "domain_cli_only"
+        ]
       },
       "input_schema": {
         "type": "object",
@@ -6759,15 +6680,7 @@
       "authority": {
         "kind": "advisory_only"
       },
-      "permissions": [
-        {
-          "route": "/v1/background-jobs",
-          "scope": {
-            "kind": "read",
-            "route_family": "auto"
-          }
-        }
-      ],
+      "permissions": [],
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6883,7 +6796,7 @@
         "snippet": "Use for a one-shot ledger snapshot; never poll with it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:39c25b388b4b1af4b76b24b15adbf7aff48165cf418f6120c1eae8a4fd4c79aa"
+      "descriptor_digest": "sha256:7f89217801e5f8c314ca80cb52889927963dd9e7b4d466b7b57cbbf651b436a5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -15516,8 +15429,8 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/callgraph-runs/{run_id}/frontier",
-            "path": ""
+            "method": "GET",
+            "path": "/v1/callgraph-runs/{run_id}/frontier"
           }
         ]
       },
@@ -15529,8 +15442,8 @@
       "namespace": "focusa.callgraph",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/callgraph-runs/{run_id}/frontier",
-        "path": "",
+        "method": "GET",
+        "path": "/v1/callgraph-runs/{run_id}/frontier",
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -15544,8 +15457,8 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/callgraph-runs/{run_id}/frontier",
-          "path": "",
+          "method": "GET",
+          "path": "/v1/callgraph-runs/{run_id}/frontier",
           "operation_class": "read",
           "capability_family": "read_projection",
           "commercial_treatment": "read_allowance",
@@ -15874,7 +15787,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/callgraph-runs/{run_id}/frontier",
+          "route": "GET /v1/callgraph-runs/{run_id}/frontier",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -15998,7 +15911,7 @@
         "snippet": "Use to inspect run progress and settlement state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1b6cd729ee8227d9dc4d0aac91c39ce9daa97ed933b2ff6095ec63212e1f03ad"
+      "descriptor_digest": "sha256:2fa8ccd783889161194d6f7f45eba68d22d9f65c1d0a91dfcd766fbc95da6359"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17597,8 +17510,8 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/cockpit/projection",
-            "path": ""
+            "method": "GET",
+            "path": "/v1/cockpit/projection"
           }
         ]
       },
@@ -17610,8 +17523,8 @@
       "namespace": "focusa.cockpit",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/cockpit/projection",
-        "path": "",
+        "method": "GET",
+        "path": "/v1/cockpit/projection",
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -17625,8 +17538,8 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/cockpit/projection",
-          "path": "",
+          "method": "GET",
+          "path": "/v1/cockpit/projection",
           "operation_class": "read",
           "capability_family": "read_projection",
           "commercial_treatment": "read_allowance",
@@ -17952,7 +17865,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/cockpit/projection",
+          "route": "GET /v1/cockpit/projection",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -18074,7 +17987,7 @@
         "snippet": "One read = worksets + callgraph frontier + steers + bg board.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:031b6dad35f830e02f9f935ad8a25a5ea5ef77ca74e0278bf3dbf6238599f0cb"
+      "descriptor_digest": "sha256:6a32975348161bd5f320ed7aca855ae5bb6c5923b14267d34e62a322a0fc1cee"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22495,8 +22408,8 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/credentials/verify-requirement",
-            "path": ""
+            "method": "POST",
+            "path": "/v1/credentials/verify-requirement"
           }
         ]
       },
@@ -22508,8 +22421,8 @@
       "namespace": "focusa.credential",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/credentials/verify-requirement",
-        "path": "",
+        "method": "POST",
+        "path": "/v1/credentials/verify-requirement",
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -22523,8 +22436,8 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/credentials/verify-requirement",
-          "path": "",
+          "method": "POST",
+          "path": "/v1/credentials/verify-requirement",
           "operation_class": "read",
           "capability_family": "read_projection",
           "commercial_treatment": "read_allowance",
@@ -22963,7 +22876,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/credentials/verify-requirement",
+          "route": "POST /v1/credentials/verify-requirement",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -23103,7 +23016,7 @@
         "snippet": "Advisory model verdict only; never authorization to use credentials.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:59bc25a97f8ea66486567c90630a5a6397025a0826e014379081192dd571f4ad"
+      "descriptor_digest": "sha256:9bed6de0ca3a98260195ca32b5ecaa34e6c28d34e748c0c72eec9a2752a97e9d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -32323,8 +32236,8 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/silent-sessions/fanout",
-            "path": ""
+            "method": "POST",
+            "path": "/v1/silent-sessions/fanout"
           }
         ]
       },
@@ -32336,8 +32249,8 @@
       "namespace": "focusa.session_fanout",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/silent-sessions/fanout",
-        "path": "",
+        "method": "POST",
+        "path": "/v1/silent-sessions/fanout",
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -32351,8 +32264,8 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/silent-sessions/fanout",
-          "path": "",
+          "method": "POST",
+          "path": "/v1/silent-sessions/fanout",
           "operation_class": "read",
           "capability_family": "read_projection",
           "commercial_treatment": "read_allowance",
@@ -32693,7 +32606,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/silent-sessions/fanout",
+          "route": "POST /v1/silent-sessions/fanout",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -32820,7 +32733,7 @@
         "snippet": "Use to parallelize a set of work items across session lanes.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:881cc8406b413422ced84875de562b2d85240cfd976b7ba28e4880518ded45ae"
+      "descriptor_digest": "sha256:ac7d13c7817c6c6ea227f7b7c0d790832338474158d9f30e1b0a13836bba0782"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87288,8 +87201,8 @@
         "cli": [],
         "rest": [
           {
-            "method": "/v1/worksets/{workset_id}/projection",
-            "path": ""
+            "method": "GET",
+            "path": "/v1/worksets/{workset_id}/projection"
           }
         ]
       },
@@ -87301,8 +87214,8 @@
       "namespace": "focusa.workset",
       "operation_policy": {
         "operation_id": null,
-        "method": "/v1/worksets/{workset_id}/projection",
-        "path": "",
+        "method": "GET",
+        "path": "/v1/worksets/{workset_id}/projection",
         "operation_class": "read",
         "capability_family": "read_projection",
         "commercial_treatment": "read_allowance",
@@ -87316,8 +87229,8 @@
       "operation_policies": [
         {
           "operation_id": null,
-          "method": "/v1/worksets/{workset_id}/projection",
-          "path": "",
+          "method": "GET",
+          "path": "/v1/worksets/{workset_id}/projection",
           "operation_class": "read",
           "capability_family": "read_projection",
           "commercial_treatment": "read_allowance",
@@ -87646,7 +87559,7 @@
       },
       "permissions": [
         {
-          "route": "/v1/worksets/{workset_id}/projection",
+          "route": "GET /v1/worksets/{workset_id}/projection",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -87770,8 +87683,8 @@
         "snippet": "Use to inspect workset membership + completion contract state.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:46324d52d09fde523c85e6c89dc29ae003bc3e80d4fc5bf337f18cdec98b7eae"
+      "descriptor_digest": "sha256:5e954f714a7dd1eb550e556057359e276248034c86801b60d003e4593769332b"
     }
   ],
-  "registry_digest": "sha256:d958a5ee2428cb86c66036fbb8f03717a47d5f0a948902fce0e5922424379495"
+  "registry_digest": "sha256:21752667c76237c03ce202514362c5b39c3dcc53cbe675f6f2263acf7d6a9b78"
 }

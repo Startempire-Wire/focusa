@@ -3012,7 +3012,7 @@
         "BackgroundJob"
       ],
       "api_routes": [
-        "/v1/worksets/{workset_id}/projection"
+        "GET /v1/worksets/{workset_id}/projection"
       ],
       "cli_commands": [],
       "core_surface": "workset_ledger/replay_projection",
@@ -3100,7 +3100,7 @@
         "BackgroundJob"
       ],
       "api_routes": [
-        "/v1/callgraph-runs/{run_id}/frontier"
+        "GET /v1/callgraph-runs/{run_id}/frontier"
       ],
       "cli_commands": [],
       "core_surface": "callgraph_store/run observation",
@@ -3144,7 +3144,7 @@
         "BackgroundJob"
       ],
       "api_routes": [
-        "/v1/credentials/verify-requirement"
+        "POST /v1/credentials/verify-requirement"
       ],
       "cli_commands": [],
       "core_surface": "credential_authority/verify_requirement",
@@ -3188,7 +3188,7 @@
         "BackgroundJob"
       ],
       "api_routes": [
-        "/v1/cockpit/projection"
+        "GET /v1/cockpit/projection"
       ],
       "cli_commands": [],
       "core_surface": "cockpit route projection",
@@ -3231,9 +3231,7 @@
         "Credential",
         "BackgroundJob"
       ],
-      "api_routes": [
-        "/v1/background-jobs"
-      ],
+      "api_routes": [],
       "cli_commands": [
         "focusa bg run --detach"
       ],
@@ -3242,7 +3240,9 @@
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "durable_dispatch",
       "parity_status": "full",
-      "exemptions": [],
+      "exemptions": [
+        "domain_cli_only"
+      ],
       "live_check": "dispatch returns a non-empty durable job_id; the same row is observable and completes through SSE",
       "scope_requirement": {
         "kind": "read",
@@ -3275,9 +3275,7 @@
         "Credential",
         "BackgroundJob"
       ],
-      "api_routes": [
-        "/v1/background-jobs"
-      ],
+      "api_routes": [],
       "cli_commands": [
         "focusa bg run --detach"
       ],
@@ -3286,7 +3284,9 @@
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "durable_dispatch",
       "parity_status": "full",
-      "exemptions": [],
+      "exemptions": [
+        "domain_cli_only"
+      ],
       "live_check": "every successful lane returns a durable job_id; failures name the lane and never claim full dispatch",
       "scope_requirement": {
         "kind": "read",
@@ -3319,9 +3319,7 @@
         "Credential",
         "BackgroundJob"
       ],
-      "api_routes": [
-        "/v1/background-jobs"
-      ],
+      "api_routes": [],
       "cli_commands": [
         "focusa bg status --job",
         "focusa bg list"
@@ -3331,7 +3329,9 @@
       "result_envelope": "tool_result_v1",
       "side_effect_profile": "read_status",
       "parity_status": "full",
-      "exemptions": [],
+      "exemptions": [
+        "domain_cli_only"
+      ],
       "live_check": "Pi and CLI observe the same durable job row; HTTP, missing-row, and invalid-envelope states fail closed",
       "scope_requirement": {
         "kind": "read",
@@ -3365,7 +3365,7 @@
         "BackgroundJob"
       ],
       "api_routes": [
-        "/v1/silent-sessions/fanout"
+        "POST /v1/silent-sessions/fanout"
       ],
       "cli_commands": [],
       "core_surface": "session_fanout route",

@@ -2,8 +2,8 @@
 
 <!-- GENERATED: scripts/generate-current-runtime-status. Do not edit by hand. -->
 
-Generated: 2026-11-24T14:15:05Z
-Source workspace version: 0.9.209
+Generated: 2026-11-24T23:31:13Z
+Source workspace version: 0.9.210
 Installed daemon/CLI version and current-process activation: not established by this generator.
 Tool contracts: 157
 Tool surface summary: [generated/tool-surface-summary.md](generated/tool-surface-summary.md)

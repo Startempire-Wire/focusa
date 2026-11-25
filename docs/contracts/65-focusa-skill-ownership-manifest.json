@@ -1,7 +1,7 @@
 {
   "schema": "focusa.skill_ownership_manifest.v1",
   "advertised_capability_count": 157,
-  "tool_contract_sha256": "2ddaac281b22a29d44ce1135fe7b1b55a4b3fa9d9c321763f0a87dc26607013f",
+  "tool_contract_sha256": "c53898cf99310e82856d4f615b1a8d2cd854fa303d9c9378faaabb70faeb69e6",
   "generated": true,
   "capabilities": [
     {

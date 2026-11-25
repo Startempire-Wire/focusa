@@ -74,6 +74,6 @@ Likely next: `focusa_workset_projection`, `focusa_bg_status`.
 - Runbooks: `runbook:cockpit`
 - Pi: `focusa_cockpit_projection`; MCP: `focusa.cockpit.projection`; OpenAI: `focusa_cockpit_projection`.
 - CLI: none.
-- REST: `/v1/cockpit/projection `.
+- REST: `GET /v1/cockpit/projection`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:031b6dad35f830e02f9f935ad8a25a5ea5ef77ca74e0278bf3dbf6238599f0cb`.
+- Descriptor digest: `sha256:6a32975348161bd5f320ed7aca855ae5bb6c5923b14267d34e62a322a0fc1cee`.

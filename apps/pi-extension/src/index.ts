@@ -11,7 +11,7 @@ import {
   getEffectiveFocusSnapshot,
   getFocusaAvailable,
   getActiveFrameId,
-  getActiveWorkpointPacket,
+  getScopedWorkpointPacket,
   isProjectRootAuthoritySafe,
   makeSessionBootstrapAttachmentKey,
   runWithAttachmentRuntime,
@@ -226,7 +226,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     pi.registerShortcut("ctrl+shift+r", {
       description: "Inspect active Work Rail row",
       handler: async (ctx) => {
-        const packet = getActiveWorkpointPacket();
+        const packet = getScopedWorkpointPacket();
         const workpoint =
           packet?.workpoint && typeof packet.workpoint === "object" ? packet.workpoint : packet;
         const bead = workpoint?.work_item_id || packet?.work_item_id || "no bead";
