@@ -23,12 +23,12 @@
     "e6e15f4350132615cb0fe0f3aecb4cd92cda3610",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:b42c65328dd993d702e65cc09a8a4f9ca2600ba144f5790a13bd4feac9b4b175",
+  "ancestry_digest": "sha256:de98cd4019adbb2fcf207b62c17fed0e9f7cd0c46550fdea228a4540517fb100",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "b2a75a777d3cf223a615e2f97d322c91661f46c1",
+    "audit_head": "4071706b558bc8562060e2fbece959fdbfb1818f",
     "changed_after_source_commit": [],
-    "source_commit": "b2a75a777d3cf223a615e2f97d322c91661f46c1",
+    "source_commit": "4071706b558bc8562060e2fbece959fdbfb1818f",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -125,17 +125,17 @@
     "publish_release": false,
     "rewrite_v0.9.143": false
   },
-  "next_stable_tag": "v0.9.209",
+  "next_stable_tag": "v0.9.210",
   "next_version_selection": {
     "base": "0.9",
     "channel_maxima": {
       "dev": 194,
-      "preview": 208,
+      "preview": 209,
       "rc": null,
       "stable": 207
     },
     "considered_tags": 213,
-    "highest_patch": 208,
+    "highest_patch": 209,
     "ignored_malformed_tags": [
       "spec-integration-v1",
       "spec-integraton-v1-start"
@@ -144,12 +144,32 @@
     "monotonic": true,
     "schema": "focusa.release_version_selection.v1",
     "selected_channel": "stable",
-    "selected_patch": 209,
-    "selected_tag": "v0.9.209",
-    "selected_version": "0.9.209",
+    "selected_patch": 210,
+    "selected_tag": "v0.9.210",
+    "selected_version": "0.9.210",
     "status": "completed"
   },
   "pull_request_ancestry": [
+    {
+      "commit": "30fc205e59772eded0ea00fbd8e30079687e49e1",
+      "pr": 733,
+      "subject": "fix(contracts): refresh spec138a source/combined hashes after doc drift (#733)"
+    },
+    {
+      "commit": "2b7ab94c609bbb627e711bac233a67612bdf61b8",
+      "pr": 725,
+      "subject": "Merge pull request #725 from Startempire-Wire/fix/89-multiplex-subpath-20261120"
+    },
+    {
+      "commit": "7cdc29c854e7ba68571ca9a0a8b024852623980f",
+      "pr": 89,
+      "subject": "fix(remote): subpath-aware binding resolution and subpath-scoped writer keys (#89)"
+    },
+    {
+      "commit": "ea62ab071cc575cf89028cf354204f872055d31f",
+      "pr": 721,
+      "subject": "Merge pull request #721 from Startempire-Wire/docs/operator-world-model-20261119"
+    },
     {
       "commit": "36672acadae4e0089582fe42beb355506528390e",
       "pr": 656,
@@ -923,9 +943,9 @@
   "schema": "focusa.locked_release_candidate_ancestry.v1",
   "source_version_agreement": true,
   "source_versions": {
-    "menubar": "0.9.209",
-    "pi_extension": "0.9.209",
-    "workspace": "0.9.209"
+    "menubar": "0.9.210",
+    "pi_extension": "0.9.210",
+    "workspace": "0.9.210"
   },
   "status": "verified",
   "tag_chain": {
