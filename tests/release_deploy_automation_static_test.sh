@@ -76,6 +76,7 @@ assert_grep 'Self-healing smoke check' .github/workflows/deploy-live-daemon.yml 
 assert_grep 'Verify deployed full release locally' .github/workflows/deploy-live-daemon.yml 'full installed release parity gate missing'
 assert_grep 'focusa focusa-daemon focusa-tui focusa-session-runner' .github/workflows/deploy-live-daemon.yml 'all canonical binaries must be verified after deploy'
 assert_grep 'WorkingDirectory --value' .github/workflows/deploy-live-daemon.yml 'canonical state-root verification missing'
+assert_grep '--audit-installed-parity' .github/workflows/deploy-live-daemon.yml 'deployment must verify installed private package paths through the scoped smoke entrypoint'
 assert_grep 'concurrency:' .github/workflows/deploy-live-daemon.yml 'deploy concurrency guard missing'
 
 # Per-run strict-spec daemon and cleanup propagation guards (#387).
@@ -181,6 +182,7 @@ assert_grep 'focusa-deploy,production' scripts/install-self-hosted-runner.sh 'ru
 
 # deploy-smoke-check.sh assertions
 assert_grep 'audit_event "smoke_check"' scripts/deploy-smoke-check.sh 'smoke check audit emission missing'
+assert_grep 'audit-distribution-parity.mjs' scripts/deploy-smoke-check.sh 'privileged smoke verification must reuse the canonical parity auditor'
 
 # release workflow version verification
 assert_grep 'verify-version-surfaces.py' .github/workflows/release.yml 'release workflow does not verify stamped versions'

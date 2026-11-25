@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -94,10 +95,19 @@ def main() -> None:
     release = read(ROOT / ".github/workflows/release.yml")
     appveyor = read(ROOT / ".appveyor.yml")
     codemagic = read(ROOT / "codemagic.yaml")
-    if "ovh-build-2" not in ci:
+    labels = active["linux"].get("runner_labels")
+    if (
+        not isinstance(labels, list)
+        or "self-hosted" not in labels
+        or not all(isinstance(label, str) and label for label in labels)
+    ):
+        fail("configured Linux runner labels are malformed")
+    label_list = r"[ \t]*,[ \t]*".join(map(re.escape, labels))
+    lane = re.compile(rf"(?m)^[ \t]*runs-on:[ \t]*\[[ \t]*{label_list}[ \t]*\][ \t]*$")
+    if not lane.search(ci):
         fail("CI lacks the configured self-hosted OVH runner")
-    if "runs-on: self-hosted" not in release:
-        fail("release workflow lacks the configured self-hosted lane")
+    if not lane.search(release):
+        fail("release workflow lacks the configured self-hosted OVH runner")
     if "APPVEYOR_REPO_TAG" not in appveyor:
         fail("AppVeyor tag admission is missing")
     if "menubar-macos-package-proof" not in codemagic:
@@ -105,7 +115,7 @@ def main() -> None:
 
     reminder_path = ROOT / config["reminder"]["workflow"]
     reminder = read(reminder_path)
-    if "runs-on: [self-hosted, Linux, X64, ovh-build-2]" not in reminder:
+    if not lane.search(reminder):
         fail("provider reminder must run on the available self-hosted lane")
     for forbidden in ("git push", "git commit", "ubuntu-latest", "macos-latest", "windows-latest"):
         if forbidden in reminder:

@@ -4582,6 +4582,17 @@ pub fn print_walkthrough_human(walkthrough: &FirstInstallWalkthrough) {
 
 // ----- Phase 0: Atomicity (focusa-112-atomicity, Spec 112 §6) -----
 
+#[cfg(target_os = "linux")]
+fn create_private_system_install_root(install_root: &std::path::Path) -> Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    // Restored customer entries may rely on the parent being owner-only.
+    // Create it before staging any files; never rely on the runner's umask.
+    std::fs::DirBuilder::new()
+        .mode(0o700)
+        .create(install_root)
+        .with_context(|| format!("create private install root {}", install_root.display()))
+}
+
 /// Stash any existing install to a side directory before overwrite. Returns
 /// true if a stash was actually written (i.e. a prior install existed).
 fn phase_atomic_stash(install_root: &std::path::Path, stash: &std::path::Path) -> Result<bool> {
@@ -4835,6 +4846,10 @@ async fn execute_real_install(
     cancellation: &CancellationToken,
     sink: &dyn InstallEventSink,
 ) -> Result<RealInstallResult> {
+    #[cfg(target_os = "linux")]
+    if args.system_install {
+        create_private_system_install_root(install_root)?;
+    }
     sink.emit(InstallEvent::PhaseStarted {
         phase: InstallPhase::ValidateLicense,
         message: "Validating installation license".into(),
@@ -6022,8 +6037,21 @@ mod tests {
         std::fs::write(install_root.join("bin/focusa"), "old-binary").unwrap();
         std::fs::write(install_root.join("state/customer.json"), "preserve-me").unwrap();
         std::fs::write(install_root.join("focusa.sqlite"), "customer-db").unwrap();
+        #[cfg(target_os = "linux")]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&install_root, std::fs::Permissions::from_mode(0o700))
+                .unwrap();
+            std::fs::set_permissions(
+                install_root.join("focusa.sqlite"),
+                std::fs::Permissions::from_mode(0o644),
+            )
+            .unwrap();
+        }
 
         assert!(phase_atomic_stash(&install_root, &stash).unwrap());
+        #[cfg(target_os = "linux")]
+        create_private_system_install_root(&install_root).unwrap();
         std::fs::create_dir_all(install_root.join("bin")).unwrap();
         std::fs::write(install_root.join("bin/focusa"), "new-binary").unwrap();
         std::fs::write(install_root.join(".focusa-version"), "v2").unwrap();
@@ -6041,6 +6069,19 @@ mod tests {
             std::fs::read_to_string(install_root.join("focusa.sqlite")).unwrap(),
             "customer-db"
         );
+        #[cfg(target_os = "linux")]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                std::fs::metadata(&install_root)
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o077,
+                0,
+                "reinstall must not expand access to restored customer files"
+            );
+        }
         phase_atomic_cleanup(&stash).unwrap();
         assert!(!stash.exists());
         std::fs::remove_dir_all(fixture).unwrap();

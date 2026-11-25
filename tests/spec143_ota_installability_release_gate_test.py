@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import ast
 import os
+import subprocess
+import tempfile
 import tomllib
 from pathlib import Path
 
@@ -35,11 +37,39 @@ rust_release = release[release.index("  rust-release:") : release.index("  pi-ex
 assert "timeout-minutes: 30" in rust_release
 
 assert "deploy-success.json deploy-success.json.sig" in deploy
-# System promotion does not copy the installer-owned HOME/.focusa context.
-# Audit the actual active bundle rather than a stale system-state mirror.
-assert "vars.FOCUSA_DEPLOY_AGENT_CONTEXT_DIR || '/root/.focusa/agent-context'" in deploy
-assert 'FOCUSA_AGENT_CONTEXT_DIR="${DEPLOY_AGENT_CONTEXT_DIR}"' in deploy
-assert "FOCUSA_AGENT_CONTEXT_DIR=/usr/local/lib/focusa/agent-context" not in deploy
+# The production job routes through the authorized verifier. Exercise that
+# entrypoint with an isolated owner HOME; don't inspect the host installation.
+assert "--audit-installed-parity" in deploy
+with tempfile.TemporaryDirectory(prefix="focusa-parity-adapter-") as temporary:
+    base = Path(temporary)
+    home = base / "owner-home"
+    node = base / "node"
+    node.write_text(
+        '#!/bin/sh\nprintf "%s\\n" "$@" "$FOCUSA_AGENT_CONTEXT_DIR" "$FOCUSA_PI_EXT_DIR" '
+        '"$FOCUSA_RELEASE_ASSET_SUFFIX" "${NODE_OPTIONS-unset}"\n',
+        encoding="utf-8",
+    )
+    node.chmod(0o700)
+    command = ["bash", str(ROOT / "scripts/deploy-smoke-check.sh"), "--audit-installed-parity"]
+    env = {
+        **os.environ,
+        "HOME": str(home),
+        "PATH": str(base) + os.pathsep + os.environ["PATH"],
+        "NODE_OPTIONS": "--incompatible-runner-option",
+        "FOCUSA_AGENT_CONTEXT_DIR": str(base / "unrelated-context"),
+    }
+    suffix = "x86_64-unknown-linux-musl"
+    probe = subprocess.run([*command, suffix], env=env, capture_output=True, text=True, check=True)
+    assert probe.stdout.splitlines() == [
+        str(ROOT / "scripts/audit-distribution-parity.mjs"),
+        "--json",
+        str(home / ".focusa/agent-context"),
+        str(home / ".pi/agent/extensions/focusa"),
+        suffix,
+        "unset",
+    ], probe.stdout
+    refused = subprocess.run(command, env=env, capture_output=True, text=True)
+    assert refused.returncode == 64 and not refused.stdout, refused
 assert "Gate OTA installability against signed deployed release" in deploy
 assert "ota-update-plan.json" in deploy
 assert ".latest.trust.deploy_proof_verified == true" in deploy
@@ -174,8 +204,9 @@ assert tag_script.count("apps/pi-extension/src/auto-compaction.ts") >= 2
 assert tag_script.count("docs/contracts/spec141/generated-capability-v2/agent-card.json") >= 2
 assert tag_script.count("scripts/install-focusa.sh") >= 2
 assert "scripts/stamp-release-version" in tag_script
-assert "scripts/verify-doc-version-consistency" in tag_script
-assert "validate-docs-runtime-parity.mjs" in tag_script
+assert "bash scripts/local-release-preflight.sh --strict" in tag_script
+source_ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+assert "node scripts/validate-docs-runtime-parity.mjs" in source_ci
 for docs_surface in [
     "README.md",
     "docs/current/.release-version-stamp",

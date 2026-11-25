@@ -23,10 +23,28 @@ Options:
   --bin-name NAME          Process binary name (default focusa-daemon).
   --health-url URL         Health endpoint (default $FOCUSA_DAEMON_URL or http://127.0.0.1:8787/v1/health).
   --audit-log PATH         Append-only audit log path.
+  --audit-installed-parity SUFFIX  Read-only distribution proof (standalone).
   --no-loopback            Refuse loopback endpoints (require a real public host).
   --help                   Show help.
 USAGE
 }
+
+# The scoped deploy verifier can read the installer owner's private package
+# paths without granting the runner access to the user's Focusa state.
+if [[ "${1:-}" == --audit-installed-parity ]]; then
+  if [[ $# != 2 || ! "$2" =~ ^[a-z0-9_-]+$ || "${HOME:-}" != /* ]]; then
+    printf '%s\n' 'expected --audit-installed-parity SUFFIX and an absolute installer HOME' >&2
+    exit 64
+  fi
+  exec env -u NODE_OPTIONS -u NODE_PATH -u FOCUSA_INSTALL_ROOT \
+    FOCUSA_DISTRIBUTION_MANIFEST=/usr/local/lib/focusa/distribution-manifest.json \
+    FOCUSA_AGENT_CONTEXT_DIR="$HOME/.focusa/agent-context" \
+    FOCUSA_PI_EXT_DIR="$HOME/.pi/agent/extensions/focusa" \
+    FOCUSA_RELEASE_MANIFEST=/tmp/focusa-release/release-manifest.json \
+    FOCUSA_RELEASE_ASSET_SUFFIX="$2" \
+    FOCUSA_DAEMON_HEALTH_URL="$HEALTH_URL" \
+    node "$(dirname -- "$0")/audit-distribution-parity.mjs" --json
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Release tag to deploy or redeploy (for rollback, choose an older tag)
+        description: Release tag with the installed-parity verifier (for older tags, use the signed updater rollback)
         required: true
         type: string
       asset_suffix:
@@ -36,9 +36,6 @@ jobs:
     environment: production
     env:
       DEPLOY_INSTALL_ROOT: ${{ vars.FOCUSA_DEPLOY_INSTALL_ROOT }}
-      # Rust keeps agent context in the installing user's HOME/.focusa;
-      # system promotion owns binaries/manifest, not a second context mirror.
-      DEPLOY_AGENT_CONTEXT_DIR: ${{ vars.FOCUSA_DEPLOY_AGENT_CONTEXT_DIR || '/root/.focusa/agent-context' }}
       DEPLOY_SERVICE_NAME: ${{ vars.FOCUSA_DEPLOY_SERVICE_NAME }}
       DEPLOY_HEALTH_URL: ${{ vars.FOCUSA_DEPLOY_HEALTH_URL }}
       DEPLOY_ASSET_SUFFIX_DEFAULT: ${{ vars.FOCUSA_DEPLOY_ASSET_SUFFIX }}
@@ -77,6 +74,10 @@ jobs:
           VERSION="${TAG#v}"
           TAG_SHA="$(git rev-list -n 1 "$TAG")"
           [[ -n "$TAG_SHA" ]] || { echo "could not resolve tag sha for $TAG" >&2; exit 1; }
+          if ! grep -Fq -- '--audit-installed-parity' scripts/deploy-smoke-check.sh; then
+            echo '::error::Tag lacks owner-scoped installed parity verification. For older releases, use the canonical signed updater rollback.'
+            exit 1
+          fi
           SUFFIX="${{ inputs.asset_suffix }}"
           if [[ -z "$SUFFIX" ]]; then
             # AlmaLinux 8 ships glibc 2.28; the Ubuntu-built gnu binary requires
@@ -367,13 +368,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Unprivileged parity audit: the canonical state root and the release
-          # temp dir are runner-readable; no root needed for a read-only audit.
-          FOCUSA_DISTRIBUTION_MANIFEST=/usr/local/lib/focusa/distribution-manifest.json \
-            FOCUSA_AGENT_CONTEXT_DIR="${DEPLOY_AGENT_CONTEXT_DIR}" \
-            FOCUSA_RELEASE_MANIFEST=/tmp/focusa-release/release-manifest.json \
-            FOCUSA_RELEASE_ASSET_SUFFIX="${{ steps.cfg.outputs.asset_suffix }}" \
-            node "$GITHUB_WORKSPACE/scripts/audit-distribution-parity.mjs" --json \
+          SUDO=()
+          if [[ "${{ steps.cfg.outputs.use_sudo }}" != "0" ]]; then
+            SUDO=(sudo -n)
+          fi
+          # Read the installed package as its owner through the existing
+          # verifier; only the evidence JSON is returned to the runner.
+          "${SUDO[@]}" env FOCUSA_DAEMON_URL='${{ steps.cfg.outputs.health_url }}' \
+            /bin/bash "$GITHUB_WORKSPACE/scripts/deploy-smoke-check.sh" \
+            --audit-installed-parity '${{ steps.cfg.outputs.asset_suffix }}' \
             > /tmp/focusa-release/distribution-parity.json
           jq -e '.schema == "focusa.distribution_parity.v1" and .parity_ok == true and (.drift | length) == 0' \
             /tmp/focusa-release/distribution-parity.json >/dev/null

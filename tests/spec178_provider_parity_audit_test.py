@@ -25,10 +25,10 @@ class Spec178ProviderParityAuditTest(unittest.TestCase):
             ["python3", str(AUDIT)],
             cwd=ROOT,
             env=env,
-            check=True,
             capture_output=True,
             text=True,
         )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
         return json.loads(result.stdout)
 
     def test_machine_provider_map_matches_temporary_spec178_routes(self) -> None:
