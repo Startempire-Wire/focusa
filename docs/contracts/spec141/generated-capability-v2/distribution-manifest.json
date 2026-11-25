@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.210",
-  "source_commit": "1fc3cc926",
-  "generated_at": "2026-11-25T03:19:27.987029Z",
+  "source_commit": "cac823e86",
+  "generated_at": "2026-11-25T03:58:24.070080Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:d63610ee1fe2325c78ff9826ff68dd07b8ddcb1dce20c8232a5ff109ace77717",
@@ -16,7 +16,7 @@
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:5f717a4d6a4e2a4ff6ba8c18ca314d04106c813cac1bd2a907404afa5d1ab494",
+      "sha256": "sha256:29427252a34d473124c2e229c79d485c3a54057a0ea86bcd61f3434fa1228345",
       "file_count": 871,
       "source_paths": [
         "Cargo.toml",
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:b7a70c0ad5630950e28ef944c337927beadbd7314e12829fc27e2044bff30bb0",
+      "sha256": "sha256:f12d0a0fba74a810c8edbe14292f83b3b26cd0f2b9c4a8b0f2fc4c674efd0966",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -77,7 +77,7 @@
     },
     "release_tooling": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:fc8e26760865def1ac9340b9840ed2acce588d933249ddaad83daa87f23c811a",
+      "sha256": "sha256:94df34a8674778eff4463b22cd3a731c278e211c7ea2377b6302309a416a7526",
       "file_count": 41,
       "source_paths": [
         ".appveyor.yml",
