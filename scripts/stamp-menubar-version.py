@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -153,7 +154,6 @@ def replace_readme_version(path: str, version: str) -> None:
 def regenerate_distribution_manifest(version: str) -> None:
     """Write the canonical manifest from the shared deterministic contract."""
     import datetime
-    import subprocess
 
     manifest_path = ROOT / "docs/contracts/spec141/generated-capability-v2/distribution-manifest.json"
     current = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -230,8 +230,9 @@ def main() -> int:
     )
     replace_display_version("apps/menubar/src/lib/components/Settings.svelte", version)
 
-    # Extension build identity + generated Agent Card version (Spec 152 surfaces).
+    # The Pi menu inventory hashes auto-compaction.ts, including its build stamp.
     replace_extension_build("apps/pi-extension/src/auto-compaction.ts", "focusa-pi-bridge", version)
+    subprocess.run([sys.executable, str(ROOT / "scripts/generate-pi-menu-audit.py")], check=True)
     replace_agent_card_version("docs/contracts/spec141/generated-capability-v2/agent-card.json", version)
 
     # README source-version badge (validate-docs-runtime-parity requires v< Cargo version).

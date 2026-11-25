@@ -28,6 +28,16 @@ for regression in (
 publisher = (ROOT / "scripts/create-dev-release-tag.sh").read_text(encoding="utf-8")
 assert publisher.index('  scripts/stamp-release-version "${VERSION}"') < publisher.index('  scripts/stamp-menubar-version.py "${TAG}"'), "release marker must precede final component digests"
 
+stamp_main = (ROOT / "scripts/stamp-menubar-version.py").read_text(encoding="utf-8").split("def main()", 1)[1]
+assert (
+    stamp_main.index('replace_extension_build("apps/pi-extension/src/auto-compaction.ts"')
+    < stamp_main.index('scripts/generate-pi-menu-audit.py')
+    < stamp_main.index('regenerate_distribution_manifest(version)')
+), "stamping the Pi build ID must refresh its menu audit before the manifest"
+assert "docs/contracts/48-49-focusa-pi-menu-inventory.json" in publisher.split(
+    "readonly -a RELEASE_STAMP_PATHS=(", 1
+)[1].split("\n)", 1)[0], "the menu audit is a tracked stamp output"
+
 manifest_path = ROOT / module.MANIFEST_REL
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 failures = module.verify_manifest(ROOT, manifest)

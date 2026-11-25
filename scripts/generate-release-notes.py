@@ -311,7 +311,7 @@ def generate(tag, range_arg, output, preview=False):
         "- Cockpit Tauri signing + updater manifest verified; Browser-reliability soak gates CI\n"
         if is_uiai else
         "**Infrastructure & determinism (agent-removed):**\n"
-        "- Single-source version stamp (`scripts/stamp-menubar-version.py` — 16 surfaces + `distribution-manifest.json` `sha256`/`source_commit`/`generated_at`)\n"
+        "- Single-source version stamp (`scripts/stamp-menubar-version.py` — version surfaces, Pi menu audit and `distribution-manifest.json`)\n"
         "- Blocking preflight (`scripts/local-release-preflight.sh` — Windows NTFS `:` lint, version surfaces, docs/runtime parity, manifest freshness, `cargo fmt`)\n"
         "- Deterministic `pre-push` hook (`PREFLIGHT_FAST=1` <30s) — blocks stale pushes before CI\n"
         "- CI resilient to azure mirror (`timeout 45` + `ripgrep` fallback) + Spec104 `INF-01` allowlist\n"

@@ -36,6 +36,20 @@ RELEASE_REASON=""
 RELEASE_JOURNAL_MODE="${FOCUSA_RELEASE_JOURNAL_MODE:-auto}"
 RELEASE_JOURNAL_ACTIVE=0
 
+# One scope for stamp staging, dry-run restoration, and exact-tag recovery.
+readonly -a RELEASE_STAMP_PATHS=(
+  Cargo.toml Cargo.lock README.md scripts/install-focusa.sh
+  docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md
+  docs/contracts/spec141/generated-capability-v2/agent-card.json
+  docs/contracts/spec141/generated-capability-v2/distribution-manifest.json
+  docs/contracts/48-49-focusa-pi-menu-inventory.json
+  apps/menubar/package.json apps/menubar/package-lock.json
+  apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock
+  apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte
+  apps/pi-extension/package.json apps/pi-extension/package-lock.json
+  apps/pi-extension/src/auto-compaction.ts
+)
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --base)
@@ -400,10 +414,10 @@ if [[ -n "$(git status --porcelain)" ]]; then
     [[ "$(tr -d '[:space:]' < docs/current/.release-version-stamp)" == "${EXACT_TAG#v}" ]]; then
     RELEASE_RETRY_DIRTY=1
     while IFS= read -r dirty_path; do
-      case "$dirty_path" in
-        Cargo.toml|Cargo.lock|README.md|scripts/install-focusa.sh|docs/current/.release-version-stamp|docs/current/CURRENT_RUNTIME_STATUS.md|docs/contracts/spec141/generated-capability-v2/agent-card.json|docs/contracts/spec141/generated-capability-v2/distribution-manifest.json|apps/menubar/package.json|apps/menubar/package-lock.json|apps/menubar/src-tauri/Cargo.toml|apps/menubar/src-tauri/Cargo.lock|apps/menubar/src-tauri/tauri.conf.json|apps/menubar/src/lib/components/Settings.svelte|apps/pi-extension/package.json|apps/pi-extension/package-lock.json|apps/pi-extension/src/auto-compaction.ts) ;;
-        *) RELEASE_RETRY_DIRTY=0; break ;;
-      esac
+      if ! grep -Fxq -- "$dirty_path" <<< "$(printf '%s\n' "${RELEASE_STAMP_PATHS[@]}")"; then
+        RELEASE_RETRY_DIRTY=0
+        break
+      fi
     done < <(git status --porcelain | cut -c4-)
   fi
   if [[ "$RELEASE_RETRY_DIRTY" -eq 1 ]]; then
@@ -541,32 +555,14 @@ bash scripts/local-release-preflight.sh --strict
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
-  git checkout -- Cargo.toml Cargo.lock README.md \
-    docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
-    docs/contracts/spec141/generated-capability-v2/agent-card.json \
-    docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
-    scripts/install-focusa.sh \
-    apps/menubar/package.json apps/menubar/package-lock.json \
-    apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
-    apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
-    apps/pi-extension/package.json apps/pi-extension/package-lock.json \
-    apps/pi-extension/src/auto-compaction.ts
+  git checkout -- "${RELEASE_STAMP_PATHS[@]}"
   echo "Dry run complete; reverted stamped files."
   exit 0
 fi
 
 STAMPED_RELEASE_SURFACES=0
 if [[ -n "$(git status --porcelain)" ]]; then
-  git add Cargo.toml Cargo.lock README.md \
-    docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
-    docs/contracts/spec141/generated-capability-v2/agent-card.json \
-    docs/contracts/spec141/generated-capability-v2/distribution-manifest.json \
-    scripts/install-focusa.sh \
-    apps/menubar/package.json apps/menubar/package-lock.json \
-    apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
-    apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
-    apps/pi-extension/package.json apps/pi-extension/package-lock.json \
-    apps/pi-extension/src/auto-compaction.ts
+  git add -- "${RELEASE_STAMP_PATHS[@]}"
   python3 scripts/release-git-admin-preflight.py --repo .
   git commit -m "chore: stamp release surfaces ${VERSION}"
   STAMPED_RELEASE_SURFACES=1
