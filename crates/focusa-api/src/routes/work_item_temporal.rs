@@ -9,11 +9,11 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::Utc;
+use focusa_core::runtime::temporal_work_items::{WorkItem, WorkItemSnapshot};
+use serde::Deserialize;
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 use uuid::Uuid;
 
 type ApiError = (StatusCode, Json<Value>);
@@ -47,24 +47,6 @@ struct Mutation {
     confirm: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct WorkItem {
-    item_id: String,
-    project_root: String,
-    continuity_id: String,
-    title: String,
-    status: String,
-    revision: u64,
-    estimate_ms: Option<u64>,
-    created_at: DateTime<Utc>,
-    started_at: Option<DateTime<Utc>>,
-    paused_at: Option<DateTime<Utc>>,
-    completed_at: Option<DateTime<Utc>>,
-    evidence_refs: Vec<String>,
-    last_reason: Option<String>,
-    idempotency_keys: Vec<String>,
-}
-
 fn error(status: StatusCode, code: &str, message: impl Into<String>) -> ApiError {
     (
         status,
@@ -72,86 +54,48 @@ fn error(status: StatusCode, code: &str, message: impl Into<String>) -> ApiError
     )
 }
 
-fn scope_key(project_root: &str, continuity_id: &str) -> String {
-    hex::encode(Sha256::digest(
-        format!("{project_root}\0{continuity_id}").as_bytes(),
-    ))
-}
-
-fn store_path(state: &AppState, project_root: &str, continuity_id: &str) -> PathBuf {
-    PathBuf::from(&state.config.data_dir)
-        .join("temporal-work-items")
-        .join(format!("{}.json", scope_key(project_root, continuity_id)))
-}
-
-fn read_items(
+fn read_snapshot(
     state: &AppState,
-    project_root: &str,
-    continuity_id: &str,
-) -> Result<Vec<WorkItem>, ApiError> {
-    let path = store_path(state, project_root, continuity_id);
-    if !path.exists() {
-        return Ok(Vec::new());
-    }
-    let body = std::fs::read(&path).map_err(|e| {
-        error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "work_item_read_failed",
-            e.to_string(),
-        )
-    })?;
-    serde_json::from_slice(&body).map_err(|e| {
-        error(
+    root: &str,
+    continuity: &str,
+) -> Result<WorkItemSnapshot, ApiError> {
+    state
+        .persistence
+        .read_temporal_work_items(root, continuity)
+        .map_err(|e| {
+            tracing::error!(error = %e, "read canonical temporal work items");
+            error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "work_item_read_failed",
+                "could not read canonical work-item state",
+            )
+        })
+}
+
+fn read_items(state: &AppState, root: &str, continuity: &str) -> Result<Vec<WorkItem>, ApiError> {
+    Ok(read_snapshot(state, root, continuity)?.items)
+}
+
+fn write_items(state: &AppState, snapshot: WorkItemSnapshot) -> Result<(), ApiError> {
+    let committed = state
+        .persistence
+        .commit_temporal_work_items(snapshot)
+        .map_err(|e| {
+            tracing::error!(error = %e, "commit canonical temporal work items");
+            error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "work_item_write_failed",
+                "could not commit canonical work-item state",
+            )
+        })?;
+    if !committed {
+        return Err(error(
             StatusCode::CONFLICT,
-            "work_item_store_invalid",
-            e.to_string(),
-        )
-    })
-}
-
-fn write_items(
-    state: &AppState,
-    project_root: &str,
-    continuity_id: &str,
-    items: &[WorkItem],
-) -> Result<(), ApiError> {
-    let path = store_path(state, project_root, continuity_id);
-    let parent = path.parent().ok_or_else(|| {
-        error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "work_item_path_invalid",
-            "store has no parent",
-        )
-    })?;
-    std::fs::create_dir_all(parent).map_err(|e| {
-        error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "work_item_store_create_failed",
-            e.to_string(),
-        )
-    })?;
-    let temp = path.with_extension(format!("{}.tmp", Uuid::now_v7()));
-    let body = serde_json::to_vec_pretty(items).map_err(|e| {
-        error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "work_item_encode_failed",
-            e.to_string(),
-        )
-    })?;
-    std::fs::write(&temp, body).map_err(|e| {
-        error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "work_item_write_failed",
-            e.to_string(),
-        )
-    })?;
-    std::fs::rename(&temp, &path).map_err(|e| {
-        error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "work_item_activate_failed",
-            e.to_string(),
-        )
-    })
+            "revision_conflict",
+            "work items changed concurrently; reread and retry",
+        ));
+    }
+    Ok(())
 }
 
 fn require_mutation(request: &Mutation) -> Result<&str, ApiError> {
@@ -219,8 +163,9 @@ async fn create(State(state): State<Arc<AppState>>, Json(request): Json<Mutation
                 "title is required",
             )
         })?;
-    let mut items = read_items(&state, &request.project_root, &request.continuity_id)?;
-    if let Some(item) = items
+    let mut snapshot = read_snapshot(&state, &request.project_root, &request.continuity_id)?;
+    if let Some(item) = snapshot
+        .items
         .iter()
         .find(|item| item.idempotency_keys.iter().any(|seen| seen == &key))
     {
@@ -251,13 +196,8 @@ async fn create(State(state): State<Arc<AppState>>, Json(request): Json<Mutation
         last_reason: request.reason,
         idempotency_keys: vec![key],
     };
-    items.push(item.clone());
-    write_items(
-        &state,
-        &request.project_root,
-        &request.continuity_id,
-        &items,
-    )?;
+    snapshot.items.push(item.clone());
+    write_items(&state, snapshot)?;
     Ok(completed("focusa.workpoint_item_create.v1", &item))
 }
 
@@ -278,8 +218,9 @@ async fn transition(
     admission_action: Option<&str>,
 ) -> ApiResult {
     let key = require_mutation(&request)?.to_string();
-    let mut items = read_items(state, &request.project_root, &request.continuity_id)?;
-    let index = item_index(&items, &request)?;
+    let mut snapshot = read_snapshot(state, &request.project_root, &request.continuity_id)?;
+    let items = &mut snapshot.items;
+    let index = item_index(items, &request)?;
     if items[index]
         .idempotency_keys
         .iter()
@@ -329,7 +270,7 @@ async fn transition(
         _ => {}
     }
     let item = items[index].clone();
-    write_items(state, &request.project_root, &request.continuity_id, &items)?;
+    write_items(state, snapshot)?;
     Ok(completed(schema, &item))
 }
 

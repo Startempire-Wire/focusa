@@ -162,6 +162,21 @@ pub struct BackupArtifact {
     pub compression: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TemporalWorkItemCoverage {
+    CanonicalSqliteV1,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TemporalWorkItemRestoreCoverage {
+    #[default]
+    Unverified,
+    LegacyUnverified,
+    CanonicalSqliteV1,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupGenerationManifest {
     pub schema: String,
@@ -186,6 +201,9 @@ pub struct BackupGenerationManifest {
     pub artifacts: Vec<BackupArtifact>,
     pub chunks: Vec<BackupChunkRef>,
     pub source_snapshot_sha256: String,
+    // Omit absent coverage so pre-migration manifest digests remain valid.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub temporal_work_item_coverage: Option<TemporalWorkItemCoverage>,
     pub parent_generation_id: Option<String>,
     pub policy_digest: String,
     pub off_host_settlement_ref: Option<String>,
@@ -281,6 +299,8 @@ pub struct BackupRestoreReceipt {
     pub started_at: DateTime<Utc>,
     pub completed_at: DateTime<Utc>,
     pub restored_sha256: Option<String>,
+    #[serde(default)]
+    pub temporal_work_item_coverage: TemporalWorkItemRestoreCoverage,
     pub quick_check: Option<String>,
     pub event_count: Option<u64>,
     pub event_chain_index: Option<i64>,

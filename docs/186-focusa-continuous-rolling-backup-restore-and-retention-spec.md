@@ -207,6 +207,22 @@ Weekly, restore the newest eligible chain into an isolated directory outside liv
 
 Never point a live daemon at an unproven restore.
 
+When upgrading a daemon that used file-based temporal work items, stop the old
+writer before starting the new daemon. Do not run mixed-version writers against
+the same data directory. On startup the SQLite backend migrates the scoped records
+in one transaction and retains the original files. Do not remove those originals
+to force a backup: native backup rejects known unmigrated records rather than
+reporting incomplete coverage as success.
+
+For work-item recovery, require the `canonical_sqlite_v1` coverage marker in the
+generation and the corresponding verification in the restore receipt. Start a
+fresh isolated daemon against the restored database and compare the work-item
+IDs, revisions, states and evidence for the exact project and continuity. An
+older generation without this marker provides no work-item coverage proof; it
+does not prove that the scope was empty. The opt-in snapshot-chunk incremental
+strategy remains experimental; passing this drill is not evidence of a
+15-minute recovery-point objective.
+
 ## 12. Event retention sweep
 
 Wire `runtime::event_retention` and the API route into compilation. The maintenance coordinator runs:

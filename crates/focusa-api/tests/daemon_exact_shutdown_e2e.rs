@@ -40,11 +40,15 @@ fn free_port() -> u16 {
 }
 
 fn spawn_daemon(label: &str) -> TestDaemon {
-    let port = free_port();
     let data_dir = std::env::temp_dir().join(format!(
         "focusa-exact-shutdown-{label}-{}",
         uuid::Uuid::now_v7()
     ));
+    spawn_daemon_at(data_dir)
+}
+
+fn spawn_daemon_at(data_dir: PathBuf) -> TestDaemon {
+    let port = free_port();
     std::fs::create_dir_all(&data_dir).unwrap();
     let log_path = data_dir.join("daemon.log");
     let log = std::fs::OpenOptions::new()
@@ -52,7 +56,12 @@ fn spawn_daemon(label: &str) -> TestDaemon {
         .append(true)
         .open(&log_path)
         .unwrap();
+    let home = data_dir.join("fixture-home");
+    std::fs::create_dir_all(&home).unwrap();
     let child = Command::new(env!("CARGO_BIN_EXE_focusa-daemon"))
+        .env_clear()
+        .env("HOME", &home)
+        .env("USERPROFILE", &home)
         .env("FOCUSA_TEST_MODE", "1")
         .env("FOCUSA_BIND", format!("127.0.0.1:{port}"))
         .env("FOCUSA_DATA_DIR", &data_dir)
@@ -146,4 +155,141 @@ async fn stopping_one_exact_daemon_preserves_the_other_instance() {
 
     exact_shutdown(&client, &daemon_b, &identity_b).await;
     wait_for_exit(&mut daemon_b).await;
+}
+
+#[tokio::test]
+async fn fresh_daemon_reads_native_full_and_incremental_temporal_work_item_restore() {
+    use focusa_core::runtime::backup::{
+        BACKUP_POLICY_SCHEMA, BackupPolicy, create_full_generation,
+    };
+    use focusa_core::runtime::backup_contracts::TemporalWorkItemRestoreCoverage;
+    use focusa_core::runtime::backup_incremental::create_incremental_generation;
+    use focusa_core::runtime::backup_restore::restore_generation;
+    use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
+    use focusa_core::runtime::temporal_work_items::WorkItem;
+    use focusa_core::types::FocusaConfig;
+
+    let fixture = tempfile::tempdir().unwrap();
+    let source = fixture.path().join("source");
+    let store = SqlitePersistence::new(&FocusaConfig {
+        data_dir: source.to_string_lossy().into_owned(),
+        ..Default::default()
+    })
+    .unwrap();
+    let policy = BackupPolicy {
+        schema: BACKUP_POLICY_SCHEMA.into(),
+        enabled: true,
+        backup_root: fixture.path().join("backups"),
+        rpo_seconds: 900,
+        rto_seconds: 7_200,
+        full_interval_seconds: 3_600,
+        incremental_interval_seconds: 900,
+        keep_hourly: 24,
+        keep_daily: 14,
+        keep_weekly: 8,
+        keep_monthly: 12,
+        restore_interval_seconds: 604_800,
+        local_required: true,
+        off_host_required: true,
+        off_host_remote: None,
+        min_free_bytes: 0,
+        min_free_percent: 0,
+        max_concurrent_operations: 1,
+        compression: "zstd".into(),
+        compression_level: 1,
+        incremental_strategy: "experimental_full_snapshot_chunks_v0".into(),
+        policy_digest: "isolated-test-policy".into(),
+    };
+    let project = fixture.path().join("project");
+    std::fs::create_dir(&project).unwrap();
+    let root = project.to_str().unwrap();
+    let continuity = "isolated-restore-drill";
+    let now = chrono::Utc::now();
+    let first = WorkItem {
+        item_id: "first-item".into(),
+        project_root: root.into(),
+        continuity_id: continuity.into(),
+        title: "First item".into(),
+        status: "in_progress".into(),
+        revision: 2,
+        estimate_ms: Some(60_000),
+        created_at: now,
+        started_at: Some(now),
+        paused_at: None,
+        completed_at: None,
+        evidence_refs: vec!["evidence:started".into()],
+        last_reason: None,
+        idempotency_keys: vec!["create-first".into(), "start-first".into()],
+    };
+    let mut snapshot = store.read_temporal_work_items(root, continuity).unwrap();
+    snapshot.items.push(first.clone());
+    assert!(store.commit_temporal_work_items(snapshot).unwrap());
+    let db = store.database_path();
+    let full = create_full_generation(&db, &policy, "full", "test").unwrap();
+    let mut snapshot = store.read_temporal_work_items(root, continuity).unwrap();
+    snapshot.items[0].status = "completed".into();
+    snapshot.items[0].revision = 3;
+    snapshot.items[0].completed_at = Some(now);
+    snapshot.items[0]
+        .evidence_refs
+        .push("evidence:completed".into());
+    snapshot.items[0]
+        .idempotency_keys
+        .push("complete-first".into());
+    snapshot.items.push(WorkItem {
+        item_id: "second-item".into(),
+        title: "Second item".into(),
+        status: "planned".into(),
+        revision: 1,
+        started_at: None,
+        evidence_refs: vec!["evidence:planned".into()],
+        idempotency_keys: vec!["create-second".into()],
+        ..first.clone()
+    });
+    let latest = snapshot.items.clone();
+    assert!(store.commit_temporal_work_items(snapshot).unwrap());
+    let incremental = create_incremental_generation(&db, &policy, "incremental", "test").unwrap();
+    drop(store);
+    std::fs::remove_dir_all(source).unwrap();
+
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(Duration::from_secs(5))
+        .build()
+        .unwrap();
+    for (generation, expected) in [(full, vec![first]), (incremental, latest)] {
+        let cold_dir = fixture.path().join(&generation.slot_id);
+        let receipt = restore_generation(
+            &policy.backup_root,
+            &generation.generation_id,
+            &cold_dir.join("focusa.sqlite"),
+            policy.rto_seconds,
+        )
+        .unwrap();
+        assert_eq!(
+            receipt.temporal_work_item_coverage,
+            TemporalWorkItemRestoreCoverage::CanonicalSqliteV1
+        );
+        assert!(!cold_dir.join("temporal-work-items").exists());
+        let mut daemon = spawn_daemon_at(cold_dir);
+        let identity = health(&client, &daemon).await;
+        let url = format!("{}/v1/workpoint/items", daemon.base_url);
+        for (continuity_id, items) in [(continuity, expected), ("different-continuity", vec![])] {
+            let actual: serde_json::Value = client
+                .get(&url)
+                .query(&[("project_root", root), ("continuity_id", continuity_id)])
+                .send()
+                .await
+                .unwrap()
+                .error_for_status()
+                .unwrap()
+                .json()
+                .await
+                .unwrap();
+            assert_eq!(actual["canonical"], true);
+            assert_eq!(actual["items"], serde_json::to_value(items).unwrap());
+        }
+        exact_shutdown(&client, &daemon, &identity).await;
+        wait_for_exit(&mut daemon).await;
+    }
 }

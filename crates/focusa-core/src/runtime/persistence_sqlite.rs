@@ -338,6 +338,7 @@ impl SqlitePersistence {
         };
 
         this.init_schema()?;
+        this.with_connection_mut(|conn| super::temporal_work_items::migrate(conn, &this.data_dir))?;
         crate::silent_sessions::migrate_silent_session_schema(
             &this,
             crate::silent_sessions::MigrationMode::Apply,

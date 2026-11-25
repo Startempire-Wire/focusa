@@ -51,7 +51,9 @@ pub fn create_incremental_generation(
         deterministic_incremental_id(slot_id, &source_identity, &policy.policy_digest);
     let generation_dir = policy.backup_root.join("generations").join(&generation_id);
     if generation_dir.exists() {
-        return verify_generation(&generation_dir);
+        let existing = verify_generation(&generation_dir)?;
+        check_reused_temporal_coverage(&source, data_dir, &existing)?;
+        return Ok(existing);
     }
 
     let run_id = Uuid::now_v7().to_string();
@@ -85,6 +87,9 @@ pub fn create_incremental_generation(
     append_progress_receipt(&receipts, &planned_receipt, "snapshot_started", 0, None)?;
     online_backup(&source, &staging_db)?;
     let snapshot = Connection::open(&staging_db).context("open staged incremental backup")?;
+    let temporal_work_item_coverage =
+        super::temporal_work_items::require_native_capture(&snapshot, data_dir)?
+            .then_some(TemporalWorkItemCoverage::CanonicalSqliteV1);
     let quick_check: String = snapshot.query_row("PRAGMA quick_check", [], |row| row.get(0))?;
     if quick_check != "ok" {
         bail!("staged incremental quick_check failed: {quick_check}")
@@ -153,6 +158,7 @@ pub fn create_incremental_generation(
         artifacts: Vec::new(),
         chunks,
         source_snapshot_sha256: source_snapshot_sha256.clone(),
+        temporal_work_item_coverage,
         parent_generation_id,
         policy_digest: policy.policy_digest.clone(),
         off_host_settlement_ref: None,

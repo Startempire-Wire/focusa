@@ -494,3 +494,261 @@ fn symlinked_backup_root_is_rejected() {
         .to_string();
     assert!(error.contains("symlink"));
 }
+
+fn temporal_store(data: &Path) -> super::persistence_sqlite::SqlitePersistence {
+    super::persistence_sqlite::SqlitePersistence::new(&crate::types::FocusaConfig {
+        data_dir: data.display().to_string(),
+        ..Default::default()
+    })
+    .unwrap()
+}
+
+#[test]
+fn native_full_and_experimental_incremental_cold_restore_exact_temporal_items() {
+    use super::backup_contracts::{TemporalWorkItemCoverage, TemporalWorkItemRestoreCoverage};
+    use super::temporal_work_items::WorkItem;
+    use sha2::{Digest, Sha256};
+
+    let temp = TestDir::new();
+    let data = temp.path().join("data");
+    let legacy = data.join("temporal-work-items");
+    std::fs::create_dir_all(&legacy).unwrap();
+    let policy = approved_policy(temp.path().join("backup"));
+    let root = "/fixture/project";
+    let continuity = "fixture-continuity";
+    let legacy_file = legacy.join(format!(
+        "{}.json",
+        hex::encode(Sha256::digest(format!("{root}\0{continuity}")))
+    ));
+    let now = chrono::Utc::now();
+    let baseline = WorkItem {
+        item_id: "fixture-first".into(),
+        project_root: root.into(),
+        continuity_id: continuity.into(),
+        title: "First item".into(),
+        status: "in_progress".into(),
+        revision: 2,
+        estimate_ms: Some(60_000),
+        created_at: now,
+        started_at: Some(now),
+        paused_at: None,
+        completed_at: None,
+        evidence_refs: vec!["evidence:before".into()],
+        last_reason: Some("started".into()),
+        idempotency_keys: vec!["fixture-create-1".into(), "fixture-start-1".into()],
+    };
+    let legacy_bytes = serde_json::to_vec(&[&baseline]).unwrap();
+    std::fs::write(&legacy_file, &legacy_bytes).unwrap();
+    let store = temporal_store(&data);
+    let db = store.database_path();
+    let stale = store.read_temporal_work_items(root, continuity).unwrap();
+    assert_eq!(stale.items, [baseline.clone()]);
+    let full = create_full_generation(&db, &policy, "temporal-full", "test").unwrap();
+    let mut candidate = store.read_temporal_work_items(root, continuity).unwrap();
+    candidate.items[0].status = "completed".into();
+    candidate.items[0].completed_at = Some(now);
+    candidate.items[0].revision += 1;
+    candidate.items[0]
+        .evidence_refs
+        .push("evidence:after".into());
+    candidate.items[0]
+        .idempotency_keys
+        .push("fixture-complete-1".into());
+    candidate.items.push(WorkItem {
+        item_id: "fixture-second".into(),
+        title: "Second item".into(),
+        status: "planned".into(),
+        revision: 1,
+        started_at: None,
+        evidence_refs: vec!["evidence:new".into()],
+        last_reason: None,
+        idempotency_keys: vec!["fixture-create-2".into()],
+        ..baseline.clone()
+    });
+    let latest = candidate.items.clone();
+    assert!(store.commit_temporal_work_items(candidate).unwrap());
+    assert!(!store.commit_temporal_work_items(stale).unwrap());
+    let incremental =
+        create_incremental_generation(&db, &policy, "temporal-incremental", "test").unwrap();
+    drop(store);
+    assert_eq!(std::fs::read(&legacy_file).unwrap(), legacy_bytes);
+    assert_eq!(
+        temporal_store(&data)
+            .read_temporal_work_items(root, continuity)
+            .unwrap()
+            .items,
+        latest
+    );
+
+    for (generation, expected) in [(full, vec![baseline]), (incremental, latest)] {
+        assert_eq!(
+            generation.temporal_work_item_coverage,
+            Some(TemporalWorkItemCoverage::CanonicalSqliteV1)
+        );
+        let cold_dir = temp.path().join(&generation.slot_id);
+        let receipt = restore_generation(
+            &policy.backup_root,
+            &generation.generation_id,
+            &cold_dir.join("focusa.sqlite"),
+            policy.rto_seconds,
+        )
+        .unwrap();
+        assert_eq!(
+            receipt.temporal_work_item_coverage,
+            TemporalWorkItemRestoreCoverage::CanonicalSqliteV1
+        );
+        assert_eq!(
+            receipt.restored_sha256.as_deref(),
+            Some(generation.source_snapshot_sha256.as_str())
+        );
+        assert!(!cold_dir.join("temporal-work-items").exists());
+        let recovered = temporal_store(&cold_dir);
+        assert_eq!(
+            recovered
+                .read_temporal_work_items(root, continuity)
+                .unwrap()
+                .items,
+            expected
+        );
+        assert!(
+            recovered
+                .read_temporal_work_items(root, "other-continuity")
+                .unwrap()
+                .items
+                .is_empty()
+        );
+    }
+}
+
+#[test]
+fn reused_slot_must_match_source_temporal_work_item_coverage() {
+    use super::backup_io::file_identity;
+    use super::temporal_work_items::migrate;
+
+    let (_root, db, policy) = fixture();
+    let mut conn = Connection::open(&db).unwrap();
+    let data = db.parent().unwrap();
+    let clear_coverage = |conn: &Connection| {
+        // Test-only rollback. SQLite retains the freed table page, so the
+        // inode and file length that key a slot stay unchanged.
+        conn.execute_batch(
+            "BEGIN; DROP TABLE temporal_work_item_scopes;
+             DELETE FROM meta WHERE key = 'temporal_work_items_migrated_v1';
+             COMMIT; PRAGMA wal_checkpoint(TRUNCATE);",
+        )
+        .unwrap();
+    };
+    migrate(&mut conn, data).unwrap();
+    clear_coverage(&conn);
+    let source_identity = file_identity(&db).unwrap();
+    for (kind, create) in [
+        (
+            "full",
+            create_full_generation as fn(&Path, &BackupPolicy, &str, &str) -> _,
+        ),
+        ("incremental", create_incremental_generation),
+    ] {
+        let legacy_slot = format!("legacy-{kind}");
+        let canonical_slot = format!("canonical-{kind}");
+        let legacy = create(&db, &policy, &legacy_slot, "test").unwrap();
+        assert!(legacy.temporal_work_item_coverage.is_none());
+        assert_eq!(
+            create(&db, &policy, &legacy_slot, "test")
+                .unwrap()
+                .generation_id,
+            legacy.generation_id
+        );
+
+        migrate(&mut conn, data).unwrap();
+        conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+            .unwrap();
+        assert_eq!(file_identity(&db).unwrap(), source_identity);
+        assert!(
+            create(&db, &policy, &legacy_slot, "test")
+                .unwrap_err()
+                .to_string()
+                .contains("different temporal work-item coverage")
+        );
+        let canonical = create(&db, &policy, &canonical_slot, "test").unwrap();
+        assert!(canonical.temporal_work_item_coverage.is_some());
+        assert_eq!(
+            create(&db, &policy, &canonical_slot, "test")
+                .unwrap()
+                .generation_id,
+            canonical.generation_id
+        );
+
+        clear_coverage(&conn);
+        assert_eq!(file_identity(&db).unwrap(), source_identity);
+        assert!(
+            create(&db, &policy, &canonical_slot, "test")
+                .unwrap_err()
+                .to_string()
+                .contains("different temporal work-item coverage")
+        );
+    }
+}
+
+#[test]
+fn unmigrated_sidecars_block_both_native_generation_paths() {
+    let (_root, db, policy) = fixture();
+    let legacy = db.parent().unwrap().join("temporal-work-items");
+    std::fs::create_dir(&legacy).unwrap();
+    std::fs::write(legacy.join("unmigrated.json"), b"[]").unwrap();
+    for result in [
+        create_full_generation(&db, &policy, "legacy-full", "test"),
+        create_incremental_generation(&db, &policy, "legacy-incremental", "test"),
+    ] {
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("would omit legacy temporal work items")
+        );
+    }
+}
+
+#[test]
+fn restore_distinguishes_legacy_artifacts_and_rejects_missing_advertised_coverage() {
+    use super::backup_contracts::{TemporalWorkItemCoverage, TemporalWorkItemRestoreCoverage};
+
+    let (root, db, policy) = fixture();
+    let mut manifest = create_full_generation(&db, &policy, "legacy", "test").unwrap();
+    let generation = policy
+        .backup_root
+        .join("generations")
+        .join(&manifest.generation_id);
+    let manifest_path = generation.join("manifest.json");
+    let serialized: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&manifest_path).unwrap()).unwrap();
+    assert!(serialized.get("temporal_work_item_coverage").is_none());
+    let legacy = restore_generation(
+        &policy.backup_root,
+        &manifest.generation_id,
+        &root.path().join("legacy.sqlite"),
+        policy.rto_seconds,
+    )
+    .unwrap();
+    assert_eq!(
+        legacy.temporal_work_item_coverage,
+        TemporalWorkItemRestoreCoverage::LegacyUnverified
+    );
+
+    manifest.temporal_work_item_coverage = Some(TemporalWorkItemCoverage::CanonicalSqliteV1);
+    manifest.manifest_sha256 = digest_serializable(&manifest).unwrap();
+    std::fs::write(manifest_path, serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();
+    let target = root.path().join("missing-cover.sqlite");
+    let error = restore_generation(
+        &policy.backup_root,
+        &manifest.generation_id,
+        &target,
+        policy.rto_seconds,
+    )
+    .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("missing the advertised temporal work-item coverage")
+    );
+    assert!(!target.exists());
+}
