@@ -6940,6 +6940,7 @@ pi.registerTool({
         )
       ),
       project_root: Type.String({ description: "Explicit safe absolute project root." }),
+      remote_binding_id: Type.Optional(Type.String({ description: "Explicit controller-attested remote workspace binding." })),
       project_id: Type.Optional(Type.String()),
       canonical_name: Type.Optional(Type.String()),
       continuity_id: Type.Optional(Type.String()),
@@ -6963,6 +6964,15 @@ pi.registerTool({
     }),
     async execute(_toolCallId: string, params: any) {
       const action = String(params.action || "status");
+      const bindingId = params.remote_binding_id;
+      if (bindingId !== undefined && (!bindingId.trim() || !params.project_root ||
+          !params.continuity_id?.trim() || (action !== "status" && !params.idempotency_key?.trim()))) {
+        return {
+          content: [{ type: "text", text: "Remote onboarding requires an explicit binding, project root, continuity and (for non-status operations) replay key." }],
+          details: { ok: false, status: "blocked", canonical: false, failure_class: "remote_onboarding_scope_required" },
+        };
+      }
+      const bindingQuery = bindingId === undefined ? "" : `&remote_binding_id=${encodeURIComponent(bindingId)}`;
       const projectRoot = normalizeProjectRoot(params.project_root);
       if (!projectRoot || !isProjectRootAuthoritySafe(projectRoot)) {
         return {
@@ -6980,7 +6990,7 @@ pi.registerTool({
       let result: any;
       if (action === "status") {
         result = await focusaFetchDetailed(
-          `/project/bootstrap/status?project_root=${encodeURIComponent(projectRoot)}`
+          `/project/bootstrap/status?project_root=${encodeURIComponent(projectRoot)}${bindingQuery}${bindingId === undefined ? "" : `&continuity_id=${encodeURIComponent(continuityId)}`}`
         );
       } else {
         result = await focusaFetchDetailed(`/project/bootstrap/${encodeURIComponent(action)}`, {
@@ -6998,7 +7008,13 @@ pi.registerTool({
         });
       }
       const body = result.body || {};
-      const status = String(body.status || (result.ok ? "completed" : "blocked"));
+      const qualified = bindingId === undefined || (
+        body.binding_id === bindingId && body.project_root === projectRoot &&
+        body.continuity_id === continuityId && body.genesis_ready === false &&
+        body.schema === "focusa.remote_bootstrap_result.v1"
+      );
+      const ok = Boolean(result.ok && qualified);
+      const status = qualified ? String(body.status || (ok ? "completed" : "blocked")) : "blocked";
       return {
         content: [
           {
@@ -7007,9 +7023,10 @@ pi.registerTool({
           },
         ],
         details: {
-          ok: result.ok,
+          ok,
+          failure_class: ok ? null : body.failure_class || "bootstrap_response_unqualified",
           status,
-          canonical: status === "ready",
+          canonical: bindingId === undefined && status === "ready",
           project_root: projectRoot,
           continuity_id: continuityId,
           bootstrap_packet: compactApiEcho(body),
@@ -7038,6 +7055,7 @@ pi.registerTool({
       ),
       project_root: Type.Optional(Type.String({ description: "Verified absolute project root." })),
       continuity_id: Type.Optional(Type.String({ description: "Stable project workstream continuity id." })),
+      remote_binding_id: Type.Optional(Type.String({ description: "Explicit controller-attested remote workspace binding." })),
       idempotency_key: Type.Optional(Type.String({ description: "Stable transaction replay key." })),
       hlt: Type.Optional(Type.String({ description: "Operator-confirmed High Level Trajectory." })),
       hlt_confirmed: Type.Optional(Type.Boolean()),
@@ -7059,6 +7077,15 @@ pi.registerTool({
     }),
     async execute(_toolCallId: string, params: any) {
       const action = String(params.action || "status");
+      const bindingId = params.remote_binding_id;
+      if (bindingId !== undefined && (!bindingId.trim() || !params.project_root ||
+          !params.continuity_id?.trim() || (action !== "status" && !params.idempotency_key?.trim()))) {
+        return {
+          content: [{ type: "text", text: "Remote onboarding requires an explicit binding, project root, continuity and (for non-status operations) replay key." }],
+          details: { ok: false, status: "blocked", canonical: false, failure_class: "remote_onboarding_scope_required" },
+        };
+      }
+      const bindingQuery = bindingId === undefined ? "" : `&remote_binding_id=${encodeURIComponent(bindingId)}`;
       const projectRoot = normalizeProjectRoot(
         params.project_root || getLastProjectIdentity()?.project_root || getSessionCwd()
       );
@@ -7081,7 +7108,7 @@ pi.registerTool({
         const continuityQuery = continuityId
           ? `&continuity_id=${encodeURIComponent(continuityId)}` : "";
         result = await focusaFetchDetailed(
-          `/project/genesis/status?project_root=${encodeURIComponent(projectRoot)}${continuityQuery}`
+          `/project/genesis/status?project_root=${encodeURIComponent(projectRoot)}${continuityQuery}${bindingQuery}`
         );
       } else {
         result = await focusaFetchDetailed(`/project/genesis/${encodeURIComponent(action)}`, {
@@ -7098,6 +7125,25 @@ pi.registerTool({
       }
       const body = result.body || {};
       const responseStatus = String(body.status || (result.ok ? "completed" : "blocked"));
+      if (bindingId !== undefined) {
+        const matches = body.remote_binding_id === bindingId || body.binding_id === bindingId;
+        const returnedRoot = body.project_root ?? body.authority?.scope;
+        const returnedContinuity = body.continuity_id ?? body.authority?.continuity_id;
+        const ready = body.schema === "focusa.remote_genesis_status.v1" && responseStatus === "ready" &&
+          body.canonical === true && body.execution_admission === false &&
+          body.first_workpoint?.canonical === true && body.first_workpoint?.status === "active" &&
+          typeof body.readiness_receipt?.workpoint_id === "string" &&
+          body.first_workpoint.workpoint_id === body.readiness_receipt.workpoint_id;
+        const ok = Boolean(result.ok && matches && returnedRoot === projectRoot && returnedContinuity === continuityId &&
+          (ready || (body.canonical === false && responseStatus !== "ready")));
+        const status = ok ? responseStatus : "blocked";
+        return {
+          content: [{ type: "text", text: `remote project genesis ${action} → ${status}${body.next_action ? `\nnext: ${body.next_action}` : ""}` }],
+          details: { ok, status, canonical: ok && ready, execution_admission: false,
+            failure_class: ok ? null : body.failure_class || "remote_genesis_response_unqualified",
+            genesis_packet: compactApiEcho(body) },
+        };
+      }
       const responseRoot = (value: any) => typeof value === "string" ? normalizeProjectRoot(value) : null;
       const actualRoot = responseRoot(
         body.resolved_scope?.project_root || body.authority?.scope || body.project_identity?.project_root

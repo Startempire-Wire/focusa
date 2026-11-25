@@ -13,12 +13,7 @@ use axum::{
 };
 use chrono::Utc;
 use focusa_core::scoped_state::ScopeRef;
-use focusa_core::types::{
-    FocusaEvent, HltLedgerEntry, HltStatus, TrajectoryConfidence, TrajectoryDefinitionStatus,
-    TrajectoryGoalProvenanceRecord, TrajectoryProjectionRecord, TrajectoryRootGoalStability,
-    TrajectoryWaypointRecord, TrajectoryWaypointStatus, WorkpointActionIntentRecord,
-    WorkpointCheckpointReason, WorkpointConfidence, WorkpointRecord, WorkpointStatus,
-};
+use focusa_core::types::{HltLedgerEntry, WorkpointStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -31,6 +26,9 @@ use std::{
 use uuid::Uuid;
 
 use super::project_genesis_support::*;
+#[path = "project_genesis_records.rs"]
+mod records;
+use records::{compile_genesis_records, genesis_events};
 
 async fn enrich_from_existing_trajectory(
     state: &Arc<AppState>,
@@ -159,17 +157,29 @@ pub(super) async fn start(
 #[path = "project_genesis_status.rs"]
 mod status_projection;
 
+#[path = "project_genesis_remote.rs"]
+mod remote;
+
 async fn status(
     scope: ScopeContext,
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Query(query): Query<ProjectGenesisStatusQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if query.remote_binding_id.is_some() {
+        return remote::status(&state, &headers, &query, None).await;
+    }
     status_projection::read(scope, query).await
 }
 
 async fn resume(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<ProjectGenesisRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if req.remote_binding_id.is_some() {
+        return remote::resume(&state, &headers, req).await;
+    }
     // Reuse the existing marker/continuity readiness owner: a ready journal
     // alone is not the final commit point and may belong to another Workstream.
     start(State(state), Json(req)).await
@@ -177,6 +187,7 @@ async fn resume(
 
 pub(super) async fn commit(
     State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
     Json(mut req): Json<ProjectGenesisRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if req.confirm != Some(true) {
@@ -185,6 +196,9 @@ pub(super) async fn commit(
             "confirmation_required",
             "commit requires confirm=true",
         ));
+    }
+    if req.remote_binding_id.is_some() {
+        return remote::commit(&state, &headers, req).await;
     }
     let root = canonical_root(&req.project_root)?;
     if let Some(packet) = existing_readiness_gate(&root, &req)? {
@@ -211,14 +225,6 @@ pub(super) async fn commit(
         )
     })?;
 
-    let trajectory_id = stable_id("trajectory", &root, &req.idempotency_key);
-    let workpoint_id = stable_uuid(&root, &req.idempotency_key);
-    let hlt = packet["hlt"].as_str().unwrap_or_default().to_string();
-    let mlg = packet["mlg"].as_str().unwrap_or_default().to_string();
-    let stg = packet["stg"].as_str().unwrap_or_default().to_string();
-    let waypoint_titles = packet["waypoints"].as_array().cloned().unwrap_or_default();
-    let first_task = packet["first_workpoint_candidate"].clone();
-    let now = Utc::now();
     let project_identity = project_identity_payload_for_scope(
         Some(root.to_string_lossy().as_ref()),
         Some(root.to_string_lossy().as_ref()),
@@ -235,190 +241,8 @@ pub(super) async fn commit(
                 "Project Genesis requires a verified typed ProjectIdentity ScopeRef",
             )
         })?;
-    let trajectory = TrajectoryProjectionRecord {
-        trajectory_id: trajectory_id.clone(),
-        scope_ref: Some(scope_ref),
-        project_root: Some(root.to_string_lossy().to_string()),
-        continuity_id: Some(req.continuity_id.clone()),
-        root_long_term_goal: hlt.clone(),
-        long_term_goal: hlt.clone(),
-        desired_end_state: req.desired_end_state.clone().unwrap_or_default(),
-        mid_level_goal: Some(mlg.clone()),
-        short_term_goal: Some(stg.clone()),
-        waypoints: waypoint_titles
-            .iter()
-            .enumerate()
-            .filter_map(|(index, value)| {
-                value.as_str().map(|title| TrajectoryWaypointRecord {
-                    waypoint_id: format!("{trajectory_id}:waypoint:{}", index + 1),
-                    title: title.to_string(),
-                    desired_state_delta: title.to_string(),
-                    status: if index == 0 {
-                        TrajectoryWaypointStatus::Active
-                    } else {
-                        TrajectoryWaypointStatus::NotStarted
-                    },
-                    next_workpoint_candidate: if index == 0 {
-                        first_task.clone()
-                    } else {
-                        Value::Null
-                    },
-                    ..TrajectoryWaypointRecord::default()
-                })
-            })
-            .collect(),
-        current_state: req.current_state.clone(),
-        root_goal_stability: TrajectoryRootGoalStability::Stable,
-        session_clarity_status: TrajectoryDefinitionStatus::Clear,
-        gap_summary: Some(format!("{mlg} → {stg}")),
-        active_waypoint_id: Some(format!("{trajectory_id}:waypoint:1")),
-        active_workpoint_id: Some(workpoint_id),
-        source_refs: json!({"specification_ref": req.specification_ref, "genesis_receipt": packet["bootstrap_receipt"]["receipt_id"]}),
-        blockers: Vec::new(),
-        open_questions: Vec::new(),
-        definition_status: TrajectoryDefinitionStatus::Clear,
-        hlt_status: HltStatus::CanonicalExplicit,
-        confidence: TrajectoryConfidence::High,
-        goal_provenance: vec![
-            TrajectoryGoalProvenanceRecord {
-                field: "hlt".into(),
-                source: "project_genesis".into(),
-                source_ref: req.specification_ref.clone(),
-                inferred: false,
-                confidence: TrajectoryConfidence::High,
-            },
-            TrajectoryGoalProvenanceRecord {
-                field: "mlg_stg_waypoints".into(),
-                source: "spec143_deliberate_inference".into(),
-                source_ref: req.specification_ref.clone(),
-                inferred: req.mid_level_goal.is_none(),
-                confidence: TrajectoryConfidence::Medium,
-            },
-        ],
-        canonical: true,
-        created_at: Some(now),
-        updated_at: Some(now),
-        ..TrajectoryProjectionRecord::default()
-    };
-    let work_item_id = first_task
-        .get("id")
-        .and_then(Value::as_str)
-        .map(str::to_string);
-    let mission = first_task
-        .get("title")
-        .and_then(Value::as_str)
-        .unwrap_or(&stg)
-        .to_string();
-    let workpoint = WorkpointRecord {
-        workpoint_id,
-        work_item_id,
-        continuity_id: Some(req.continuity_id.clone()),
-        project_root: Some(root.to_string_lossy().to_string()),
-        status: WorkpointStatus::Proposed,
-        checkpoint_reason: WorkpointCheckpointReason::SessionStart,
-        confidence: WorkpointConfidence::High,
-        canonical: true,
-        mission: Some(mission.clone()),
-        action_intent: Some(WorkpointActionIntentRecord {
-            action_type: "project_genesis_first_workpoint".into(),
-            target_ref: req.specification_ref.clone(),
-            verification_hooks: req.acceptance_criteria.clone(),
-            status: Some("ready".into()),
-            lifecycle_stage: focusa_core::types::WorkpointLifecycleStage::Prepare,
-            ..WorkpointActionIntentRecord::default()
-        }),
-        next_slice: Some(mission),
-        idempotency_key: Some(req.idempotency_key.clone()),
-        ..WorkpointRecord::default()
-    };
-    let (already_committed, previous_trajectory) = {
-        let focusa = state.focusa.read().await;
-        let committed = focusa.workpoint.records.iter().any(|record| {
-            record.workpoint_id == workpoint_id && record.status == WorkpointStatus::Active
-        });
-        let previous = focusa
-            .trajectory
-            .records
-            .iter()
-            .rev()
-            .find(|record| {
-                record.canonical
-                    && record.project_root.as_deref() == Some(root.to_string_lossy().as_ref())
-                    && record.continuity_id.as_deref() == Some(req.continuity_id.as_str())
-            })
-            .cloned();
-        (committed, previous)
-    };
-    let hlt_entry = HltLedgerEntry::new(
-        root.to_string_lossy().to_string(),
-        hlt,
-        "project_genesis_commit",
-        state
-            .external_mutation_epoch
-            .load(std::sync::atomic::Ordering::Acquire)
-            + 1,
-    )
-    .with_old_hlt(
-        previous_trajectory
-            .as_ref()
-            .map(|record| record.long_term_goal.clone()),
-    )
-    .with_scope(Some(req.continuity_id.clone()), None)
-    .with_reason(Some("project_genesis_commit".into()));
-    let ladder_events = super::trajectory::trajectory_commit_events(
-        &trajectory,
-        previous_trajectory.as_ref(),
-        &hlt_entry,
-        &[],
-        Some(req.idempotency_key.as_str()),
-    );
-    if !already_committed {
-        let scope = ScopeContext {
-            project_root: Some(root.to_string_lossy().to_string()),
-            continuity_id: Some(req.continuity_id.clone()),
-            source: ScopeSource::Query,
-            ..ScopeContext::default()
-        };
-        materialize_workpoint_events(
-            scope,
-            &state,
-            vec![
-                FocusaEvent::TrajectoryGoalDefined { trajectory },
-                FocusaEvent::WorkpointCheckpointProposed { workpoint },
-                FocusaEvent::WorkpointCheckpointPromoted {
-                    workpoint_id,
-                    confidence: WorkpointConfidence::High,
-                    reason: "Project Genesis atomic first Workpoint".into(),
-                },
-            ],
-            "project_genesis_commit",
-        )
-        .await?;
-    }
-
-    // A canonical projection without its scoped HLT ladder is not ready.
-    // Reuse the goal-definition event compiler and fail before publishing
-    // readiness if either append fails. Retries use the same replay key.
-    state
-        .persistence
-        .append_trajectory_ladder_events(&ladder_events)
-        .map_err(|error| {
-            reject(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "genesis_ladder_commit_failed",
-                error.to_string(),
-            )
-        })?;
-    state
-        .persistence
-        .append_hlt_ledger_entry(&hlt_entry)
-        .map_err(|error| {
-            reject(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "genesis_hlt_commit_failed",
-                error.to_string(),
-            )
-        })?;
+    let (trajectory_id, workpoint_id) =
+        commit_genesis_records(&state, &root, &req, &packet, scope_ref).await?;
     let owner_id = stable_id("coordination", &root, &req.idempotency_key);
     packet["status"] = json!("ready");
     packet["first_workpoint"] =
@@ -453,10 +277,104 @@ pub(super) async fn commit(
     })?;
     Ok(Json(packet))
 }
+/// Materialize the canonical records from verified scope and staged inventory.
+/// The caller owns onboarding admission, journaling and readiness publication.
+async fn commit_genesis_records(
+    state: &Arc<AppState>,
+    root: &Path,
+    req: &ProjectGenesisRequest,
+    packet: &Value,
+    scope_ref: ScopeRef,
+) -> Result<(String, Uuid), (StatusCode, Json<Value>)> {
+    let (trajectory, workpoint) = compile_genesis_records(root, req, packet, scope_ref);
+    let trajectory_id = trajectory.trajectory_id.clone();
+    let workpoint_id = workpoint.workpoint_id;
+    let (already_committed, previous_trajectory) = {
+        let focusa = state.focusa.read().await;
+        let committed = focusa.workpoint.records.iter().any(|record| {
+            record.workpoint_id == workpoint_id && record.status == WorkpointStatus::Active
+        });
+        let previous = focusa
+            .trajectory
+            .records
+            .iter()
+            .rev()
+            .find(|record| {
+                record.canonical
+                    && record.project_root.as_deref() == Some(root.to_string_lossy().as_ref())
+                    && record.continuity_id.as_deref() == Some(req.continuity_id.as_str())
+            })
+            .cloned();
+        (committed, previous)
+    };
+    let hlt_entry = HltLedgerEntry::new(
+        root.to_string_lossy().to_string(),
+        trajectory.long_term_goal.clone(),
+        "project_genesis_commit",
+        state
+            .external_mutation_epoch
+            .load(std::sync::atomic::Ordering::Acquire)
+            + 1,
+    )
+    .with_old_hlt(
+        previous_trajectory
+            .as_ref()
+            .map(|record| record.long_term_goal.clone()),
+    )
+    .with_scope(Some(req.continuity_id.clone()), None)
+    .with_reason(Some("project_genesis_commit".into()));
+    let ladder_events = super::trajectory::trajectory_commit_events(
+        &trajectory,
+        previous_trajectory.as_ref(),
+        &hlt_entry,
+        &[],
+        Some(req.idempotency_key.as_str()),
+    );
+    if !already_committed {
+        let scope = ScopeContext {
+            project_root: Some(root.to_string_lossy().to_string()),
+            continuity_id: Some(req.continuity_id.clone()),
+            source: ScopeSource::Query,
+            ..ScopeContext::default()
+        };
+        materialize_workpoint_events(
+            scope,
+            state,
+            genesis_events(trajectory, workpoint),
+            "project_genesis_commit",
+        )
+        .await?;
+    }
+
+    // A canonical projection without its scoped HLT ladder is not ready.
+    // Reuse the goal-definition event compiler and fail before publishing
+    // readiness if either append fails. Retries use the same replay key.
+    state
+        .persistence
+        .append_trajectory_ladder_events(&ladder_events)
+        .map_err(|error| {
+            reject(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "genesis_ladder_commit_failed",
+                error.to_string(),
+            )
+        })?;
+    state
+        .persistence
+        .append_hlt_ledger_entry(&hlt_entry)
+        .map_err(|error| {
+            reject(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "genesis_hlt_commit_failed",
+                error.to_string(),
+            )
+        })?;
+    Ok((trajectory_id, workpoint_id))
+}
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/v1/project/genesis/start", post(start))
+        .route("/v1/project/genesis/start", post(remote::start_or_preview))
         .route("/v1/project/genesis/resume", post(resume))
         .route("/v1/project/genesis/status", get(status))
         .route("/v1/project/genesis/commit", post(commit))

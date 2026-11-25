@@ -4,6 +4,7 @@
 //! Ordinary writes coalesce to the latest state while preserving every event-log
 //! entry; checkpoint writes receive an acknowledgement only after durable commit.
 
+use crate::remote_workspace::RemoteGenesisFence;
 use crate::runtime::persistence_sqlite::SqlitePersistence;
 use crate::types::{EventLogEntry, FocusaState};
 use serde::Serialize;
@@ -73,6 +74,7 @@ struct PersistenceRequest {
     events: Vec<EventLogEntry>,
     state: Option<FocusaState>,
     checkpoint: bool,
+    remote_genesis: Option<Box<RemoteGenesisFence>>,
     acknowledge: Option<oneshot::Sender<Result<(), String>>>,
 }
 
@@ -90,12 +92,27 @@ impl PersistenceActor {
 
         tokio::spawn(async move {
             let mut ordinary_events_since_snapshot = 0usize;
-            while let Some(first) = rx.recv().await {
+            let mut deferred = None;
+            loop {
+                let Some(mut first) = (match deferred.take() {
+                    Some(next) => Some(next),
+                    None => rx.recv().await,
+                }) else {
+                    break;
+                };
                 actor_metrics.queue_depth.fetch_sub(1, Ordering::AcqRel);
+                let remote_genesis = first.remote_genesis.take();
                 let mut requests = vec![first];
-                while let Ok(next) = rx.try_recv() {
-                    actor_metrics.queue_depth.fetch_sub(1, Ordering::AcqRel);
-                    requests.push(next);
+                if remote_genesis.is_none() {
+                    while let Ok(next) = rx.try_recv() {
+                        // A rejected fence must never discard unrelated queued writes.
+                        if next.remote_genesis.is_some() {
+                            deferred = Some(next);
+                            break;
+                        }
+                        actor_metrics.queue_depth.fetch_sub(1, Ordering::AcqRel);
+                        requests.push(next);
+                    }
                 }
                 actor_metrics
                     .requests_coalesced_total
@@ -136,9 +153,17 @@ impl PersistenceActor {
                             // Preserve every reducer event in one SQLite transaction. A
                             // snapshot is written only at the bounded checkpoint cadence;
                             // its cursor then makes any earlier durable tail replayable.
-                            persistence_for_write.append_event_batch(&events)?;
-                            if let Some(latest_state) = &latest_state {
-                                persistence_for_write.save_state(latest_state)?;
+                            if let Some(fence) = remote_genesis {
+                                let snapshot = latest_state.as_ref().ok_or_else(|| {
+                                    anyhow::anyhow!("remote Genesis checkpoint requires a snapshot")
+                                })?;
+                                persistence_for_write
+                                    .persist_remote_genesis_checkpoint(&events, snapshot, &fence)?;
+                            } else {
+                                persistence_for_write.append_event_batch(&events)?;
+                                if let Some(latest_state) = &latest_state {
+                                    persistence_for_write.save_state(latest_state)?;
+                                }
                             }
                             let snapshot_bytes = persistence_for_write.snapshot_payload_bytes()?;
                             let database_bytes = std::fs::metadata(
@@ -212,6 +237,7 @@ impl PersistenceActor {
         events: Vec<EventLogEntry>,
         state: Option<FocusaState>,
         acknowledge: bool,
+        remote_genesis: Option<Box<RemoteGenesisFence>>,
     ) -> anyhow::Result<()> {
         let (acknowledge_tx, acknowledge_rx) = if acknowledge {
             let (tx, rx) = oneshot::channel();
@@ -232,6 +258,7 @@ impl PersistenceActor {
                 events,
                 state,
                 checkpoint: acknowledge,
+                remote_genesis,
                 acknowledge: acknowledge_tx,
             })
             .await
@@ -253,7 +280,7 @@ impl PersistenceActor {
         events: Vec<EventLogEntry>,
         state: FocusaState,
     ) -> anyhow::Result<()> {
-        self.enqueue(events, Some(state), false).await
+        self.enqueue(events, Some(state), false, None).await
     }
 
     pub async fn persist_checkpoint(
@@ -261,11 +288,21 @@ impl PersistenceActor {
         events: Vec<EventLogEntry>,
         state: FocusaState,
     ) -> anyhow::Result<()> {
-        self.enqueue(events, Some(state), true).await
+        self.enqueue(events, Some(state), true, None).await
+    }
+
+    pub async fn persist_remote_genesis_checkpoint(
+        &self,
+        events: Vec<EventLogEntry>,
+        state: FocusaState,
+        fence: RemoteGenesisFence,
+    ) -> anyhow::Result<()> {
+        self.enqueue(events, Some(state), true, Some(Box::new(fence)))
+            .await
     }
 
     pub async fn append_events_checkpoint(&self, events: Vec<EventLogEntry>) -> anyhow::Result<()> {
-        self.enqueue(events, None, true).await
+        self.enqueue(events, None, true, None).await
     }
 }
 

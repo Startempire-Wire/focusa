@@ -1088,7 +1088,7 @@ fn workpoint_array_bounds(
     ))
 }
 
-fn workpoint_packet(record: &WorkpointRecord) -> Value {
+pub(super) fn workpoint_packet(record: &WorkpointRecord) -> Value {
     let object_default = budgeted_default_limit("FOCUSA_WORKPOINT_PACKET_OBJECT_LIMIT", 16);
     let object_full = budgeted_hard_limit(
         "FOCUSA_WORKPOINT_PACKET_OBJECT_FULL_LIMIT",
@@ -1775,15 +1775,33 @@ pub(crate) async fn materialize_workpoint_events(
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
 ) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
-    materialize_workpoint_events_with_prepare(scope, state, events, correlation_id, None).await
+    materialize_workpoint_transaction(scope, state, events, correlation_id, None, None).await
 }
 
-async fn materialize_workpoint_events_with_prepare(
+pub(crate) async fn materialize_remote_genesis_events(
+    scope: ScopeContext,
+    state: &Arc<AppState>,
+    events: Vec<FocusaEvent>,
+    fence: focusa_core::remote_workspace::RemoteGenesisFence,
+) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
+    materialize_workpoint_transaction(
+        scope,
+        state,
+        events,
+        "remote_genesis_commit",
+        None,
+        Some(fence),
+    )
+    .await
+}
+
+async fn materialize_workpoint_transaction(
     scope: ScopeContext,
     state: &Arc<AppState>,
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
     expected_prepare_linkage: Option<&Value>,
+    remote_genesis: Option<focusa_core::remote_workspace::RemoteGenesisFence>,
 ) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
     let guard = state.write_serial_lock.lock().await;
     // Keep the existing transaction owner and writer-key owner. Hold the read
@@ -1889,19 +1907,28 @@ async fn materialize_workpoint_events_with_prepare(
     // Commit the complete event batch and resulting state through one actor
     // round-trip. Per-event fsync while holding the serial writer lock made
     // immediate Work Loop continuation race the 1.5s lock timeout.
-    state
-        .persist_events_checkpoint(entries.clone(), current.clone())
-        .await
-        .map_err(|error| {
+    let publish_to_global_stream = remote_genesis.is_none();
+    let persisted = if let Some(fence) = remote_genesis {
+        state
+            .persist_remote_genesis_checkpoint(entries.clone(), current.clone(), fence)
+            .await
+    } else {
+        state
+            .persist_events_checkpoint(entries.clone(), current.clone())
+            .await
+    };
+    persisted.map_err(|error| {
             tracing::error!(error = %error, correlation_id, "failed to persist canonical workpoint transaction");
             workpoint_persistence_failed(error)
         })?;
     *state.focusa.write().await = current.clone();
     state.mark_external_mutation();
     drop(guard);
-    for entry in entries {
-        if let Ok(serialized) = serde_json::to_string(&entry) {
-            let _ = state.events_tx.send(serialized);
+    if publish_to_global_stream {
+        for entry in entries {
+            if let Ok(serialized) = serde_json::to_string(&entry) {
+                let _ = state.events_tx.send(serialized);
+            }
         }
     }
     Ok(current)
@@ -2903,12 +2930,13 @@ async fn checkpoint(
         });
     }
 
-    let materialized_state = materialize_workpoint_events_with_prepare(
+    let materialized_state = materialize_workpoint_transaction(
         scope.clone(),
         &state,
         events,
         "workpoint_checkpoint",
         first_prepare_linkage.as_ref(),
+        None,
     )
     .await?;
     let promoted_record = if promote && canonical {

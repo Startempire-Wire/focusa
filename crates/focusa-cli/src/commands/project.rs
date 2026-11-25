@@ -261,6 +261,10 @@ pub enum ProjectBootstrapCmd {
     Status {
         #[arg(long)]
         project_root: String,
+        #[arg(long, requires = "continuity_id")]
+        remote_binding_id: Option<String>,
+        #[arg(long)]
+        continuity_id: Option<String>,
     },
     Repair {
         #[command(flatten)]
@@ -272,6 +276,9 @@ pub enum ProjectBootstrapCmd {
 pub struct ProjectBootstrapMutationArgs {
     #[arg(long)]
     project_root: String,
+    /// Exact controller-attested remote workspace binding.
+    #[arg(long)]
+    remote_binding_id: Option<String>,
     #[arg(long)]
     project_id: String,
     #[arg(long)]
@@ -309,6 +316,7 @@ pub struct ProjectBootstrapMutationArgs {
 fn bootstrap_body(args: ProjectBootstrapMutationArgs) -> Value {
     json!({
         "project_root": args.project_root,
+        "remote_binding_id": args.remote_binding_id,
         "project_id": args.project_id,
         "canonical_name": args.canonical_name,
         "continuity_id": args.continuity_id,
@@ -346,6 +354,8 @@ pub enum ProjectGenesisCmd {
         project_root: String,
         #[arg(long)]
         continuity_id: Option<String>,
+        #[arg(long, requires = "continuity_id")]
+        remote_binding_id: Option<String>,
     },
     /// Atomically commit Trajectory, first Workpoint, coordination, and readiness.
     Commit {
@@ -358,6 +368,9 @@ pub enum ProjectGenesisCmd {
 pub struct ProjectGenesisMutationArgs {
     #[arg(long)]
     project_root: String,
+    /// Exact remote binding for controller-backed Genesis planning.
+    #[arg(long)]
+    remote_binding_id: Option<String>,
     #[arg(long)]
     continuity_id: String,
     #[arg(long)]
@@ -393,6 +406,7 @@ pub struct ProjectGenesisMutationArgs {
 fn genesis_body(args: ProjectGenesisMutationArgs) -> Value {
     json!({
         "project_root": args.project_root,
+        "remote_binding_id": args.remote_binding_id,
         "continuity_id": args.continuity_id,
         "idempotency_key": args.idempotency_key,
         "hlt": args.hlt,
@@ -976,21 +990,35 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             ("new", api.post("/v1/project/new", &body).await?)
         }
         ProjectCmd::Bootstrap { cmd } => match cmd {
-            ProjectBootstrapCmd::Status { project_root } => {
-                ensure_project_root_scope_safe(
-                    Some(project_root.as_str()),
-                    "project bootstrap status",
-                )?;
+            ProjectBootstrapCmd::Status {
+                project_root,
+                remote_binding_id,
+                continuity_id,
+            } => {
+                if remote_binding_id.is_none() {
+                    ensure_project_root_scope_safe(
+                        Some(project_root.as_str()),
+                        "project bootstrap status",
+                    )?;
+                }
                 let mut query = Vec::new();
                 push_query(&mut query, "project_root", Some(project_root.as_str()));
+                push_query(
+                    &mut query,
+                    "remote_binding_id",
+                    remote_binding_id.as_deref(),
+                );
+                push_query(&mut query, "continuity_id", continuity_id.as_deref());
                 let path = format!("/v1/project/bootstrap/status?{}", query.join("&"));
                 ("bootstrap status", api.get(&path).await?)
             }
             ProjectBootstrapCmd::Preview { args } => {
-                ensure_project_root_scope_safe(
-                    Some(args.project_root.as_str()),
-                    "project bootstrap preview",
-                )?;
+                if args.remote_binding_id.is_none() {
+                    ensure_project_root_scope_safe(
+                        Some(args.project_root.as_str()),
+                        "project bootstrap preview",
+                    )?;
+                }
                 (
                     "bootstrap preview",
                     api.post("/v1/project/bootstrap/preview", &bootstrap_body(args))
@@ -998,10 +1026,12 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 )
             }
             ProjectBootstrapCmd::Apply { args } => {
-                ensure_project_root_scope_safe(
-                    Some(args.project_root.as_str()),
-                    "project bootstrap apply",
-                )?;
+                if args.remote_binding_id.is_none() {
+                    ensure_project_root_scope_safe(
+                        Some(args.project_root.as_str()),
+                        "project bootstrap apply",
+                    )?;
+                }
                 (
                     "bootstrap apply",
                     ApiClient::with_timeout_secs(360)
@@ -1026,50 +1056,66 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             ProjectGenesisCmd::Status {
                 project_root,
                 continuity_id,
+                remote_binding_id,
             } => {
-                let resolved =
-                    scope_resolver::resolve_project_scope(Some(project_root.as_str()), None, None)?;
-                let address_root = resolved.active_worktree_root.as_str();
-                ensure_project_root_scope_safe(Some(address_root), "project genesis status")?;
-                let mut continuity = continuity_id;
-                let mut scope_warning = None;
-                if continuity.is_none() {
-                    match scope_resolver::resolve_active_workstream_scope(Some(address_root)) {
-                        Ok(active)
-                            if active.canonical_parent_root == resolved.canonical_parent_root =>
-                        {
-                            continuity = active.continuity_id;
-                        }
-                        _ => {
-                            scope_warning = Some(
-                                "No matching active workstream was resolved; preserve project history without current readiness.",
-                            )
+                if let Some(binding_id) = remote_binding_id.as_deref() {
+                    let mut query = Vec::new();
+                    push_query(&mut query, "project_root", Some(project_root.as_str()));
+                    push_query(&mut query, "continuity_id", continuity_id.as_deref());
+                    push_query(&mut query, "remote_binding_id", Some(binding_id));
+                    let path = format!("/v1/project/genesis/status?{}", query.join("&"));
+                    ("genesis status", api.get(&path).await?)
+                } else {
+                    let resolved = scope_resolver::resolve_project_scope(
+                        Some(project_root.as_str()),
+                        None,
+                        None,
+                    )?;
+                    let address_root = resolved.active_worktree_root.as_str();
+                    ensure_project_root_scope_safe(Some(address_root), "project genesis status")?;
+                    let mut continuity = continuity_id;
+                    let mut scope_warning = None;
+                    if continuity.is_none() {
+                        match scope_resolver::resolve_active_workstream_scope(Some(address_root)) {
+                            Ok(active)
+                                if active.canonical_parent_root
+                                    == resolved.canonical_parent_root =>
+                            {
+                                continuity = active.continuity_id;
+                            }
+                            _ => {
+                                scope_warning = Some(
+                                    "No matching active workstream was resolved; preserve project history without current readiness.",
+                                )
+                            }
                         }
                     }
+                    let mut query = Vec::new();
+                    push_query(&mut query, "project_root", Some(address_root));
+                    push_query(&mut query, "continuity_id", continuity.as_deref());
+                    let path = format!("/v1/project/genesis/status?{}", query.join("&"));
+                    let mut response = if let Some(continuity) = continuity.as_deref() {
+                        api.get_scoped(&path, address_root, continuity).await?
+                    } else {
+                        api.get(&path).await?
+                    };
+                    qualify_genesis_status_response(
+                        &mut response,
+                        address_root,
+                        &resolved.canonical_parent_root,
+                        continuity.as_deref(),
+                    );
+                    if let Some(warning) = scope_warning {
+                        response["scope_resolution_warning"] = json!(warning);
+                    }
+                    ("genesis status", response)
                 }
-                let mut query = Vec::new();
-                push_query(&mut query, "project_root", Some(address_root));
-                push_query(&mut query, "continuity_id", continuity.as_deref());
-                let path = format!("/v1/project/genesis/status?{}", query.join("&"));
-                let mut response = if let Some(continuity) = continuity.as_deref() {
-                    api.get_scoped(&path, address_root, continuity).await?
-                } else {
-                    api.get(&path).await?
-                };
-                qualify_genesis_status_response(
-                    &mut response,
-                    address_root,
-                    &resolved.canonical_parent_root,
-                    continuity.as_deref(),
-                );
-                if let Some(warning) = scope_warning {
-                    response["scope_resolution_warning"] = json!(warning);
-                }
-                ("genesis status", response)
             }
             ProjectGenesisCmd::Start { mut args } => {
-                args.project_root =
-                    resolve_input_project_root(None, Some(args.project_root.as_str()))?;
+                if args.remote_binding_id.is_none() {
+                    args.project_root =
+                        resolve_input_project_root(None, Some(args.project_root.as_str()))?;
+                }
                 (
                     "genesis start",
                     api.post("/v1/project/genesis/start", &genesis_body(args))
@@ -1077,8 +1123,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 )
             }
             ProjectGenesisCmd::Resume { mut args } => {
-                args.project_root =
-                    resolve_input_project_root(None, Some(args.project_root.as_str()))?;
+                if args.remote_binding_id.is_none() {
+                    args.project_root =
+                        resolve_input_project_root(None, Some(args.project_root.as_str()))?;
+                }
                 (
                     "genesis resume",
                     api.post("/v1/project/genesis/resume", &genesis_body(args))
@@ -1086,8 +1134,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 )
             }
             ProjectGenesisCmd::Commit { mut args } => {
-                args.project_root =
-                    resolve_input_project_root(None, Some(args.project_root.as_str()))?;
+                if args.remote_binding_id.is_none() {
+                    args.project_root =
+                        resolve_input_project_root(None, Some(args.project_root.as_str()))?;
+                }
                 (
                     "genesis commit",
                     api.post("/v1/project/genesis/commit", &genesis_body(args))

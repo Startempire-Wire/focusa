@@ -53127,6 +53127,10 @@
             "description": "Explicit safe absolute project root.",
             "type": "string"
           },
+          "remote_binding_id": {
+            "description": "Explicit controller-attested remote workspace binding.",
+            "type": "string"
+          },
           "project_id": {
             "type": "string"
           },
@@ -53623,7 +53627,7 @@
         "snippet": "Use for new/existing project onboarding; preview first, require confirm=true for apply/rollback, and never infer a remote, stack, deployment, domain, or secret.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1a49972a3179801fe5aff09856dda3e19b9c24d44fae861329dd0e1b746494a5"
+      "descriptor_digest": "sha256:febfc0cca803e98af694078049efbccf6027e53ad4927ed2d6ab5d8739a855f0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -54921,6 +54925,10 @@
             "description": "Stable project workstream continuity id.",
             "type": "string"
           },
+          "remote_binding_id": {
+            "description": "Explicit controller-attested remote workspace binding.",
+            "type": "string"
+          },
           "idempotency_key": {
             "description": "Stable transaction replay key.",
             "type": "string"
@@ -55415,7 +55423,7 @@
         "snippet": "Use after project verification when onboarding/readiness is incomplete; HLT Impasse asks at most one concise intent question, and commit requires confirm=true.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:061887fdfd7368ec562fa1d65f113407bbb203773288ee0454c34bfd2bb62a72"
+      "descriptor_digest": "sha256:2aba4168579cf91555688eae9d81aefaec524f2596e22897ba4d33e8426469d5"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -87686,5 +87694,5 @@
       "descriptor_digest": "sha256:5e954f714a7dd1eb550e556057359e276248034c86801b60d003e4593769332b"
     }
   ],
-  "registry_digest": "sha256:21752667c76237c03ce202514362c5b39c3dcc53cbe675f6f2263acf7d6a9b78"
+  "registry_digest": "sha256:2f7561f197cc34fb3a11914c8e75075751405d676466c1bc81b2b0c4c7c53d6c"
 }

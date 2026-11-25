@@ -14,6 +14,7 @@ Start, resume, inspect, or atomically commit the Project Genesis chain from veri
 - `action` (optional; string | string | string | string): Genesis operation; defaults to status.
 - `project_root` (optional; string): Verified absolute project root.
 - `continuity_id` (optional; string): Stable project workstream continuity id.
+- `remote_binding_id` (optional; string): Explicit controller-attested remote workspace binding.
 - `idempotency_key` (optional; string): Stable transaction replay key.
 - `hlt` (optional; string): Operator-confirmed High Level Trajectory.
 - `hlt_confirmed` (optional; boolean): See the strict descriptor schema.
@@ -95,4 +96,4 @@ Likely next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_projec
 - CLI: `focusa project genesis start|resume|status|commit`.
 - REST: `POST /v1/project/genesis/start`, `POST /v1/project/genesis/resume`, `GET /v1/project/genesis/status`, `POST /v1/project/genesis/commit`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:061887fdfd7368ec562fa1d65f113407bbb203773288ee0454c34bfd2bb62a72`.
+- Descriptor digest: `sha256:2aba4168579cf91555688eae9d81aefaec524f2596e22897ba4d33e8426469d5`.

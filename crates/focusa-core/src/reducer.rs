@@ -4653,13 +4653,21 @@ fn reduce_with_recorded_time(
                     old.updated_at = Some(now);
                 }
             }
-            state.workpoint.active_workpoint_id = Some(workpoint_id);
             let promoted_scope = state
                 .workpoint
                 .records
                 .iter()
                 .find(|record| record.workpoint_id == workpoint_id)
                 .map(|record| (record.project_root.clone(), record.continuity_id.clone()));
+            // A binding-qualified remote publication does not select an
+            // active Workpoint in an unattached local session.
+            if !promoted_scope
+                .as_ref()
+                .and_then(|(root, _)| root.as_deref())
+                .is_some_and(crate::scope_safety::is_remote_projection_key)
+            {
+                state.workpoint.active_workpoint_id = Some(workpoint_id);
+            }
             if let Some((Some(project_root), Some(continuity_id))) = promoted_scope {
                 let active_trajectory_id = state.trajectory.active_trajectory_id.as_deref();
                 let exact_scope = |trajectory: &TrajectoryProjectionRecord| {
@@ -4867,7 +4875,11 @@ fn reduce_with_recorded_time(
                     existing.updated_at = Some(now);
                 }
             }
-            let canonical = trajectory.canonical;
+            let canonical = trajectory.canonical
+                && !trajectory
+                    .project_root
+                    .as_deref()
+                    .is_some_and(crate::scope_safety::is_remote_projection_key);
             upsert_trajectory_record(&mut state, trajectory, now);
             if canonical {
                 state.trajectory.active_trajectory_id = Some(new_id);

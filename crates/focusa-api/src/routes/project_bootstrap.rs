@@ -1,5 +1,5 @@
 //! Issue #50 / Spec143 W2 project-discipline bootstrap.
-//! Previewable, idempotent, local-only anatomy before Project Genesis.
+//! Previewable, idempotent anatomy before Project Genesis.
 
 use super::project_genesis;
 use super::project_genesis_support::ProjectGenesisRequest;
@@ -7,34 +7,20 @@ use crate::server::AppState;
 use axum::{
     Json, Router,
     extract::State,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::{get, post},
 };
 use chrono::Utc;
 use serde_json::{Value, json};
-use std::{fs, io, path::Path, sync::Arc, time::Instant};
+use std::{fs, path::Path, sync::Arc, time::Instant};
 
-use super::project_bootstrap_journal::record_stage;
+use super::project_bootstrap_journal::{lock_transaction, record_stage};
 use super::project_bootstrap_pre_root as pre_root;
 use super::project_bootstrap_safety as safety;
-use super::project_bootstrap_status::status;
 use super::project_bootstrap_support::*;
 
-fn lock_transaction(root: &Path) -> Result<safety::BootstrapLock, (StatusCode, Json<Value>)> {
-    safety::BootstrapLock::acquire(root).map_err(|error| {
-        let (status, code) = match error.kind() {
-            io::ErrorKind::WouldBlock => (StatusCode::CONFLICT, "bootstrap_in_progress"),
-            io::ErrorKind::PermissionDenied => {
-                (StatusCode::FORBIDDEN, "bootstrap_lock_permission_denied")
-            }
-            _ => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "bootstrap_lock_io_failed",
-            ),
-        };
-        reject(status, code, error.to_string())
-    })
-}
+#[path = "project_bootstrap_remote.rs"]
+pub(super) mod remote;
 
 fn validate_marker(
     root: &Path,
@@ -70,8 +56,13 @@ fn advance(
 }
 
 async fn preview(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(req): Json<ProjectBootstrapRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if req.remote_binding_id.is_some() {
+        return remote::inspect(&state, &headers, &req, remote::Operation::Preview).await;
+    }
     let root = validate_root(&req.project_root, true)?;
     safety::validate_artifact_paths(&root)
         .map_err(|error| reject(StatusCode::CONFLICT, "bootstrap_path_conflict", error))?;
@@ -169,6 +160,7 @@ fn initialize_tasks(
 
 async fn apply(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(req): Json<ProjectBootstrapRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if req.confirm != Some(true) {
@@ -177,6 +169,9 @@ async fn apply(
             "confirmation_required",
             "bootstrap apply requires confirm=true after preview",
         ));
+    }
+    if req.remote_binding_id.is_some() {
+        return remote::inspect(&state, &headers, &req, remote::Operation::Apply).await;
     }
     let root = validate_root(&req.project_root, true)?;
     safety::validate_artifact_paths(&root)
@@ -331,7 +326,8 @@ async fn apply(
     let genesis_packet = if staged["status"] == "staged" {
         let mut commit = genesis;
         commit.confirm = Some(true);
-        let Json(ready) = project_genesis::commit(State(state), Json(commit)).await?;
+        let Json(ready) =
+            project_genesis::commit(State(state), HeaderMap::new(), Json(commit)).await?;
         ready
     } else {
         staged
@@ -378,9 +374,18 @@ async fn repair(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ProjectBootstrapRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if req.remote_binding_id.is_some() {
+        return Err(reject(
+            StatusCode::BAD_REQUEST,
+            "remote_bootstrap_repair_unsupported",
+            "remote Bootstrap never enters the local repair path",
+        ));
+    }
     match req.repair_action.as_deref() {
         Some("rollback") => {}
-        None | Some("retry_apply") => return apply(State(state), Json(req)).await,
+        None | Some("retry_apply") => {
+            return apply(State(state), HeaderMap::new(), Json(req)).await;
+        }
         Some(_) => {
             return Err(reject(
                 StatusCode::BAD_REQUEST,
@@ -484,6 +489,9 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/project/bootstrap/preview", post(preview))
         .route("/v1/project/bootstrap/apply", post(apply))
-        .route("/v1/project/bootstrap/status", get(status))
+        .route(
+            "/v1/project/bootstrap/status",
+            get(super::project_bootstrap_status::status_route),
+        )
         .route("/v1/project/bootstrap/repair", post(repair))
 }

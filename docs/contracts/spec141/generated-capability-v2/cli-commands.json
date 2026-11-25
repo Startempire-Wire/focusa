@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:21752667c76237c03ce202514362c5b39c3dcc53cbe675f6f2263acf7d6a9b78",
+  "registry_digest": "sha256:2f7561f197cc34fb3a11914c8e75075751405d676466c1bc81b2b0c4c7c53d6c",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -5335,6 +5335,10 @@
             "description": "Explicit safe absolute project root.",
             "type": "string"
           },
+          "remote_binding_id": {
+            "description": "Explicit controller-attested remote workspace binding.",
+            "type": "string"
+          },
           "project_id": {
             "type": "string"
           },
@@ -5570,6 +5574,10 @@
           },
           "continuity_id": {
             "description": "Stable project workstream continuity id.",
+            "type": "string"
+          },
+          "remote_binding_id": {
+            "description": "Explicit controller-attested remote workspace binding.",
             "type": "string"
           },
           "idempotency_key": {

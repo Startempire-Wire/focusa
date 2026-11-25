@@ -19,6 +19,8 @@ pub(super) struct ProjectBootstrapRequest {
     pub canonical_name: String,
     pub continuity_id: String,
     pub idempotency_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remote_binding_id: Option<String>,
     pub discipline_profile: Option<String>,
     pub initialize_git: Option<bool>,
     pub initialize_task_provider: Option<bool>,
@@ -37,6 +39,8 @@ pub(super) struct ProjectBootstrapRequest {
 #[derive(Debug, Clone, Default, Deserialize)]
 pub(super) struct ProjectBootstrapStatusQuery {
     pub project_root: String,
+    pub remote_binding_id: Option<String>,
+    pub continuity_id: Option<String>,
 }
 
 pub(super) fn reject(

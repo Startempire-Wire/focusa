@@ -1448,12 +1448,33 @@ impl SqlitePersistence {
         entries: &[EventLogEntry],
         state: &FocusaState,
     ) -> anyhow::Result<()> {
+        self.persist_checked_checkpoint(entries, state, |_| Ok(()))
+    }
+
+    /// Commit only the reducer checkpoint. Ladder and consumer verification
+    /// remain separate requirements; success here does not imply readiness.
+    pub fn persist_remote_genesis_checkpoint(
+        &self,
+        entries: &[EventLogEntry],
+        state: &FocusaState,
+        fence: &crate::remote_workspace::RemoteGenesisFence,
+    ) -> anyhow::Result<()> {
+        self.persist_checked_checkpoint(entries, state, |tx| fence.verify_and_publish(tx, state))
+    }
+
+    fn persist_checked_checkpoint(
+        &self,
+        entries: &[EventLogEntry],
+        state: &FocusaState,
+        check: impl FnOnce(&rusqlite::Transaction<'_>) -> anyhow::Result<()>,
+    ) -> anyhow::Result<()> {
         let mut conn = self
             .conn
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let transaction =
             conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        check(&transaction)?;
         for entry in entries {
             Self::append_event_on_connection(&transaction, entry)?;
         }

@@ -2,12 +2,31 @@
 use super::{
     project_bootstrap_safety as safety,
     project_bootstrap_support::{
-        ProjectBootstrapRequest, receipt_path, stable_receipt_id, write_json_atomic,
+        ProjectBootstrapRequest, receipt_path, reject, stable_receipt_id, write_json_atomic,
     },
 };
+use axum::{Json, http::StatusCode};
 use chrono::Utc;
 use serde_json::{Value, json};
 use std::path::Path;
+
+pub(super) fn lock_transaction(
+    root: &Path,
+) -> Result<safety::BootstrapLock, (StatusCode, Json<Value>)> {
+    safety::BootstrapLock::acquire(root).map_err(|error| {
+        let (status, code) = match error.kind() {
+            std::io::ErrorKind::WouldBlock => (StatusCode::CONFLICT, "bootstrap_in_progress"),
+            std::io::ErrorKind::PermissionDenied => {
+                (StatusCode::FORBIDDEN, "bootstrap_lock_permission_denied")
+            }
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "bootstrap_lock_io_failed",
+            ),
+        };
+        reject(status, code, error.to_string())
+    })
+}
 
 /// Record the next potentially mutating stage before executing it. A crash
 /// inside that stage is ambiguous: the receipt explicitly blocks replay and

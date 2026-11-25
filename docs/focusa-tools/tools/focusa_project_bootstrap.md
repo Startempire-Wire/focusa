@@ -13,6 +13,7 @@ Preview, apply, inspect, or repair the idempotent local project-discipline basel
 
 - `action` (optional; string | string | string | string): Bootstrap operation; defaults to status.
 - `project_root` (required; string): Explicit safe absolute project root.
+- `remote_binding_id` (optional; string): Explicit controller-attested remote workspace binding.
 - `project_id` (optional; string): See the strict descriptor schema.
 - `canonical_name` (optional; string): See the strict descriptor schema.
 - `continuity_id` (optional; string): See the strict descriptor schema.
@@ -98,4 +99,4 @@ Likely next: `focusa_project_genesis`, `focusa_project_verify`, `focusa_workpoin
 - CLI: `focusa project bootstrap preview|apply|status|repair`.
 - REST: `POST /v1/project/bootstrap/preview`, `POST /v1/project/bootstrap/apply`, `GET /v1/project/bootstrap/status`, `POST /v1/project/bootstrap/repair`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:1a49972a3179801fe5aff09856dda3e19b9c24d44fae861329dd0e1b746494a5`.
+- Descriptor digest: `sha256:febfc0cca803e98af694078049efbccf6027e53ad4927ed2d6ab5d8739a855f0`.

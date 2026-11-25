@@ -14,6 +14,26 @@ use serde::{Deserialize, Serialize};
 
 pub const BINDING_SCHEMA: &str = "focusa.remote_workspace_binding.v1";
 
+#[path = "remote_workspace_attestation.rs"]
+mod attestation;
+pub use attestation::{
+    attest_allowed_workspace, load_controller_attestation, preview_allowed_workspace,
+};
+#[path = "remote_workspace_bootstrap.rs"]
+mod bootstrap;
+#[path = "remote_workspace_genesis.rs"]
+mod genesis;
+pub use genesis::{
+    RemoteGenesisFence, RemoteGenesisIntent, RemoteGenesisPublication, read_remote_genesis_intent,
+    read_remote_genesis_publication, stage_remote_genesis,
+};
+#[path = "remote_workspace_inventory.rs"]
+mod inventory;
+pub use bootstrap::{RemoteBootstrapReceipt, adopt_remote_bootstrap, read_remote_bootstrap};
+pub use inventory::{
+    RemoteWorkspaceInspection, RemoteWorkspaceInventory, inspect_attested_remote_workspace,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BindingStatus {
@@ -108,6 +128,100 @@ impl RemoteWorkspaceBinding {
     pub fn revoke(&mut self, reason: &str, at: &str) {
         self.state.status = BindingStatus::Revoked;
         self.state.revocation = Some(format!("{at}|{reason}"));
+    }
+}
+
+/// Exact scope presented by the controller after resolving the authenticated
+/// principal and trusted SSH target. This does not authorize an operation.
+#[derive(Debug, PartialEq, Eq)]
+pub struct RemoteOnboardingScope<'a> {
+    pub binding_id: &'a str,
+    pub controller: &'a ControllerIdentity,
+    pub project: &'a ProjectRef,
+    pub host: &'a str,
+    pub user: &'a str,
+    pub port: u16,
+    pub remote_root: &'a str,
+    pub working_subpath: Option<&'a str>,
+    pub worktree_identity: Option<&'a str>,
+    pub continuity_id: &'a str,
+    pub principal: &'a str,
+}
+
+impl RemoteOnboardingScope<'_> {
+    fn check_identity(&self, binding: &RemoteWorkspaceBinding) -> Result<()> {
+        if !self.remote_root.starts_with('/')
+            || self
+                .remote_root
+                .split('/')
+                .skip(1)
+                .any(|component| matches!(component, "" | "." | ".."))
+            || self.remote_root.chars().any(char::is_control)
+            || !crate::scope_safety::classify_project_root(self.remote_root).is_safe()
+        {
+            return Err(anyhow!("remote_onboarding_unsafe_root"));
+        }
+        if [
+            self.binding_id,
+            self.principal,
+            self.continuity_id,
+            &self.project.project_id,
+            &self.project.repo_remote,
+            &self.controller.daemon_identity,
+            &self.controller.controller_origin,
+        ]
+        .iter()
+        .any(|value| value.trim().is_empty() || value.chars().any(char::is_control))
+            || binding.schema != BINDING_SCHEMA
+            || binding.binding_id != self.binding_id
+            || &binding.controller != self.controller
+            || &binding.project != self.project
+            || binding.transport.kind != "ssh"
+            || binding.transport.host != self.host
+            || binding.transport.user != self.user
+            || binding.transport.port != self.port
+            || binding.roots.canonical_remote_root != self.remote_root
+            || binding.roots.working_subpath.as_deref() != self.working_subpath
+            || binding.roots.worktree_identity.as_deref() != self.worktree_identity
+            || binding.session.continuity_id != self.continuity_id
+            || binding.session.principal.as_deref() != Some(self.principal)
+        {
+            return Err(anyhow!("remote_onboarding_scope_mismatch"));
+        }
+        Ok(())
+    }
+
+    /// Match a controller-attested binding, not a binding received from a
+    /// client. The caller must independently verify the transport evidence
+    /// and enforce the operation grant. A ledger update cannot renew a probe.
+    pub fn check(
+        &self,
+        binding: &RemoteWorkspaceBinding,
+        now: chrono::DateTime<chrono::Utc>,
+        max_probe_age: chrono::TimeDelta,
+    ) -> Result<()> {
+        self.check_identity(binding)?;
+        if binding.state.status != BindingStatus::Verified || binding.state.revocation.is_some() {
+            return Err(anyhow!("remote_onboarding_binding_not_verified"));
+        }
+        let probe_at = binding
+            .transport
+            .verified_at
+            .as_deref()
+            .and_then(|stamp| chrono::DateTime::parse_from_rfc3339(stamp).ok())
+            .ok_or_else(|| anyhow!("remote_onboarding_probe_missing"))?;
+        let age = now - probe_at.with_timezone(&chrono::Utc);
+        if age < chrono::TimeDelta::zero()
+            || age >= max_probe_age
+            || !binding
+                .transport
+                .verification_evidence
+                .iter()
+                .any(|evidence| !evidence.trim().is_empty())
+        {
+            return Err(anyhow!("remote_onboarding_probe_invalid"));
+        }
+        Ok(())
     }
 }
 
@@ -211,14 +325,18 @@ pub fn upsert_binding(
         }
     }
     let binding_json = serde_json::to_string(binding)?;
-    conn.execute(
+    let changed = conn.execute(
         "INSERT INTO remote_workspace_bindings
            (binding_id, project_id, repo_remote, continuity_id, status, binding_json, created_at, updated_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
          ON CONFLICT(binding_id) DO UPDATE SET
            status = excluded.status,
            binding_json = excluded.binding_json,
-           updated_at = excluded.updated_at",
+           updated_at = excluded.updated_at
+         WHERE remote_workspace_bindings.project_id = excluded.project_id
+           AND remote_workspace_bindings.repo_remote = excluded.repo_remote
+           AND remote_workspace_bindings.continuity_id = excluded.continuity_id
+           AND (remote_workspace_bindings.status <> ?9 OR excluded.status = ?9)",
         rusqlite::params![
             binding.binding_id,
             binding.project.project_id,
@@ -228,8 +346,14 @@ pub fn upsert_binding(
             binding_json,
             now,
             now,
+            serde_json::to_string(&BindingStatus::Revoked)?,
         ],
     )?;
+    if changed != 1 {
+        return Err(anyhow!(
+            "binding identity changed or binding was revoked; register a new binding"
+        ));
+    }
     Ok((existing_status.is_none(), binding.clone()))
 }
 
@@ -267,6 +391,31 @@ pub fn list_bindings(
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(rows)
+}
+
+/// Recheck an independently controller-attested probe against current ledger
+/// state before onboarding. The general binding registry is not a source of
+/// trusted probe attestations: its public upsert accepts client records.
+/// Callers must supply an independently attested snapshot, not a ledger read.
+pub fn resolve_remote_onboarding_binding(
+    conn: &Connection,
+    scope: &RemoteOnboardingScope<'_>,
+    attested: &RemoteWorkspaceBinding,
+    now: chrono::DateTime<chrono::Utc>,
+    max_probe_age: chrono::TimeDelta,
+) -> Result<RemoteWorkspaceBinding> {
+    scope.check(attested, now, max_probe_age)?;
+    let stored = conn.query_row(
+        "SELECT binding_json FROM remote_workspace_bindings WHERE binding_id = ?1 AND status = ?2",
+        rusqlite::params![scope.binding_id, serde_json::to_string(&BindingStatus::Verified)?],
+        |row| row.get::<_, String>(0),
+    ).optional()?.ok_or_else(|| anyhow!("remote_onboarding_binding_not_verified"))?;
+    let current: RemoteWorkspaceBinding = serde_json::from_str(&stored)?;
+    scope.check(&current, now, max_probe_age)?;
+    if current != *attested {
+        return Err(anyhow!("remote_onboarding_binding_changed"));
+    }
+    Ok(current)
 }
 
 /// Bootstrap precondition (docs/162 acceptance): resolve the verified
@@ -496,6 +645,90 @@ mod tests {
     }
 
     #[test]
+    fn onboarding_requires_exact_scope_and_current_probe() {
+        let now = chrono::Utc::now();
+        let mut record = binding("b1", "ptm", "https://example.test/ptm.git");
+        record.transport.verified_at = Some(now.to_rfc3339());
+        record.transport.verification_evidence = vec!["probe:example".into()];
+        let scope = RemoteOnboardingScope {
+            binding_id: "b1",
+            controller: &record.controller,
+            project: &record.project,
+            host: &record.transport.host,
+            user: &record.transport.user,
+            port: record.transport.port,
+            remote_root: &record.roots.canonical_remote_root,
+            working_subpath: None,
+            worktree_identity: None,
+            continuity_id: "ptm-main",
+            principal: "team:planmarr",
+        };
+        let max_age = chrono::TimeDelta::minutes(5);
+        assert!(scope.check(&record, now, max_age).is_ok());
+        for root in [
+            "relative/project",
+            "/home/owner",
+            "/work/../elsewhere",
+            "/work/project/",
+            "/work//project",
+        ] {
+            let candidate_scope = RemoteOnboardingScope {
+                remote_root: root,
+                ..scope
+            };
+            let mut candidate = record.clone();
+            candidate.roots.canonical_remote_root = root.into();
+            assert_eq!(
+                candidate_scope
+                    .check(&candidate, now, max_age)
+                    .unwrap_err()
+                    .to_string(),
+                "remote_onboarding_unsafe_root"
+            );
+        }
+        let ledger = conn();
+        upsert_binding(&ledger, &record).unwrap();
+        assert_eq!(
+            resolve_remote_onboarding_binding(&ledger, &scope, &record, now, max_age).unwrap(),
+            record
+        );
+        let mut updated = record.clone();
+        updated
+            .transport
+            .verification_evidence
+            .push("unattested".into());
+        upsert_binding(&ledger, &updated).unwrap();
+        assert!(resolve_remote_onboarding_binding(&ledger, &scope, &record, now, max_age).is_err());
+        updated.revoke("test", &now.to_rfc3339());
+        upsert_binding(&ledger, &updated).unwrap();
+        assert!(resolve_remote_onboarding_binding(&ledger, &scope, &record, now, max_age).is_err());
+        assert!(scope.check(&record, now + max_age, max_age).is_err());
+        assert!(scope.check(&record, now - max_age, max_age).is_err());
+
+        let mut changed = record.clone();
+        changed.roots.worktree_identity = Some("different-worktree".into());
+        assert!(scope.check(&changed, now, max_age).is_err());
+        changed = record.clone();
+        changed.session.continuity_id = "unrelated".into();
+        assert!(scope.check(&changed, now, max_age).is_err());
+        changed = record.clone();
+        changed.state.freshness = Some((now + max_age).to_rfc3339());
+        assert!(scope.check(&changed, now + max_age, max_age).is_err());
+        changed.transport.verified_at = None;
+        assert!(scope.check(&changed, now, max_age).is_err());
+        changed = record.clone();
+        changed.state.status = BindingStatus::Pending;
+        assert!(scope.check(&changed, now, max_age).is_err());
+        changed.state.status = BindingStatus::Stale;
+        assert!(scope.check(&changed, now, max_age).is_err());
+        changed.revoke("test", &now.to_rfc3339());
+        assert!(scope.check(&changed, now, max_age).is_err());
+        changed = record.clone();
+        changed.transport.verification_evidence.clear();
+        assert!(scope.check(&changed, now, max_age).is_err());
+    }
+
+    #[test]
     fn upsert_creates_and_lists() {
         let conn = conn();
         let (created, _) = upsert_binding(
@@ -536,6 +769,20 @@ mod tests {
         let revoked_list = list_bindings(&conn, Some(BindingStatus::Revoked)).unwrap();
         assert_eq!(revoked_list.len(), 1);
         assert!(!revoked_list[0].is_fresh(3600));
+        // Both a stale refresh and replay of old verified content lose to revocation.
+        let mut replay = listed[0].clone();
+        assert!(upsert_binding(&conn, &replay).is_err());
+        replay.state.status = BindingStatus::Stale;
+        assert!(upsert_binding(&conn, &replay).is_err());
+        assert_eq!(
+            list_bindings(&conn, None).unwrap()[0].state.status,
+            BindingStatus::Revoked
+        );
+        assert!(
+            resolve_binding_for_root(&conn, &replay.roots.canonical_remote_root)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]

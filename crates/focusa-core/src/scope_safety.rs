@@ -7,12 +7,20 @@
 //! The classifier is static and structural: it does not require the path to
 //! exist. It normalizes whitespace and trailing slashes before matching.
 
+/// Internal lookup key for binding-qualified controller projections, not a path.
+pub(crate) const REMOTE_PROJECTION_PREFIX: &str = "focusa-remote-projection:";
+
+pub(crate) fn is_remote_projection_key(value: &str) -> bool {
+    value.trim().starts_with(REMOTE_PROJECTION_PREFIX)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScopeSafety<'a> {
     Safe,
     UnsafeBroadRoot(&'a str),
     UnsafeUserHome(&'a str),
     AgentRuntimeDirectory(&'a str),
+    RemoteProjectionKey,
     Missing,
 }
 
@@ -29,6 +37,7 @@ impl<'a> ScopeSafety<'a> {
             ScopeSafety::UnsafeBroadRoot(_) => Some("unsafe_broad_project_root"),
             ScopeSafety::UnsafeUserHome(_) => Some("unsafe_user_home_project_root"),
             ScopeSafety::AgentRuntimeDirectory(_) => Some("agent_runtime_directory"),
+            ScopeSafety::RemoteProjectionKey => Some("remote_binding_required"),
             ScopeSafety::Missing => Some("missing_project_root"),
         }
     }
@@ -40,6 +49,7 @@ impl<'a> ScopeSafety<'a> {
             ScopeSafety::UnsafeBroadRoot(_) => "broad host/account directory",
             ScopeSafety::UnsafeUserHome(_) => "user home directory",
             ScopeSafety::AgentRuntimeDirectory(_) => "agent/runtime directory",
+            ScopeSafety::RemoteProjectionKey => "controller projection key",
             ScopeSafety::Missing => "missing project root",
         }
     }
@@ -54,6 +64,9 @@ impl<'a> ScopeSafety<'a> {
             ScopeSafety::AgentRuntimeDirectory(_) => {
                 "use an actual project folder instead of agent paths like /root/pi-mono, /.claude/, /.letta/, etc."
             }
+            ScopeSafety::RemoteProjectionKey => {
+                "use the exact remote workspace binding, not an internal projection key"
+            }
             ScopeSafety::Missing => "provide a project_root path",
         }
     }
@@ -66,6 +79,9 @@ impl<'a> ScopeSafety<'a> {
 /// acceptable as a durable project boundary.
 pub fn classify_project_root(path: &str) -> ScopeSafety<'_> {
     let raw = path.trim();
+    if is_remote_projection_key(raw) {
+        return ScopeSafety::RemoteProjectionKey;
+    }
     if raw.is_empty() {
         return ScopeSafety::Missing;
     }

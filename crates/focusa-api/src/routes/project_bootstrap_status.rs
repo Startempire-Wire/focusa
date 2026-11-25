@@ -1,13 +1,20 @@
 //! Read-only bootstrap observation, with missing receipts treated as uncertain
 //! whenever any project-local bootstrap artifact is already present.
+use super::project_bootstrap_support::ProjectBootstrapRequest;
 use super::{
     project_bootstrap_pre_root as pre_root, project_bootstrap_safety as safety,
     project_bootstrap_support::{
         ProjectBootstrapStatusQuery, read_json, read_receipt, reject, validate_root,
     },
 };
-use axum::{Json, extract::Query, http::StatusCode};
+use crate::server::AppState;
+use axum::{
+    Json,
+    extract::{Query, State},
+    http::{HeaderMap, StatusCode},
+};
 use serde_json::{Value, json};
+use std::sync::Arc;
 
 /// A historical bootstrap receipt may record an old HLT impasse or
 /// onboarding_required transaction. The current Genesis lifecycle is the
@@ -87,6 +94,28 @@ pub(super) async fn status(
         },
         "next_action": next_action,
     })))
+}
+
+pub(super) async fn status_route(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(query): Query<ProjectBootstrapStatusQuery>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if query.remote_binding_id.is_some() {
+        return super::project_bootstrap::remote::inspect(
+            &state,
+            &headers,
+            &ProjectBootstrapRequest {
+                project_root: query.project_root,
+                remote_binding_id: query.remote_binding_id,
+                continuity_id: query.continuity_id.unwrap_or_default(),
+                ..Default::default()
+            },
+            super::project_bootstrap::remote::Operation::Status,
+        )
+        .await;
+    }
+    status(Query(query)).await
 }
 
 #[cfg(test)]

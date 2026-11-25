@@ -73,6 +73,53 @@ projects, repositories, worktrees, and team sessions under one daemon.
    the bootstrap precondition (replaces the fabricated-local-checkout
    workaround).
 
+### Bootstrap and Genesis admission
+
+The general binding lookup supports recovery and visibility. A root match or a
+client-supplied `verified` status is not sufficient for onboarding. Before
+starting Bootstrap or Genesis, the controller must select the exact binding ID
+and independently verify the SSH target, project, worktree, principal and
+continuity. Use the transport verification time, not the binding row's update
+time, when checking freshness. Pending, stale, revoked, changed or mismatched
+bindings cannot authorize effects. Recheck the binding at effect boundaries and
+serialize against revocation or replacement for the same binding.
+
+Keep Bootstrap and Genesis journals and canonical readiness on the controller.
+Inspect the actual checkout and its existing task provider through bounded
+owner-side operations. The adoption receipt records the verified Git directory;
+Genesis rejects a changed linked checkout even when its path and origin match. Do not overwrite an existing task queue or require an
+optional remote marker as proof of readiness. Local onboarding retains its
+existing filesystem and ownership checks.
+
+The controller exposes remote Bootstrap preview, adoption and receipt status,
+and Genesis plan, confirmed commit and readback via `--remote-binding-id`
+(CLI) or `remote_binding_id` (Pi/API). Include the exact checkout path and
+continuity. Non-status operations require the original replay key where
+applicable. Neither adapter guesses a remote binding or substitutes a local
+workspace. Local markers and local Genesis are unchanged.
+
+Remote registration alone is pending, not proof. In the controller daemon,
+`FOCUSA_REMOTE_ONBOARDING_TARGETS` selects exact owner-approved binding
+records (the `focusa.remote_workspace_binding.v1` schema, requested identity
+and transport; no secret values or asserted verification). Missing or duplicate
+IDs fail closed. An administrator can preview the registered checkout, then
+explicitly confirm existing-provider adoption to record the actual controller
+SSH probe and adoption receipt. The generic binding POST cannot mint a probe.
+A re-apply with the original key refreshes an expired proof without creating
+another receipt. The controller SSH configuration must already pin the target
+host key and authorize the exact workspace owner.
+
+Genesis stages a bounded frozen plan from the owner-verified queue. Confirmed
+commit rechecks the exact linked checkout and first task, then persists its
+binding-qualified HLT, Ladder, Trajectory, and first Workpoint with the
+publication receipt in one SQLite writer transaction. The remote projection
+key is not a filesystem path and is rejected by local selectors. Status and
+resume require the current probe and recheck the active records. Staging,
+publication, and execution are distinct: publication is not an attached
+session, evidence-write grant, or writer lease. Attach and verify the exact
+remote workstream before any automated action; do not substitute a local
+marker or a root-only consumer for that proof.
+
 ### Execution slices (IR2+)
 
 1. Core type + persistence (`remote_workspace_bindings` table + CRUD route).

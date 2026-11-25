@@ -1,4 +1,5 @@
 use super::*;
+use focusa_core::types::TrajectoryProjectionRecord;
 
 fn test_root(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("focusa-genesis-{label}-{}", Uuid::now_v7()));
@@ -9,6 +10,7 @@ fn test_root(label: &str) -> PathBuf {
 fn complete_request(root: &Path) -> ProjectGenesisRequest {
     ProjectGenesisRequest {
         project_root: root.to_string_lossy().to_string(),
+        remote_binding_id: None,
         continuity_id: "genesis-test-continuity".into(),
         idempotency_key: "genesis-test-key".into(),
         hlt: Some("Ship verified product capability".into()),
@@ -257,7 +259,13 @@ fn genesis_uses_shared_ladder_compiler_and_commits_history_before_readiness() {
     let ready = source
         .find("packet[\"status\"] = json!(\"ready\")")
         .unwrap();
-    assert!(compile < ladder && ladder < hlt && hlt < ready);
+    let commit_records = source
+        .find("commit_genesis_records(&state, &root, &req, &packet, scope_ref).await?")
+        .unwrap();
+    // The function is defined after its caller. Compare execution order at
+    // the call site separately from the append order inside the function.
+    assert!(commit_records < ready);
+    assert!(compile < ladder && ladder < hlt);
     assert!(source.contains("genesis_ladder_commit_failed"));
     assert!(source.contains("genesis_hlt_commit_failed"));
 }
@@ -277,8 +285,9 @@ fn marker_is_committed_only_after_ready_packet_in_source_contract() {
         .unwrap()
         + packet_write;
     assert!(ready < packet_write && packet_write < marker_write);
-    assert!(source.contains("FocusaEvent::TrajectoryGoalDefined"));
-    assert!(source.contains("FocusaEvent::WorkpointCheckpointPromoted"));
+    let records = include_str!("project_genesis_records.rs");
+    assert!(records.contains("FocusaEvent::TrajectoryGoalDefined"));
+    assert!(records.contains("FocusaEvent::WorkpointCheckpointPromoted"));
 }
 
 #[tokio::test]
@@ -296,9 +305,13 @@ async fn resume_checks_marker_commit_point_before_reusing_ready_packet() {
     ready["first_workpoint"] = json!({"workpoint_id":"synthetic-workpoint", "canonical":true});
     write_json_atomic(&packet_path(&root), &ready).unwrap();
     let (state, _) = crate::routes::turn::tests::setup_state(None).await;
-    let Json(reply) = resume(State(state.clone()), Json(complete_request(&root)))
-        .await
-        .expect("uncommitted packet can return staged recovery");
+    let Json(reply) = resume(
+        State(state.clone()),
+        axum::http::HeaderMap::new(),
+        Json(complete_request(&root)),
+    )
+    .await
+    .expect("uncommitted packet can return staged recovery");
     assert_ne!(
         reply["status"], "ready",
         "resume trusted a ready journal without the marker commit point"
@@ -310,20 +323,81 @@ async fn resume_checks_marker_commit_point_before_reusing_ready_packet() {
     write_json_atomic(&marker_path, &marker).unwrap();
     write_json_atomic(&packet_path(&root), &ready).unwrap();
     let before = std::fs::read(packet_path(&root)).unwrap();
-    let Json(replayed) = resume(State(state.clone()), Json(complete_request(&root)))
-        .await
-        .expect("matching committed marker remains replayable");
+    let Json(replayed) = resume(
+        State(state.clone()),
+        axum::http::HeaderMap::new(),
+        Json(complete_request(&root)),
+    )
+    .await
+    .expect("matching committed marker remains replayable");
     assert_eq!(replayed, ready);
     assert_eq!(std::fs::read(packet_path(&root)).unwrap(), before);
     marker["genesis_binding"]["continuity_id"] = json!("foreign-continuity");
     write_json_atomic(&marker_path, &marker).unwrap();
     assert!(
-        resume(State(state), Json(complete_request(&root)))
-            .await
-            .is_err(),
+        resume(
+            State(state),
+            axum::http::HeaderMap::new(),
+            Json(complete_request(&root))
+        )
+        .await
+        .is_err(),
         "resume ignored the committed foreign workstream"
     );
     assert_eq!(std::fs::read(packet_path(&root)).unwrap(), before);
 }
 
+#[tokio::test]
+async fn remote_genesis_never_falls_back_to_same_named_local_marker() {
+    let root = test_root("remote-no-local-fallback");
+    let (state, _) = crate::routes::turn::tests::setup_state(None).await;
+    let mut req = complete_request(&root);
+    req.remote_binding_id = Some("unattested-remote".into());
+    req.confirm = Some(true);
+    let marker = root.join(".focusa-project.json");
+    let bytes = b"{\"preserve\":true}";
+    std::fs::write(&marker, bytes).unwrap();
+    let (code, _) = remote::start_or_preview(
+        State(state.clone()),
+        axum::http::HeaderMap::new(),
+        Json(req.clone()),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(code, StatusCode::FORBIDDEN);
+    let (code, _) = commit(State(state), axum::http::HeaderMap::new(), Json(req))
+        .await
+        .unwrap_err();
+    assert_eq!(code, StatusCode::FORBIDDEN);
+    assert_eq!(std::fs::read(&marker).unwrap().as_slice(), bytes);
+    assert!(!packet_path(&root).exists());
+}
+
 include!("project_genesis_status_tests.rs");
+
+#[test]
+fn remote_inventory_planner_uses_owned_export_not_request_tasks() {
+    use super::remote::build_remote_staged_packet;
+    let mut req = complete_request(Path::new("/ssh-only/project"));
+    req.allow_task_decomposition = Some(true);
+    let packet = build_remote_staged_packet(&req, None, "").unwrap();
+    assert_eq!(packet["status"], "incomplete");
+    assert_eq!(
+        packet["task_provider_and_task_graph"]["tasks"],
+        serde_json::json!([])
+    );
+    let export =
+        r#"{"id":"owned-task","title":"Adopt existing queue","status":"open","issue_type":"task"}"#;
+    let packet = build_remote_staged_packet(&req, None, export).unwrap();
+    assert_eq!(packet["status"], "staged");
+    assert_eq!(packet["first_workpoint_candidate"]["id"], "owned-task");
+    assert!(packet["readiness_receipt"].is_null());
+    assert!(build_remote_staged_packet(&req, None, "invalid export").is_err());
+    assert!(build_remote_staged_packet(&req, None, &format!("{export}\n{export}")).is_err());
+    let graph = r#"{"id":"parent","title":"Parent","status":"open","issue_type":"epic","priority":0}
+{"id":"done","title":"Prerequisite","status":"closed","issue_type":"task"}
+{"id":"b","title":"Blocked","status":"open","issue_type":"task","priority":0,"dependencies":[{"type":"blocks","depends_on_id":"missing"}]}
+{"id":"a","title":"Do the work","status":"open","issue_type":"task","dependencies":[{"type":"parent-child","depends_on_id":"parent"},{"type":"blocks","depends_on_id":"done"}]}"#;
+    let packet = build_remote_staged_packet(&req, None, graph).unwrap();
+    assert_eq!(packet["first_workpoint_candidate"]["id"], "a");
+}

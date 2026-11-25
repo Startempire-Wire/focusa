@@ -41,9 +41,10 @@ assert "discover_beads_tasks" in support
 assert '"provider_neutral"' in support
 assert "allow_task_decomposition" in support
 assert "operator_steering_precedence" in support
-assert "FocusaEvent::TrajectoryGoalDefined" in route
-assert "FocusaEvent::WorkpointCheckpointProposed" in route
-assert "FocusaEvent::WorkpointCheckpointPromoted" in route
+records = (ROOT / "crates/focusa-api/src/routes/project_genesis_records.rs").read_text()
+assert "FocusaEvent::TrajectoryGoalDefined" in records
+assert "FocusaEvent::WorkpointCheckpointProposed" in records
+assert "FocusaEvent::WorkpointCheckpointPromoted" in records
 assert "materialize_workpoint_events" in route
 assert route.index('packet["status"] = json!("ready")') < route.index("write_json_atomic(&marker_path, &marker)")
 assert 'marker["genesis_binding"]' in route
@@ -80,6 +81,7 @@ assert '{ triggerTurn: true }' not in route
 for path in (
     ROOT / "crates/focusa-api/src/routes/project_genesis.rs",
     ROOT / "crates/focusa-api/src/routes/project_genesis_support.rs",
+    ROOT / "crates/focusa-api/src/routes/project_genesis_records.rs",
     ROOT / "crates/focusa-api/src/routes/project_genesis_tests.rs",
 ):
     assert len(path.read_text().splitlines()) < 500, path

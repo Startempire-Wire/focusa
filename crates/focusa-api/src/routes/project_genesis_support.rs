@@ -29,6 +29,8 @@ pub(super) struct GenesisTaskInput {
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub(super) struct ProjectGenesisRequest {
     pub project_root: String,
+    #[serde(default)]
+    pub remote_binding_id: Option<String>,
     pub continuity_id: String,
     pub idempotency_key: String,
     pub hlt: Option<String>,
@@ -53,6 +55,8 @@ pub(super) struct ProjectGenesisRequest {
 #[derive(Debug, Clone, Default, Deserialize)]
 pub(super) struct ProjectGenesisStatusQuery {
     pub project_root: String,
+    #[serde(default)]
+    pub remote_binding_id: Option<String>,
     #[serde(default)]
     pub continuity_id: Option<String>,
 }
@@ -174,10 +178,16 @@ fn discover_beads_tasks(root: &Path) -> Vec<GenesisTaskInput> {
     let Ok(file) = File::open(path) else {
         return Vec::new();
     };
-    BufReader::new(file)
-        .lines()
-        .map_while(Result::ok)
-        .filter_map(|line| serde_json::from_str::<Value>(&line).ok())
+    project_beads_tasks(
+        BufReader::new(file)
+            .lines()
+            .map_while(Result::ok)
+            .filter_map(|line| serde_json::from_str(&line).ok()),
+    )
+}
+
+fn project_beads_tasks(issues: impl Iterator<Item = Value>) -> Vec<GenesisTaskInput> {
+    issues
         .filter_map(|issue| {
             let title = issue.get("title")?.as_str()?.trim();
             if title.is_empty() {
@@ -211,7 +221,7 @@ fn discover_beads_tasks(root: &Path) -> Vec<GenesisTaskInput> {
         .collect()
 }
 
-fn select_first_task(tasks: &[GenesisTaskInput]) -> Option<GenesisTaskInput> {
+pub(super) fn select_first_task(tasks: &[GenesisTaskInput]) -> Option<GenesisTaskInput> {
     let mut ready = tasks
         .iter()
         .filter(|task| {
@@ -317,27 +327,40 @@ pub(super) fn build_staged_packet(
             normalized.acceptance_criteria = acceptance;
         }
     }
-    let req = &normalized;
-    let supplied_hlt = clean(req.hlt.as_deref());
-    let hlt = supplied_hlt.clone().or(existing_hlt);
-    let hlt_confirmed = supplied_hlt.is_none() || req.hlt_confirmed.unwrap_or(false);
-    let provider = clean(req.task_provider.as_deref()).unwrap_or_else(|| {
+    let provider = clean(normalized.task_provider.as_deref()).unwrap_or_else(|| {
         if root.join(".beads").join("issues.jsonl").is_file() {
             "beads".to_string()
         } else {
             "provider_neutral".to_string()
         }
     });
-    let mut tasks = if req.tasks.is_empty() && provider == "beads" {
+    let tasks = if normalized.tasks.is_empty() && provider == "beads" {
         discover_beads_tasks(root)
     } else {
-        req.tasks.clone()
+        normalized.tasks.clone()
     };
+    build_staged_packet_from_inventory(root, &normalized, existing_hlt, provider, tasks, true)
+}
+
+/// The shared planner does not inspect the project filesystem. The remote
+/// caller must supply owner-verified inventory and cannot replace an empty
+/// existing queue with synthesized tasks.
+pub(super) fn build_staged_packet_from_inventory(
+    root: &Path,
+    req: &ProjectGenesisRequest,
+    existing_hlt: Option<String>,
+    provider: String,
+    mut tasks: Vec<GenesisTaskInput>,
+    allow_task_synthesis: bool,
+) -> Value {
+    let supplied_hlt = clean(req.hlt.as_deref());
+    let hlt = supplied_hlt.clone().or(existing_hlt);
+    let hlt_confirmed = supplied_hlt.is_none() || req.hlt_confirmed.unwrap_or(false);
     let (mlg, stg, waypoints) = hlt
         .as_deref()
         .map(|hlt| inferred_levels(req, hlt))
         .unwrap_or_default();
-    if tasks.is_empty() && req.allow_task_decomposition.unwrap_or(false) {
+    if tasks.is_empty() && allow_task_synthesis && req.allow_task_decomposition.unwrap_or(false) {
         tasks = waypoints
             .iter()
             .enumerate()

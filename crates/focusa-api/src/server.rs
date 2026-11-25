@@ -320,6 +320,26 @@ impl AppState {
         }
     }
 
+    pub async fn persist_remote_genesis_checkpoint(
+        &self,
+        events: Vec<EventLogEntry>,
+        state: FocusaState,
+        fence: focusa_core::remote_workspace::RemoteGenesisFence,
+    ) -> anyhow::Result<()> {
+        if let Some(actor) = &self.persistence_actor {
+            actor
+                .persist_remote_genesis_checkpoint(events, state, fence)
+                .await
+        } else {
+            let persistence = self.persistence.clone();
+            tokio::task::spawn_blocking(move || {
+                persistence.persist_remote_genesis_checkpoint(&events, &state, &fence)
+            })
+            .await
+            .map_err(|error| anyhow::anyhow!("persistence worker join failed: {error}"))?
+        }
+    }
+
     pub async fn append_events_checkpoint(&self, events: Vec<EventLogEntry>) -> anyhow::Result<()> {
         if let Some(actor) = &self.persistence_actor {
             actor.append_events_checkpoint(events).await
