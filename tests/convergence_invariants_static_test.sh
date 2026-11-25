@@ -17,7 +17,9 @@ pass(){ echo "✓ PASS: $*"; }
 [ -f "$ROOT_DIR/crates/focusa-cli/src/commands/pi_package.rs" ] || fail "Pi package transaction missing (#309)"
 pass "converged core surfaces present"
 
-rg -n -F "distribution parity drift blocks this release" "$ROOT_DIR/scripts/create-dev-release-tag.sh" >/dev/null || fail "release parity gate missing (#260)"
+rg -n -F 'bash scripts/local-release-preflight.sh --strict' "$ROOT_DIR/scripts/create-dev-release-tag.sh" >/dev/null || fail 'tag helper does not run source preflight (#260)'
+rg -n -F 'distribution_manifest.py --check --source-ancestor' "$ROOT_DIR/scripts/local-release-preflight.sh" >/dev/null || fail 'source preflight does not verify the distribution contract (#260)'
+rg -n -F 'distribution_manifest.py --check --source-ancestor' "$ROOT_DIR/.github/workflows/release.yml" >/dev/null || fail 'publisher does not independently verify the distribution contract (#260)'
 pass "release parity gate present"
 
 rg -n -F "one canonical Focusa Pi package" "$ROOT_DIR/AGENTS.md" >/dev/null || fail "one-canonical rule missing from AGENTS.md"
