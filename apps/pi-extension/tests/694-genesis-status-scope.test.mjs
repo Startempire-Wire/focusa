@@ -99,3 +99,27 @@ assert.equal(unscoped.state.ensured, 0, 'read-only Genesis status initialized a 
 assert.equal(history.details.canonical, false);
 assert.equal(new URL(unscoped.calls[0].path, 'http://fixture').searchParams.get('continuity_id'), null);
 console.log('PASS: actual Genesis consumer preserves requested/resolved identity, refuses foreign/legacy readiness and forwards continuity');
+
+const bound = { action: 'status', remote_binding_id: 'fixture-binding', project_root: root, continuity_id: 'status-a' };
+const remoteReady = {
+  schema: 'focusa.remote_genesis_status.v1', status: 'ready', binding_id: bound.remote_binding_id,
+  project_root: root, continuity_id: bound.continuity_id, canonical: true, execution_admission: false,
+  readiness_receipt: { workpoint_id: 'first' }, first_workpoint: { workpoint_id: 'first', status: 'active', canonical: true },
+};
+const exact = context(remoteReady);
+const result = await exact.tool.execute('fixture', bound);
+assert.equal(result.details.canonical, true);
+assert.equal(result.details.execution_admission, false);
+assert.equal(new URL(exact.calls[0].path, 'http://fixture').searchParams.get('remote_binding_id'), bound.remote_binding_id);
+for (const partial of [
+  { binding_id: 'other-binding' }, { continuity_id: 'foreign-continuity' }, { project_root: '/foreign' },
+  { first_workpoint: { ...remoteReady.first_workpoint, workpoint_id: 'foreign' } },
+  { schema: 'unknown' }, { execution_admission: true }, { canonical: false },
+]) {
+  const denied = await context({ ...remoteReady, ...partial }).tool.execute('fixture', bound);
+  assert.equal(denied.details.canonical, false);
+  assert.equal(denied.details.ok, false);
+}
+const unbound = context(remoteReady);
+assert.equal((await unbound.tool.execute('fixture', { ...bound, project_root: undefined })).details.ok, false);
+assert.equal(unbound.calls.length, 0);
