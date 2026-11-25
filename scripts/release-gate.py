@@ -207,8 +207,7 @@ def evaluate(
     if not allowed:
         plain_error = (
             "Blocked: not enough significant app delta since last release. "
-            "Batch more app/runtime/release-system changes, wait for a release window, "
-            'or use --force-release --release-reason "...".'
+            "Batch more app/runtime/release-system changes or wait for a release window."
         )
 
     return {
@@ -240,6 +239,7 @@ def main(argv: list[str]) -> int:
     )
     parser.add_argument("--json", action="store_true", help="emit JSON only")
     parser.add_argument("--since-tag", help="override base tag")
+    parser.add_argument("--advisory", action="store_true", help="report batch recommendation without a scheduling veto")
     args = parser.parse_args(argv)
 
     tag = args.since_tag or latest_tag()
@@ -256,9 +256,12 @@ def main(argv: list[str]) -> int:
         if result["allowed"]:
             print(f"reason={result['allowed_reason']}")
         else:
-            print(result["plain_language_error"])
+            if args.advisory:
+                print("Advisory: batch threshold not met; exact-source and publication gates remain required.")
+            else:
+                print(result["plain_language_error"])
             print(f"safe_alternative={result['safe_alternative']}")
-    return 0 if result["allowed"] else 1
+    return 0 if args.advisory or result["allowed"] else 1
 
 
 if __name__ == "__main__":

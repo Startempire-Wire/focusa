@@ -99,12 +99,9 @@ assert_grep 'FOCUSA_LEARNING_GUARDS_ARTIFACT' scripts/run-release-learning-guard
 assert_grep 'os.getuid()' scripts/run-release-learning-guards.py 'release guard fallback must isolate users'
 assert_grep 'FOCUSA_LEARNING_GUARDS_ARTIFACT' scripts/canonical-release-journal.py 'release journal must consume the producing user artifact path'
 assert_grep 'rm -rf -- "$TEST_GIT_DIR"' scripts/ci/run-spec-gates.sh 'disposable Git metadata must be removed on exit'
-assert_grep 'FOCUSA_ROUTE_DRY_RUN=1 cargo --version' scripts/local-release-preflight.sh 'strict preflight must query the canonical cargo routing authority'
-assert_grep '[[ "$CARGO_ROUTE" == route=ovh* ]]' scripts/local-release-preflight.sh 'strict preflight must detect the canonical OVH cargo route'
-assert_grep 'FOCUSA_SOURCE_ROOT="$ROOT" /usr/local/bin/focusa-ovh-build' scripts/local-release-preflight.sh 'routed OVH spec gate must bind the exact release checkout'
-assert_grep 'env -u CARGO_TARGET_DIR -u FOCUSA_CARGO_TARGET_DIR -u DAEMON_BIN' scripts/local-release-preflight.sh 'routed OVH spec gate must preserve ephemeral target isolation'
-assert_grep 'FOCUSA_HISTORYLESS_GATE=1 bash scripts/ci/run-spec-gates.sh' scripts/local-release-preflight.sh 'routed OVH spec gate must explicitly classify its historyless source sync'
-assert_grep 'bash scripts/ci/run-spec-gates.sh' scripts/local-release-preflight.sh 'strict preflight must preserve native runner execution'
+assert_grep 'distribution_manifest.py --check --source-ancestor' scripts/local-release-preflight.sh 'preflight must verify source inputs and ancestry'
+assert_not_grep 'run-spec-gates.sh' scripts/local-release-preflight.sh 'local preflight must not duplicate the CI daemon build'
+assert_grep './scripts/ci/run-spec-gates.sh' .github/workflows/ci.yml 'source CI must execute the isolated native spec tests'
 cleanup_block="$(awk '/^cleanup\(\) \{/{capture=1} capture{print} capture && /^}/{exit}' scripts/ci/run-spec-gates.sh)"
 grep -Fq 'cleanup_ephemeral_builds' <<<"$cleanup_block" || { echo '✗ strict spec combined EXIT cleanup missing'; exit 1; }
 
@@ -187,8 +184,8 @@ assert_grep 'audit_event "smoke_check"' scripts/deploy-smoke-check.sh 'smoke che
 
 # release workflow version verification
 assert_grep 'verify-version-surfaces.py' .github/workflows/release.yml 'release workflow does not verify stamped versions'
-assert_grep 'python3 scripts/release-gate.py' scripts/create-dev-release-tag.sh 'release helper must enforce significant-delta ReleaseGate'
-assert_grep 'CI_TIMEOUT_SECS=1200' scripts/create-dev-release-tag.sh 'release helper wait cap must be 20 minutes, not 1 hour+'
+assert_grep 'python3 scripts/release-gate.py --advisory' scripts/create-dev-release-tag.sh 'release helper must not veto explicitly requested small fixes'
+assert_not_grep 'gh release edit' scripts/create-dev-release-tag.sh 'tag helper must never promote Latest'
 assert_grep 'headBranch' scripts/create-dev-release-tag.sh 'release helper must track tag Release run, not main branch validation run'
 assert_grep 'wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"' scripts/create-dev-release-tag.sh 'release helper must wait for tag-specific Release run'
 assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh 'release helper must commit and dry-run-revert stamped Pi extension versions'
@@ -199,16 +196,9 @@ manifest_surface='docs/contracts/spec141/generated-capability-v2/distribution-ma
   || fail 'Distribution manifest must appear in retry allowlist, dry-run rollback, and release commit sets'
 assert_grep 'timeout-minutes: 150' .github/workflows/release.yml 'External Menubar receipt gate timeout must cover the bounded 145-minute Codemagic/AppVeyor wait'
 assert_grep 'timeout-minutes: 30' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
-rust_check_block="$(awk '/^  rust-check:/{job=1} /^  tag-ci-proof:/{job=0} job{print}' .github/workflows/release.yml)"
-grep -q 'timeout-minutes: 25' <<<"$rust_check_block" || {
-  echo '✗ Release Contract Check timeout must cover its bounded 20-minute candidate-CI polling window' >&2
-  exit 1
-}
-final_gap_block="$(awk '/^  final-release-gap-gate:/{job=1} /^  version-policy:/{job=0} job{print}' .github/workflows/release.yml)"
-grep -q 'unset NODE_OPTIONS' <<<"$final_gap_block" || {
-  echo '✗ Final release gap gate must sanitize incompatible ambient Node options (GH#350)' >&2
-  exit 1
-}
+assert_grep 'gh run list --workflow ci.yml --branch main --commit "$RELEASE_SHA"' .github/workflows/release.yml 'Release must reuse exact successful main CI'
+assert_not_grep 'Wait for candidate-SHA CI' .github/workflows/release.yml 'Release must not consume a runner waiting for source CI'
+assert_grep 'unset NODE_OPTIONS' .github/workflows/ci.yml 'the gap gate must sanitize incompatible ambient Node options (GH#350)'
 for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-unknown-linux-musl; do
   cache="/home/wirebot/.cache/focusa-release-target/${target}"
   assert_grep "$cache" .github/workflows/warmup.yml "warmup target cache is not writable and ABI-partitioned: ${target}"

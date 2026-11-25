@@ -24,6 +24,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "agent-kb.release_journal.event.v1"
 PROTOCOL = "focusa.release_benchmark.v1"
+UNMEASURED_BENCHMARK = {
+    "status": "unmeasured",
+    "reason": "No execution-backed ON/OFF/candidate observations are available",
+}
 PROJECT_ID = "focusa"
 DEFAULT_API = "http://127.0.0.1:8791"
 DEFAULT_FOCUSA_API = "http://127.0.0.1:8787"
@@ -288,7 +292,6 @@ def record_release_predictions(tag: str) -> dict[str, Any]:
     if not isinstance(recent, list):
         raise ValueError("Focusa prediction lookup did not return a prediction list")
     stages = {
-        "benchmark": "candidate benchmark passes every required release protocol check",
         "candidate-ci": "exact stamped candidate CI passes before immutable tagging",
         "release": "GitHub Release completes with signed complete assets",
         "deploy": "production Deploy completes and post-install OTA trust resolves",
@@ -687,9 +690,9 @@ def cmd_plan(args: argparse.Namespace) -> dict[str, Any]:
         measurements={
             "candidate_commit": git("rev-parse", "HEAD"),
             "channel": args.channel,
+            "benchmark": dict(UNMEASURED_BENCHMARK),
             "risks": [
                 "stable version-surface mismatch",
-                "benchmark regression",
                 "exact-tag CI failure",
                 "release asset or signature incompleteness",
                 "production version mismatch",
@@ -707,9 +710,8 @@ def cmd_plan(args: argparse.Namespace) -> dict[str, Any]:
     return publish(payload)
 
 
-def run_benchmark(tag: str) -> dict[str, Any]:
-    # This runner currently checks definitions, not observed agent behavior.
-    # Its exit78 must stop benchmark publication before unrelated build gates.
+def run_benchmark(tag: str) -> None:
+    # This explicit diagnostic cannot record a score from scenario definitions.
     command(["bash", "scripts/run-agent-intelligence-evals.sh"])
     # Even a zero exit from an older runner is not comparative evidence.
     raise RuntimeError(
@@ -726,21 +728,7 @@ def cmd_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             "UNMEASURED: historical benchmark records are preserved, not accepted "
             "as execution-backed ON/OFF/candidate evidence"
         )
-    measurements = run_benchmark(args.tag)
-    artifact = Path(args.artifact or f"/tmp/focusa-{args.tag.removeprefix('v')}-benchmark.json")
-    artifact.write_text(json.dumps(measurements, indent=2, sort_keys=True) + "\n")
-    rid = release_id(args.tag)
-    payload = event(
-        args.tag, "benchmark", next_sequence(args.tag), event_id=f"{rid}:benchmark:v1",
-        measurements=measurements,
-        comparison={"baseline_release_id": None, "direction": "not_comparable", "reason": "first focusa.release_benchmark.v1 measurement"},
-        evidence_refs=[f"artifact:{artifact}", "scripts/run-agent-intelligence-evals.sh", "scripts/spec135-live-performance-proof.py", "tests/final_release_gap_gate.sh", "scripts/release-gate.py", "scripts/verify-version-surfaces.py"],
-    )
-    receipt = publish(payload)
-    prediction_evaluation = evaluate_stage_prediction(
-        args.tag, "benchmark", f"{args.tag} benchmark passed protocol v1", 1.0
-    )
-    return {"status": "completed", "artifact": str(artifact), "receipt": receipt, "measurements": measurements, "prediction_evaluation": prediction_evaluation}
+    run_benchmark(args.tag)
 
 
 def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
@@ -809,8 +797,7 @@ def estimate_deltas(actuals: dict[str, Any], estimates: dict[str, Any]) -> dict[
 
 
 def production_version() -> str:
-    with urllib.request.urlopen("http://127.0.0.1:8787/v1/health", timeout=10) as response:
-        return str(json.loads(response.read()).get("version", ""))
+    return str(focusa_get("/v1/health").get("version", ""))
 
 
 def cmd_finalize(args: argparse.Namespace) -> dict[str, Any]:
@@ -822,14 +809,14 @@ def cmd_finalize(args: argparse.Namespace) -> dict[str, Any]:
     if not current_events:
         raise RuntimeError("release plan is missing")
     plan = next((row for row in current_events if row["phase"] == "plan"), None)
-    benchmark = next((row for row in current_events if row["phase"] == "benchmark"), None)
-    if plan is None or benchmark is None:
-        raise RuntimeError("plan and benchmark events are required")
+    if plan is None:
+        raise RuntimeError("release plan is missing")
     actuals, discovered_problems, refs = release_measurements(args.tag)
     expected_version = args.tag.removeprefix("v")
     actuals["production_version"] = production_version()
     actuals["total_elapsed_seconds"] = round((parse_time(utcnow()) - parse_time(plan["observed_at"])).total_seconds(), 3)
-    actuals["benchmark"] = benchmark.get("measurements", {})
+    # Legacy benchmark records are append-only history, not verified observations.
+    actuals["benchmark"] = dict(UNMEASURED_BENCHMARK)
     prior_problems = [problem for row in current_events for problem in row.get("problems", [])]
     all_problems = prior_problems + discovered_problems
     actuals["problems_count"] = len(all_problems)
@@ -932,8 +919,6 @@ def parser() -> argparse.ArgumentParser:
         item = sub.add_parser(name)
         item.add_argument("--tag", required=True)
         item.add_argument("--channel", default="stable")
-        if name == "benchmark":
-            item.add_argument("--artifact")
         item.set_defaults(func=func)
     progress = sub.add_parser("progress")
     progress.add_argument("--tag", required=True)

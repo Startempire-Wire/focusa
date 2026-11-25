@@ -2,7 +2,7 @@
 
 ## Non-negotiable rule
 
-**All Focusa build and deploy work uses the full live GitHub release pipeline.**
+**Every full Focusa release and production daemon upgrade uses the live GitHub release pipeline.** Approved extension-only updates are separate: use the host's supported activation/rollback and verify the actual Pi terminal or OpenClaw conversation. They do not upgrade the daemon or publish a stable tag.
 
 Future agents must not build release artifacts locally, must not deploy from
 `target/release`, must not run only part of the workflow, and must not bypass
@@ -11,20 +11,18 @@ checks only, never for release artifact creation or live daemon deployment.
 
 ## The only supported build/deploy path
 
-1. Land source changes on `main`.
-2. Create the next dev release tag with:
+1. Prepare the exact approved release candidate with:
    ```bash
-   scripts/create-dev-release-tag.sh --base 0.9 --push
+   scripts/create-dev-release-tag.sh --base 0.9 --push --no-wait-ci
    ```
+2. Pending exit 78 means the final source commit was pushed but no tag was created. After exact main CI succeeds, resume with the same tag. Never use an ordinary source push as evidence of a release.
 3. Let GitHub Actions run the full chain:
-   - `CI`
+   - `CI` tests the final candidate once; Release verifies its receipt.
    - `Release`, which requires, checksums, signs, and publishes `distribution-manifest.json` as an immutable prerelease with `Latest=false`
    - `Deploy Live Daemon`, which delegates binaries, installed manifest, systemd, health, CallGraph proof, and rollback to the Rust full-release lifecycle; after installed parity and OTA acceptance it re-signs the settled release manifest and alone promotes an unsuffixed tag to stable `Latest`
-   - `Audit Recorder (self-heal trigger)`
-   - `Release Pipeline Watchdog`
 
-   `Auto Heal Release Pipeline` remains quarantined and cannot redispatch a
-   failed deployment automatically.
+   Audit and recovery tools record and diagnose failures. They do not promote
+   a release or authorize an automatic production retry.
 4. Trust only GitHub run conclusions + deploy health proof as release truth.
 
 ## Recovery policy
@@ -82,4 +80,4 @@ A deployment is complete only when:
 - Install inputs remain pinned to the immutable release tag; audit signing and settlement use the exact workflow revision (`github.workflow_sha`) in a separate sparse controller checkout, never a moving helper.
 - After OTA acceptance, the existing deployment-proof owner validates the exact plan and signs `distribution-parity.json` and `ota-update-plan.json`; their receipts and detached signatures are attached to the same Release. Mandatory release evidence does not depend on Actions artifact storage quota. Existing payloads and native updater signatures remain unchanged.
 - `/v1/health` proof is emitted by the deploy workflow.
-- Audit Recorder has no unresolved process-error row for the pipeline run.
+- Report any untested rollback or consumer surface explicitly. Release assets and receipts cannot prove an extension was reloaded in an already-running session.

@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
-"""Exercise the production freshness gate against real isolated Git histories."""
+"""Verify exact bytes and ancestry against real isolated Git histories."""
 
-import datetime
 import hashlib
+import importlib.util
+import json
 import os
 from pathlib import Path
 import subprocess
-import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-PREFLIGHT = (ROOT / "scripts/local-release-preflight.sh").read_text()
-GATE = PREFLIGHT.split("<< 'PYFRESH'\n", 1)[1].split("\nPYFRESH", 1)[0]
-MANIFEST = Path("docs/contracts/spec141/generated-capability-v2/distribution-manifest.json")
+spec = importlib.util.spec_from_file_location("distribution_manifest", ROOT / "scripts/distribution_manifest.py")
+owner = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(owner)
+MANIFEST = owner.MANIFEST_REL
 
 
 class ManifestFreshnessTest(unittest.TestCase):
@@ -22,15 +24,20 @@ class ManifestFreshnessTest(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name) / "source"
         self.root.mkdir()
-        self.env = {
-            k: v for k, v in os.environ.items()
-            if not k.startswith("GIT_") and k not in ("PREFLIGHT_FAST", "PREFLIGHT_STRICT")
-        }
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+        fixture_paths = ("component",)
+        fixture = patch.multiple(
+            owner, LEGACY_ARTIFACT_PATHS=("artifact",),
+            source_components=lambda root: {"fixture": owner.tree_contract(root, fixture_paths)},
+        )
+        fixture.start()
+        self.addCleanup(fixture.stop)
         self.env["GIT_CONFIG_NOSYSTEM"] = "1"
         self.env["GIT_CONFIG_GLOBAL"] = os.devnull
         self.git("init", "--quiet", "--initial-branch=main")
         (self.root / "Cargo.toml").write_text('[workspace.package]\nversion = "0.9.198"\n')
         (self.root / "artifact").write_text("protected payload\n")
+        (self.root / "component").write_text("protected component\n")
         self.initial = self.commit("initial")
         self.write_manifest(self.initial[:11])
         self.stamped = self.commit("stamp manifest")
@@ -50,37 +57,21 @@ class ManifestFreshnessTest(unittest.TestCase):
         return self.git("rev-parse", "HEAD")
 
     def write_manifest(self, source, **changes):
-        import json
-        manifest = {
-            "release_version": "0.9.198",
-            "source_commit": source,
-            "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "artifacts": {"artifact": "sha256:" + hashlib.sha256(
-                (self.root / "artifact").read_bytes()).hexdigest()},
-        }
+        manifest = owner.build_manifest(self.root, {}, "0.9.198", source, "2000-01-01T00:00:00Z")
         manifest.update(changes)
         path = self.root / MANIFEST
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(manifest))
 
-    def check_gate(self, passes, *, root=None, fast=None, strict=True, error=None):
-        env = dict(self.env, PREFLIGHT_STRICT="1" if strict else "0")
-        if fast is not None:
-            env["PREFLIGHT_FAST"] = fast
-        result = subprocess.run(
-            [sys.executable, "-"], input=GATE, text=True,
-            capture_output=True, cwd=root or self.root, env=env, timeout=15,
-        )
-        output = result.stdout + result.stderr
-        if passes:
-            self.assertEqual(result.returncode, 0, output)
-            self.assertIn("manifest FRESH", output)
-        else:
-            self.assertNotEqual(result.returncode, 0, output)
-            self.assertNotIn("manifest FRESH", output)
-            if error:
-                self.assertIn(error, output)
-        return output
+    def check_gate(self, passes, *, root=None, error=None):
+        root = root or self.root
+        source = json.loads((root / MANIFEST).read_text())
+        with patch.dict(os.environ, self.env, clear=True):
+            failures = owner.verify_manifest(root, source)
+            failures += owner.verify_source_ancestor(root, source["source_commit"])
+        self.assertEqual(not failures, passes, failures)
+        if error:
+            self.assertIn(error, "\n".join(failures))
 
     def test_head_and_parent_resolve_independently_of_display_width(self):
         for commit in (self.initial, self.stamped):
@@ -91,27 +82,14 @@ class ManifestFreshnessTest(unittest.TestCase):
                         self.write_manifest(commit[:width])
                         self.check_gate(True)
 
-    def test_parent_requires_exact_manifest_path_touched_in_head(self):
-        other = self.root / "unrelated/distribution-manifest.json"
-        other.parent.mkdir()
-        other.write_text("{}")
-        self.commit("change similarly named unrelated manifest")
-        self.write_manifest(self.stamped[:7])
-        self.check_gate(False, error="stale source_commit")
-
-    def test_fast_ancestor_allowance_is_not_a_strict_release_bypass(self):
-        for n in range(11):
+    def test_unrelated_commits_do_not_invalidate_unchanged_covered_bytes(self):
+        for n in range(3):
             (self.root / "notes").write_text(str(n))
             self.commit("unrelated change")
-        self.check_gate(False, fast="1", strict=True, error="stale source_commit")
-        self.check_gate(True, fast="1", strict=False)
-        self.check_gate(False, fast="0", strict=False, error="stale source_commit")
-        self.check_gate(False, strict=False, error="stale source_commit")
-
-    def test_fast_mode_in_short_history_still_resolves_commit_identity(self):
-        (self.root / "notes").write_text("later")
-        self.commit("later change")
-        self.check_gate(True, fast="1", strict=False)
+        self.check_gate(True)
+        (self.root / "component").write_text("covered change")
+        self.commit("change shipped component")
+        self.check_gate(False, error="component digest/runtime contract is stale")
 
     def test_missing_and_non_oid_sources_fail_closed(self):
         for source in (None, [], {}, "HEAD", "--help", "not-a-commit", "f" * 40):
@@ -130,11 +108,11 @@ class ManifestFreshnessTest(unittest.TestCase):
         self.write_manifest(name)
         self.check_gate(False, error="source_commit")
 
-    def test_unrelated_commit_fails_even_in_fast_mode(self):
+    def test_unrelated_commit_fails_even_with_matching_bytes(self):
         tree = self.git("rev-parse", "HEAD^{tree}")
         unrelated = self.git("commit-tree", tree, input="unrelated root\n")
         self.write_manifest(unrelated)
-        self.check_gate(False, fast="1", strict=False, error="stale source_commit")
+        self.check_gate(False, error="cannot be verified as an ancestor")
 
     def test_ambiguous_oid_fails_closed(self):
         tree = self.git("rev-parse", "HEAD^{tree}")
@@ -177,16 +155,18 @@ class ManifestFreshnessTest(unittest.TestCase):
     def test_existing_artifact_digest_gate_is_preserved(self):
         self.write_manifest(self.stamped)
         (self.root / "artifact").write_text("tampered\n")
-        self.check_gate(False, error="stale sha256")
+        self.check_gate(False, error="artifact SHA-256 map is stale")
 
-    def test_existing_age_and_version_gates_are_preserved(self):
-        self.write_manifest(self.stamped, generated_at="2000-01-01T00:00:00Z")
-        self.check_gate(False, error="stale generated_at")
+    def test_timestamp_is_provenance_not_expiry(self):
+        self.check_gate(True)
+        self.write_manifest(self.stamped, generated_at="2026-02-30T00:00:00Z")
+        self.check_gate(False, error="generated_at")
         self.write_manifest(self.stamped, release_version="wrong")
         self.check_gate(False, error="release_version")
 
-    def test_shell_forwards_strict_mode_to_the_shared_gate(self):
-        self.assertIn('PREFLIGHT_STRICT="$STRICT" python3', PREFLIGHT)
+    def test_preflight_calls_the_canonical_validator(self):
+        self.assertIn('scripts/distribution_manifest.py --check --source-ancestor',
+                      (ROOT / "scripts/local-release-preflight.sh").read_text())
 
 
 if __name__ == "__main__":

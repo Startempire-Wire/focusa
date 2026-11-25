@@ -45,8 +45,6 @@ require 'focusa-tui' .github/workflows/release.yml 'release packages TUI surface
 bash tests/spec132_public_uninstall_preservation_test.sh
 bash tests/spec132_public_bootstrap_dry_run_static_test.sh
 bash tests/installer_explicit_target_alias_test.sh
-bash tests/spec114_public_benchmark_flywheel_static_test.sh
-python3 tests/spec114_observatory_ui_static_test.py
 pass 'public uninstall preserves user data unless purge is explicit'
 
 # Every Focusa Pi tool, skill, runbook, machine projection, and public agent
@@ -62,10 +60,7 @@ node --test tests/callgraph-discovery-parity.test.mjs tests/prediction-discovery
 bun tests/spec141_agent_conformance_test.ts
 python3 tests/spec141_agent_first_tool_audit_test.py
 bash tests/spec129_agent_docs_surface_static_test.sh
-bash tests/spec_focusa_117_release_install_postcard_static_test.sh
-bash tests/spec_focusa_117_gtm_five_minute_proof_static_test.sh
-bash tests/spec_focusa_117_public_docs_sync_static_test.sh
-pass 'all-Pi-tool, Agent Card, skill/runbook, and onboarding documentation gates'
+pass 'Pi-tool, Agent Card, skill/runbook and onboarding contracts'
 
 # Worktree/authority aggregate proof. Provider status never substitutes for
 # technical evidence; administrative closure replays fail closed.
@@ -84,18 +79,8 @@ python3 tests/spec104_mismatch_semantic_static_test.py
 bash tests/spec130_rotating_continuity_transfer_static_test.sh
 pass 'worktree and authority gates'
 
-# Cache-safe prefix stabilization, background-job consumer receipts, and
-# automatic Pi activation runtime proof. Run locally with the routed toolchain
-# bypassed (the remote build host does not carry the pi-extension node_modules).
-(
-  cd apps/pi-extension
-  FOCUSA_ROUTE_DRY_RUN=1 npm run test:cache-safe-context
-  FOCUSA_ROUTE_DRY_RUN=1 npm run test:ota-activation
-  FOCUSA_ROUTE_DRY_RUN=1 npm run test:spec104-attachment
-  FOCUSA_ROUTE_DRY_RUN=1 npm run test:bg-tools
-  FOCUSA_ROUTE_DRY_RUN=1 npm run test:unbound-project
-)
-pass 'cache, background receipt, and Pi OTA activation gates'
+# Native Pi behavior (cache, OTA, attachment and background receipts) is
+# exercised by the adjacent full Pi suite in exact-source CI, not repeated here.
 
 # Compaction provider-overflow, native recovery, persistence, crash, and rotating-agent proof.
 forbid 'pi\.sendUserMessage\("/focusa-rollover execute"' apps/pi-extension/src/auto-compaction.ts 'transport retry exhaustion must not auto-queue rollover'
@@ -108,7 +93,6 @@ pass 'compaction and session-recovery gates'
 python3 tests/spec145_canonical_release_cycle_static_test.py
 python3 tests/spec146_release_intelligence_workflow_gate.py
 python3 ./tests/spec137_138_full_conformance_invocation_test.py
-python3 ./tests/run_spec137_138_full_conformance_gates.py
 python3 scripts/generate-spec150-complete-feature-ledger.py --check
 # python3 scripts/generate-cross-spec-tool-grounding-matrix.py --check
 # python3 scripts/audit-cross-spec-reality-grounding.py

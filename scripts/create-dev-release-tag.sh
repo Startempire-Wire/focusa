@@ -7,7 +7,7 @@
 #   scripts/create-dev-release-tag.sh --push
 # Nonwaiting preparation/finalization (stable still requires exact-source CI):
 #   scripts/create-dev-release-tag.sh --push --no-wait-ci --no-wait-deploy
-# Exit 78 leaves a prepared stable candidate untagged while CI is pending;
+# Exit 78 leaves a prepared candidate untagged while exact main CI is pending;
 # resume the same approved tag after that exact SHA passes, freeing the builder.
 # Force a release gate override (requires plain-language reason):
 #   scripts/create-dev-release-tag.sh --push --force-release --release-reason "critical deploy fix"
@@ -15,7 +15,7 @@
 #   scripts/create-dev-release-tag.sh --base 0.9 --push
 # Publish an exact stable or preview tag:
 #   scripts/create-dev-release-tag.sh --tag v0.9.136 --push
-# Independent waits: --ci-timeout 1200; --release-timeout 10800 (1..86400 seconds).
+# Independent waits: --ci-timeout 5400; --release-timeout 10800 (1..86400 seconds).
 # Release covers 150-minute external receipt jobs plus 30 minutes of margin.
 # Canonical journal mode: auto (default), required, or off.
 #   FOCUSA_RELEASE_JOURNAL_MODE=required scripts/create-dev-release-tag.sh --tag v0.9.136 --push
@@ -29,7 +29,7 @@ PUSH=0
 DRY_RUN=0
 WAIT_CI=1
 WAIT_DEPLOY=1
-CI_TIMEOUT_SECS=1200
+CI_TIMEOUT_SECS=5400
 RELEASE_TIMEOUT_SECS=10800
 FORCE_RELEASE=0
 RELEASE_REASON=""
@@ -71,7 +71,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --ci-timeout)
-      CI_TIMEOUT_SECS="${2:?--ci-timeout requires seconds (default 1200 for source CI and deploy)}"
+      CI_TIMEOUT_SECS="${2:?--ci-timeout requires seconds (default 5400 for source CI and deploy)}"
       shift 2
       ;;
     --release-timeout)
@@ -153,7 +153,7 @@ read_source_workflow_runs() {
     echo "source_gate_unavailable: gh CLI is required to verify ${workflow} for ${sha}" >&2
     return 1
   }
-  if ! runs="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json status,conclusion,url,headSha)"; then
+  if ! runs="$(gh run list --workflow "$workflow" --branch main --commit "$sha" --limit 20 --json status,conclusion,url,headSha)"; then
     echo "source_gate_unavailable: workflow=${workflow} sha=${sha} query failed; reconcile before retrying" >&2
     return 1
   fi
@@ -330,10 +330,12 @@ wait_for_workflow() {
 
   echo "workflow_discovery name=${workflow} timeout_s=${timeout_secs} sha=${head_sha:0:7}${head_branch:+ head_branch=$head_branch}"
   while [[ $SECONDS -lt $deadline ]]; do
-    if [[ -n "$head_branch" ]]; then
-      run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 10 --json databaseId,headBranch 2>/dev/null \
-        | jq -r --arg branch "$head_branch" '.[] | select(.headBranch == $branch) | .databaseId' \
-        | head -1 || true)
+    if [[ "$workflow" == 'Deploy Live Daemon' ]]; then
+      run_id=$(gh run list --workflow "$workflow" --branch main --limit 50 --json databaseId,displayTitle \
+        | jq -r --arg tag "$head_branch" '[.[] | select(.displayTitle == ("Deploy Focusa " + $tag))][0].databaseId // empty') || return 1
+    elif [[ -n "$head_branch" ]]; then
+      run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 10 --json databaseId,headBranch \
+        | jq -r --arg branch "$head_branch" '[.[] | select(.headBranch == $branch)][0].databaseId // empty') || return 1
     else
       run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)
     fi
@@ -350,35 +352,20 @@ wait_for_workflow() {
   exit 1
 }
 
-normalize_release_channel() {
-  local tag="$1"
-  local channel="$2"
-  local release
-  local latest
-  case "$channel" in
-    preview)
-      gh release edit "$tag" --prerelease=true --latest=false
-      ;;
-    stable)
-      gh release edit "$tag" --prerelease=false --latest=true
-      ;;
-    *)
-      echo "Unsupported release channel normalization: ${channel}" >&2
-      return 1
-      ;;
-  esac
-  release="$(gh release view "$tag" --json isPrerelease,tagName)"
-  latest="$(gh release list --limit 100 --json isLatest,tagName \
-    | jq -c --arg tag "$tag" '.[] | select(.tagName == $tag)')"
-  [[ -n "$latest" ]] || { echo "Release ${tag} missing from latest-release projection" >&2; return 1; }
-  if [[ "$channel" == "preview" ]]; then
-    jq -e '.isPrerelease == true' <<<"$release" >/dev/null
-    jq -e '.isLatest == false' <<<"$latest" >/dev/null
-  else
-    jq -e '.isPrerelease == false' <<<"$release" >/dev/null
-    jq -e '.isLatest == true' <<<"$latest" >/dev/null
+verify_release_channel() {
+  local tag="$1" channel="$2" release state
+  release="$(gh release view "$tag" --json isDraft,isPrerelease,tagName)" || return 1
+  state="$(gh release list --limit 100 --json isLatest,tagName \
+    | jq -c --arg tag "$tag" '.[] | select(.tagName == $tag)')" || return 1
+  if ! jq -e --arg tag "$tag" --arg channel "$channel" --argjson state "${state:-null}" '
+    .tagName == $tag and .isDraft == false and $state.tagName == $tag and
+    (if $channel == "stable" then (.isPrerelease == false and $state.isLatest == true)
+     elif $channel == "preview" then (.isPrerelease == true and $state.isLatest == false)
+     else false end)' <<<"$release" >/dev/null; then
+    echo "release_channel_unverified: tag=${tag} expected=${channel}; publication state was not changed" >&2
+    return 1
   fi
-  echo "release_channel_normalized=$(jq -cn --argjson release "$release" --argjson latest "$latest" '{release:$release,latest:$latest}')"
+  echo "release_channel_verified: tag=${tag} channel=${channel}"
 }
 
 journal_client() {
@@ -391,7 +378,7 @@ journal_problem_on_error() {
   trap - ERR
   # Expected nonwaiting preparation is not a failed publication or a success.
   if [[ "$exit_code" -eq 78 && "$WAIT_CI" -eq 0 &&
-        "${RELEASE_CHANNEL:-}" == stable && -n "${SOURCE_CI_PENDING_SHA:-}" &&
+        -n "${SOURCE_CI_PENDING_SHA:-}" &&
         "$SOURCE_CI_PENDING_SHA" == "${HEAD_SHA:-}" ]]; then
     exit "$exit_code"
   fi
@@ -455,26 +442,17 @@ fi
 echo "Next release tag: ${TAG}"
 python3 scripts/verify-release-tag-trigger.py "${TAG}"
 
-# Release strategy preflight (docs/release-strategy.md): fail fast on policy
-# violations before stamping/pushing. --force-release remains the override;
-# dry-run continues and reports the would-be block.
-if [[ -f scripts/next-version.py ]]; then
-  VERSION_POLICY="$(python3 scripts/next-version.py --tag "$TAG" --json 2>/dev/null || true)"
-  if [[ -n "$VERSION_POLICY" ]] && jq -e '.violations | length > 0' <<<"$VERSION_POLICY" >/dev/null 2>&1; then
-    echo "release_version_policy_violation: $(jq -r '.violations | join("; ")' <<<"$VERSION_POLICY")" >&2
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-      echo "Dry run continuing: release version policy would block an actual release." >&2
-    elif [[ "$FORCE_RELEASE" -eq 1 ]]; then
-      echo "Release version policy override accepted: ${RELEASE_REASON}" >&2
-    else
-      echo "Blocked by release version policy; pass --force-release --release-reason \"<plain-language reason>\" to override." >&2
-      exit 1
-    fi
-  else
-    VERSION_POLICY_WARNINGS="$(jq -r '.warnings | join("; ")' <<<"$VERSION_POLICY" 2>/dev/null || true)"
-    [[ -z "$VERSION_POLICY_WARNINGS" ]] || echo "release_version_policy_warnings: ${VERSION_POLICY_WARNINGS}" >&2
-  fi
+# Only editorial commit-history exceptions can be annotated by --force-release.
+# Version safety applies to every candidate before a new tag can be created.
+VERSION_POLICY_STATUS=0
+VERSION_POLICY="$(python3 scripts/next-version.py --tag "$TAG" --json)" || VERSION_POLICY_STATUS=$?
+jq -e 'type == "object" and (.violations | type) == "array" and (.warnings | type) == "array"' <<<"$VERSION_POLICY" >/dev/null
+if [[ "$VERSION_POLICY_STATUS" -ne 0 ]] || jq -e '.violations | length > 0' <<<"$VERSION_POLICY" >/dev/null; then
+  echo "release_version_policy_blocked: $(jq -r '.violations | join("; ")' <<<"$VERSION_POLICY")" >&2
+  exit 1
 fi
+VERSION_POLICY_WARNINGS="$(jq -r '.warnings | join("; ")' <<<"$VERSION_POLICY")"
+[[ -z "$VERSION_POLICY_WARNINGS" ]] || echo "release_version_policy_warnings: ${VERSION_POLICY_WARNINGS}" >&2
 
 if [[ "$FORCE_RELEASE" -eq 1 && -z "$RELEASE_REASON" ]]; then
   echo "Blocked: --force-release requires --release-reason with a plain-language reason." >&2
@@ -496,17 +474,10 @@ else
   scripts/validate-commit-messages.sh --range "HEAD^..HEAD"
 fi
 
-if ! FOCUSA_RELEASE_CHANNEL="$RELEASE_CHANNEL" python3 scripts/release-gate.py; then
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "Dry run continuing: ReleaseGate would block an actual release." >&2
-  elif [[ "$FORCE_RELEASE" -eq 1 ]]; then
-    echo "ReleaseGate override accepted: ${RELEASE_REASON}" >&2
-  else
-    exit 1
-  fi
-else
-  echo "ReleaseGate passed."
-fi
+# This command prepares an explicitly requested release. Cadence and file score
+# advise on batching, not on safe publication; standalone release-gate retains
+# its blocking decision for unattended scheduling.
+FOCUSA_RELEASE_CHANNEL="$RELEASE_CHANNEL" python3 scripts/release-gate.py --advisory
 
 python3 tests/spec145_canonical_release_cycle_static_test.py
 jq -e '.schema == "focusa.release_topology.v1" and (.surfaces | length) > 0' \
@@ -563,19 +534,10 @@ else
   scripts/stamp-release-version "${VERSION}"
   scripts/stamp-menubar-version.py "${TAG}"
 fi
-python3 scripts/verify-version-surfaces.py "${TAG}"
-scripts/verify-doc-version-consistency
-node scripts/validate-docs-runtime-parity.mjs # distribution parity drift blocks this release
-
-# DETERMINISTIC FINAL GATE — no agent discretion. If this fails, do not push.
-# This is the same gate as pre-push, but --strict adds gap + Spec Gates.
-if [[ "$PUSH" -eq 1 ]]; then
-  echo "=== deterministic final gate: local-release-preflight --strict ==="
-  bash scripts/local-release-preflight.sh --strict || {
-    echo "deterministic gate FAILED — fix, do not push tag" >&2
-    exit 1
-  }
-fi
+# Check local source integrity before pushing; full behavior tests are owned by
+# exact-commit CI after stamping and sealing, not a second local build.
+echo "=== source integrity: local-release-preflight --strict ==="
+bash scripts/local-release-preflight.sh --strict
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
@@ -628,34 +590,12 @@ if [[ "$PUSH" -eq 1 && "$STAMPED_RELEASE_SURFACES" -eq 1 && \
   fi
 fi
 
-# The benchmark includes final release-gap ancestry checks, so it must observe
-# the committed stamped source and its freshly sealed proof.
-if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
-  if ! journal_client benchmark --tag "$TAG" --channel "$RELEASE_CHANNEL"; then
-    if [[ "$RELEASE_CHANNEL" == "preview" ]]; then
-      echo "Canonical pre-release benchmark advisory for dev ${TAG}: continuing (stable would block)" >&2
-    else
-      exit 1
-    fi
-  else
-    echo "Canonical pre-release benchmark accepted for ${TAG}."
-  fi
-fi
-
 if [[ "$PUSH" -eq 1 ]]; then
   push_candidate_main_with_auto_rebase
   HEAD_SHA=$(git rev-parse HEAD)
-  # Lean canonical (F38): dev/preview advisory — tag push is cheap, CI is async.
-  # Stable waits for exact candidate CI; dev logs advisory and continues so
-  # releases remain unnoticeable. Release workflow re-checks candidate gate.
-  if [[ "${RELEASE_CHANNEL:-dev}" == "stable" ]]; then
-    echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
-    ensure_source_workflow "CI" "$HEAD_SHA"
-    wait_for_source_workflow "CI" "$HEAD_SHA"
-  else
-    echo "Advisory: skipping blocking CI wait for dev channel (async CI will gate Release): ${HEAD_SHA}" >&2
-    echo "source_gate_advisory: tag push continues, Release Contract Check will re-check CI green for ${HEAD_SHA}" >&2
-  fi
+  echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
+  ensure_source_workflow "CI" "$HEAD_SHA"
+  wait_for_source_workflow "CI" "$HEAD_SHA"
   if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
     journal_client progress --tag "$TAG" --stage "candidate-ci" --status "completed" \
       --details "exact stamped candidate passed pre-tag CI" \
@@ -689,17 +629,13 @@ if [[ "$PUSH" -eq 1 ]]; then
       --evidence-ref "github:tag:${TAG}"
   fi
   if [[ "$WAIT_CI" -eq 1 ]]; then
-    wait_for_workflow "CI" "$HEAD_SHA"
     wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"
-    normalize_release_channel "$TAG" "$RELEASE_CHANNEL"
-    if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
-      journal_client progress --tag "$TAG" --stage "release-channel" --status "completed" \
-        --details "GitHub release classification normalized to ${RELEASE_CHANNEL}" \
-        --evidence-ref "github:release:${TAG}"
-    fi
-    if [[ "$WAIT_DEPLOY" -eq 1 ]]; then
-      wait_for_workflow "Deploy Live Daemon" "$HEAD_SHA"
-      echo "GitHub CI, Release, and Deploy workflows passed for ${TAG}."
+    if [[ "$RELEASE_CHANNEL" == "preview" ]]; then
+      verify_release_channel "$TAG" preview
+    elif [[ "$WAIT_DEPLOY" -eq 1 ]]; then
+      wait_for_workflow "Deploy Live Daemon" "$HEAD_SHA" "${TAG}"
+      verify_release_channel "$TAG" stable
+      echo "GitHub CI, Release, deployment and Latest verification passed for ${TAG}."
       if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
         journal_client finalize --tag "$TAG" --channel "$RELEASE_CHANNEL"
         RELEASE_JOURNAL_ACTIVE=0
@@ -707,7 +643,7 @@ if [[ "$PUSH" -eq 1 ]]; then
         echo "Canonical release journal finalized for ${TAG}."
       fi
     else
-      echo "GitHub CI and Release workflows passed for ${TAG}."
+      echo "Package publication verified for ${TAG}; deployment and stable promotion not checked."
     fi
   else
     echo "Not waiting for GitHub workflows. Track with: gh run list --commit ${HEAD_SHA}"

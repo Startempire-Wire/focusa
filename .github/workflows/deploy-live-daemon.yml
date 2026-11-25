@@ -1,4 +1,5 @@
 name: Deploy Live Daemon
+run-name: Deploy Focusa ${{ github.event.release.tag_name || inputs.release_tag }}
 
 on:
   release:
@@ -329,14 +330,10 @@ jobs:
           curl -fsS '${{ steps.cfg.outputs.health_url }}' | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("version",""))' | tee /tmp/focusa-live-version.txt
           LIVE_VERSION="$(cat /tmp/focusa-live-version.txt)"
           test "$LIVE_VERSION" = "$expected"
-          # The running daemon self-reports its build over the health endpoint
-          # (verified above); /proc/<pid>/exe needs privileges the runner lacks.
-          test "2988923" -gt 0
-          # Canonical state-root verification (static test requires the exact
-          # assertion string; the unprivileged runner validates the constant
-          # against itself and the parity audit pins the real root below).
-          test "$(systemctl show focusa-daemon.service -p WorkingDirectory --value)" = /usr/local/lib/focusa
-          test "/usr/local/lib/focusa" = /usr/local/lib/focusa
+          service='${{ steps.cfg.outputs.service_name }}'
+          systemctl is-active --quiet "$service"
+          test "$(systemctl show "$service" -p MainPID --value)" -gt 0
+          test "$(systemctl show "$service" -p WorkingDirectory --value)" = /usr/local/lib/focusa
 
       - name: Self-healing smoke check
         if: ${{ !inputs.dry_run }}
@@ -545,6 +542,22 @@ jobs:
             .gates.deploy_success == true
           ' /tmp/focusa-release/release-manifest.json >/dev/null
 
+      - name: Publish signed installed parity and OTA audit receipts
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Release-bound evidence must not depend on Actions storage quota.
+          gh release upload '${{ steps.cfg.outputs.tag }}' \
+            /tmp/focusa-release/distribution-parity.json \
+            /tmp/focusa-release/distribution-parity.json.sig \
+            /tmp/focusa-release/ota-update-plan.json \
+            /tmp/focusa-release/ota-update-plan.json.sig \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
       - name: Promote accepted stable release to Latest
         if: ${{ !inputs.dry_run }}
         shell: bash
@@ -565,22 +578,6 @@ jobs:
             --latest
           test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .prerelease)" = false
           test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "$TAG"
-
-      - name: Publish signed installed parity and OTA audit receipts
-        if: ${{ !inputs.dry_run }}
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          # Release-bound evidence must not depend on Actions storage quota.
-          gh release upload '${{ steps.cfg.outputs.tag }}' \
-            /tmp/focusa-release/distribution-parity.json \
-            /tmp/focusa-release/distribution-parity.json.sig \
-            /tmp/focusa-release/ota-update-plan.json \
-            /tmp/focusa-release/ota-update-plan.json.sig \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber
 
       - name: Cleanup release artifact temp dir
         if: ${{ !inputs.dry_run }}

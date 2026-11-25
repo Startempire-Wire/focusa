@@ -11,6 +11,8 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -261,10 +263,14 @@ def verify_manifest(root: Path, manifest: dict[str, Any]) -> list[str]:
         failures.append("digest contract mismatch")
     if not re.fullmatch(r"[0-9a-f]{7,40}", str(manifest.get("source_commit", ""))):
         failures.append("source_commit is not a Git object identifier")
-    if not re.fullmatch(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z",
-        str(manifest.get("generated_at", "")),
-    ):
+    generated_at = manifest.get("generated_at")
+    try:
+        if not isinstance(generated_at, str) or not re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", generated_at,
+        ):
+            raise ValueError("not canonical UTC")
+        datetime.fromisoformat(generated_at.removesuffix("Z") + "+00:00")
+    except ValueError:
         failures.append("generated_at is not canonical UTC")
     try:
         expected_artifacts = artifacts(root, manifest.get("artifacts"))
@@ -278,17 +284,40 @@ def verify_manifest(root: Path, manifest: dict[str, Any]) -> list[str]:
     return failures
 
 
+def verify_source_ancestor(root: Path, source: Any) -> list[str]:
+    """Verify provenance without treating age or unrelated commits as drift."""
+    if not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{7,40}", source):
+        return [f"source_commit {source!r} is not a Git object identifier"]
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", *args], cwd=root, text=True).strip()
+
+    try:
+        objects = git("rev-parse", "--disambiguate=" + source).splitlines()
+        if len(objects) != 1:
+            return [f"source_commit {source} is missing or ambiguous"]
+        if git("cat-file", "-t", objects[0]) != "commit":
+            return [f"source_commit {source} does not identify a commit"]
+        git("merge-base", "--is-ancestor", objects[0], "HEAD")
+    except (OSError, subprocess.CalledProcessError):
+        return [f"source_commit {source} cannot be verified as an ancestor of HEAD"]
+    return []
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--source-ancestor", action="store_true", help="also require Git source ancestry")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     root = args.root.resolve()
     manifest_path = args.manifest or root / MANIFEST_REL
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     failures = verify_manifest(root, manifest)
+    if args.source_ancestor:
+        failures += verify_source_ancestor(root, manifest.get("source_commit"))
     result = {
         "schema": "focusa.distribution_manifest_check.v1",
         "ok": not failures,

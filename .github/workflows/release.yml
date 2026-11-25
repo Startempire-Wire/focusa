@@ -53,7 +53,7 @@ jobs:
     # v0.9.199-dev queued build 429 instantly while tag v0.9.199-dev queued
     # nothing, even with the webhook subscribed to create events). Queue the
     # Windows matrix explicitly so every version tag gets its .exe/.msi set.
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
       - name: Queue Windows matrix via AppVeyor API
@@ -91,7 +91,7 @@ jobs:
   pull-request-release-gate:
     name: Pull request inclusion gate
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -127,13 +127,12 @@ jobs:
               done
           echo "pull_request_release_gate=passed"
 
-  # Fast contract gate: source tests are exact-SHA pre-tag authority; tag CI is
-  # an independent publication gate below and still validates the stamped SHA.
+  # Reuse the exact main CI result. Never occupy the serial build worker
+  # waiting for CI that may be queued behind it.
   rust-check:
     name: Release Contract Check
-    runs-on: self-hosted
-    # Candidate CI may take up to 20 minutes; retain bounded setup overhead.
-    timeout-minutes: 25
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
+    timeout-minutes: 5
     steps:
       - name: Release workflow validation
         run: |
@@ -156,107 +155,21 @@ jobs:
             exit 1
           fi
           echo "release_candidate_identity=passed tag=${RELEASE_TAG} sha=${RELEASE_SHA}"
-      - name: Classify candidate CI requirement
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
-          candidate_paths="$(git diff-tree --root --no-commit-id --name-only -r "$RELEASE_SHA")"
-          non_docs_paths="$(printf '%s\n' "$candidate_paths" | grep -Ev '(^docs/|\.md$)' || true)"
-          if [ -n "$candidate_paths" ] && [ -z "$non_docs_paths" ]; then
-            echo "FOCUSA_CANDIDATE_CI_REQUIRED=false" >> "$GITHUB_ENV"
-            echo "candidate_ci_skipped reason=docs-only sha=${RELEASE_SHA}"
-          else
-            echo "FOCUSA_CANDIDATE_CI_REQUIRED=true" >> "$GITHUB_ENV"
-            echo "candidate_ci_required reason=non-docs-change sha=${RELEASE_SHA}"
-          fi
-      - name: Wait for candidate-SHA CI completion (pipelined atomic tag push)
-        if: env.FOCUSA_CANDIDATE_CI_REQUIRED != 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
-          # The tag is pushed atomically with the version-bump commit, so CI may
-          # still be running when the release workflow starts. Docs/markdown-only
-          # candidates are intentionally excluded by Spec 177 and use the local
-          # release-contract gates below instead of burning CI minutes.
-          for attempt in $(seq 1 120); do
-            status=$(gh run list --workflow "CI" --commit "$RELEASE_SHA" --limit 5 \
-              --json status,headSha \
-              | jq -r --arg sha "$RELEASE_SHA" '[.[] | select(.headSha == $sha)][0].status // "missing"')
-            case "$status" in
-              completed) echo "candidate CI completed after ${attempt} polls"; exit 0 ;;
-              missing) echo "candidate CI not found yet (attempt ${attempt})" ;;
-              *) echo "candidate CI ${status} (attempt ${attempt})" ;;
-            esac
-            sleep 15
-          done
-          echo "::error::timed out waiting for candidate-SHA CI"
-          exit 1
       - name: Require exact candidate-SHA preflight receipts
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
-          candidate_sha="$RELEASE_SHA"
-          # Spec 178: billing-locked macos-latest Menubar job is substituted by the
-          # Codemagic macOS package-proof receipt. The CI candidate gate therefore
-          # requires every substantive CI job to succeed and treats Menubar as exempt.
-          ci_gate_ok() {
-            local sha="$1" run_id jobs j name concl
-            run_id=$(gh run list --workflow "CI" --commit "$sha" --limit 10 --json databaseId,status,conclusion,headSha \
-              | jq -r --arg sha "$sha" '[.[] | select(.headSha == $sha and .status == "completed")][0].databaseId // empty')
-            [ -n "$run_id" ] || return 1
-            jobs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/jobs" --paginate \
-              | jq -r '.jobs[] | select(.conclusion != null) | "\(.name)|\(.conclusion)"')
-            [ -n "$jobs" ] || return 1
-            while IFS='|' read -r name concl; do
-              case "$name" in
-                Menubar|Build\ Menubar*)
-                  # Exempt: substituted by Codemagic receipt (Spec 178)
-                  ;;
-                *)
-                  [ "$concl" = "success" ] || return 1
-                  ;;
-              esac
-            done <<<"$jobs"
-            return 0
-          }
-          require_success() {
-            local workflow="$1"
-            local run
-            if [ "$workflow" = "CI" ]; then
-              if ci_gate_ok "$candidate_sha"; then
-                echo "candidate_gate_reused workflow=CI receipt=job-level-success-menubar-exempt spec178"
-                return 0
-              fi
-              echo "::error::Missing successful CI candidate gate for ${candidate_sha} (substantive jobs must all pass; Menubar exempt per Spec 178)"; exit 1
-            fi
-            run=$(gh run list --workflow "$workflow" --commit "$candidate_sha" --limit 10 --json status,conclusion,url,headSha \
-              | jq -c --arg sha "$candidate_sha" 'map(select(.headSha == $sha and .status == "completed" and .conclusion == "success")) | .[0] // empty')
-            [ -n "$run" ] || { echo "::error::Missing successful ${workflow} candidate gate for ${candidate_sha}"; exit 1; }
-            echo "candidate_gate_reused workflow=${workflow} receipt=${run}"
-          }
-          if [ "${FOCUSA_CANDIDATE_CI_REQUIRED:-true}" = "false" ]; then
-            echo "candidate_gate_skipped workflow=CI reason=docs-only"
-          else
-            require_success "CI"
-          fi
-          previous=$(git tag --sort=-version:refname | grep -v "^${RELEASE_TAG}$" | head -1 || true)
-          candidate_changed_paths="$(git diff --name-only "${previous:-HEAD^}"..HEAD)"
-          if grep -Eq \
-            '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)' \
-            <<<"$candidate_changed_paths"; then
-            # Spec 178 temporary route: GitHub-hosted Spec 132 rows are billing-
-            # locked. Exact-SHA Linux strict gates plus downstream AppVeyor and
-            # Codemagic receipt gates substitute the monolithic hosted workflow.
-            # Publication remains fail-closed until every external asset exists.
-            echo "candidate_gate_substituted workflow=Spec-132 route=spec178 providers=ovh,appveyor,codemagic sha=${candidate_sha}"
-          fi
+          run=$(gh run list --workflow ci.yml --branch main --commit "$RELEASE_SHA" --limit 20 \
+            --json headSha,event,status,conclusion,url \
+            | jq -r --arg sha "$RELEASE_SHA" '[.[] | select(.headSha == $sha and
+                 (.event == "push" or .event == "workflow_dispatch") and
+                 .status == "completed" and .conclusion == "success")][0].url // empty')
+          [ -n "$run" ] || { echo "::error::Missing successful main CI gate for $RELEASE_SHA"; exit 1; }
+          echo "candidate_gate_reused workflow=CI sha=$RELEASE_SHA receipt=$run"
+          python3 scripts/verify-version-surfaces.py "$RELEASE_TAG"
+          python3 scripts/distribution_manifest.py --check --source-ancestor
       - name: OTA installability release contract gate
         env:
           CONTROLLER_SHA: ${{ github.workflow_sha }}
@@ -274,55 +187,13 @@ jobs:
       - name: Spec104 scoped-state closure gate
         run: python3 tests/spec104_singleton_inventory_gate.py --closure
 
-  tag-ci-proof:
-    name: Exact tag CI proof (reused)
-    needs: rust-check
-    runs-on: self-hosted
-    steps:
-      - name: Reuse Release Contract Check receipt
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
-          echo "tag_ci_proof=reused-from-rust-check candidate=${RELEASE_SHA}"
-
-  # Final customer-lifecycle closure: all-surface OTA activation, worktree and
-  # authority isolation, compaction/recovery, and cache-safe prompt behavior.
-  final-release-gap-gate:
-    name: Final release gap gate
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    runs-on: [self-hosted, Linux, X64, ovh-build-2]
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ env.RELEASE_SHA }}
-          fetch-depth: 0
-      - name: Install release gate dependencies
-        run: |
-          # Self-hosted AlmaLinux runner already ships rg; hosted Ubuntu needs apt.
-          command -v rg >/dev/null 2>&1 || { sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep; }
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-      - uses: oven-sh/setup-bun@v2
-      - name: Install Pi extension runtime dependencies
-        working-directory: apps/pi-extension
-        run: npm ci --ignore-scripts
-      - name: Prove OTA, authority/worktree, compaction, and cache closure
-        run: |
-          # Self-hosted hosts may inject options unsupported by setup-node's
-          # eventual routed/cPanel Node binary (GH#350).
-          unset NODE_OPTIONS
-          tests/final_release_gap_gate.sh
-
   # Version policy gate: the tag bump must match the release strategy
   # (docs/release-strategy.md) — tag shape, monotonicity, and breaking-change
   # bumps. Runs before release creation so a violation blocks the release.
   version-policy:
     name: Release version policy
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -341,8 +212,8 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     # Provider-specific queueing is not a prerequisite for the local Windows
     # producer. Complete artifact, signature and consumer gates still apply.
-    needs: [rust-check, final-release-gap-gate, pull-request-release-gate, version-policy]
-    runs-on: self-hosted
+    needs: [rust-check, pull-request-release-gate, version-policy]
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
@@ -467,11 +338,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.6
-
-      - name: Verify immutable candidate version surfaces
-        run: |
-          python scripts/verify-version-surfaces.py "${RELEASE_TAG}"
-          python scripts/distribution_manifest.py --check
 
       - name: Auto-heal audit trail
         run: python scripts/auto-heal-audit.py
@@ -716,7 +582,7 @@ jobs:
     # Producer-before-waiter: do not consume a bounded OVH lane while local
     # support artifacts are still queued on that same runner pool.
     needs: [create-release, pi-extension-release, windows-ovh-executables]
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v6
@@ -869,7 +735,7 @@ jobs:
     # Producer-before-waiter: all Linux matrix rows must release their bounded
     # OVH lanes before a long external-provider receipt wait may begin.
     needs: [create-release, rust-release, windows-ovh-executables]
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v6
@@ -892,17 +758,11 @@ jobs:
     name: Package Pi Extension
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     needs: create-release
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ env.RELEASE_SHA }}
-      - name: Verify immutable Pi and distribution surfaces
-        run: |
-          set -euo pipefail
-          rm -f dist/release-intelligence.json dist/release-intelligence.md
-          python3 scripts/verify-version-surfaces.py "${RELEASE_TAG}"
-          python3 scripts/distribution_manifest.py --check
       - name: Package bundled Pi extension, installer, and agent context
         run: |
           set -euo pipefail
@@ -968,7 +828,7 @@ jobs:
   checksums:
     name: Publish SHA256SUMS
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]
+    needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, rust-check]
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 20
     steps:
@@ -1254,9 +1114,9 @@ jobs:
 
   dispatch-deploy-live-daemon:
     name: Dispatch Deploy Live Daemon
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ !contains(inputs.release_tag || github.ref_name, '-') }}
     needs: checksums
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 5
     steps:
       - name: Dispatch production deploy workflow

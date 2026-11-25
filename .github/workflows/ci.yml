@@ -50,6 +50,7 @@ jobs:
 
   rust:
     name: Rust
+    needs: release-automation-static
     concurrency:
       group: focusa-cargo-rust-${{ github.ref }}
       cancel-in-progress: true
@@ -78,7 +79,7 @@ jobs:
           # Protected production authority root (public material only) so the
           # compile-time-embedded-root acceptance test compiles with real trust.
           FOCUSA_AUTHORITY_ROOT_KEYS_JSON: '{"authority-root-20260907-0055c689":"7W08wghjGI84FO00giUqfAVU8Iw4BEkTM7HfePzQNuo="}'
-        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build --locked -p focusa-api --bin focusa-daemon && python3 scripts/test-route-health.py && cargo test --locked -p focusa-cli --bin focusa main_confirmation_tests -- --test-threads=1 && cargo test --locked -p focusa-cli --bin focusa explicit_post_scope_is_sent -- --test-threads=1 && cargo test --locked -p focusa-cli --bin focusa commands::scope_resolver::tests -- --test-threads=1 && cargo test --locked -p focusa-api --bin focusa-daemon marker_ownership -- --test-threads=1 && cargo test --locked -p focusa-api --bin focusa-daemon incomplete_prepare_recovery_is_exact -- --test-threads=1 && cargo test --locked -p focusa-api --bin focusa-daemon legacy_stage_recovery_is_confirmed -- --test-threads=1 && cargo test --locked -p focusa-api --bin focusa-daemon resume_and_current_keep_lifecycle -- --test-threads=1 && cargo test --locked --workspace -- --test-threads=1"
+        run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build --locked -p focusa-api --bin focusa-daemon && python3 scripts/test-route-health.py && cargo test --locked --workspace -- --test-threads=1"
       # Workspace tests above already include the Pi transaction and update
       # regressions. Keep one lint pass, with stronger all-target coverage,
       # rather than alternating test/lint modes again against the same artifacts.
@@ -135,6 +136,12 @@ jobs:
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Verify distribution source inputs before compiling
+        run: |
+          python3 scripts/verify-version-surfaces.py "v$(tr -d '[:space:]' < docs/current/.release-version-stamp)"
+          python3 scripts/distribution_manifest.py --check --source-ancestor
       - name: Set up hash-locked Python test environment
         run: scripts/ci/setup-python-test-env.sh
       - name: Verify preinstalled ripgrep
@@ -164,14 +171,15 @@ jobs:
           python3 tests/release_trust_metadata_test.py
           python3 tests/release_readiness_recovery_test.py
           python3 tests/canonical_release_journal_test.py
-          python3 tests/spec146_release_intelligence_workflow_gate.py
           bash tests/release_tauri_artifacts_static_test.sh
 
       - name: Cross-build exact-identity cancellation ownership (#543, blocking)
         run: python3 tests/cross_cancellation_cleanup_test.py
 
       - name: Installer/update policy + Pi discovery static gate
-        run: bash tests/installer_update_policy_static_test.sh
+        run: |
+          bash tests/installer_update_policy_static_test.sh
+          env PATH=/usr/bin:/bin bash tests/release_version_asset_test.sh
 
       - name: Distribution manifest source contract (#260, blocking)
         run: |
@@ -187,6 +195,7 @@ jobs:
 
   spec-gates:
     name: Spec Gates (strict)
+    needs: release-automation-static
     concurrency:
       group: focusa-cargo-spec-${{ github.ref }}
       cancel-in-progress: true
@@ -235,8 +244,15 @@ jobs:
           npm run check
           npm run lint
           node --test tests/*.test.mjs
+      - name: OpenClaw awareness package compatibility
+        working-directory: apps/focusa-awareness
+        run: npm test
       - name: Final release gap gate (OTA, authority/worktree, compaction, cache)
-        run: tests/final_release_gap_gate.sh
+        run: |
+          unset NODE_OPTIONS
+          node scripts/validate-docs-runtime-parity.mjs
+          npx --yes tsx tests/utility_card_session_isolation_test.mts
+          tests/final_release_gap_gate.sh
       - name: Spec104 static surface audit (no daemon needed)
         run: python3 tests/spec104_deep_focusa_surface_sweep.py --static-only
       - name: Spec104 Pi runtime scope integrity
@@ -254,7 +270,7 @@ jobs:
           shutil.rmtree(path, ignore_errors=True)
           path.mkdir(parents=True)
           PY
-          cargo build -p focusa-api --release --bin focusa-daemon
+          cargo build --locked -p focusa-api --release --bin focusa-daemon
           "$CARGO_TARGET_DIR/release/focusa-daemon" >/tmp/focusa-daemon-probe.log 2>&1 &
           DAEMON_PID=$!
           cleanup() {

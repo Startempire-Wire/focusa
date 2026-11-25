@@ -34,7 +34,7 @@ workflow = RELEASE_WORKFLOW.read_text()
 assert "open-issue-release-gate:" not in workflow
 release_jobs = yaml.load(workflow, Loader=yaml.BaseLoader)["jobs"]
 required_creation_gates = {
-    "rust-check", "final-release-gap-gate", "pull-request-release-gate",
+    "rust-check", "pull-request-release-gate",
     "version-policy",
 }
 assert required_creation_gates <= set(release_jobs["create-release"]["needs"])

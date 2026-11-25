@@ -73,10 +73,8 @@ require(
         "scripts/select-release-version.py",
         'stage "version-selection"',
         "VERSION_SELECTION_DETAILS",
-        "normalize_release_channel",
-        '--prerelease=true --latest=false',
-        '--prerelease=false --latest=true',
-        'stage "release-channel"',
+        'verify_release_channel "$TAG" stable',
+        'verify_release_channel "$TAG" preview',
     ],
     "exact candidate pre-tag flow",
 )
@@ -94,9 +92,12 @@ require(
 proof_reseal = TAG_SCRIPT.index("python3 scripts/generate-locked-release-candidate-ancestry.py")
 stamp_commit = TAG_SCRIPT.index('git commit -m "chore: stamp release surfaces ${VERSION}"')
 candidate_push = TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n", proof_reseal)
-benchmark = TAG_SCRIPT.index("journal_client benchmark --tag")
-assert stamp_commit < proof_reseal < benchmark < candidate_push, "benchmark does not use sealed stamped proof"
-assert candidate_push < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
+assert stamp_commit < proof_reseal < candidate_push, "source CI must see the sealed candidate"
+assert "journal_client benchmark" not in TAG_SCRIPT, "unmeasured benchmarks must not gate publication"
+assert "gh release edit" not in TAG_SCRIPT, "only verified deployment may promote Latest"
+assert TAG_SCRIPT.index('wait_for_workflow "Deploy Live Daemon" "$HEAD_SHA" "${TAG}"') < TAG_SCRIPT.index('verify_release_channel "$TAG" stable')
+source_ci = TAG_SCRIPT.index('wait_for_source_workflow "CI" "$HEAD_SHA"', candidate_push)
+assert candidate_push < source_ci < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before exact main CI"
 assert 'wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"' not in TAG_SCRIPT, "billing-locked Spec132 still blocks immutable tag creation"
 require(
     RELEASE_CLI,
@@ -218,14 +219,10 @@ require(
         "Release blocked by release-scoped pull requests",
         "unrelated open pull requests remain queued outside the locked candidate",
         "Require exact candidate-SHA preflight receipts",
-        "candidate_ci_skipped reason=docs-only",
-        "FOCUSA_CANDIDATE_CI_REQUIRED",
-        "Exact tag CI proof (reused)",
-        "tag-ci-proof",
-        "needs: rust-check",
-        "needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, tag-ci-proof]",
+        'gh run list --workflow ci.yml --branch main --commit "$RELEASE_SHA"',
+        "candidate_gate_reused workflow=CI",
+        "needs: [external-menubar-receipts, rust-release, external-rust-binaries, pi-extension-release, rust-check]",
         "shared-key: release-target-${{ matrix.target }}",
-        "git diff-tree --root --no-commit-id --name-only -r",
     ],
     "Release trigger/cache controls",
 )
@@ -252,14 +249,12 @@ require(
     [
         "--json number,mergeCommit,mergedAt,baseRefName",
         'select(.baseRefName == "main" and .mergedAt > $since and .mergedAt <= $until)',
-        'candidate_changed_paths="$(git diff --name-only',
     ],
-    "main-scoped PR and Spec132 inclusion gates",
+    "main-scoped PR inclusion gate",
 )
-final_gap = RELEASE[
-    RELEASE.index("final-release-gap-gate:") : RELEASE.index("# Create the GitHub Release")
-]
-assert "fetch-depth: 0" in final_gap, "release final-gap proof checkout lacks full history"
+assert CI.count("tests/final_release_gap_gate.sh") == 1, "source CI must run the full gap proof once"
+assert "tests/final_release_gap_gate.sh" not in RELEASE, "Release must verify exact CI, not rerun its tests"
+assert "Wait for candidate-SHA CI" not in RELEASE, "Release must not block the source runner"
 require(
     SPEC132,
     [

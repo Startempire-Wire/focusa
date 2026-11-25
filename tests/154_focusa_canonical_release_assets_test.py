@@ -97,17 +97,20 @@ class ReleasePublicationRegressionTests(unittest.TestCase):
         self.assertIn('if [ -n "$RELEASE_REASON" ]; then', run)
         override = run.index("--force-release")
         self.assertNotIn("scripts/release-gate.py", run)
-        self.assertLess(run.index("gh run list"), override)
-        self.assertLess(run.index("scripts/next-version.py"), override)
-        self.assertIn('(.violations | length == 0)', run)
-        self.assertIn('scripts/create-dev-release-tag.sh "${args[@]}" --push', run)
+        owner = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
+        self.assertNotIn("scripts/next-version.py", run)
+        self.assertNotIn("gh run list", run)
+        self.assertIn('if [ "$rc" -eq 78 ]; then', run)
+        self.assertLess(override, run.index('scripts/create-dev-release-tag.sh "${args[@]}" --push'))
+        self.assertIn('release_version_policy_blocked', owner)
+        self.assertIn('wait_for_source_workflow "CI" "$HEAD_SHA"', owner)
         self.assertNotIn("--no-verify", run)
 
     def test_receipt_gates_and_immutable_validation_cannot_be_skipped(self):
         workflow = self.workflow()
         jobs = workflow["jobs"]
         self.assertIn("windows-ovh-executables", jobs["external-menubar-receipts"]["needs"])
-        for gate in ("external-menubar-receipts", "external-rust-binaries", "tag-ci-proof"):
+        for gate in ("external-menubar-receipts", "external-rust-binaries", "rust-check"):
             self.assertIn(gate, jobs["checksums"]["needs"])
         immutable = next(s for s in jobs["rust-check"]["steps"] if s.get("name") == "Verify immutable tag identity")
         self.assertNotIn("if", immutable)

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Static guard for programmatic ReleaseGate: expensive release builds must be
-# gated by significant delta, scheduled window, or explicit override reason.
+# Cadence constrains unattended scheduling, not a requested small fix.
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GATE="$ROOT_DIR/scripts/release-gate.py"
@@ -41,15 +40,20 @@ spec.loader.exec_module(module)
 scored = module.score_path(".github/workflows/release.yml")
 assert scored.category == "release_deploy_system"
 assert scored.score >= module.SIGNIFICANT_SCORE
+module.latest_tag = lambda: None
+module.changed_paths = lambda _: ['apps/pi-extension/src/index.ts']
+module.release_window_status = lambda _: (False, 'fixture outside window')
+module.os.environ['FOCUSA_RELEASE_CHANNEL'] = 'stable'
+assert module.main(['--json']) == 1
+assert module.main(['--advisory', '--json']) == 0
 PY
 pass "canonical release workflow repairs independently meet the significant-delta gate"
 
-grep -q 'python3 scripts/release-gate.py' "$HELPER" || fail "tag helper must invoke ReleaseGate"
+grep -q 'python3 scripts/release-gate.py --advisory' "$HELPER" || fail "requested releases use advisory cadence"
 grep -q -- '--force-release' "$HELPER" || fail "tag helper missing --force-release override"
 grep -q -- '--release-reason' "$HELPER" || fail "tag helper missing --release-reason"
 grep -q 'Blocked: --force-release requires --release-reason' "$HELPER" || fail "force override must require plain-language reason"
-grep -q 'ReleaseGate override accepted' "$HELPER" || fail "override must be explicit/auditable"
-pass "create-dev-release-tag enforces ReleaseGate with explicit override reason"
+pass "requested small fixes preserve version and trust checks without an override"
 
 python3 "$ROOT_DIR/tests/release_controller_editorial_override_test.py"
 pass "controller delegates editorial exceptions without weakening CI/version checks"

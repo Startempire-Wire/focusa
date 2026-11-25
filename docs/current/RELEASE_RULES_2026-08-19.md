@@ -36,8 +36,10 @@ No variants, shortcuts, `--no-verify`, manual manifest edits or immutable-tag re
 - **Proof, not ticket closure, gates delivery.** Open issues remain open until their
   actual acceptance criteria are proven. They do not prevent building the signed
   candidate needed to collect installed evidence. Exact-source checks, scoped PR
-  inclusion, signed artifacts, compatibility canary, installed distribution parity,
-  OTA/rollback proof, and final promotion checks remain mandatory. Deferred work is
+  inclusion, signed artifacts, installed distribution parity, trusted OTA
+  installability and final promotion checks remain mandatory. The standalone
+  compatibility canary is not in the live workflow; its absence is not a passed
+  canary or proof that a new candidate has been rolled back. Deferred work is
   not silently declared complete or added to the current release.
 
 - **No partial releases.** No OS-only, surface-only, or docs-only ship without explicit operator written approval.
@@ -52,13 +54,13 @@ Every step below is code, not human memory. The agent never manually runs it; `g
 | Step | Deterministic code | Agent removed | How |
 |------|-------------------|---------------|-----|
 | **Version surfaces** | `scripts/stamp-menubar-version.py vX.Y.Z` | Hand-editing release surfaces | ONLY writer for workspace, Pi extension, menubar, installer, agent-card, README, release-stamp, and `distribution-manifest.json` versions. The shared `scripts/distribution_manifest.py` contract computes every file/tree SHA-256, component count, capability digest, runtime path, `source_commit`, and UTC `generated_at`; it never writes. Never hand-edit the manifest. |
-| **Pre-push** | `.git/hooks/pre-push` (common hooks) | Manual `verify-version-surfaces`/`sha256`/`fmt` checks | Blocks `git push` in <30s before CI. Runs `validate-commit-messages` + `local-release-preflight PREFLIGHT_FAST=1` (Windows `:` lint + surfaces + parity + manifest FRESH ancestor + fmt) + `convergence` + `installer` gates. `PREFLIGHT_FAST=1` allows manifest at any ancestor; STRICT requires HEAD/parent. No `--no-verify` escape (fails closed). |
-| **Preflight** | `scripts/local-release-preflight.sh [--strict]` | CI guess loops | **Blocking, continually fresh, fails closed.** FAST checks versions, docs parity, legacy artifact SHA-256, freshness/ancestry, and formatting. STRICT additionally recomputes every full component digest/runtime contract via `distribution_manifest.py`, then runs the final gap and Spec gates. `create-dev-release-tag.sh` calls STRICT after stamping and before any push. |
+| **Pre-push** | `.git/hooks/pre-push` (common hooks) | Manual `verify-version-surfaces`/`sha256`/`fmt` checks | Runs commit-message, source preflight, convergence and installer checks. No `--no-verify`. |
+| **Preflight** | `scripts/local-release-preflight.sh [--strict]` | Duplicate test builds | Blocking Windows path, version, digest, source ancestry and format checks. `--strict` is a compatibility spelling. No daemon compilation or live evidence claim. |
 | **Commit message** | `scripts/validate-commit-messages.sh` + `commit-msg` hook | Agent crafting `fix:` vs `spec104:` | Enforces Conventional Commits `^(feat|fix|docs|test|refactor|perf|build|ci|chore|revert|proof|merge)(\(.+\))?!: .{4,}$` ≤100 chars, rejects `Beads:*`, ID-only, `WIP`. `spec104:` is rejected; use `fix:` (Spec104 inventory is `fix(release):`). |
 | **CI gate** | `.github/workflows/ci.yml` | Manual `cargo test` polling | 5 jobs deterministic: `Menubar`, `Meaningful`, `Rust`, `Spec Gates (strict)`, `Release Automation`. Apt mirror resilient (`rm apt-mirrors.txt`, `sed azure→archive`, `timeout 45`, fallback `rg` binary). |
 | **Spec132 wait** | Canonical tag preflight and Spec178 provider substitution; hosted matrix explicitly opt-in | Agent `gh api /rerun-failed-jobs` polling | Under Spec178, required OVH/Codemagic/provider evidence replaces hosted terminal execution; it does not waive consumer proof. All Spec132 jobs use the existing `FOCUSA_GITHUB_HOSTED_RELEASE_MATRIX=enabled` opt-in, including automatic main-push triggers, so an absent variable cannot incur hosted matrix spend. No agent rerun. |
-| **Tag → Release** | `.github/workflows/release.yml` canonical DAG | Agent waiting on provider pages | Candidate contract and exact-SHA CI → release gate → package Pi/agent docs/generated clients → build every OS/surface → require `distribution-manifest.json` → generate checksums, candidate release manifest, provenance, and signatures → immutable prerelease publication (`Latest=false`) → signed isolated `v0.9.177 → interrupted-install recovery → candidate → rollback → candidate` compatibility and full distribution-parity canary → independently verify its exact-SHA receipt before any production mutation → deploy exact assets → installed parity + OTA gates → re-sign settled manifest → stable/Latest promotion. |
-| **Verification** | `scripts/verify-version-surfaces.py` tail in `create-dev-release-tag.sh`; `scripts/verify-embedded-authority-root.py` in every Rust packaging provider | Agent `gh release view` eyes and runtime-root injection | Scripts verify production authority roots inside binaries before upload, then `isLatest true` + asset count before exiting 0. |
+| **Tag → Release** | `.github/workflows/release.yml` | Repeating CI inside Release | Require successful main CI on the exact tag commit; do not rebuild test fixtures or wait for CI in the Release job. Package every supported artifact, verify production trust roots, publish signed candidate (`Latest=false`), then deploy and verify installed parity and trusted OTA installability. The deployment workflow alone promotes stable/Latest. |
+| **Verification** | Deployment workflow plus read-only release helper | Early or manual promotion | A download, signed candidate, queued deploy, and accepted production release are different states. The helper verifies the channel only after the applicable workflow has succeeded; it never edits it. |
 | **Journal** | `journal_client` in `create-dev-release-tag.sh` | Agent forgetting optimization | Every Release failure is cataloged in `docs/current/RELEASE_FAILURE_MODE_CATALOG` H and `release-proof/audit/` — next run's `run-release-learning-guards.py` replays guards. Kept continually for optimizations. |
 
 **Agent responsibility:** diagnose actual failures, preserve candidate/receipt identity, perform authorized supported recovery and verify consumer acceptance. Resolve genuine scope/cost/consent boundaries without inventing them. The canonical controller owns execution and settlement; an unchanged deterministic failure is not an endless retry instruction. No manual promotion or guessed provider/tag repair.
@@ -68,34 +70,33 @@ Every step below is code, not human memory. The agent never manually runs it; `g
 ```bash
 bash scripts/create-dev-release-tag.sh --push
 # or for a specific version:
-bash scripts/stamp-menubar-version.py vX.Y.Z && bash scripts/local-release-preflight.sh --strict && bash scripts/create-dev-release-tag.sh --push
+bash scripts/create-dev-release-tag.sh --tag vX.Y.Z --push
 ```
 
-On the single eligible builder, the existing controller uses `--no-wait-ci`: stable preparation checks exact-candidate CI once and exits **78 (`source_gate_pending`) before any tag** if that SHA is not green. This is an incomplete preparation phase, not release success. The caller exits to yield the builder; let the existing canonical source-CI workflow finish, then resume the **same approved tag and candidate** through the same helper. Failed, foreign-SHA, unreadable or malformed CI results never authorize tagging; provider failures remain errors rather than an empty queue. Explicit wait mode retains its wait. No new controller, journal, signing path or gate bypass is introduced.
+On the single eligible builder, use `--no-wait-ci`: preparation checks exact-candidate CI once and exits **78 (`source_gate_pending`) before any tag** while that SHA is pending. This is an incomplete preparation phase, not release success. The caller exits to yield the builder; let the existing canonical source-CI workflow finish, then resume the **same approved tag and candidate** through the same helper. Failed, foreign-SHA, unreadable or malformed CI results never authorize tagging; provider failures remain errors rather than an empty queue. Explicit wait mode retains its wait. No new controller, journal, signing path or gate bypass is introduced.
 
 Internally the script does the 7-step checklist deterministically — the agent does not run them by hand:
 
 ```
 1. git status — clean, no ':' in evidence paths (Windows lint would FAIL)
 2. stamp-menubar-version.py vX.Y.Z — 16 surfaces + manifest atomically (source_commit=HEAD, sha256 recomputed, generated_at now)
-3. local-release-preflight.sh --strict — must print DONE — PASS (may tag) or script exits non-zero (no tag)
-4. git add + commit "chore: stamp release surfaces X.Y.Z" + push main — requires exact-source CI green on that SHA; nonwaiting pending exit78 yields without tagging
-5. (if terminal paths) waits deterministically for Spec132 11/11 on same SHA
-6. canonical controller creates a new immutable candidate tag and pushes only under its current grant — enqueues Release; existing tags are preserved
-7. Release workflow reconciles exact-source proof, full artifact/signature matrix, compatibility, deployment and installed acceptance before promotion
+3. local-release-preflight.sh --strict — checks source integrity only
+4. Commit stamped surfaces and candidate proof, then push main and require exact-source CI on the final SHA. Pending exit 78 yields without tagging.
+5. Retain Spec178 platform proof obligations; binding provider receipts come from packaging, not from duplicate source tests.
+6. Create and push the immutable candidate tag only after exact-source CI passes. Keep previous tags unchanged.
+7. Release reuses source CI, publishes the signed full candidate, and dispatches stable deployments. Install, parity and OTA proof precede promotion.
 8. verify exact terminal receipts, valid channel/Latest state and all required consumer outcomes; count/entry presence alone is insufficient
 ```
 
 For **Dev release**: same, but tag is `vX.Y.Z-dev` and Release shows `isPrerelease=true`. No other difference.
 
-### Preflight detail — continually fresh, never stale
+### Source integrity and surface-specific acceptance
 
 **Acceptance follows the surface being shipped.** For a Pi extension update, test Pi command loading, terminal behavior, settings, and session/scope isolation in Pi. For an OpenClaw awareness update, test the built plugin, gateway activation, and tool invocation in OpenClaw. Neither requires a browser or a daemon upgrade. An extension-only deployment is not a full stable release. The Spec 135 U3 browser evidence audit (`python3 tests/spec135_u3_browser_eval_suite_test.py`) applies only when claiming browser acceptance for generated UI; it is not a generic release prerequisite. Incomplete browser evidence remains incomplete, and browser isolation and privacy checks remain in the generic suite.
 
-- **FAST** (`PREFLIGHT_FAST=1`, used by `pre-push`): `source_commit` may be any ancestor of `HEAD` (`git merge-base --is-ancestor`). Allows `docs/ci` commits without churning `distribution-manifest.json` on every push. Still checks `release_version==Cargo`, `sha256` match, `generated_at<24h`.
-- **STRICT** (used by `create-dev-release-tag.sh --push` before tag): `source_commit` must be `HEAD` or `HEAD~1` with `distribution-manifest.json` touched in `HEAD`. Ensures the Release tag's manifest is at most one commit old and reflects the stamped SHA. Prints `FAIL stale source_commit X != HEAD Y nor parent Z (touched=False)` with hint `run stamp-menubar-version.py`.
-
-**Nothing is ever allowed to be stale.** If `local-release-preflight.sh` says `FAIL stale …`, that failure is real and blocks `git push` / tag push. Fix is always `python3 scripts/stamp-menubar-version.py v$(cat docs/current/.release-version-stamp)` then rerun preflight.
+- The manifest's `source_commit` must resolve to an unambiguous ancestor; all covered bytes and version surfaces must match. `generated_at` is valid UTC provenance, not an expiry date. If covered bytes change, regenerate through the stamp writer. The exact tag SHA is independently bound by source CI, release provenance and deployment receipts.
+- Cadence and file-count scoring advise on batching unattended releases. An explicitly requested small fix does not require a score override. Version safety and publication checks still apply.
+- Spec 114 benchmark/Observatory and Spec 117 marketing walkthrough, postcard and docs-link checks are standalone checks for those surfaces. Task-closure proof belongs to the actual task, not a guess based on commit subjects. Neither is a generic publication veto.
 
 ### If Release fails (deterministic recovery, no agent guessing)
 
@@ -127,16 +128,16 @@ Preview locally: `python3 scripts/generate-release-notes.py --tag v0.9.177 --pre
 
 ### Journal — kept continually for optimizations
 
-`journal_client plan → progress → learning-guards → candidate-ci → tag → release` is kept for every Release. `scripts/run-release-learning-guards.py` replays prior failure modes (modes 41 azure mirror, 42 spec104 drift, 43 colon path, 44 stale manifest, 45 commit-msg) before stamping. Catalog is `docs/current/RELEASE_FAILURE_MODE_CATALOG_2026-08-17.md` H+I.
+`journal_client plan → progress → learning-guards → candidate-ci → tag → release` is kept for every Release. Before stamping, `scripts/run-release-learning-guards.py` handles release resource safety. Source regressions run in their existing CI and manifest checks, not in a second dependency installation or compiler run.
 
-In `auto` mode, a refused connection to the existing Focusa daemon defers optional learning through the existing Agent-KB journal: unavailable retrieval, prediction creation, capture and evaluation are explicit, with no invented IDs or measurements. Known prediction IDs survive a partial attempt; mutations are not automatically replayed. `required` mode keeps the refusal fatal. Authentication/scope denials, TLS errors, malformed responses and ambiguous timeout effects remain failures, not empty history. Journal publication/readback, recurrence guards, actual benchmarks, exact-source CI, signatures, installation and consumer acceptance are unchanged; deferred learning does not prove those obligations complete.
+In `auto` mode, a refused connection to the existing Focusa daemon defers optional learning through the existing Agent-KB journal: unavailable retrieval, prediction creation, capture and evaluation are explicit, with no invented IDs or measurements. Known prediction IDs survive a partial attempt; mutations are not automatically replayed. `required` mode keeps the refusal fatal. Authentication/scope denials, TLS errors, malformed responses and ambiguous timeout effects remain failures, not empty history. Journal publication/readback and recurrence guards remain. The journal records agent-intelligence benchmarks as **unmeasured** until there are execution-backed observations. Comparative performance claims require separate real measurements; an unrelated release never depends on the definition-only benchmark runner. Exact-source CI, signatures, installation and consumer acceptance are unchanged.
 
 ### Dry-run without a full Release
 
 ```bash
-bash scripts/local-release-preflight.sh --strict          # 15s — exact Release gates, no push
-bash scripts/create-dev-release-tag.sh --dry-run           # 30s — stamps 16 + manifest, verifies, then git checkout --reverts (no tag, no workflow)
-FOCUSA_TEST_MODE=1 bash scripts/ci/run-spec-gates.sh     # full Spec Gates
+bash scripts/local-release-preflight.sh --strict       # source integrity, no push
+bash scripts/create-dev-release-tag.sh --dry-run        # isolated clean checkout only; stamps and restores
+FOCUSA_TEST_MODE=1 bash scripts/ci/run-spec-gates.sh      # explicit test suite on an approved isolated build host
 ```
 
 A successful dry-run proves only the checks actually performed, not future provider success, full signatures, deployment or installed acceptance. Inspect the current script's dry-run side-effect/reconciliation contract before use; do not infer safe rollback or automatic execution from this historical example.

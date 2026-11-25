@@ -96,12 +96,17 @@ fn spec172_dynamic_operation_manifest_registry_metadata_uses_registered_vocabula
     // exact Spec 172 Section 12 vocabulary (operation_id, product_owner,
     // operation_class, capability_family, side_effect_class).
     let operations = registry_operations();
-    assert_eq!(operations.len(), 157, "canonical operation count");
+    assert!(!operations.is_empty(), "canonical registry is empty");
+    let mut ids = HashSet::new();
     let mut owners = HashSet::new();
     let mut classes = HashSet::new();
     let mut side_effects = HashSet::new();
     for operation in &operations {
-        assert!(operation["operation_id"].as_str().is_some());
+        let id = operation["operation_id"].as_str().expect("operation_id");
+        assert!(
+            !id.is_empty() && ids.insert(id),
+            "invalid or duplicate operation {id:?}"
+        );
         let owner = operation["product_owner"].as_str().expect("product_owner");
         let class = operation["operation_class"]
             .as_str()
@@ -152,7 +157,7 @@ fn spec172_dynamic_operation_manifest_registry_metadata_uses_registered_vocabula
 #[test]
 fn spec172_dynamic_operation_manifest_all_registry_operations_trusted_when_signed() {
     // A signed manifest whose claims match the canonical registry exactly is
-    // trusted for all 157 operations: trusted operations inherit canonical
+    // trusted for all registered operations: they inherit canonical
     // policy and never become limited/paid by client metadata.
     let operations = registry_operations();
     for operation in &operations {
@@ -371,11 +376,27 @@ fn spec172_dynamic_operation_manifest_generated_ui_only_canonical_registered_act
         .map(|operation| (operation["operation_id"].as_str().unwrap(), operation))
         .collect();
     let bindings = ui_bindings();
-    assert_eq!(bindings.len(), 157, "generated UI binding count");
     let canonical_actions: Vec<&str> = bindings
         .iter()
         .map(|binding| binding["action_id"].as_str().unwrap())
         .collect();
+    let actual: HashSet<&str> = canonical_actions.iter().copied().collect();
+    let expected: HashSet<&str> = operations_by_id
+        .iter()
+        .filter_map(|(&id, operation)| {
+            (operation["ui"]["allowed_in_generated_ui"].as_bool() == Some(true)).then_some(id)
+        })
+        .collect();
+    assert_eq!(
+        actual.len(),
+        bindings.len(),
+        "duplicate generated UI action"
+    );
+    assert!(!expected.is_empty(), "canonical generated UI set is empty");
+    assert_eq!(
+        actual, expected,
+        "generated UI bindings must match canonical allowed actions"
+    );
 
     for binding in &bindings {
         let action_id = binding["action_id"].as_str().unwrap();

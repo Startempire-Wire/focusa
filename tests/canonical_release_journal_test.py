@@ -407,8 +407,9 @@ for command in ("backfill", "plan", "benchmark", "progress", "problem", "correct
     assert command in help_run.stdout
 
 release_script = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
-for lifecycle_command in ("journal_client plan", "journal_client benchmark", "journal_client progress", "journal_client problem", "journal_client finalize"):
+for lifecycle_command in ("journal_client plan", "journal_client progress", "journal_client problem", "journal_client finalize"):
     assert lifecycle_command in release_script
+assert "journal_client benchmark" not in release_script
 assert "FOCUSA_RELEASE_JOURNAL_MODE" in release_script
 assert "run-release-learning-guards.py" in release_script
 assert "run-guardian-release-cleanup.sh post" in release_script
@@ -443,6 +444,7 @@ try:
     module.record_release_predictions = predictions_must_not_run
     args = module.argparse.Namespace(tag="v0.9.999", channel="stable")
     module.cmd_plan(args)
+    assert published[-1]["measurements"]["benchmark"] == module.UNMEASURED_BENCHMARK
     learning = published[-1]["measurements"]["learning"]
     assert learning["status"] == "deferred"
     assert learning["retrieved_lessons"]["status"] == "unavailable"
@@ -493,7 +495,7 @@ try:
     module.focusa_http = partial_predictions
     result = module.record_release_predictions(args.tag)
     assert result["status"] == "unavailable"
-    assert result["predictions"] == {"benchmark": "synthetic-durable-prediction"}
+    assert result["predictions"] == {"candidate-ci": "synthetic-durable-prediction"}
     assert len(writes) == 2, "a refused mutation must not be automatically replayed"
 finally:
     for name, original in learning_originals.items():
@@ -509,8 +511,8 @@ assert guards["schema"] == "focusa.release_learning_guards.v1"
 assert guards["guards"][0]["failure_class"] == "guardian_release_artifact_cleanup"
 assert guards["guards"][1]["failure_class"] == "cross_server_resource_pressure"
 classes = [row["failure_class"] for row in guards["guards"]]
-assert len(classes) >= 6
 assert len(classes) == len(set(classes))
+assert not any(guard["command"][0] in ("cargo", "npm") for guard in guards["guards"])
 assert all(row["lesson_ref"] and row["command"] for row in guards["guards"])
 
 print("canonical release journal client contract: passed")

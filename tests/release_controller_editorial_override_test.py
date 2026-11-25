@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ControllerEditorialOverrideTest(unittest.TestCase):
-    def exercise(self, *, reason="Critical startup recovery", ci=True, version=True, helper_exit=0):
+    def exercise(self, *, reason="Critical startup recovery", helper_exit=0):
         workflow = (ROOT / ".github/workflows/dev-release-tag.yml").read_text()
         step = workflow.split("      - name: Create approved immutable tag\n", 1)[1]
         shell = textwrap.dedent(step.split("        run: |\n", 1)[1])
@@ -34,22 +34,9 @@ class ControllerEditorialOverrideTest(unittest.TestCase):
             """)
             script("bin/gh", """#!/usr/bin/env python3
                 import json, os, pathlib, sys
-                if sys.argv[1:3] == ['run', 'list']:
-                    print(json.dumps([{'headSha': os.environ['FIXTURE_SHA'], 'status': 'completed', 'conclusion': 'success'}] if os.environ['CI_VALID'] == '1' else []))
-                elif sys.argv[1:3] == ['workflow', 'run']:
-                    pathlib.Path('dispatch.json').write_text(json.dumps(sys.argv[1:]))
-                else:
+                if sys.argv[1:3] != ['workflow', 'run']:
                     raise SystemExit('unexpected synthetic GitHub operation')
-            """)
-            script("scripts/next-version.py", """#!/usr/bin/env python3
-                import json, os, pathlib, sys
-                pathlib.Path('version.json').write_text(json.dumps(sys.argv[1:]))
-                print(json.dumps({'violations': [] if os.environ['VERSION_VALID'] == '1' else ['synthetic version regression']}))
-            """)
-            script("scripts/release-gate.py", """#!/usr/bin/env python3
-                from pathlib import Path
-                Path('duplicate-editorial-gate').touch()
-                raise SystemExit(97)
+                pathlib.Path('dispatch.json').write_text(json.dumps(sys.argv[1:]))
             """)
             script("scripts/create-dev-release-tag.sh", """#!/usr/bin/env bash
                 set -eu
@@ -60,48 +47,42 @@ class ControllerEditorialOverrideTest(unittest.TestCase):
             env = dict(os.environ, PATH=str(root / "bin") + os.pathsep + os.environ["PATH"],
                        APPROVED_TAG="v9.9.999", APPROVED_BASE="9.9", PUSH="true",
                        RELEASE_REASON=reason, GITHUB_REPOSITORY="synthetic/release-fixture",
-                       FIXTURE_SHA="a" * 40, CI_VALID=str(int(ci)), VERSION_VALID=str(int(version)),
-                       HELPER_EXIT=str(helper_exit))
+                       FIXTURE_SHA="a" * 40, HELPER_EXIT=str(helper_exit),
+                       GITHUB_STEP_SUMMARY=str(root / "summary"))
             result = subprocess.run(["bash", "-c", shell], cwd=root, env=env,
                                     capture_output=True, text=True, timeout=5)
             self.last_output = result.stdout + result.stderr
             return (result.returncode,
                     (root / "helper-args").read_text().splitlines() if (root / "helper-args").exists() else None,
-                    json.loads((root / "version.json").read_text()) if (root / "version.json").exists() else None,
-                    (root / "dispatch.json").exists(), (root / "duplicate-editorial-gate").exists())
+                    (root / "dispatch.json").exists(),
+                    (root / "summary").read_text() if (root / "summary").exists() else "")
 
     def test_reason_reaches_canonical_helper_without_duplicate_editorial_veto(self):
-        code, args, version, dispatched, duplicate = self.exercise()
+        code, args, dispatched, summary = self.exercise()
         self.assertEqual(code, 0, self.last_output)
         self.assertIn("--force-release", args)
         self.assertEqual(args[args.index("--release-reason") + 1], "Critical startup recovery")
-        self.assertEqual(version, ["--tag", "v9.9.999", "--json"])
         self.assertTrue(dispatched)
-        self.assertFalse(duplicate)
+        self.assertFalse(summary)
 
     def test_normal_release_does_not_acquire_an_override(self):
-        code, args, version, dispatched, duplicate = self.exercise(reason="")
+        code, args, dispatched, summary = self.exercise(reason="")
         self.assertEqual(code, 0, self.last_output)
         self.assertNotIn("--force-release", args)
-        self.assertIsNone(version)
         self.assertTrue(dispatched)
-        self.assertFalse(duplicate)
+        self.assertFalse(summary)
 
-    def test_reason_cannot_override_exact_source_ci_failure(self):
-        code, args, version, dispatched, duplicate = self.exercise(ci=False)
-        self.assertNotEqual(code, 0)
-        self.assertIsNone(args)
-        self.assertIsNone(version)
+    def test_pending_source_ci_yields_without_dispatch(self):
+        code, _, dispatched, summary = self.exercise(helper_exit=78)
+        self.assertEqual(code, 0, self.last_output)
         self.assertFalse(dispatched)
-        self.assertFalse(duplicate)
+        self.assertIn("Source CI pending", summary)
 
-    def test_reason_cannot_override_version_failure(self):
-        code, args, version, dispatched, duplicate = self.exercise(version=False)
-        self.assertNotEqual(code, 0)
-        self.assertIsNone(args)
-        self.assertIsNotNone(version)
+    def test_reason_does_not_override_helper_failure(self):
+        code, _, dispatched, summary = self.exercise(helper_exit=1)
+        self.assertEqual(code, 1, self.last_output)
         self.assertFalse(dispatched)
-        self.assertFalse(duplicate)
+        self.assertFalse(summary)
 
 
 if __name__ == "__main__":

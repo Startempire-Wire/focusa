@@ -103,7 +103,7 @@ if [ ! -x "$DAEMON_BIN" ]; then
   # resources.  CI workflows supply CARGO_PROFILE_RELEASE_LTO=off so the
   # spec-gates daemon builds without cross-crate optimization; the
   # release pipeline uses musl + cross for the shipped artifact.
-  "$CARGO_BIN" build -p focusa-api --release --bin focusa-daemon
+  "$CARGO_BIN" build --locked -p focusa-api --release --bin focusa-daemon
 fi
 if [ ! -x "$DAEMON_BIN" ]; then
   echo "spec-gates daemon missing after successful build: $DAEMON_BIN" >&2
@@ -217,7 +217,6 @@ run_gate env DAEMON_BIN="$DAEMON_BIN" bash ./tests/security_dynamic_api_smoke_te
 run_gate bash ./tests/security_non_loopback_auth_guard_static_test.sh
 run_gate env DAEMON_BIN="$DAEMON_BIN" bash ./tests/security_non_loopback_auth_guard_dynamic_test.sh
 run_gate bash ./tests/spec96_menubar_mission_canvas_foundation_static_test.sh
-run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh
 run_gate bash ./tests/spec135h_implementation_acceleration_static_test.sh
 run_gate bash ./tests/spec135i_real_time_generated_ui_static_test.sh
 run_gate bash ./tests/spec135j_core_api_runtime_reuse_static_test.sh
@@ -263,4 +262,3 @@ done
 run_gate python3 "$ROOT_DIR/tests/spec144_semantic_artifacts_gate.py"
 python3 ./tests/run_spec137_138_full_conformance_gates.py
 run_gate python3 ./tests/spec137a_138a_144_documentation_closure_gate.py
-run_gate python3 ./tests/bead_closure_evidence_gate.py

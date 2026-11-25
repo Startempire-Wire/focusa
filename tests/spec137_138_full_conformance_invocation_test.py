@@ -61,8 +61,9 @@ for integration_path in (
     "tests/final_release_gap_gate.sh",
 ):
     text = (ROOT / integration_path).read_text()
-    assert text.count(CANONICAL_INVOCATION) == 1, (
-        f"{integration_path}: canonical full-conformance invocation missing or duplicated"
+    expected_count = 1 if integration_path == "scripts/ci/run-spec-gates.sh" else 0
+    assert text.count(CANONICAL_INVOCATION) == expected_count, (
+        f"{integration_path}: full conformance must run exactly once in source CI"
     )
     for suite in FUNCTION_SUITES:
         direct = f"python3 ./{suite}"

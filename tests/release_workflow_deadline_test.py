@@ -40,8 +40,14 @@ events = [json.loads(l) for l in p.read_text().splitlines()] if p.exists() else 
 with p.open("a") as out:
     out.write(json.dumps(args) + "\\n")
 if args[:2] == ["run", "list"]:
+    workflow = args[args.index("--workflow") + 1]
+    assert workflow == os.environ["TEST_WORKFLOW"]
+    if workflow == "Deploy Live Daemon":
+        assert args[args.index("--branch") + 1] == "main"
+        print(json.dumps([{"databaseId": 99, "displayTitle": "Deploy Focusa v0.0.0"},
+                          {"databaseId": 42, "displayTitle": "Deploy Focusa " + os.environ["TEST_TAG"]}]))
+        sys.exit(0)
     assert args[args.index("--commit") + 1] == os.environ["TEST_SHA"]
-    assert args[args.index("--workflow") + 1] == os.environ["TEST_WORKFLOW"]
     n = sum(e[:2] == ["run", "list"] for e in events)
     found = n >= int(os.environ.get("DISCOVERY_MISSES", "0"))
     if "--jq" in args:
@@ -60,6 +66,14 @@ elif args[:3] == ["run", "view", "42"]:
         print(json.dumps({"status": "completed" if done else "in_progress",
                           "conclusion": mode if done else "",
                           "url": "https://example.invalid/run/42", "jobs": []}))
+elif args[:2] == ["release", "view"]:
+    tag = os.environ["TEST_TAG"]
+    assert args[2] == tag
+    print(json.dumps({"tagName": tag, "isDraft": False,
+                      "isPrerelease": os.environ["SCENARIO"] != "accepted"}))
+elif args[:2] == ["release", "list"]:
+    print(json.dumps([{"tagName": os.environ["TEST_TAG"],
+                       "isLatest": os.environ["SCENARIO"] == "accepted"}]))
 else:
     raise SystemExit("unexpected API call: " + repr(args))
 ''')
@@ -76,7 +90,7 @@ wait_for_workflow "$TEST_WORKFLOW" "$TEST_SHA" "$TEST_TAG"
     def run_probe(self, scenario="success", args=(), workflow="Release", misses=0):
         env = dict(os.environ, PATH=str(self.root) + ":" + os.environ["PATH"],
                    EVENTS=str(self.events), SCENARIO=scenario, TEST_SHA="a" * 40,
-                   TEST_TAG="v0.9.198" if workflow == "Release" else "",
+                   TEST_TAG="" if workflow == "CI" else "v0.9.198",
                    TEST_WORKFLOW=workflow, DISCOVERY_MISSES=str(misses))
         result = subprocess.run(["bash", str(self.probe), "--ci-timeout", "1", *args],
                                 cwd=self.root, capture_output=True, text=True, env=env, timeout=10)
@@ -120,6 +134,23 @@ wait_for_workflow "$TEST_WORKFLOW" "$TEST_SHA" "$TEST_TAG"
         result, output = self.run_probe(workflow="CI")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("workflow_timeout name=CI run_id=42 timeout_s=1", output)
+
+    def test_deploy_lookup_uses_candidate_tag_even_after_main_advances(self):
+        result, output = self.run_probe(args=("--ci-timeout", "25"), workflow="Deploy Live Daemon")
+        self.assertEqual(result.returncode, 0, output)
+        self.assertIn("workflow_completed name=Deploy Live Daemon run_id=42", output)
+
+    def test_published_candidate_is_not_stable_until_promoted_by_deploy(self):
+        script = function("verify_release_channel") + '\nverify_release_channel "$TEST_TAG" stable\n'
+        env = dict(os.environ, PATH=str(self.root) + ":" + os.environ["PATH"],
+                   EVENTS=str(self.events), TEST_TAG="v0.9.198")
+        for scenario, code in (("candidate", 1), ("accepted", 0)):
+            result = subprocess.run(["bash", "-eu", "-o", "pipefail", "-c", script],
+                                    cwd=self.root, capture_output=True, text=True,
+                                    env={**env, "SCENARIO": scenario}, timeout=10)
+            self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+        for event in self.events.read_text().splitlines():
+            self.assertIn(json.loads(event)[:2], [["release", "view"], ["release", "list"]])
 
     def test_invalid_release_budgets_fail_before_api_calls(self):
         for value in ("0", "-1", "abc", "01", "999999999999999999999999"):
