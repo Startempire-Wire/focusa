@@ -6,6 +6,10 @@ use clap::{Args, Subcommand};
 use serde_json::{Value, json};
 use std::path::PathBuf;
 
+#[path = "project_remote_onboarding.rs"]
+mod remote_onboarding;
+use remote_onboarding::RemoteOnboarding::{Bootstrap, Genesis};
+
 #[derive(Subcommand)]
 pub enum ProjectCmd {
     /// Read hot-path ProjectIdentity for cwd/project_root.
@@ -401,6 +405,22 @@ pub struct ProjectGenesisMutationArgs {
     confirm: bool,
     #[arg(long)]
     takeover: bool,
+}
+
+async fn submit_genesis(
+    api: &ApiClient,
+    action: &str,
+    mut args: ProjectGenesisMutationArgs,
+) -> anyhow::Result<Value> {
+    if args.remote_binding_id.is_some() {
+        return Genesis.submit(action, &genesis_body(args)).await;
+    }
+    args.project_root = resolve_input_project_root(None, Some(&args.project_root))?;
+    api.post(
+        &format!("/v1/project/genesis/{action}"),
+        &genesis_body(args),
+    )
+    .await
 }
 
 fn genesis_body(args: ProjectGenesisMutationArgs) -> Value {
@@ -995,22 +1015,22 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 remote_binding_id,
                 continuity_id,
             } => {
-                if remote_binding_id.is_none() {
+                let response = if let Some(binding) = remote_binding_id.as_deref() {
+                    Bootstrap
+                        .status(binding, &project_root, continuity_id.as_deref())
+                        .await?
+                } else {
                     ensure_project_root_scope_safe(
-                        Some(project_root.as_str()),
+                        Some(&project_root),
                         "project bootstrap status",
                     )?;
-                }
-                let mut query = Vec::new();
-                push_query(&mut query, "project_root", Some(project_root.as_str()));
-                push_query(
-                    &mut query,
-                    "remote_binding_id",
-                    remote_binding_id.as_deref(),
-                );
-                push_query(&mut query, "continuity_id", continuity_id.as_deref());
-                let path = format!("/v1/project/bootstrap/status?{}", query.join("&"));
-                ("bootstrap status", api.get(&path).await?)
+                    let mut query = Vec::new();
+                    push_query(&mut query, "project_root", Some(&project_root));
+                    push_query(&mut query, "continuity_id", continuity_id.as_deref());
+                    api.get(&format!("/v1/project/bootstrap/status?{}", query.join("&")))
+                        .await?
+                };
+                ("bootstrap status", response)
             }
             ProjectBootstrapCmd::Preview { args } => {
                 if args.remote_binding_id.is_none() {
@@ -1019,11 +1039,14 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                         "project bootstrap preview",
                     )?;
                 }
-                (
-                    "bootstrap preview",
-                    api.post("/v1/project/bootstrap/preview", &bootstrap_body(args))
-                        .await?,
-                )
+                let remote = args.remote_binding_id.is_some();
+                let body = bootstrap_body(args);
+                let response = if remote {
+                    Bootstrap.submit("preview", &body).await?
+                } else {
+                    api.post("/v1/project/bootstrap/preview", &body).await?
+                };
+                ("bootstrap preview", response)
             }
             ProjectBootstrapCmd::Apply { args } => {
                 if args.remote_binding_id.is_none() {
@@ -1032,14 +1055,22 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                         "project bootstrap apply",
                     )?;
                 }
-                (
-                    "bootstrap apply",
+                let remote = args.remote_binding_id.is_some();
+                let body = bootstrap_body(args);
+                let response = if remote {
+                    Bootstrap.submit("apply", &body).await?
+                } else {
                     ApiClient::with_timeout_secs(360)
-                        .post("/v1/project/bootstrap/apply", &bootstrap_body(args))
-                        .await?,
-                )
+                        .post("/v1/project/bootstrap/apply", &body)
+                        .await?
+                };
+                ("bootstrap apply", response)
             }
             ProjectBootstrapCmd::Repair { args } => {
+                anyhow::ensure!(
+                    args.remote_binding_id.is_none(),
+                    "remote Bootstrap does not support repair"
+                );
                 ensure_project_root_scope_safe(
                     Some(args.project_root.as_str()),
                     "project bootstrap repair",
@@ -1059,12 +1090,12 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                 remote_binding_id,
             } => {
                 if let Some(binding_id) = remote_binding_id.as_deref() {
-                    let mut query = Vec::new();
-                    push_query(&mut query, "project_root", Some(project_root.as_str()));
-                    push_query(&mut query, "continuity_id", continuity_id.as_deref());
-                    push_query(&mut query, "remote_binding_id", Some(binding_id));
-                    let path = format!("/v1/project/genesis/status?{}", query.join("&"));
-                    ("genesis status", api.get(&path).await?)
+                    (
+                        "genesis status",
+                        Genesis
+                            .status(binding_id, &project_root, continuity_id.as_deref())
+                            .await?,
+                    )
                 } else {
                     let resolved = scope_resolver::resolve_project_scope(
                         Some(project_root.as_str()),
@@ -1111,39 +1142,17 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
                     ("genesis status", response)
                 }
             }
-            ProjectGenesisCmd::Start { mut args } => {
-                if args.remote_binding_id.is_none() {
-                    args.project_root =
-                        resolve_input_project_root(None, Some(args.project_root.as_str()))?;
-                }
-                (
-                    "genesis start",
-                    api.post("/v1/project/genesis/start", &genesis_body(args))
-                        .await?,
-                )
+            ProjectGenesisCmd::Start { args } => {
+                ("genesis start", submit_genesis(&api, "start", args).await?)
             }
-            ProjectGenesisCmd::Resume { mut args } => {
-                if args.remote_binding_id.is_none() {
-                    args.project_root =
-                        resolve_input_project_root(None, Some(args.project_root.as_str()))?;
-                }
-                (
-                    "genesis resume",
-                    api.post("/v1/project/genesis/resume", &genesis_body(args))
-                        .await?,
-                )
-            }
-            ProjectGenesisCmd::Commit { mut args } => {
-                if args.remote_binding_id.is_none() {
-                    args.project_root =
-                        resolve_input_project_root(None, Some(args.project_root.as_str()))?;
-                }
-                (
-                    "genesis commit",
-                    api.post("/v1/project/genesis/commit", &genesis_body(args))
-                        .await?,
-                )
-            }
+            ProjectGenesisCmd::Resume { args } => (
+                "genesis resume",
+                submit_genesis(&api, "resume", args).await?,
+            ),
+            ProjectGenesisCmd::Commit { args } => (
+                "genesis commit",
+                submit_genesis(&api, "commit", args).await?,
+            ),
         },
         ProjectCmd::Templates { cmd } => {
             let (path, body_opt) = match cmd {

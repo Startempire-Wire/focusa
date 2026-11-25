@@ -72,7 +72,8 @@ pub struct RevokeArgs {
 }
 
 pub async fn run(cmd: RemoteCmd, json_mode: bool) -> anyhow::Result<()> {
-    let api = crate::api_client::ApiClient::new();
+    let api = crate::api_client::ApiClient::configured_local_controller_admin()?
+        .unwrap_or_else(crate::api_client::ApiClient::new);
     let result: Value = match cmd {
         RemoteCmd::Bind(args) => {
             let binding = json!({

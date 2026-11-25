@@ -58,6 +58,21 @@ use std::time::Duration;
 const DEFAULT_BASE: &str = "http://127.0.0.1:8787";
 const DEFAULT_TIMEOUT_SECS: u64 = 10;
 
+fn configured_base_url() -> String {
+    std::env::var("FOCUSA_API_URL")
+        .or_else(|_| std::env::var("FOCUSA_BASE_URL"))
+        .unwrap_or_else(|_| DEFAULT_BASE.to_string())
+}
+
+fn configured_timeout(default_secs: u64) -> Duration {
+    Duration::from_secs(
+        std::env::var("FOCUSA_API_TIMEOUT")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(default_secs),
+    )
+}
+
 fn classify_reqwest_error(err: reqwest::Error, url: &str) -> anyhow::Error {
     if err.is_timeout() {
         anyhow::anyhow!("[API_TIMEOUT] url={} reason={}", url, err)
@@ -81,17 +96,9 @@ impl ApiClient {
     }
 
     pub fn with_timeout_secs(default_timeout_secs: u64) -> Self {
-        let base = std::env::var("FOCUSA_API_URL")
-            .or_else(|_| std::env::var("FOCUSA_BASE_URL"))
-            .unwrap_or_else(|_| DEFAULT_BASE.to_string());
-
-        let timeout = std::env::var("FOCUSA_API_TIMEOUT")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(default_timeout_secs);
-
+        let base = configured_base_url();
         let client = ClientBuilder::new()
-            .timeout(Duration::from_secs(timeout))
+            .timeout(configured_timeout(default_timeout_secs))
             .build()
             .unwrap_or_else(|err| {
                 eprintln!(
@@ -101,6 +108,58 @@ impl ApiClient {
             });
 
         Self { client, base }
+    }
+
+    /// Opt-in elevated transport for remote onboarding through the local controller.
+    pub(crate) fn local_controller_admin() -> anyhow::Result<Self> {
+        Self::configured_local_controller_admin()?.ok_or_else(|| {
+            anyhow::anyhow!("remote onboarding requires the configured FOCUSA_AUTH_TOKEN")
+        })
+    }
+
+    /// The older remote registry supports unauthenticated loopback mode; when
+    /// opting into the configured credential, use the same pinned transport.
+    pub(crate) fn configured_local_controller_admin() -> anyhow::Result<Option<Self>> {
+        use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
+        use std::net::IpAddr;
+
+        let token = match std::env::var("FOCUSA_AUTH_TOKEN") {
+            Ok(token) if !token.trim().is_empty() => token,
+            Ok(_) | Err(std::env::VarError::NotPresent) => return Ok(None),
+            Err(std::env::VarError::NotUnicode(_)) => {
+                anyhow::bail!("invalid controller administrator credential")
+            }
+        };
+        let target = reqwest::Url::parse(&configured_base_url())?;
+        let loopback = target
+            .host_str()
+            .and_then(|host| host.trim_matches(['[', ']']).parse::<IpAddr>().ok())
+            .is_some_and(|ip| ip.is_loopback());
+        anyhow::ensure!(
+            loopback
+                && matches!(target.scheme(), "http" | "https")
+                && target.path() == "/"
+                && target.username().is_empty()
+                && target.password().is_none()
+                && target.query().is_none()
+                && target.fragment().is_none(),
+            "remote onboarding requires the literal loopback controller origin"
+        );
+        let mut auth = HeaderValue::from_str(&format!("Bearer {token}"))
+            .map_err(|_| anyhow::anyhow!("invalid controller administrator credential"))?;
+        auth.set_sensitive(true);
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, auth);
+        let client = ClientBuilder::new()
+            .no_proxy()
+            .redirect(reqwest::redirect::Policy::none())
+            .default_headers(headers)
+            .timeout(configured_timeout(30))
+            .build()?;
+        Ok(Some(Self {
+            client,
+            base: target.as_str().trim_end_matches('/').to_string(),
+        }))
     }
 
     /// Explicit per-command routing without changing process-global environment.

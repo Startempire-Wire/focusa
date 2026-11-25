@@ -96,7 +96,12 @@ and Genesis plan, confirmed commit and readback via `--remote-binding-id`
 (CLI) or `remote_binding_id` (Pi/API). Include the exact checkout path and
 continuity. Non-status operations require the original replay key where
 applicable. Neither adapter guesses a remote binding or substitutes a local
-workspace. Local markers and local Genesis are unchanged.
+workspace. Local markers and local Genesis are unchanged. The CLI uses the
+configured administrator credential (`FOCUSA_AUTH_TOKEN`) only for these
+explicit controller operations, via a literal loopback API origin without
+proxies or redirects. A qualified CLI response must match the binding, checkout,
+and continuity; a ready Genesis response must also match its Workpoint and
+Trajectory receipts. Never put the credential in a command line or binding.
 
 Remote registration alone is pending, not proof. In the controller daemon,
 `FOCUSA_REMOTE_ONBOARDING_TARGETS` selects exact owner-approved binding
