@@ -8,6 +8,17 @@ use std::time::{Duration, Instant};
 
 const FIXTURE_TOKEN: &str = "synthetic-controller-test-credential";
 
+fn json_diagnostic(output: &std::process::Output) -> String {
+    assert!(!String::from_utf8_lossy(&output.stderr).contains(FIXTURE_TOKEN));
+    assert!(!String::from_utf8_lossy(&output.stdout).contains(FIXTURE_TOKEN));
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(envelope["status"], "blocked");
+    envelope["details"]["raw_error"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
 fn serve_json(body: serde_json::Value) -> (SocketAddr, thread::JoinHandle<String>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
@@ -221,7 +232,7 @@ fn remote_genesis_status_authenticates_and_checks_the_exact_receipt() {
                 ready
             );
         } else {
-            assert!(stderr.contains("unqualified remote onboarding response"));
+            assert!(json_diagnostic(&output).contains("unqualified remote onboarding response"));
         }
     }
     assert!(!std::path::Path::new(root).exists());
@@ -269,9 +280,8 @@ fn remote_genesis_requires_a_credential_and_literal_loopback_origin() {
         }
         let output = cli.output().unwrap();
         assert!(!output.status.success());
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(stderr.contains(diagnostic), "{stderr}");
-        assert!(!stderr.contains(FIXTURE_TOKEN));
+        let actual = json_diagnostic(&output);
+        assert!(actual.contains(diagnostic), "{actual}");
         assert!(
             matches!(listener.accept(), Err(error) if error.kind() == std::io::ErrorKind::WouldBlock)
         );
