@@ -190,12 +190,24 @@ assert_grep 'python3 scripts/release-gate.py --advisory' scripts/create-dev-rele
 assert_not_grep 'gh release edit' scripts/create-dev-release-tag.sh 'tag helper must never promote Latest'
 assert_grep 'headBranch' scripts/create-dev-release-tag.sh 'release helper must track tag Release run, not main branch validation run'
 assert_grep 'wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"' scripts/create-dev-release-tag.sh 'release helper must wait for tag-specific Release run'
-assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh 'release helper must commit and dry-run-revert stamped Pi extension versions'
-[[ "$(grep -o 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh | wc -l)" -ge 2 ]] \
-  || fail 'Pi extension version surfaces must appear in both commit and dry-run rollback sets'
-manifest_surface='docs/contracts/spec141/generated-capability-v2/distribution-manifest.json'
-[[ "$(grep -o "$manifest_surface" scripts/create-dev-release-tag.sh | wc -l)" -eq 3 ]] \
-  || fail 'Distribution manifest must appear in retry allowlist, dry-run rollback, and release commit sets'
+# Staging, dry-run rollback, and exact-tag recovery share one path inventory.
+release_helper=scripts/create-dev-release-tag.sh
+stamp_paths="$(awk '
+  /^readonly -a RELEASE_STAMP_PATHS=\($/ { active = 1; next }
+  active && /^\)$/ { closed = 1; exit }
+  active { sub(/#.*/, ""); for (i = 1; i <= NF; i++) print $i }
+  END { if (!closed) exit 1 }
+' "$release_helper")" || { echo '✗ release helper must define RELEASE_STAMP_PATHS'; exit 1; }
+for stamp_path in \
+  apps/pi-extension/package.json \
+  apps/pi-extension/package-lock.json \
+  docs/contracts/spec141/generated-capability-v2/distribution-manifest.json; do
+  grep -Fxq -- "$stamp_path" <<< "$stamp_paths" \
+    || { echo "✗ stamped path missing from RELEASE_STAMP_PATHS: $stamp_path"; exit 1; }
+done
+assert_grep 'grep -Fxq -- "$dirty_path" <<< "$(printf '\''%s\n'\'' "${RELEASE_STAMP_PATHS[@]}")"' "$release_helper" 'exact-tag recovery must use RELEASE_STAMP_PATHS'
+assert_grep 'git checkout -- "${RELEASE_STAMP_PATHS[@]}"' "$release_helper" 'dry-run rollback must use RELEASE_STAMP_PATHS'
+assert_grep 'git add -- "${RELEASE_STAMP_PATHS[@]}"' "$release_helper" 'release staging must use RELEASE_STAMP_PATHS'
 assert_grep 'timeout-minutes: 150' .github/workflows/release.yml 'External Menubar receipt gate timeout must cover the bounded 145-minute Codemagic/AppVeyor wait'
 assert_grep 'timeout-minutes: 30' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
 assert_grep 'gh run list --workflow ci.yml --branch main --commit "$RELEASE_SHA"' .github/workflows/release.yml 'Release must reuse exact successful main CI'
