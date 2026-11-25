@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CMD_FILE="${ROOT_DIR}/apps/pi-extension/src/commands.ts"
 TOOLS_FILE="${ROOT_DIR}/apps/pi-extension/src/tools.ts"
+INDEX_FILE="${ROOT_DIR}/apps/pi-extension/src/index.ts"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -13,7 +14,17 @@ log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 if rg -n 'registerCommand\("focus-work"' "$CMD_FILE" >/dev/null 2>&1; then log_pass "/focus-work command registered"; else log_fail "/focus-work command missing"; fi
 if rg -n 'on\|off\|pause\|resume\|stop\|status' "$CMD_FILE" >/dev/null 2>&1; then log_pass "/focus-work exposes the full operator command set"; else log_fail "/focus-work command set incomplete"; fi
-if rg -n 'work-loop/enable|work-loop/pause|work-loop/resume|work-loop/stop' "$CMD_FILE" >/dev/null 2>&1; then log_pass "/focus-work command dispatches loop control routes"; else log_fail "/focus-work command missing loop route dispatch"; fi
+# menu-audit-gate.test.mjs exercises the command's delegation and refusal.
+# Here verify that native registration supplies the same control handler as the tool.
+if rg -Fq 'actions.workLoopControl("focus-work",' "$CMD_FILE" \
+  && rg -Fq 'const commandActions = registerTools(pi);' "$INDEX_FILE" \
+  && rg -Fq 'registerCommands(pi, commandActions);' "$INDEX_FILE" \
+  && rg -Fq 'pi.registerTool(workLoopControl);' "$TOOLS_FILE" \
+  && rg -Fq 'workLoopControl: workLoopControl.execute' "$TOOLS_FILE"; then
+  log_pass "/focus-work uses the registered loop-control handler"
+else
+  log_fail "/focus-work is not wired to the registered loop-control handler"
+fi
 if rg -n 'daemon_supervised_session|Supervision:' "$CMD_FILE" >/dev/null 2>&1 && rg -n 'Focus:' "$CMD_FILE" >/dev/null 2>&1; then log_pass "Pi loop surfaces expose supervision and focus summary"; else log_fail "Pi loop surfaces missing supervision/focus summary"; fi
 if rg -n 'workLoopPreset|workLoopMaxTurns|workLoopRequireOperatorForGovernance' "$CMD_FILE" >/dev/null 2>&1; then log_pass "Pi settings panel exposes work-loop policy controls"; else log_fail "Pi settings panel missing work-loop policy controls"; fi
 if rg -n 'otaEnabled|otaProfile|dev_auto_all|/update/policy' "$CMD_FILE" >/dev/null 2>&1; then log_pass "Pi settings panel exposes easy OTA policy controls"; else log_fail "Pi settings panel missing OTA policy controls"; fi
