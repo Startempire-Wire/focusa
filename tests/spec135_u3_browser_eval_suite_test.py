@@ -9,7 +9,10 @@ assert m['status']=='passed' and m['driver']=='UIAI Engine Eval'
 assert len(m['generated_ui_eval_results'])>=13
 for ref in m['generated_ui_eval_results']:
     result=json.loads((C/ref).read_text())
-    assert result['status']=='passed', ref
+    assert result['status'] == 'passed' and result.get('closure_eligible') is not False, (
+        f"{ref}: browser acceptance not proven (status={result['status']}); "
+        "this audit is only for generated UI browser acceptance"
+    )
 for proof in m['remote_browser_and_recovery_proofs']:
     assert (R/proof['test']).is_file()
     assert proof['evidence_ref'].endswith(':passed')

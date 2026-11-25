@@ -172,7 +172,8 @@ run_gate python3 ./tests/spec135_mission_canvas_portability_test.py
 run_gate python3 ./tests/spec135_m6_canvas_resume_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m6_canvas_resume_e2e_test.py
 run_gate python3 ./tests/spec135_m7_accessibility_recovery_test.py
-run_gate python3 ./tests/spec135_u3_browser_eval_suite_test.py
+# Spec135 U3 is browser-surface acceptance, not a generic release gate.
+# Run it explicitly when claiming generated UI browser acceptance.
 run_gate python3 ./tests/spec135_alpha5_alpha6_closure_test.py
 run_gate python3 ./tests/spec135_u4_u5_usability_friction_test.py
 run_gate python3 ./tests/spec135_u6_adaptive_ui_test.py

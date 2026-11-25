@@ -90,6 +90,8 @@ For **Dev release**: same, but tag is `vX.Y.Z-dev` and Release shows `isPrerelea
 
 ### Preflight detail — continually fresh, never stale
 
+**Acceptance follows the surface being shipped.** For a Pi extension update, test Pi command loading, terminal behavior, settings, and session/scope isolation in Pi. For an OpenClaw awareness update, test the built plugin, gateway activation, and tool invocation in OpenClaw. Neither requires a browser or a daemon upgrade. An extension-only deployment is not a full stable release. The Spec 135 U3 browser evidence audit (`python3 tests/spec135_u3_browser_eval_suite_test.py`) applies only when claiming browser acceptance for generated UI; it is not a generic release prerequisite. Incomplete browser evidence remains incomplete, and browser isolation and privacy checks remain in the generic suite.
+
 - **FAST** (`PREFLIGHT_FAST=1`, used by `pre-push`): `source_commit` may be any ancestor of `HEAD` (`git merge-base --is-ancestor`). Allows `docs/ci` commits without churning `distribution-manifest.json` on every push. Still checks `release_version==Cargo`, `sha256` match, `generated_at<24h`.
 - **STRICT** (used by `create-dev-release-tag.sh --push` before tag): `source_commit` must be `HEAD` or `HEAD~1` with `distribution-manifest.json` touched in `HEAD`. Ensures the Release tag's manifest is at most one commit old and reflects the stamped SHA. Prints `FAIL stale source_commit X != HEAD Y nor parent Z (touched=False)` with hint `run stamp-menubar-version.py`.
 
