@@ -1,5 +1,5 @@
 name: Deploy Live Daemon
-run-name: Deploy Focusa ${{ github.event.release.tag_name || inputs.release_tag }}
+run-name: Deploy Focusa - ${{ github.event.release.tag_name || inputs.release_tag }}
 
 on:
   release:

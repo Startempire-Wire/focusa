@@ -332,7 +332,7 @@ wait_for_workflow() {
   while [[ $SECONDS -lt $deadline ]]; do
     if [[ "$workflow" == 'Deploy Live Daemon' ]]; then
       run_id=$(gh run list --workflow "$workflow" --branch main --limit 50 --json databaseId,displayTitle \
-        | jq -r --arg tag "$head_branch" '[.[] | select(.displayTitle == ("Deploy Focusa " + $tag))][0].databaseId // empty') || return 1
+        | jq -r --arg tag "$head_branch" '[.[] | select(.displayTitle == ("Deploy Focusa - " + $tag))][0].databaseId // empty') || return 1
     elif [[ -n "$head_branch" ]]; then
       run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 10 --json databaseId,headBranch \
         | jq -r --arg branch "$head_branch" '[.[] | select(.headBranch == $branch)][0].databaseId // empty') || return 1
@@ -591,10 +591,15 @@ if [[ "$PUSH" -eq 1 && "$STAMPED_RELEASE_SURFACES" -eq 1 && \
 fi
 
 if [[ "$PUSH" -eq 1 ]]; then
+  MAIN_BEFORE_PUSH="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"
   push_candidate_main_with_auto_rebase
   HEAD_SHA=$(git rev-parse HEAD)
   echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
-  ensure_source_workflow "CI" "$HEAD_SHA"
+  # A normal main push triggers CI. Check or dispatch only on resume, or when
+  # a GitHub Actions token suppresses the push trigger.
+  if [[ "$MAIN_BEFORE_PUSH" == "$HEAD_SHA" || "${GITHUB_ACTIONS:-}" == true ]]; then
+    ensure_source_workflow "CI" "$HEAD_SHA"
+  fi
   wait_for_source_workflow "CI" "$HEAD_SHA"
   if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
     journal_client progress --tag "$TAG" --stage "candidate-ci" --status "completed" \

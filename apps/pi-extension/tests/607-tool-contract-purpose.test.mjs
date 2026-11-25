@@ -41,8 +41,9 @@ for (const [name, purposePattern] of [
   assert.doesNotMatch(registryContract.purpose, /pi-scratch|Scratchpad/);
   if (name === "focusa_workset_projection") {
     const route = "/v1/worksets/{workset_id}/projection";
-    assert.deepEqual(registryContract.api_routes, [route]);
-    assert.ok(block.includes(JSON.stringify(route)), "Pi contract must name the projection route");
+    const operation = `GET ${route}`;
+    assert.deepEqual(registryContract.api_routes, [operation]);
+    assert.ok(block.includes(JSON.stringify(operation)), "Pi must declare the correct method and route");
     const routes = read("../../../crates/focusa-api/src/routes/worksets.rs");
     assert.ok(routes.includes(`.route("${route}", get(get_projection))`));
   }

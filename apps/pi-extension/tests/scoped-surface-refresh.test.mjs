@@ -33,19 +33,12 @@ test("tool blocked text renders structured daemon errors, never [object Object]"
   assert.doesNotMatch(tools, /String\(result\.body\?\.reason/);
 });
 
-test("Mission Canvas subscribes independently and polls only when stale", () => {
+test("Mission Canvas redraws verified receipts without starting a competing poller", () => {
   assert.match(widget, /subscribeScopedStateChanges/);
   assert.match(widget, /scopedReceiptMatchesCurrentScope/);
-  assert.match(widget, /setInterval/);
-  assert.match(widget, /age >= 60_000/);
-  assert.match(widget, /refreshTrajectoryClarityLifecycle\("mission_canvas_poll"/);
-  assert.match(widget, /\/workpoint\/resume/);
-  assert.match(widget, /currentScopedProjectRoot\(\)/);
-  assert.match(widget, /current_ask: getAttachmentRuntime\(\)\.currentAsk\?\.text/);
-  assert.doesNotMatch(widget, /workpointResult\?\.matches_current_ask_scope !== false/);
-  assert.match(widget, /truthfulStatusLines/);
-  assert.match(widget, /startup_cwd/);
-  assert.match(widget, /last_refresh_status/);
+  assert.match(widget, /runtime\.focusaAvailable && bound \? getScopedWorkpointPacket\(\) : null/);
+  assert.doesNotMatch(widget, /setInterval|\/workpoint\/resume|focusaFetch/);
+  assert.match(widget, /refreshUnsubscribe\?\.\(\)/);
   // #138: the always-on widget must NOT render the semantic registry summary
   // or operation rows; those details stay behind diagnostics.
   assert.doesNotMatch(widget, /semantic pair/);

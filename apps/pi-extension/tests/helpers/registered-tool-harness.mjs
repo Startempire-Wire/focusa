@@ -20,10 +20,12 @@ export function loadRegisteredTool(name, dependencies, helperSections = [], sour
   const anchor = source.indexOf(`name: "${name}"`);
   const named = /const (\w+) = \{\s*$/.exec(source.slice(0, anchor));
   const start = named ? named.index : source.lastIndexOf('pi.registerTool({', anchor);
-  const end = named
-    ? source.indexOf(`pi.registerTool(${named[1]});`, anchor) + `pi.registerTool(${named[1]});`.length
-    : source.indexOf('pi.registerTool({', anchor);
-  assert.ok(anchor >= 0 && start >= 0 && end > anchor, `Missing bounded registration: ${name}`);
+  const registrationIndent = source.slice(source.lastIndexOf('\n', start) + 1, start);
+  assert.match(registrationIndent, /^\s*$/, `Unexpected registration layout: ${name}`);
+  const closing = named ? `pi.registerTool(${named[1]});` : `\n${registrationIndent}});`;
+  const close = source.indexOf(closing, anchor);
+  assert.ok(anchor >= 0 && start >= 0 && close > anchor, `Missing bounded registration: ${name}`);
+  const end = close + closing.length;
   const helpers = helperSections.map(([first, last]) => {
     const i = source.indexOf(first), j = source.indexOf(last, i + first.length);
     assert.ok(i >= 0 && j > i, `Missing helper section: ${first}`);

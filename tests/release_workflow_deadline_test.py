@@ -44,8 +44,8 @@ if args[:2] == ["run", "list"]:
     assert workflow == os.environ["TEST_WORKFLOW"]
     if workflow == "Deploy Live Daemon":
         assert args[args.index("--branch") + 1] == "main"
-        print(json.dumps([{"databaseId": 99, "displayTitle": "Deploy Focusa v0.0.0"},
-                          {"databaseId": 42, "displayTitle": "Deploy Focusa " + os.environ["TEST_TAG"]}]))
+        print(json.dumps([{"databaseId": 99, "displayTitle": "Deploy Focusa - v0.0.0"},
+                          {"databaseId": 42, "displayTitle": "Deploy Focusa - " + os.environ["TEST_TAG"]}]))
         sys.exit(0)
     assert args[args.index("--commit") + 1] == os.environ["TEST_SHA"]
     n = sum(e[:2] == ["run", "list"] for e in events)
