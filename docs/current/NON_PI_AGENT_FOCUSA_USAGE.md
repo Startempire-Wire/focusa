@@ -49,6 +49,10 @@ Operator steering wins.
 
 ## Awareness card endpoint
 
+`project_root` and `continuity_id` select the active canonical Workpoint, not the daemon's most recently active task. Pass `working_subpath_id` (`--working-subpath-id` in the CLI) for a linked checkout. `session_id` is metadata and cannot select a different Workstream. If there is no matching record, the response completes with `canonical: false` and no Workpoint, distinct from a failed transport request.
+
+For a controller-enrolled remote project, use the [binding-qualified read contract](../162-remote-workspace-binding-design.md#binding-qualified-identity-and-reads). The card never grants execution, even when it displays a verified record.
+
 ```bash
 curl -sS "http://127.0.0.1:8787/v1/awareness/card?adapter_id=openclaw&workspace_id=wirebot&agent_id=wirebot&operator_id=verious.smith" | jq -r .rendered_card
 focusa awareness card --adapter-id openclaw --workspace-id wirebot --agent-id wirebot --operator-id verious.smith

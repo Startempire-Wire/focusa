@@ -48,6 +48,35 @@ for (const version of versions) {
   });
 }
 
+test('the prompt hook preserves exact worktree selectors and rejects a foreign canonical reply', async (t) => {
+  const root = tmpdir();
+  let handler;
+  plugin.register({
+    pluginConfig: { projectRoot: root, continuityId: 'remote-stream', workingSubpathId: 'linked', remoteBindingId: 'enrolled' },
+    logger: { info() {}, warn() {} },
+    on(_name, callback) { handler = callback; },
+  });
+  const response = {
+    rendered_card: 'verified linked worktree card', canonical: true,
+    project_root: root, continuity_id: 'remote-stream', working_subpath_id: 'linked', remote_binding_id: 'enrolled',
+  };
+  t.mock.method(globalThis, 'fetch', async (raw, opts) => {
+    const url = new URL(raw);
+    assert.equal(url.searchParams.get('working_subpath_id'), 'linked');
+    assert.equal(opts.headers['x-scope-remote-binding-id'], 'enrolled');
+    assert.equal(opts.redirect, 'error');
+    return { ok: true, json: async () => ({ ...response }) };
+  });
+  assert.deepEqual(await handler({}, { sessionKey: 'new-session' }), { prependContext: response.rendered_card });
+  response.working_subpath_id = 'another-worktree';
+  const foreign = await handler({}, { sessionKey: 'new-session' });
+  assert.match(foreign.prependContext, /degraded/);
+  assert.doesNotMatch(foreign.prependContext, /verified linked worktree card/);
+  response.canonical = false;
+  response.rendered_card = 'scope verification pending';
+  assert.deepEqual(await handler({}, { sessionKey: 'new-session' }), { prependContext: response.rendered_card });
+});
+
 test('disabled plugin does not register hooks or tools', () => {
   let calls = 0;
   plugin.register({ pluginConfig: { enabled: false }, logger: { info() {}, warn() {} }, on() { calls++; }, registerTool() { calls++; } });

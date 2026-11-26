@@ -6,11 +6,13 @@
 use crate::routes::preload::{
     PROFILE_RULES_AND_CONTEXT, build_packet_for_profile, commit_receipt_for,
 };
+use crate::routes::project_bootstrap::remote::{RemoteOnboardingAuthority, resolve_read_scope};
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::{
     Json, Router,
     extract::{Query, State},
+    http::HeaderMap,
     routing::{get, post},
 };
 use chrono::Utc;
@@ -36,11 +38,15 @@ use std::process::Command;
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[path = "project_identity_remote.rs"]
+mod remote_identity;
+
 #[derive(Debug, Deserialize, Default)]
 pub struct ProjectIdentityQuery {
     pub cwd: Option<String>,
     pub pi_session_id: Option<String>,
     pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
     pub current_ask: Option<String>,
     pub remote_host: Option<String>,
     pub remote_user: Option<String>,
@@ -59,6 +65,7 @@ pub struct ProjectVerifyRequest {
     pub cwd: Option<String>,
     pub pi_session_id: Option<String>,
     pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
     pub project_id: Option<String>,
     pub canonical_name: Option<String>,
     pub repo_remote: Option<String>,
@@ -290,6 +297,7 @@ struct IdentityCandidate {
     remote_context: Value,
     working_context: Value,
     fingerprint: String,
+    scope_ref: Option<ScopeRef>,
     confidence: &'static str,
     status: &'static str,
     signals: Vec<ProjectSignal>,
@@ -1445,7 +1453,9 @@ fn discover_identity(
 ) -> IdentityCandidate {
     let start = resolve_start(cwd, project_root);
     let start_root = normalize_path(&start);
-    let remote_nonlocal = remote_hint.is_present() && !start.exists();
+    // Unattested remote hints describe another host, even when an unrelated
+    // local checkout happens to exist at the same path.
+    let remote_nonlocal = remote_hint.is_present();
     let git_context = if remote_nonlocal {
         None
     } else {
@@ -1945,6 +1955,7 @@ fn discover_identity(
             .map(|context| json!(context))
             .unwrap_or(Value::Null),
         fingerprint,
+        scope_ref: None,
         confidence,
         status,
         signals,
@@ -2182,7 +2193,9 @@ fn candidate_payload(
         })
     };
     let project_summary = compact_project_summary(&candidate);
-    let authority_boundary = if !candidate.working_context.is_null() {
+    let authority_boundary = if candidate.scope_ref.is_some() {
+        "controller_attested_remote_binding_plus_continuity"
+    } else if !candidate.working_context.is_null() {
         "canonical_project_plus_working_subpath_plus_continuity"
     } else if candidate.remote_context.is_null() {
         "project_root_plus_fingerprint"
@@ -2222,13 +2235,15 @@ fn candidate_payload(
             "active_worktree_root": candidate.working_context.get("active_worktree_root").cloned().unwrap_or(Value::Null),
             "project_summary": project_summary.clone(),
             "fingerprint": candidate.fingerprint,
-            "scope_ref": if canonical { json!({
-                "scope_kind": "project",
-                "scope_id": format!("project:{}", candidate.project_id),
-                "root_path": candidate.project_root,
-                "canonical_name": candidate.canonical_name,
-                "fingerprint": candidate.fingerprint,
-            }) } else { Value::Null },
+            "scope_ref": if canonical {
+                candidate.scope_ref.as_ref().map(|scope| json!(scope)).unwrap_or_else(|| json!({
+                    "scope_kind": "project",
+                    "scope_id": format!("project:{}", candidate.project_id),
+                    "root_path": candidate.project_root,
+                    "canonical_name": candidate.canonical_name,
+                    "fingerprint": candidate.fingerprint,
+                }))
+            } else { Value::Null },
             "confidence": candidate.confidence,
             "signals": candidate.signals.iter().map(signal_json).collect::<Vec<_>>(),
             "mismatches": mismatches,
@@ -2238,7 +2253,11 @@ fn candidate_payload(
         "mismatch_semantics": mismatch_semantics,
         "verification": {
             "verified": verified,
-            "quorum_rule": "high confidence requires at least two independent matching signals; cwd-only is degraded",
+            "quorum_rule": if candidate.scope_ref.is_some() {
+                "remote scope requires a current controller-issued transport attestation and exact enrolled binding"
+            } else {
+                "high confidence requires at least two independent matching signals; cwd-only is degraded"
+            },
             "matching_independent_signals": candidate.signals.iter().filter(|signal| signal.independent && signal.root.as_deref() == Some(candidate.project_root.as_str())).count(),
             "required_recovery": if verified { Value::Null } else { json!("resolve mismatched project signals or provide explicit project_root after checking current repo") },
         },
@@ -3077,8 +3096,74 @@ async fn project_settings_update(Json(body): Json<ProjectSettingsRequest>) -> Js
     }))
 }
 
-async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
-    project_inspection_response(move || project_identity_inspection(query)).await
+async fn identity(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(query): Query<ProjectIdentityQuery>,
+) -> Json<Value> {
+    match resolve_read_scope(
+        &state,
+        &headers,
+        query.project_root.as_deref().or(query.cwd.as_deref()),
+        query.continuity_id.as_deref(),
+        None,
+    )
+    .await
+    {
+        Ok(Some(authority)) => {
+            attested_identity_response(
+                &state,
+                &authority,
+                &RemoteProjectHint::from_query(&query),
+                None,
+                query.pi_session_id.as_deref(),
+            )
+            .await
+        }
+        Ok(None) => project_inspection_response(move || project_identity_inspection(query)).await,
+        Err((_, reply)) => reply,
+    }
+}
+
+async fn attested_identity_response(
+    state: &AppState,
+    authority: &RemoteOnboardingAuthority,
+    hint: &RemoteProjectHint,
+    expected: Option<&ProjectVerifyRequest>,
+    pi_session_id: Option<&str>,
+) -> Json<Value> {
+    // Once a binding publishes Genesis, reuse its ScopeRef rather than
+    // returning a different fingerprint for the same saved Workstream.
+    let projected_scope = match authority.read_publication(state).await {
+        Ok(Some((intent, publication))) => {
+            let focusa = state.focusa.read().await;
+            authority
+                .published_records(&focusa, &intent, &publication)
+                .and_then(|(trajectory, _)| trajectory.scope_ref.clone())
+        }
+        Ok(None) => None,
+        Err((_, reply)) => return reply,
+    };
+    Json(remote_identity::payload(
+        authority,
+        hint,
+        expected,
+        pi_session_id,
+        projected_scope.as_ref(),
+    ))
+}
+
+pub(super) fn attested_identity_payload(
+    authority: &RemoteOnboardingAuthority,
+    projected_scope: Option<&ScopeRef>,
+) -> Value {
+    remote_identity::payload(
+        authority,
+        &RemoteProjectHint::default(),
+        None,
+        None,
+        projected_scope,
+    )
 }
 
 fn project_identity_inspection(query: ProjectIdentityQuery) -> Json<Value> {
@@ -3148,45 +3233,32 @@ fn project_identity_inspection(query: ProjectIdentityQuery) -> Json<Value> {
 }
 
 async fn verify(
-    _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(body): Json<ProjectVerifyRequest>,
 ) -> Json<Value> {
-    let data_dir = state.config.data_dir.clone();
-    let project_root = body.project_root.clone();
-    let mut response = project_inspection_response(move || verify_project_inspection(body)).await;
-    // #89 slice 7: surface the controller-owned binding for this root when
-    // present. Read-only; never creates markers or claims repair authority.
-    if let Some(root) = project_root.as_deref() {
-        let root = root.to_string();
-        if let Some(binding) = tokio::task::spawn_blocking(move || {
-            let path = crate::routes::events_sqlite::focusa_db_path(&data_dir);
-            let conn = rusqlite::Connection::open(path).ok()?;
-            // Root-level lookup preserves backward compatibility; subpath
-            // and worktree callers use the subpath-aware resolver directly.
-            focusa_core::remote_workspace::resolve_binding_for_root(&conn, &root).ok()?
-        })
-        .await
-        .unwrap_or(None)
-        {
-            if let Some(object) = response.as_object_mut() {
-                object.insert(
-                    "controller_binding".to_string(),
-                    serde_json::json!({
-                        "binding_id": binding.binding_id,
-                        "status": binding.state.status,
-                        "continuity_id": binding.session.continuity_id,
-                        "project_id": binding.project.project_id,
-                        "repo_remote": binding.project.repo_remote,
-                        "canonical_remote_root": binding.roots.canonical_remote_root,
-                        "working_subpath": binding.roots.working_subpath,
-                        "worktree_identity": binding.roots.worktree_identity,
-                    }),
-                );
-            }
+    match resolve_read_scope(
+        &state,
+        &headers,
+        body.project_root.as_deref().or(body.cwd.as_deref()),
+        body.continuity_id.as_deref(),
+        None,
+    )
+    .await
+    {
+        Ok(Some(authority)) => {
+            attested_identity_response(
+                &state,
+                &authority,
+                &RemoteProjectHint::from_verify(&body),
+                Some(&body),
+                body.pi_session_id.as_deref(),
+            )
+            .await
         }
+        Ok(None) => project_inspection_response(move || verify_project_inspection(body)).await,
+        Err((_, reply)) => reply,
     }
-    response
 }
 
 fn verify_project_inspection(body: ProjectVerifyRequest) -> Json<Value> {

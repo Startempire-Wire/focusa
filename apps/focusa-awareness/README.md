@@ -40,6 +40,8 @@ See `openclaw.plugin.json` for supported config fields:
 - `adapterId`, `workspaceId`, `agentId`, `operatorId` — adapter metadata; workspace, agent and operator are optional and have no deployment-specific defaults.
 - `projectRoot` — project lookup input passed as `project_root`, not proof of binding.
 - `continuityId` — stable logical workstream id passed as `continuity_id`.
+- `workingSubpathId` — optional exact worktree selector; omission uses the primary checkout.
+- `remoteBindingId` — optional controller-enrolled binding selector, not a credential. Use the existing authenticated controller transport for enrolled remote reads; the plugin does not add or manage administrator credentials.
 - `timeoutMs` — awareness request timeout.
 - `enabled` — disable injection when false.
 
@@ -53,7 +55,7 @@ Adapter surfaces must preserve Focusa scope semantics:
 4. Treat injected awareness as advisory, even when it refers to canonical records.
 5. Preserve labels such as `canonical`, `advisory`, `degraded`, `stale`, `scope_status`, and `scope_conflict_reason` in any UI or log surface.
 
-If `continuityId` is not configured, the card is allowed to be advisory/unbound. Do not promote it to canonical task authority.
+If `continuityId` is not configured, the card is advisory/unbound. A completed response with no verified Workpoint is not a network failure. When a worktree or binding selector is configured, the hook refuses a canonical response that does not echo the exact selectors. This protects upgrades where an older daemon ignores new inputs. See the [non-Pi usage guide](../../docs/current/NON_PI_AGENT_FOCUSA_USAGE.md#awareness-card-endpoint) for the common read contract.
 
 ## Tool-result pass-through expectations
 

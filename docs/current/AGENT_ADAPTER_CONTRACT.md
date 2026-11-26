@@ -14,7 +14,7 @@ Use [the cohesive project-flow guide](../agent/02-focusa-cohesive-project-flow.m
 
 Every agent adapter supports these capabilities, either through Pi tools, Focusa CLI, direct HTTP, or an MCP/tool bridge:
 
-1. **Read awareness card** — `GET /v1/awareness/card` or `focusa awareness card`.
+1. **Read awareness card** — `GET /v1/awareness/card` or `focusa awareness card`. Its scoped task selection follows Workpoint resume; see the [non-Pi usage guide](NON_PI_AGENT_FOCUSA_USAGE.md#awareness-card-endpoint) for exact worktree and remote-binding selectors.
 2. **Verify project identity** — `GET /v1/project/verify` / `focusa project verify` / equivalent project identity route.
 3. **Resume Workpoint** — `POST /v1/workpoint/resume` / `focusa workpoint resume`.
 4. **Create Workpoint checkpoint** — `/v1/workpoint/checkpoint` / `focusa workpoint checkpoint`.

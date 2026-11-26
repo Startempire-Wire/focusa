@@ -4,13 +4,14 @@
 //! primitives. It orients agents per project; it does not select work, mutate
 //! Focus State, switch frames, or execute actions.
 
-use crate::routes::project::project_identity_payload_for_scope;
+use crate::routes::project::{attested_identity_payload, project_identity_payload_for_scope};
+use crate::routes::project_bootstrap::remote::resolve_read_scope;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
 use axum::{
     Json, Router,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::{get, post},
 };
 use chrono::Utc;
@@ -1180,25 +1181,57 @@ fn trajectory_similarity_group_payload(
 }
 
 fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> Value {
+    trajectory_view_payload_with_remote(state, query, None)
+}
+
+struct RemoteTrajectoryRead<'a> {
+    identity: Value,
+    trajectory: &'a TrajectoryProjectionRecord,
+    workpoint: &'a WorkpointRecord,
+}
+
+fn trajectory_view_payload_with_remote(
+    state: &FocusaState,
+    query: &TrajectoryViewQuery,
+    remote: Option<RemoteTrajectoryRead<'_>>,
+) -> Value {
     let query_project = clean(query.project_root.as_deref());
     let query_session = clean(query.session_id.as_deref());
     let query_continuity = clean(query.continuity_id.as_deref());
-    let frame = scoped_active_frame(state, query_project.as_deref(), query_continuity.as_deref());
+    let frame = if remote.is_none() {
+        scoped_active_frame(state, query_project.as_deref(), query_continuity.as_deref())
+    } else {
+        None
+    };
     let focus_state = focus_state_for(frame);
-    let workpoint =
-        scoped_active_workpoint(state, query_project.as_deref(), query_continuity.as_deref());
-    let workpoint_project = workpoint.and_then(|record| clean(record.project_root.as_deref()));
+    let workpoint = match &remote {
+        Some(read) => Some(read.workpoint),
+        None => {
+            scoped_active_workpoint(state, query_project.as_deref(), query_continuity.as_deref())
+        }
+    };
+    let workpoint_project = if remote.is_some() {
+        query_project.clone()
+    } else {
+        workpoint.and_then(|record| clean(record.project_root.as_deref()))
+    };
     let workpoint_session = workpoint.and_then(|record| clean(record.session_id.as_deref()));
     let workpoint_continuity = workpoint.and_then(|record| clean(record.continuity_id.as_deref()));
-    let persisted_candidate = active_persisted_trajectory(
-        state,
-        query_project.as_deref().or(workpoint_project.as_deref()),
-        query_continuity
-            .as_deref()
-            .or(workpoint_continuity.as_deref()),
-    );
-    let persisted_project =
-        persisted_candidate.and_then(|record| clean(record.project_root.as_deref()));
+    let persisted_candidate = match &remote {
+        Some(read) => Some(read.trajectory),
+        None => active_persisted_trajectory(
+            state,
+            query_project.as_deref().or(workpoint_project.as_deref()),
+            query_continuity
+                .as_deref()
+                .or(workpoint_continuity.as_deref()),
+        ),
+    };
+    let persisted_project = if remote.is_some() {
+        query_project.clone()
+    } else {
+        persisted_candidate.and_then(|record| clean(record.project_root.as_deref()))
+    };
     let persisted_continuity =
         persisted_candidate.and_then(|record| clean(record.continuity_id.as_deref()));
     let persisted_session = persisted_candidate
@@ -1220,13 +1253,16 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         .clone()
         .or(workpoint_continuity.clone())
         .or(persisted_continuity.clone());
-    let persisted_exact_trajectory = active_persisted_trajectory(
-        state,
-        Some(project_root.as_str()).filter(|root| *root != "unbound"),
-        continuity_id.as_deref(),
-    );
+    let persisted_exact_trajectory = match &remote {
+        Some(read) => Some(read.trajectory),
+        None => active_persisted_trajectory(
+            state,
+            Some(project_root.as_str()).filter(|root| *root != "unbound"),
+            continuity_id.as_deref(),
+        ),
+    };
     let persisted_prior_project_trajectory =
-        if persisted_exact_trajectory.is_none() && query.allow_prior_project_trajectory {
+        if remote.is_none() && persisted_exact_trajectory.is_none() && query.allow_prior_project_trajectory {
             prior_project_trajectory(
                 state,
                 Some(project_root.as_str()).filter(|root| *root != "unbound"),
@@ -1239,7 +1275,9 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     // Prior-project fallback may supply HLT lineage only. Lower Ladder fields
     // remain exact-continuity state and require governed reassessment.
     let persisted_trajectory = persisted_exact_trajectory;
-    let project_identity_api = if project_root != "unbound" {
+    let project_identity_api = if let Some(read) = &remote {
+        read.identity.clone()
+    } else if project_root != "unbound" {
         project_identity_payload_for_scope(
             Some(project_root.as_str()),
             Some(project_root.as_str()),
@@ -1680,7 +1718,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "status": "verified_exact",
             "rendered_trajectory_id": active_trajectory_id,
             "source_trajectory_id": record.trajectory_id,
-            "project_root": record.project_root,
+            "project_root": if remote.is_some() { Some(project_root.as_str()) } else { record.project_root.as_deref() },
             "continuity_id": record.continuity_id,
             "scope_ref": record.scope_ref,
             "composition": "atomic_exact_record",
@@ -1722,7 +1760,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         .collect::<Vec<_>>();
     let hlt_history = scoped_trajectory_history(
         state.trajectory.records.as_slice(),
-        Some(project_root.as_str()),
+        remote.as_ref().and_then(|read| read.trajectory.project_root.as_deref()).or(Some(project_root.as_str())),
         continuity_id.as_deref(),
         12,
     );
@@ -1815,7 +1853,8 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     };
     let trajectory_required = !hlt_status.is_action_ready();
     let hlt_required = trajectory_required;
-    let action_authority_from_trajectory = hlt_status.has_route_authority();
+    // A verified remote read does not attach the caller or grant execution.
+    let action_authority_from_trajectory = remote.is_none() && hlt_status.has_route_authority();
     let generic_bootstrap = matches!(hlt_status, HltStatus::GenericDegraded);
 
     // Spec 125 §6.3: build warnings list with loud_warning appended.
@@ -1873,9 +1912,9 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "project_root": project_root,
             "session_id": session_id,
             "continuity_id": continuity_id,
-            "authority_boundary": "project_root_plus_continuity_id",
+            "authority_boundary": if remote.is_some() { "controller_attested_remote_binding_plus_continuity" } else { "project_root_plus_continuity_id" },
             "session_id_policy": "temporal_metadata_only",
-            "fingerprint": stable_project_fingerprint(&project_root, continuity_id.as_deref().or(session_id.as_deref())),
+            "fingerprint": remote.as_ref().and_then(|read| read.trajectory.scope_ref.as_ref()).map(|scope| scope.fingerprint.clone()).unwrap_or_else(|| stable_project_fingerprint(&project_root, continuity_id.as_deref().or(session_id.as_deref()))),
             "confidence": project_confidence,
             "quorum_status": project_identity_quorum_status,
             "quorum_confidence": project_identity_quorum_confidence,
@@ -1941,7 +1980,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             "needs_definition": bootstrap_default_trajectory || hlt_degraded_placeholder,
             "durable_lifecycle": {
                 "persisted": persisted_trajectory.is_some(),
-                "active_trajectory_id": state.trajectory.active_trajectory_id.clone(),
+                "active_trajectory_id": if remote.is_some() { Some(active_trajectory_id.clone()) } else { state.trajectory.active_trajectory_id.clone() },
                 "canonical": persisted_trajectory.map(|record| record.canonical).unwrap_or(false),
                 "fallback_prior_project_trajectory": using_prior_project_trajectory,
                 "root_goal_stability": persisted_trajectory.map(|record| record.root_goal_stability),
@@ -2518,10 +2557,58 @@ fn attach_trajectory_tool_result(
 }
 
 async fn view(
-    _scope: ScopeContext,
-    Query(query): Query<TrajectoryViewQuery>,
+    Query(mut query): Query<TrajectoryViewQuery>,
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
 ) -> Json<Value> {
+    match resolve_read_scope(
+        &state,
+        &headers,
+        query.project_root.as_deref(),
+        query.continuity_id.as_deref(),
+        None,
+    )
+    .await
+    {
+        Ok(Some(authority)) => {
+            let publication = match authority.read_publication(&state).await {
+                Ok(result) => result,
+                Err((_, reply)) => return reply,
+            };
+            let focusa = state.focusa.read().await;
+            let Some((trajectory, workpoint)) =
+                publication.as_ref().and_then(|(intent, published)| {
+                    authority.published_records(&focusa, intent, published)
+                })
+            else {
+                let identity = attested_identity_payload(&authority, None);
+                return Json(attach_trajectory_tool_result(
+                    json!({
+                        "status": "not_found", "canonical": false, "degraded": true,
+                        "failure_class": "remote_trajectory_unverified",
+                        "project_identity": identity["project_identity"],
+                        "trajectory": null,
+                        "workpoint": null,
+                        "next_step_hint": "inspect the verified binding's remote Genesis publication",
+                    }),
+                    vec![],
+                    vec![],
+                ));
+            };
+            query.project_root = Some(authority.binding.roots.canonical_remote_root.clone());
+            query.continuity_id = Some(authority.binding.session.continuity_id.clone());
+            let read = RemoteTrajectoryRead {
+                identity: attested_identity_payload(&authority, trajectory.scope_ref.as_ref()),
+                trajectory,
+                workpoint,
+            };
+            let mut payload = trajectory_view_payload_with_remote(&focusa, &query, Some(read));
+            payload["execution_admission"] = json!(false);
+            return Json(attach_trajectory_tool_result(payload, vec![], vec![]));
+        }
+        Ok(None) => {}
+        Err((_, reply)) => return reply,
+    }
     let mut payload = {
         let focusa = state.focusa.read().await;
         trajectory_view_payload(&focusa, &query)

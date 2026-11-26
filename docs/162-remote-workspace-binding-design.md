@@ -125,6 +125,12 @@ session, evidence-write grant, or writer lease. Attach and verify the exact
 remote workstream before any automated action; do not substitute a local
 marker or a root-only consumer for that proof.
 
+### Binding-qualified identity and reads
+
+Project Identity (`GET /v1/project/identity`, `POST /v1/project/verify`), Trajectory view, Workpoint resume, and the awareness card use the current controller-issued attestation for enrolled remote roots. Supply the exact remote `project_root` and `continuity_id` along the existing authenticated controller transport. Use `X-Scope-Working-Subpath-Id` to select a registered linked checkout (the card also accepts `working_subpath_id`); `X-Scope-Remote-Binding-Id` can select one exact enrolled binding. Selectors are not credentials. The declared root, continuity, and any supplied subpath must agree, and multiple matching bindings require disambiguation. A missing or stale proof must not redirect the read to a controller-local checkout or another binding.
+
+Identity reports the attested binding even before Genesis is published, but Trajectory, resume, and awareness return saved work only when the corresponding binding-qualified publication and records agree. An exact record can be canonical for its saved scope without proving that the caller is attached or allowed to execute it. These reads perform no effects and do not replace remote Bootstrap/Genesis, Workstream attachment, or writer admission.
+
 ### Execution slices (IR2+)
 
 1. Core type + persistence (`remote_workspace_bindings` table + CRUD route).
