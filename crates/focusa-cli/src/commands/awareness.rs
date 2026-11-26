@@ -76,7 +76,10 @@ pub async fn run(cmd: AwarenessCmd, json_mode: bool) -> anyhow::Result<()> {
             push_query(&mut qs, "working_subpath_id", working_subpath_id.as_deref());
             let path = format!("/v1/awareness/card?{}", qs.join("&"));
             let resp: Value = api.get(&path).await?;
-            if let Some(subpath) = working_subpath_id.as_deref().map(str::trim).filter(|value| !value.is_empty())
+            if let Some(subpath) = working_subpath_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
                 && resp.get("canonical").and_then(Value::as_bool) != Some(false)
                 && (resp.get("canonical").and_then(Value::as_bool) != Some(true)
                     || resp.get("working_subpath_id").and_then(Value::as_str) != Some(subpath))
