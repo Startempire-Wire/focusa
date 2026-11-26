@@ -204,6 +204,7 @@ pub struct PiRpcSession {
     pub child: Child,
     pub process_group_id: u32,
     pub stdin: ChildStdin,
+    pub(crate) turn_boundary: routes::work_loop::pi_rpc_turn_boundary::PiRpcTurnBoundary,
     pub session_id: String,
     pub cwd: Option<String>,
     pub idempotency_key: String,
