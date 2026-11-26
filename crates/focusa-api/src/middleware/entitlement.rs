@@ -957,6 +957,17 @@ mod tests {
     }
 
     #[test]
+    fn goal_definition_requires_entitlement_without_an_inherited_meter() {
+        let path = "/v1/trajectory/define-goal";
+        let policy = resolve_route_entitlement_policy(&Method::POST, path).unwrap();
+        assert_eq!(policy.operation_id, "focusa.trajectory.define_goal");
+        assert!(route_requires_entitlement(&Method::POST, path));
+        assert!(route_entitlement_denial(&LicenseGuard::eval(7), &Method::POST, path).is_some());
+        // The registered operation does not declare a mission usage limit.
+        assert_eq!(policy.limit_bucket, None);
+    }
+
+    #[test]
     fn only_signed_active_or_grace_snapshot_allows_mutation() {
         assert!(!entitlement_allows_mutation(&LicenseGuard::eval(7)));
         let bind = |snapshot: &mut EntitlementSnapshot| {

@@ -34,6 +34,11 @@ tests/spec_focusa_gh7_pi_unbound_nag_static_test.sh
 [[ -f scripts/install-self-hosted-runner.sh ]] || { echo "✗ missing install-self-hosted-runner.sh"; exit 1; }
 [[ -f scripts/deploy-smoke-check.sh ]] || { echo "✗ missing deploy-smoke-check.sh"; exit 1; }
 
+fail() {
+  printf '✗ %s\n' "$*" >&2
+  exit 1
+}
+
 assert_grep() {
   local needle="$1"
   local file="$2"
@@ -43,8 +48,7 @@ assert_grep() {
     needle="${needle#--}"
   fi
   if ! grep -Fq -e "$needle" "$file"; then
-    echo "✗ $label"
-    exit 1
+    fail "$label"
   fi
 }
 
@@ -53,8 +57,7 @@ assert_not_grep() {
   local file="$2"
   local label="$3"
   if grep -Fq -e "$needle" "$file"; then
-    echo "✗ $label"
-    exit 1
+    fail "$label"
   fi
 }
 
@@ -190,12 +193,27 @@ assert_grep 'python3 scripts/release-gate.py --advisory' scripts/create-dev-rele
 assert_not_grep 'gh release edit' scripts/create-dev-release-tag.sh 'tag helper must never promote Latest'
 assert_grep 'headBranch' scripts/create-dev-release-tag.sh 'release helper must track tag Release run, not main branch validation run'
 assert_grep 'wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"' scripts/create-dev-release-tag.sh 'release helper must wait for tag-specific Release run'
-assert_grep 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh 'release helper must commit and dry-run-revert stamped Pi extension versions'
-[[ "$(grep -o 'apps/pi-extension/package.json apps/pi-extension/package-lock.json' scripts/create-dev-release-tag.sh | wc -l)" -ge 2 ]] \
-  || fail 'Pi extension version surfaces must appear in both commit and dry-run rollback sets'
-manifest_surface='docs/contracts/spec141/generated-capability-v2/distribution-manifest.json'
-[[ "$(grep -o "$manifest_surface" scripts/create-dev-release-tag.sh | wc -l)" -eq 3 ]] \
-  || fail 'Distribution manifest must appear in retry allowlist, dry-run rollback, and release commit sets'
+# Check shared stamp membership and its consumers without executing the release helper.
+release_helper=scripts/create-dev-release-tag.sh
+stamp_paths="$(awk '
+  /^readonly -a RELEASE_STAMP_PATHS=\($/ { reading = 1; next }
+  reading && /^\)$/ { complete = 1; exit }
+  reading {
+    sub(/[[:space:]]*#.*/, "")
+    for (i = 1; i <= NF; i++) print $i
+  }
+  END { if (!complete) exit 1 }
+' "$release_helper")" || fail 'release helper must declare the shared stamp paths'
+for path in \
+  apps/pi-extension/package.json \
+  apps/pi-extension/package-lock.json \
+  docs/contracts/spec141/generated-capability-v2/distribution-manifest.json; do
+  grep -Fxq -- "$path" <<< "$stamp_paths" || fail "shared release stamp paths omit $path"
+done
+assert_grep 'git add -- "${RELEASE_STAMP_PATHS[@]}"' "$release_helper" 'release commit must stage the shared stamp paths'
+assert_grep 'git checkout -- "${RELEASE_STAMP_PATHS[@]}"' "$release_helper" 'dry-run rollback must restore the shared stamp paths'
+assert_grep 'grep -Fxq -- "$dirty_path" <<< "$(printf '\''%s\n'\'' "${RELEASE_STAMP_PATHS[@]}")"' \
+  "$release_helper" 'exact-tag retry must admit only the shared stamp paths'
 assert_grep 'timeout-minutes: 150' .github/workflows/release.yml 'External Menubar receipt gate timeout must cover the bounded 145-minute Codemagic/AppVeyor wait'
 assert_grep 'timeout-minutes: 30' .github/workflows/release.yml 'Release Windows/cross-target job timeout must be enough but bounded'
 assert_grep 'gh run list --workflow ci.yml --branch main --commit "$RELEASE_SHA"' .github/workflows/release.yml 'Release must reuse exact successful main CI'
