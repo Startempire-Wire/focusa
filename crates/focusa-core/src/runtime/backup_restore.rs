@@ -144,8 +144,9 @@ fn restore_and_verify(
     }
     let temporal_work_item_coverage = match manifest.temporal_work_item_coverage {
         Some(advertised) => {
-            let actual = super::temporal_work_items::snapshot_coverage(&conn)?
-                .context("restored database is missing the advertised temporal work-item coverage")?;
+            let actual = super::temporal_work_items::snapshot_coverage(&conn)?.context(
+                "restored database is missing the advertised temporal work-item coverage",
+            )?;
             if actual != advertised {
                 bail!("restored database temporal work-item coverage differs from the manifest")
             }
