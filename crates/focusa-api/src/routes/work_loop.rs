@@ -3836,6 +3836,7 @@ async fn start_pi_driver(
     tokio::spawn(async move {
         let mut seq: u64 = 1;
         let mut last_assistant_output = String::new();
+        let mut last_assistant_failure = None;
         let mut lines = BufReader::new(stdout).lines();
         while let Ok(Some(line)) = lines.next_line().await {
             let parsed: Value = serde_json::from_str(&line)
@@ -3878,6 +3879,9 @@ async fn start_pi_driver(
             }
             if kind == "turn_start" || kind == "agent_start" {
                 last_assistant_output.clear();
+                // A low-level error can be recovered by an incumbent Pi retry
+                // before the outer run settles.
+                last_assistant_failure = None;
             }
             if kind == "message_update"
                 && let Some(delta) = parsed
@@ -3891,7 +3895,10 @@ async fn start_pi_driver(
                 && let Some(message) = parsed.get("message")
                 && message.get("role").and_then(Value::as_str) == Some("assistant")
             {
-                last_assistant_output = match message.get("stopReason").and_then(Value::as_str) {
+                let stop_reason = message.get("stopReason").and_then(Value::as_str);
+                last_assistant_failure =
+                    pi_rpc_turn_boundary::assistant_terminal_failure(stop_reason);
+                last_assistant_output = match stop_reason {
                     Some("error" | "aborted" | "toolUse") => String::new(),
                     _ => extract_assistant_text(message).unwrap_or_default(),
                 };
@@ -3950,17 +3957,23 @@ async fn start_pi_driver(
                 };
                 let was_busy = session.turn_boundary.is_busy() && still_bound;
                 let aborted = parsed.get("aborted").and_then(Value::as_bool);
-                if aborted != Some(false) {
-                    // A stop must not become a wake. Preserve the unfinished frontier.
+                let failure = if aborted != Some(false) {
+                    Some("Pi run settled with abort or unknown stop disposition")
+                } else {
+                    last_assistant_failure.take()
+                };
+                if let Some(reason) = failure {
+                    // A quiescent failed run is not clean completion or permission
+                    // to repeat a possibly effectful turn.
                     if was_busy {
                         let _ = command_tx
                             .send(Action::PauseContinuousWork {
-                                reason: "Pi run settled with abort or unknown stop disposition"
-                                    .to_string(),
+                                reason: reason.to_string(),
                             })
                             .await;
                     }
                     last_assistant_output.clear();
+                    last_assistant_failure = None;
                     session.turn_boundary.settle();
                     seq += 1;
                     continue;
