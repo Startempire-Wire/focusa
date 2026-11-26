@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import ts from "typescript";
 import { Type } from "@sinclair/typebox";
+import { loadPureSourceModule } from "./helpers/source-section-harness.mjs";
 
+const { verifiedResumeCheckout } = loadPureSourceModule("workpoint-request-binding.ts");
 const source = readFileSync(new URL("../src/tools.ts", import.meta.url), "utf8");
 function section(start, end) {
   const i = source.indexOf(start);
@@ -77,6 +79,7 @@ test("scoped fetch uses exactly one API version and preserves attachment headers
       };
       const deps = {
         getAttachmentRuntime: () => ({ cfg: { focusaApiBaseUrl: base } }),
+        verifiedResumeCheckout,
         timeoutBudgetForRoute: () => 1000,
         currentProjectBindingDecision: () => ({ state: "BOUND" }),
         currentAttachmentKey: () => key,

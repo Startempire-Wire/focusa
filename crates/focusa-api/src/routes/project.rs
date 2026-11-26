@@ -3138,8 +3138,8 @@ async fn attested_identity_response(
         Ok(Some((intent, publication))) => {
             let focusa = state.focusa.read().await;
             authority
-                .published_records(&focusa, &intent, &publication)
-                .and_then(|(trajectory, _)| trajectory.scope_ref.clone())
+                .bound_trajectory(&focusa, &intent, &publication)
+                .and_then(|trajectory| trajectory.scope_ref.clone())
         }
         Ok(None) => None,
         Err((_, reply)) => return reply,

@@ -21,13 +21,16 @@ export const normalizeProjectRoot = (value) => {
   return root === "/" ? "/" : root;
 };
 `;
-const stateUrl = `data:text/javascript;base64,${Buffer.from(stateModule).toString("base64")}`;
-const compiled = ts.transpileModule(source.replace('from "./state.js"', `from "${stateUrl}"`), {
-  compilerOptions: {
-    module: ts.ModuleKind.ESNext,
-    target: ts.ScriptTarget.ES2022,
-  },
-}).outputText;
+const dataModule = (code) => `data:text/javascript;base64,${Buffer.from(code).toString("base64")}`;
+const compilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 };
+const stateUrl = dataModule(stateModule);
+const bindingSource = readFileSync(new URL("../src/workpoint-request-binding.ts", import.meta.url), "utf8");
+const bindingUrl = dataModule(ts.transpileModule(bindingSource, { compilerOptions }).outputText);
+const compiled = ts.transpileModule(
+  source.replace('from "./state.js"', `from "${stateUrl}"`)
+    .replace('from "./workpoint-request-binding.js"', `from "${bindingUrl}"`),
+  { compilerOptions },
+).outputText;
 
 globalThis.__focusaScopedRefreshState = {
   projectRoot: "/root/release-cycle",
@@ -51,7 +54,7 @@ globalThis.__focusaScopedRefreshState = {
     },
   },
 };
-const refresh = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
+const refresh = await import(dataModule(compiled));
 
 test("mixed state keeps persisted trajectory visible while project recovers", () => {
   const snapshot = refresh.buildTruthfulScopedSurfaceSnapshot("/root", Date.parse("2026-07-31T00:01:00Z"));
@@ -136,6 +139,34 @@ test("foreign receipts never refresh the current project", () => {
   });
   assert.ok(foreign);
   assert.equal(refresh.scopedReceiptMatchesCurrentScope(foreign), false);
+});
+
+test("matching root and continuity do not let a sibling checkout refresh the display", () => {
+  const state = globalThis.__focusaScopedRefreshState;
+  const runtime = state.runtime;
+  state.runtime = {
+    ...runtime,
+    sessionFrameKey: "fixture-session",
+    sessionCwd: state.projectRoot,
+    continuityId: state.continuityId,
+    projectBindingDecisions: {
+      "fixture-session": {
+        state: "BOUND",
+        selected_project_root: state.projectRoot,
+        canonical_parent_root: state.projectRoot,
+        selected_worktree_root: `${state.projectRoot}-sibling`,
+        continuity_id: state.continuityId,
+        working_subpath_id: "checkout-b",
+      },
+    },
+  };
+  try {
+    const receipt = { project_root: state.projectRoot, continuity_id: state.continuityId };
+    assert.equal(refresh.scopedReceiptMatchesCurrentScope({ ...receipt, working_subpath_id: "checkout-a" }), false);
+    assert.equal(refresh.scopedReceiptMatchesCurrentScope({ ...receipt, working_subpath_id: "checkout-b" }), true);
+  } finally {
+    state.runtime = runtime;
+  }
 });
 
 test("blocked Workpoint and proof zero remain non-success states", () => {

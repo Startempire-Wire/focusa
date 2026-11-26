@@ -6,6 +6,7 @@ import { loadPureSourceModule, loadSourceSection } from './helpers/source-sectio
 // Execute production scope projection, current-context accessor, both registered
 // callbacks and process adapter. Only the actual child process is a test boundary.
 const scope = loadPureSourceModule('scoped-state.ts');
+const { verifiedResumeCheckout } = loadPureSourceModule('workpoint-request-binding.ts');
 const invocations = new AsyncLocalStorage();
 const currentAttachmentKey = loadSourceSection(
   'state.ts', 'export function currentAttachmentKey()',
@@ -19,6 +20,7 @@ const focusaFetchDetailed = loadSourceSection(
   'tools.ts', '  async function focusaFetchDetailed(', '  function formatWorkLoopBudgetRemaining(',
   {
     currentAttachmentKey,
+    verifiedResumeCheckout,
     currentProjectBindingDecision: () => ({ state: 'BOUND' }),
     timeoutBudgetForRoute: () => 1000,
     focusaApiV1Base: () => 'http://source-fixture.invalid/v1',

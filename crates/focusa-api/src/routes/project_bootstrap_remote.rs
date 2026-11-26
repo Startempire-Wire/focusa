@@ -313,7 +313,7 @@ impl RemoteOnboardingAuthority {
         .map_err(|_| read_scope_mismatch())?
     }
 
-    fn bound_trajectory<'a>(
+    pub(in crate::routes) fn bound_trajectory<'a>(
         &self,
         state: &'a FocusaState,
         intent: &RemoteGenesisIntent,
