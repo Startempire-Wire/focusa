@@ -4042,10 +4042,13 @@ async fn start_pi_driver(
                 None
             }
         };
-        if let Some(mut stale_session) = stale_session {
-            terminate_pi_rpc_child(&mut stale_session.child, stale_session.process_group_id).await;
-        }
+        let Some(mut stale_session) = stale_session else {
+            return;
+        };
+        terminate_pi_rpc_child(&mut stale_session.child, stale_session.process_group_id).await;
 
+        // The daemon admits degradation with this exact transport close,
+        // including when a replacement binds during child termination.
         let _ = command_tx
             .send(Action::IngestContinuousTransportEvent {
                 sequence: seq,
@@ -4053,11 +4056,6 @@ async fn start_pi_driver(
                 session_id: Some(attach_session_id.clone()),
                 turn_id: None,
                 summary: Some("pi rpc stdout stream closed".to_string()),
-            })
-            .await;
-        let _ = command_tx
-            .send(Action::MarkContinuousLoopTransportDegraded {
-                reason: "pi rpc stdout stream closed; restart required".to_string(),
             })
             .await;
     });

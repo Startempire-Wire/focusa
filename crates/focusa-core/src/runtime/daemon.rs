@@ -4046,13 +4046,25 @@ Return:
                         "transport event rejected: session or execution partition mismatch"
                     ));
                 }
-                Ok(vec![FocusaEvent::ContinuousTransportEventIngested {
+                let stream_closed = kind == "stream_closed";
+                if stream_closed && session_id.is_none() {
+                    anyhow::bail!("transport close requires the attached session id");
+                }
+                let mut events = vec![FocusaEvent::ContinuousTransportEventIngested {
                     sequence,
                     kind,
                     session_id,
                     turn_id,
                     summary,
-                }])
+                }];
+                if stream_closed {
+                    // Same admission as the close event: a superseded reader
+                    // can neither detach nor degrade its replacement.
+                    events.push(FocusaEvent::ContinuousLoopTransportDegraded {
+                        reason: "Pi RPC stdout stream closed; restart required".to_string(),
+                    });
+                }
+                Ok(events)
             }
 
             Action::DeferContinuousWorkItem {
@@ -6088,6 +6100,55 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn transport_close_only_degrades_the_bound_session() {
+        let mut daemon = test_daemon();
+        let close = |id: Option<&str>| Action::IngestContinuousTransportEvent {
+            sequence: 42,
+            kind: "stream_closed".to_string(),
+            session_id: id.map(str::to_string),
+            turn_id: None,
+            summary: None,
+        };
+        assert!(daemon.translate_action(close(None)).await.is_err());
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:pi-rpc-test",
+            "/repo/pi-rpc-test",
+            "Pi RPC test",
+            "sha256:pi-rpc-test",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "pi-rpc-test").unwrap();
+        let wl = &mut daemon.state.work_loop;
+        let workpoint_id = uuid::Uuid::now_v7();
+        wl.execution_scope = Some(scope.clone());
+        wl.transport_scope = Some(scope);
+        wl.execution_work_item_id = Some("current-work".to_string());
+        wl.transport_work_item_id = Some("different-work".to_string());
+        wl.execution_workpoint_id = Some(workpoint_id);
+        wl.transport_workpoint_id = Some(workpoint_id);
+        wl.transport_session_id = Some("replacement".to_string());
+        assert!(
+            daemon
+                .translate_action(close(Some("replacement")))
+                .await
+                .is_err()
+        );
+        daemon.state.work_loop.transport_work_item_id = Some("current-work".to_string());
+        assert!(daemon.translate_action(close(Some("stale"))).await.is_err());
+        let events = daemon
+            .translate_action(close(Some("replacement")))
+            .await
+            .expect("the current transport close is accepted");
+        assert!(matches!(
+            events.as_slice(),
+            [
+                FocusaEvent::ContinuousTransportEventIngested { .. },
+                FocusaEvent::ContinuousLoopTransportDegraded { .. }
+            ]
+        ));
+    }
+
+    #[tokio::test]
     async fn temporal_signal_migration_converges_with_one_persistence_request_per_tick() {
         const FRAME_COUNT: usize = 115;
         const TICK_COUNT: usize = 125;
