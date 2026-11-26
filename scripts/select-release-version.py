@@ -14,11 +14,14 @@ SEMVER_TAG = re.compile(
     r"(?P<patch>0|[1-9][0-9]*)(?:-(?P<suffix>[0-9A-Za-z][0-9A-Za-z.-]*))?$"
 )
 BASE = re.compile(r"^(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)$")
+ROLLING_NIGHTLY = re.compile(r"(?:dev-)?nightly\.[0-9]{8}")
 
 
 def channel_for(suffix: str | None) -> str:
     if suffix is None:
         return "stable"
+    if ROLLING_NIGHTLY.fullmatch(suffix):
+        return "nightly"
     prefix = suffix.split(".", 1)[0]
     if prefix == "dev":
         return "dev"
@@ -66,19 +69,33 @@ def select_version(base: str, exact_tag: str | None, tags: Iterable[str]) -> dic
         if selected_lane != lane:
             raise ValueError(f"exact tag {exact_tag!r} is outside requested base {base!r}")
         selected_patch = int(selected["patch"])
-        if selected_patch <= highest_patch:
+        selected_channel = channel_for(selected["suffix"])
+        if selected_channel == "nightly":
+            raise ValueError("rolling nightly tags are produced by the nightly workflow")
+        same_patch_nightlies_only = (
+            selected_channel == "stable"
+            and selected_patch == highest_patch
+            and any(patch == highest_patch for _, patch, _ in parsed)
+            and all(
+                channel == "nightly"
+                for _, patch, channel in parsed
+                if patch == highest_patch
+            )
+        )
+        monotonic = selected_patch > highest_patch or same_patch_nightlies_only
+        if not monotonic:
             raise ValueError(
                 f"release version regression: selected patch {selected_patch} must be greater "
-                f"than existing {base} maximum {highest_patch}"
+                f"than existing {base} maximum {highest_patch} unless only rolling nightlies use that patch"
             )
         selected_tag = exact_tag
         mode = "explicit"
-        selected_channel = channel_for(selected["suffix"])
     else:
         selected_patch = highest_patch + 1
         selected_tag = f"v{base}.{selected_patch}"
         mode = "automatic"
         selected_channel = "stable"
+        monotonic = selected_patch > highest_patch
 
     return {
         "schema": "focusa.release_version_selection.v1",
@@ -93,7 +110,7 @@ def select_version(base: str, exact_tag: str | None, tags: Iterable[str]) -> dic
         "channel_maxima": maxima,
         "considered_tags": len(parsed),
         "ignored_malformed_tags": sorted(ignored),
-        "monotonic": selected_patch > highest_patch,
+        "monotonic": monotonic,
     }
 
 

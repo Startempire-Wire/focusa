@@ -42,6 +42,36 @@ class ReleaseVersionSelectionTests(unittest.TestCase):
         self.assertEqual(result["selected_channel"], "dev")
         self.assertEqual(result["selected_tag"], "v0.9.143-dev")
 
+    def test_stable_can_fill_highest_patch_reserved_only_by_rolling_nightly(self) -> None:
+        for nightly in ("v0.9.211-nightly.20261125", "v0.9.211-dev-nightly.20261125"):
+            with self.subTest(nightly=nightly):
+                tags = ["v0.9.210", nightly]
+                result = select_version("0.9", "v0.9.211", tags)
+                self.assertEqual(result["selected_tag"], "v0.9.211")
+                self.assertEqual(result["selected_channel"], "stable")
+                self.assertEqual(result["highest_patch"], 211)
+                self.assertTrue(result["monotonic"])
+                self.assertEqual(select_version("0.9", None, tags)["selected_tag"], "v0.9.212")
+
+    def test_rolling_nightly_exception_does_not_allow_regression_or_reuse(self) -> None:
+        nightly = "v0.9.211-dev-nightly.20261125"
+        cases = [
+            ("v0.9.210", [nightly]),
+            ("v0.9.211-dev", [nightly]),
+            (nightly, ["v0.9.210"]),
+            ("v0.9.211", [nightly, "v0.9.211"]),
+            ("v0.9.211", [nightly, "v0.9.211-dev"]),
+            ("v0.9.211", [nightly, "v0.9.211-rc.1"]),
+            ("v0.9.211", [nightly, "v0.9.211-preview"]),
+            ("v0.9.211", ["v0.9.211-dev-nightly.20261125.experiment"]),
+            ("v0.9.211", [nightly, "v0.9.212-nightly.20261126"]),
+        ]
+        for tag, tags in cases:
+            with self.subTest(tag=tag, tags=tags), self.assertRaisesRegex(
+                ValueError, "release version regression|nightly workflow"
+            ):
+                select_version("0.9", tag, tags)
+
     def test_explicit_lower_or_equal_patch_fails_closed(self) -> None:
         for tag in ("v0.9.141", "v0.9.142", "v0.9.142-rc.1"):
             with self.subTest(tag=tag), self.assertRaisesRegex(
