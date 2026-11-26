@@ -31,7 +31,17 @@ use std::sync::{Arc, Mutex};
 use tracing::debug;
 use uuid::Uuid;
 
-const SCHEMA_VERSION: i64 = 6;
+const BASE_SCHEMA_VERSION: i64 = 6;
+const SCHEMA_VERSION: i64 = super::temporal_work_items::CANONICAL_SCHEMA_VERSION;
+
+fn validate_schema_version(value: &str) -> anyhow::Result<i64> {
+    let parsed = value.parse::<i64>().unwrap_or(0);
+    anyhow::ensure!(
+        (1..=SCHEMA_VERSION).contains(&parsed),
+        "unsupported schema_version {parsed} (expected <= {SCHEMA_VERSION})"
+    );
+    Ok(parsed)
+}
 
 fn hot_clt_snapshot_max_nodes() -> usize {
     std::env::var("FOCUSA_HOT_CLT_MAX_NODES")
@@ -323,6 +333,23 @@ impl SqlitePersistence {
         let db_path = data_dir.join("focusa.sqlite");
         let preexisting_db = db_path.try_exists()?;
         let mut conn = Connection::open(db_path)?;
+        let has_meta: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type='table' AND name='meta')",
+            [],
+            |row| row.get(0),
+        )?;
+        if has_meta {
+            let version: Option<String> = conn
+                .query_row(
+                    "SELECT value FROM meta WHERE key='schema_version'",
+                    [],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            if let Some(version) = version {
+                validate_schema_version(&version)?;
+            }
+        }
 
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "synchronous", "NORMAL")?;
@@ -905,22 +932,14 @@ impl SqlitePersistence {
             None => {
                 conn.execute(
                     "INSERT INTO meta(key, value) VALUES ('schema_version', ?1)",
-                    [SCHEMA_VERSION.to_string()],
+                    [BASE_SCHEMA_VERSION.to_string()],
                 )?;
             }
             Some(v) => {
-                let parsed: i64 = v.parse().unwrap_or(0);
-                if parsed > SCHEMA_VERSION || parsed <= 0 {
-                    anyhow::bail!(
-                        "unsupported schema_version {} (expected <= {})",
-                        parsed,
-                        SCHEMA_VERSION
-                    );
-                }
-                if parsed < SCHEMA_VERSION {
+                if validate_schema_version(&v)? < BASE_SCHEMA_VERSION {
                     conn.execute(
                         "UPDATE meta SET value = ?1 WHERE key = 'schema_version'",
-                        [SCHEMA_VERSION.to_string()],
+                        [BASE_SCHEMA_VERSION.to_string()],
                     )?;
                 }
             }

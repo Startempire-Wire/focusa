@@ -234,11 +234,19 @@ this drill is not evidence of a 15-minute recovery-point objective.
 
 Retained JSON originals are import evidence, not a rollback mirror. Once the
 upgraded daemon commits Work Item changes, the originals do not include them.
+The upgrade records SQLite schema 7 in the same transaction that establishes
+canonical Work Item coverage. An older daemon that supports schema 6 at most
+refuses to serve the upgraded database. Do not lower the schema number or use
+old sidecars with the upgraded database.
+
 For forward recovery, stop the affected writer, preserve the SQLite database
 and its WAL and originals, and make a verified native backup or use a verified
 compatible generation. Restore to a separate directory with a compatible daemon,
-then compare exact scoped items before any activation. Do not point the old
-file-backed daemon at the production directory as a recovery procedure.
+then compare exact scoped items before any activation. To use the older daemon,
+restore only a verified pre-upgrade database and its matching Work Item sidecars
+from the same recovery point, in a separate directory. That recovery point does
+not include post-upgrade writes. Do not point the old file-backed daemon at the
+production directory as a recovery procedure.
 
 ## 12. Event retention sweep
 

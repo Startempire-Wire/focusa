@@ -13,6 +13,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub(super) const CANONICAL_SCHEMA_VERSION: i64 = 7;
 const LEGACY_DIR: &str = "temporal-work-items";
 const MIGRATION: &str = "temporal_work_items_migrated_v1";
 const LEGACY_HISTORY: &str = "temporal_work_items_legacy_history_unverified_v1";
@@ -162,9 +163,32 @@ pub(super) fn require_native_capture(
 
 pub(super) fn migrate(conn: &mut Connection, data_dir: &Path, preexisting_db: bool) -> Result<()> {
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    let schema: String = tx.query_row(
+        "SELECT value FROM meta WHERE key='schema_version'",
+        [],
+        |row| row.get(0),
+    )?;
+    let schema = schema
+        .parse::<i64>()
+        .context("invalid temporal store schema version")?;
+    ensure!(
+        (1..=CANONICAL_SCHEMA_VERSION).contains(&schema),
+        "unsupported temporal store schema version {schema}"
+    );
     if has_coverage(&tx)? {
+        if schema < CANONICAL_SCHEMA_VERSION {
+            // Early candidates wrote canonical rows while still advertising v6.
+            // Verify those rows, never re-import their now-stale sidecars.
+            verify_coverage(&tx)?;
+            mark_canonical_schema(&tx)?;
+        }
+        tx.commit()?;
         return Ok(());
     }
+    ensure!(
+        schema != CANONICAL_SCHEMA_VERSION,
+        "SQLite schema {CANONICAL_SCHEMA_VERSION} requires canonical temporal work-item coverage"
+    );
     tx.execute_batch(
         "CREATE TABLE temporal_work_item_scopes (
         project_root TEXT NOT NULL,
@@ -208,7 +232,17 @@ pub(super) fn migrate(conn: &mut Connection, data_dir: &Path, preexisting_db: bo
             [LEGACY_HISTORY],
         )?;
     }
+    mark_canonical_schema(&tx)?;
     tx.commit()?;
+    Ok(())
+}
+
+// Switch authority and the old-daemon version fence in the same transaction.
+fn mark_canonical_schema(conn: &Connection) -> Result<()> {
+    conn.execute(
+        "UPDATE meta SET value=?1 WHERE key='schema_version'",
+        [CANONICAL_SCHEMA_VERSION.to_string()],
+    )?;
     Ok(())
 }
 

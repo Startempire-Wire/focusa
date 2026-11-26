@@ -47,7 +47,7 @@ fn seeded_database(path: &Path) {
     conn.execute_batch(
         "PRAGMA journal_mode=WAL;
          CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
-         INSERT INTO meta VALUES('schema_version', '9');
+         INSERT INTO meta VALUES('schema_version', '6');
          CREATE TABLE events(event_id TEXT PRIMARY KEY, payload_json TEXT NOT NULL);
          INSERT INTO events VALUES('event-1', '{}');
          CREATE TABLE event_hash_chain(
@@ -503,6 +503,15 @@ fn temporal_store(data: &Path) -> super::persistence_sqlite::SqlitePersistence {
     .unwrap()
 }
 
+fn schema_version(conn: &Connection) -> String {
+    conn.query_row(
+        "SELECT value FROM meta WHERE key='schema_version'",
+        [],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
 fn fixture_work_item(root: &str, continuity: &str) -> super::temporal_work_items::WorkItem {
     use super::temporal_work_items::WorkItem;
 
@@ -548,6 +557,7 @@ fn native_full_and_experimental_incremental_cold_restore_exact_temporal_items() 
     std::fs::write(&legacy_file, &legacy_bytes).unwrap();
     let store = temporal_store(&data);
     let db = store.database_path();
+    assert_eq!(schema_version(&Connection::open(&db).unwrap()), "7");
     let stale = store.read_temporal_work_items(root, continuity).unwrap();
     assert_eq!(stale.items.as_slice(), std::slice::from_ref(&baseline));
     let full = create_full_generation(&db, &policy, "temporal-full", "test").unwrap();
@@ -644,7 +654,8 @@ fn legacy_cold_start_and_rebackup_preserve_unknown_work_item_history() {
     // Model the original schema on the disposable fixture; there is no sidecar.
     conn.execute_batch(
         "BEGIN; DROP TABLE temporal_work_item_scopes;
-         DELETE FROM meta WHERE key = 'temporal_work_items_migrated_v1'; COMMIT;",
+         DELETE FROM meta WHERE key = 'temporal_work_items_migrated_v1';
+         UPDATE meta SET value='6' WHERE key='schema_version'; COMMIT;",
     )
     .unwrap();
     drop(conn);
@@ -716,6 +727,8 @@ fn legacy_work_item_import_is_atomic_for_malformed_and_wrong_scope_files() {
     for malformed in [true, false] {
         let (_temp, db, _) = fixture();
         let mut conn = Connection::open(&db).unwrap();
+        conn.execute("UPDATE meta SET value='6' WHERE key='schema_version'", [])
+            .unwrap();
         let data = db.parent().unwrap();
         let legacy = data.join("temporal-work-items");
         std::fs::create_dir(&legacy).unwrap();
@@ -745,6 +758,7 @@ fn legacy_work_item_import_is_atomic_for_malformed_and_wrong_scope_files() {
         };
         assert!(format!("{error:#}").contains(expected), "{error:#}");
         assert!(!has_coverage(&conn).unwrap()); // neither the table nor the migration marker survived
+        assert_eq!(schema_version(&conn), "6");
         let markers: i64 = conn
             .query_row(
                 "SELECT count(*) FROM meta WHERE key LIKE 'temporal_work_items_%'",
@@ -757,6 +771,7 @@ fn legacy_work_item_import_is_atomic_for_malformed_and_wrong_scope_files() {
         assert_eq!(std::fs::read(&second_path).unwrap(), broken_bytes);
         std::fs::write(&second_path, serde_json::to_vec(&[&second]).unwrap()).unwrap();
         migrate(&mut conn, data, true).unwrap();
+        assert_eq!(schema_version(&conn), "7");
         assert_eq!(
             snapshot_coverage(&conn).unwrap(),
             Some(TemporalWorkItemCoverage::CanonicalStoreLegacyHistoryUnverified)
@@ -772,12 +787,80 @@ fn legacy_work_item_import_is_atomic_for_malformed_and_wrong_scope_files() {
 }
 
 #[test]
+fn canonical_v6_candidate_upgrades_without_reimporting_legacy_sidecars() {
+    use super::temporal_work_items::migrate;
+
+    let (_temp, db, _) = fixture();
+    let data = db.parent().unwrap();
+    let mut conn = Connection::open(&db).unwrap();
+    migrate(&mut conn, data, true).unwrap();
+    let item = fixture_work_item("/fixture/candidate", "candidate");
+    let items_json = serde_json::to_string(&[&item]).unwrap();
+    conn.execute_batch("UPDATE meta SET value='6' WHERE key='schema_version'")
+        .unwrap();
+    conn.execute(
+        "INSERT INTO temporal_work_item_scopes (project_root, continuity_id, version, items_json)
+         VALUES (?1, ?2, 3, '[{}]')",
+        [&item.project_root, &item.continuity_id],
+    )
+    .unwrap();
+    let error = migrate(&mut conn, data, true).unwrap_err();
+    assert!(format!("{error:#}").contains("missing field `item_id`"));
+    assert_eq!(schema_version(&conn), "6");
+    conn.execute(
+        "UPDATE temporal_work_item_scopes SET items_json=?1",
+        [&items_json],
+    )
+    .unwrap();
+    let legacy = data.join("temporal-work-items");
+    std::fs::create_dir(&legacy).unwrap();
+    let sidecar = legacy.join("invalid-stale-sidecar.json");
+    std::fs::write(&sidecar, b"invalid stale sidecar").unwrap();
+
+    for _ in 0..2 {
+        migrate(&mut conn, data, true).unwrap();
+        assert_eq!(schema_version(&conn), "7");
+        let row: (i64, String) = conn
+            .query_row(
+                "SELECT version, items_json FROM temporal_work_item_scopes",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(row, (3, items_json.clone()));
+        assert_eq!(std::fs::read(&sidecar).unwrap(), b"invalid stale sidecar");
+    }
+}
+
+#[test]
+fn v7_without_canonical_coverage_never_reimports_legacy_sidecars() {
+    use super::temporal_work_items::{has_coverage, migrate};
+
+    let (_temp, db, _) = fixture();
+    let data = db.parent().unwrap();
+    let mut conn = Connection::open(&db).unwrap();
+    conn.execute_batch("UPDATE meta SET value='7' WHERE key='schema_version'")
+        .unwrap();
+    let legacy = data.join("temporal-work-items");
+    std::fs::create_dir(&legacy).unwrap();
+    let sidecar = legacy.join("stale-sidecar.json");
+    std::fs::write(&sidecar, b"[]").unwrap();
+    let error = migrate(&mut conn, data, true).unwrap_err();
+    assert!(format!("{error:#}").contains("SQLite schema 7 requires canonical"));
+    assert_eq!(schema_version(&conn), "7");
+    assert!(!has_coverage(&conn).unwrap());
+    assert_eq!(std::fs::read(&sidecar).unwrap(), b"[]");
+}
+
+#[test]
 fn reused_slot_must_match_source_temporal_work_item_coverage() {
     use super::backup_io::file_identity;
     use super::temporal_work_items::migrate;
 
     let (_root, db, policy) = fixture();
     let mut conn = Connection::open(&db).unwrap();
+    conn.execute("UPDATE meta SET value='6' WHERE key='schema_version'", [])
+        .unwrap();
     let data = db.parent().unwrap();
     let clear_coverage = |conn: &Connection| {
         // Test-only rollback. SQLite retains the freed table page, so the
@@ -785,6 +868,7 @@ fn reused_slot_must_match_source_temporal_work_item_coverage() {
         conn.execute_batch(
             "BEGIN; DROP TABLE temporal_work_item_scopes;
              DELETE FROM meta WHERE key = 'temporal_work_items_migrated_v1';
+             UPDATE meta SET value='6' WHERE key='schema_version';
              COMMIT; PRAGMA wal_checkpoint(TRUNCATE);",
         )
         .unwrap();
