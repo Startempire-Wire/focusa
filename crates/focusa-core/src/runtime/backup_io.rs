@@ -380,7 +380,7 @@ pub(super) fn check_reused_temporal_coverage(
         rusqlite::Connection::open_with_flags(source, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
     conn.busy_timeout(std::time::Duration::from_secs(5))?;
     let covered = super::temporal_work_items::require_native_capture(&conn, data_dir)?;
-    if covered != existing.temporal_work_item_coverage.is_some() {
+    if covered != existing.temporal_work_item_coverage {
         bail!(
             "existing slot has different temporal work-item coverage; create a generation with a new slot"
         );

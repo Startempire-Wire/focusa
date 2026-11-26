@@ -166,6 +166,7 @@ pub struct BackupArtifact {
 #[serde(rename_all = "snake_case")]
 pub enum TemporalWorkItemCoverage {
     CanonicalSqliteV1,
+    CanonicalStoreLegacyHistoryUnverified,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -175,6 +176,7 @@ pub enum TemporalWorkItemRestoreCoverage {
     Unverified,
     LegacyUnverified,
     CanonicalSqliteV1,
+    CanonicalStoreLegacyHistoryUnverified,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -88,8 +88,7 @@ pub fn create_incremental_generation(
     online_backup(&source, &staging_db)?;
     let snapshot = Connection::open(&staging_db).context("open staged incremental backup")?;
     let temporal_work_item_coverage =
-        super::temporal_work_items::require_native_capture(&snapshot, data_dir)?
-            .then_some(TemporalWorkItemCoverage::CanonicalSqliteV1);
+        super::temporal_work_items::require_native_capture(&snapshot, data_dir)?;
     let quick_check: String = snapshot.query_row("PRAGMA quick_check", [], |row| row.get(0))?;
     if quick_check != "ok" {
         bail!("staged incremental quick_check failed: {quick_check}")

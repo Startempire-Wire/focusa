@@ -143,11 +143,20 @@ fn restore_and_verify(
         bail!("restored database quick_check failed: {quick_check}")
     }
     let temporal_work_item_coverage = match manifest.temporal_work_item_coverage {
-        Some(TemporalWorkItemCoverage::CanonicalSqliteV1) => {
-            if !super::temporal_work_items::verify_coverage(&conn)? {
-                bail!("restored database is missing the advertised temporal work-item coverage")
+        Some(advertised) => {
+            let actual = super::temporal_work_items::snapshot_coverage(&conn)?
+                .context("restored database is missing the advertised temporal work-item coverage")?;
+            if actual != advertised {
+                bail!("restored database temporal work-item coverage differs from the manifest")
             }
-            TemporalWorkItemRestoreCoverage::CanonicalSqliteV1
+            match actual {
+                TemporalWorkItemCoverage::CanonicalSqliteV1 => {
+                    TemporalWorkItemRestoreCoverage::CanonicalSqliteV1
+                }
+                TemporalWorkItemCoverage::CanonicalStoreLegacyHistoryUnverified => {
+                    TemporalWorkItemRestoreCoverage::CanonicalStoreLegacyHistoryUnverified
+                }
+            }
         }
         None => TemporalWorkItemRestoreCoverage::LegacyUnverified,
     };

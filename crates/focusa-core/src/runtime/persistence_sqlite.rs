@@ -321,6 +321,7 @@ impl SqlitePersistence {
         std::fs::create_dir_all(data_dir.join("ecs/handles"))?;
 
         let db_path = data_dir.join("focusa.sqlite");
+        let preexisting_db = db_path.try_exists()?;
         let mut conn = Connection::open(db_path)?;
 
         conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -338,7 +339,9 @@ impl SqlitePersistence {
         };
 
         this.init_schema()?;
-        this.with_connection_mut(|conn| super::temporal_work_items::migrate(conn, &this.data_dir))?;
+        this.with_connection_mut(|conn| {
+            super::temporal_work_items::migrate(conn, &this.data_dir, preexisting_db)
+        })?;
         crate::silent_sessions::migrate_silent_session_schema(
             &this,
             crate::silent_sessions::MigrationMode::Apply,

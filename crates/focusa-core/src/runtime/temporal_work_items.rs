@@ -1,5 +1,6 @@
 //! Canonical temporal work-item state; native SQLite snapshots carry it with events.
 
+use super::backup_contracts::TemporalWorkItemCoverage;
 use super::persistence_sqlite::SqlitePersistence;
 use anyhow::{Context, Result, bail, ensure};
 use chrono::{DateTime, Utc};
@@ -14,6 +15,7 @@ use std::{
 
 const LEGACY_DIR: &str = "temporal-work-items";
 const MIGRATION: &str = "temporal_work_items_migrated_v1";
+const LEGACY_HISTORY: &str = "temporal_work_items_legacy_history_unverified_v1";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkItem {
@@ -126,16 +128,39 @@ pub(super) fn verify_coverage(conn: &Connection) -> Result<bool> {
     Ok(true)
 }
 
-pub(super) fn require_native_capture(conn: &Connection, data_dir: &Path) -> Result<bool> {
-    let covered = verify_coverage(conn)?;
+pub(super) fn snapshot_coverage(conn: &Connection) -> Result<Option<TemporalWorkItemCoverage>> {
+    if !verify_coverage(conn)? {
+        return Ok(None);
+    }
+    let history: Option<String> = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key=?1",
+            [LEGACY_HISTORY],
+            |row| row.get(0),
+        )
+        .optional()?;
+    match history.as_deref() {
+        None => Ok(Some(TemporalWorkItemCoverage::CanonicalSqliteV1)),
+        Some("1") => Ok(Some(
+            TemporalWorkItemCoverage::CanonicalStoreLegacyHistoryUnverified,
+        )),
+        _ => bail!("invalid temporal work-item historical coverage marker"),
+    }
+}
+
+pub(super) fn require_native_capture(
+    conn: &Connection,
+    data_dir: &Path,
+) -> Result<Option<TemporalWorkItemCoverage>> {
+    let covered = snapshot_coverage(conn)?;
     ensure!(
-        covered || legacy_files(data_dir)?.is_empty(),
+        covered.is_some() || legacy_files(data_dir)?.is_empty(),
         "native backup would omit legacy temporal work items; migrate them by starting the upgraded daemon first"
     );
     Ok(covered)
 }
 
-pub(super) fn migrate(conn: &mut Connection, data_dir: &Path) -> Result<()> {
+pub(super) fn migrate(conn: &mut Connection, data_dir: &Path, preexisting_db: bool) -> Result<()> {
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
     if has_coverage(&tx)? {
         return Ok(());
@@ -174,6 +199,15 @@ pub(super) fn migrate(conn: &mut Connection, data_dir: &Path) -> Result<()> {
         "INSERT INTO meta (key, value) VALUES (?1, '1')",
         [MIGRATION],
     )?;
+    // An old snapshot or store cannot prove that every historical JSON
+    // sidecar survived. A successful import proves coverage from here on,
+    // not that missing earlier state never existed.
+    if preexisting_db {
+        tx.execute(
+            "INSERT INTO meta (key, value) VALUES (?1, '1')",
+            [LEGACY_HISTORY],
+        )?;
+    }
     tx.commit()?;
     Ok(())
 }

@@ -214,14 +214,31 @@ in one transaction and retains the original files. Do not remove those originals
 to force a backup: native backup rejects known unmigrated records rather than
 reporting incomplete coverage as success.
 
-For work-item recovery, require the `canonical_sqlite_v1` coverage marker in the
-generation and the corresponding verification in the restore receipt. Start a
-fresh isolated daemon against the restored database and compare the work-item
-IDs, revisions, states and evidence for the exact project and continuity. An
-older generation without this marker provides no work-item coverage proof; it
-does not prove that the scope was empty. The opt-in snapshot-chunk incremental
-strategy remains experimental; passing this drill is not evidence of a
-15-minute recovery-point objective.
+For work-item recovery, compare the coverage marker in the generation and the
+corresponding verification in the restore receipt:
+
+- `canonical_sqlite_v1`: the snapshot includes and verifies the canonical
+  SQLite Work Item store, with no recorded uncertainty from a legacy import.
+- `canonical_store_legacy_history_unverified`: the snapshot includes and verifies
+  the current SQLite Work Item store, but the upgraded or restored legacy
+  database could not prove that all older sidecars survived. This distinction
+  persists across restart, new writes and subsequent full and incremental backups.
+- Missing coverage marker (`legacy_unverified` in the restore receipt): the
+  artifact offers no Work Item coverage proof. It does not prove that any scope
+  was empty.
+
+Start a fresh isolated daemon against the restored database and compare the
+work-item IDs, revisions, states and evidence for the exact project and continuity.
+The opt-in snapshot-chunk incremental strategy remains experimental; passing
+this drill is not evidence of a 15-minute recovery-point objective.
+
+Retained JSON originals are import evidence, not a rollback mirror. Once the
+upgraded daemon commits Work Item changes, the originals do not include them.
+For forward recovery, stop the affected writer, preserve the SQLite database
+and its WAL and originals, and make a verified native backup or use a verified
+compatible generation. Restore to a separate directory with a compatible daemon,
+then compare exact scoped items before any activation. Do not point the old
+file-backed daemon at the production directory as a recovery procedure.
 
 ## 12. Event retention sweep
 

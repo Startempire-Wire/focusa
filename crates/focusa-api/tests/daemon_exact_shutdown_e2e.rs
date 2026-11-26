@@ -249,6 +249,7 @@ async fn fresh_daemon_reads_native_full_and_incremental_temporal_work_item_resto
     let latest = snapshot.items.clone();
     assert!(store.commit_temporal_work_items(snapshot).unwrap());
     let incremental = create_incremental_generation(&db, &policy, "incremental", "test").unwrap();
+    let completed_full = create_full_generation(&db, &policy, "completed-full", "test").unwrap();
     drop(store);
     std::fs::remove_dir_all(source).unwrap();
 
@@ -257,7 +258,11 @@ async fn fresh_daemon_reads_native_full_and_incremental_temporal_work_item_resto
         .timeout(Duration::from_secs(5))
         .build()
         .unwrap();
-    for (generation, expected) in [(full, vec![first]), (incremental, latest)] {
+    for (generation, expected) in [
+        (full, vec![first]),
+        (incremental, latest.clone()),
+        (completed_full, latest),
+    ] {
         let cold_dir = fixture.path().join(&generation.slot_id);
         let receipt = restore_generation(
             &policy.backup_root,
