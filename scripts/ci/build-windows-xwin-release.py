@@ -37,6 +37,8 @@ def recipe(source):
     return packages, surfaces, targets, {
         'FOCUSA_AUTHORITY_ROOT_KEYS_JSON': roots,
         'CARGO_PROFILE_RELEASE_LTO': str(environment['CARGO_PROFILE_RELEASE_LTO']),
+        # Concurrent CLI and daemon compilation can exhaust the OVH runner (#742).
+        'CARGO_BUILD_JOBS': '1',
     }
 
 
@@ -258,7 +260,6 @@ def main():
     env = os.environ.copy()
     env.update(contract_env)
     env['XWIN_CACHE_DIR'] = str(args.sdk_cache.resolve())
-    env['CARGO_BUILD_JOBS'] = '2'
     env['PATH'] = str(args.clang_shim.resolve()) + os.pathsep + env['PATH']
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
