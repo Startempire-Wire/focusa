@@ -1261,16 +1261,18 @@ fn trajectory_view_payload_with_remote(
             continuity_id.as_deref(),
         ),
     };
-    let persisted_prior_project_trajectory =
-        if remote.is_none() && persisted_exact_trajectory.is_none() && query.allow_prior_project_trajectory {
-            prior_project_trajectory(
-                state,
-                Some(project_root.as_str()).filter(|root| *root != "unbound"),
-                continuity_id.as_deref(),
-            )
-        } else {
-            None
-        };
+    let persisted_prior_project_trajectory = if remote.is_none()
+        && persisted_exact_trajectory.is_none()
+        && query.allow_prior_project_trajectory
+    {
+        prior_project_trajectory(
+            state,
+            Some(project_root.as_str()).filter(|root| *root != "unbound"),
+            continuity_id.as_deref(),
+        )
+    } else {
+        None
+    };
     let using_prior_project_trajectory = persisted_prior_project_trajectory.is_some();
     // Prior-project fallback may supply HLT lineage only. Lower Ladder fields
     // remain exact-continuity state and require governed reassessment.
@@ -1760,7 +1762,10 @@ fn trajectory_view_payload_with_remote(
         .collect::<Vec<_>>();
     let hlt_history = scoped_trajectory_history(
         state.trajectory.records.as_slice(),
-        remote.as_ref().and_then(|read| read.trajectory.project_root.as_deref()).or(Some(project_root.as_str())),
+        remote
+            .as_ref()
+            .and_then(|read| read.trajectory.project_root.as_deref())
+            .or(Some(project_root.as_str())),
         continuity_id.as_deref(),
         12,
     );
@@ -2578,7 +2583,7 @@ async fn view(
             let focusa = state.focusa.read().await;
             let Some((trajectory, workpoint)) =
                 publication.as_ref().and_then(|(intent, published)| {
-                    authority.published_records(&focusa, intent, published)
+                    authority.active_records(&focusa, intent, published)
                 })
             else {
                 let identity = attested_identity_payload(&authority, None);
@@ -2717,7 +2722,7 @@ async fn define_goal(
         .records
         .iter()
         .rev()
-        .find(|record| record.project_root.as_ref() == body.project_root.as_ref())
+        .find(|record| trajectory_record_matches_scope(record, project_root, continuity_id))
         .cloned();
     let old_hlt = previous_trajectory
         .as_ref()

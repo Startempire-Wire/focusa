@@ -270,11 +270,11 @@ pub(super) async fn status(
     });
     if let Some((intent, Some(publication))) = observed {
         let focusa = state.focusa.read().await;
-        let (trajectory, first) = authority.published_records(&focusa, &intent, &publication).ok_or_else(|| {
+        let (trajectory, first) = authority.initial_records(&focusa, &intent, &publication).ok_or_else(|| {
             reject(
                 StatusCode::CONFLICT,
                 "remote_genesis_projection_mismatch",
-                "stored receipt cannot prove the active Trajectory and first Workpoint for this binding",
+                "stored receipt cannot prove the exact Trajectory and initial Workpoint for this binding",
             )
         })?;
         packet["status"] = json!("ready");
@@ -293,8 +293,14 @@ pub(super) async fn status(
         first_packet["project_root"] = json!(scope.remote_root);
         first_packet["remote_binding_id"] = json!(scope.binding_id);
         packet["first_workpoint"] = first_packet;
-        packet["next_action"] =
-            json!("attach the exact remote Workstream before executing its first Workpoint");
+        packet["next_action"] = if trajectory.active_workpoint_id == Some(publication.workpoint_id)
+        {
+            json!("attach the exact remote Workstream before executing its first Workpoint")
+        } else {
+            json!(
+                "read the current Workpoint from the exact remote Workstream; this receipt is historical"
+            )
+        };
     }
     Ok(Json(packet))
 }

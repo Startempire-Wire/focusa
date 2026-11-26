@@ -229,6 +229,74 @@ test('an explicitly different ask is advisory, not current-request authority', (
   assert.doesNotMatch(JSON.stringify(result), /another task/);
 });
 
+function selectCheckout(runtime, id, primary = false) {
+  runtime.projectBindingDecisions = {
+    [runtime.sessionFrameKey]: {
+      state: 'BOUND', selected_project_root: runtime.sessionCwd,
+      selected_worktree_root: primary ? runtime.sessionCwd : `${runtime.sessionCwd}-${id}`,
+      canonical_parent_root: runtime.sessionCwd, continuity_id: runtime.continuityId,
+      working_subpath_id: id,
+    },
+  };
+}
+
+test('a same-session checkout switch rejects the earlier reply and a foreign checkout reply', () => {
+  const r = runtime();
+  selectCheckout(r, 'checkout-A');
+  const old = binding.captureResumeRequest(r, 'continue');
+  selectCheckout(r, 'checkout-B');
+  const current = binding.captureResumeRequest(r, 'continue');
+  const oldReply = { ...reply(), resume_packet: { ...reply().resume_packet, working_subpath_id: 'checkout-A' } };
+  const newReply = { ...reply(), resume_packet: { ...reply().resume_packet, working_subpath_id: 'checkout-B' } };
+  assert.equal(binding.evaluateResumeRequest(oldReply, old, r).reason, 'resume_request_changed');
+  assert.equal(binding.evaluateResumeRequest(oldReply, current, r).reason, 'resume_working_subpath_unverified');
+  assert.equal(binding.evaluateResumeRequest(newReply, current, r).accepted, true);
+  assert.equal(binding.evaluateResumeRequest(reply(), current, r).accepted, false);
+});
+
+test('legacy primary spelling is tried only after an exact miss on the verified main checkout', async () => {
+  const r = runtime();
+  selectCheckout(r, 'qualified-primary', true);
+  const bodies = [];
+  const read = async body => { bodies.push(body); return { status: 'not_found' }; };
+  await binding.readResumeWithPrimaryCompatibility(binding.captureResumeRequest(r, 'continue'), () => r,
+    { working_subpath_id: 'qualified-primary' }, read);
+  assert.deepEqual(bodies.map(body => body.working_subpath_id), ['qualified-primary', 'primary']);
+  selectCheckout(r, 'checkout-B');
+  bodies.length = 0;
+  await binding.readResumeWithPrimaryCompatibility(binding.captureResumeRequest(r, 'continue'), () => r,
+    { working_subpath_id: 'checkout-B' }, read);
+  assert.deepEqual(bodies.map(body => body.working_subpath_id), ['checkout-B']);
+});
+
+test('prepared goal marker recovery is exact, permitted through the normal route, and retried once', async () => {
+  const payload = { project_root: runtime().sessionCwd, continuity_id: runtime().continuityId, idempotency_key: 'one' };
+  const recovery = { ...payload, schema: 'focusa.workpoint_prepare_recovery.v1', kind: 'rebuild_derived_trajectory_marker', trajectory_id: 't', hlt_version: 4 };
+  const blocked = { ok: false, status: 409, body: { prepare_recovery: recovery } };
+  const ready = { ok: true, status: 200, body: { canonical: true, trajectory_integrity_guard: { status: 'READY', expected_trajectory_id: 't' } } };
+  const retried = { ok: true, status: 200, body: { canonical: true } };
+  let writes = 0, attempts = 0, current = true;
+  const repair = async (request) => {
+    writes++;
+    assert.deepEqual(request, { action: 'migrate', confirm: true, project_root: payload.project_root,
+      continuity_id: payload.continuity_id, expected_trajectory_id: 't', expected_hlt_version: 4 });
+    return ready;
+  };
+  const retry = async () => { attempts++; return retried; };
+  assert.equal(await binding.repairPrepareMarker(blocked, payload, () => current, repair, retry), retried);
+  assert.equal(writes, 1); assert.equal(attempts, 1);
+  const foreign = { ...blocked, body: { prepare_recovery: { ...recovery, continuity_id: 'foreign' } } };
+  assert.equal(await binding.repairPrepareMarker(foreign, payload, () => current, repair, retry), foreign);
+  assert.equal(writes, 1); assert.equal(attempts, 1);
+  assert.equal(await binding.repairPrepareMarker(blocked, payload, () => current,
+    async () => { current = false; return ready; }, retry), blocked);
+  assert.equal(attempts, 1);
+  current = true;
+  assert.equal(await binding.repairPrepareMarker(blocked, payload, () => current,
+    async () => ({ ok: false, status: 403, body: {} }), retry), blocked);
+  assert.equal(attempts, 1);
+});
+
 function toolFixture(onFetch = () => {}, response = reply(), adoptionAllowed = true, transportOk = true) {
   const r = runtime();
   const adopted = [];

@@ -107,7 +107,10 @@ import { checkCompactionTier, checkMicroCompact } from "./compaction.js";
 import { catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 import { buildFocusaUtilityCard } from "./awareness.js";
-import { revokeWorkpointRequestAuthority } from "./workpoint-request-binding.js";
+import {
+  captureResumeRequest, evaluateResumeRequest, isResumeRequestCurrent,
+  readResumeWithPrimaryCompatibility, revokeWorkpointRequestAuthority, stampResumeRequest,
+} from "./workpoint-request-binding.js";
 import { buildAwarenessPacket, renderAwarenessPacketText } from "./awareness-substrate.js";
 import {
   attachFocusSliceToNewestUser,
@@ -367,6 +370,11 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
   if (!getAttachmentRuntime().focusaAvailable) return;
   const root = getSessionCwd() || process.cwd();
   if (!isProjectRootAuthoritySafe(root)) return;
+  const continuity = ensureContinuityId(root);
+  const runtime = getAttachmentRuntime();
+  const currentAsk = String(runtime.currentAsk?.text || "").trim();
+  const request = captureResumeRequest(runtime, currentAsk);
+  if (request.bindingDecision && !request.workingSubpathId) return;
   try {
     await focusaFetch("/workpoint/checkpoint", {
       method: "POST",
@@ -382,8 +390,8 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
         checkpoint_reason: reason,
         canonical: true,
         promote: true,
-        continuity_id: ensureContinuityId(root),
-        session_id: getAttachmentRuntime().sessionFrameKey,
+        continuity_id: continuity,
+        session_id: runtime.sessionFrameKey,
         project_root: root,
         source_turn_id: `pi-turn-${getTurnCount()}`,
         action_intent: {
@@ -393,17 +401,19 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
           status: "ready",
         },
         ...extra,
+        working_subpath_id: request.workingSubpathId,
       }),
     });
-    const packet = await focusaFetch("/workpoint/resume", {
-      method: "POST",
-      body: JSON.stringify({
-        mode: "compact_prompt",
-        continuity_id: ensureContinuityId(root),
-        session_id: getAttachmentRuntime().sessionFrameKey,
-        project_root: root,
-      }),
-    });
+    if (!isResumeRequestCurrent(request, getAttachmentRuntime())) return;
+    const packet = await readResumeWithPrimaryCompatibility(request, getAttachmentRuntime, {
+      mode: "compact_prompt",
+      continuity_id: continuity,
+      session_id: runtime.sessionFrameKey,
+      project_root: root,
+      working_subpath_id: request.workingSubpathId,
+      current_ask: currentAsk || undefined,
+    }, body => focusaFetch("/workpoint/resume", { method: "POST", body: JSON.stringify(body) }));
+    if (!isResumeRequestCurrent(request, getAttachmentRuntime())) return;
     if (packet?.status === "rejected_scope_mismatch") {
       setActiveWorkpointPacket(null);
       setActiveWorkpointSummary("");
@@ -411,12 +421,13 @@ async function checkpointDiscontinuity(reason: string, extra: Record<string, any
     }
     if (packet?.status === "completed") {
       const candidate = packet.resume_packet || packet;
-      if (!isWorkpointPacketScopedToCurrentSession(candidate)) {
+      if (!evaluateResumeRequest(packet, request, getAttachmentRuntime()).accepted ||
+          !isWorkpointPacketScopedToCurrentSession(candidate)) {
         setActiveWorkpointPacket(null);
         setActiveWorkpointSummary("");
         return;
       }
-      setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(candidate));
+      setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(stampResumeRequest(candidate, request)));
       setActiveWorkpointSummary(packet.rendered_summary || packet.next_step_hint || "");
       getAttachmentRuntime().lastWorkpointUpdate = Date.now();
     }

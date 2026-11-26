@@ -10,7 +10,9 @@ use focusa_core::remote_workspace::{
     adopt_remote_bootstrap, attest_allowed_workspace, load_controller_attestation,
     preview_allowed_workspace, read_remote_bootstrap, read_remote_genesis_publication,
 };
-use focusa_core::types::{FocusaState, TrajectoryProjectionRecord, WorkpointRecord};
+use focusa_core::types::{
+    FocusaState, TrajectoryProjectionRecord, WorkpointRecord, WorkpointStatus,
+};
 use std::path::Path;
 
 pub(in crate::routes) const MAX_PROBE_AGE: chrono::TimeDelta = chrono::TimeDelta::minutes(5);
@@ -311,38 +313,69 @@ impl RemoteOnboardingAuthority {
         .map_err(|_| read_scope_mismatch())?
     }
 
-    pub(in crate::routes) fn published_records<'a>(
+    fn bound_trajectory<'a>(
+        &self,
+        state: &'a FocusaState,
+        intent: &RemoteGenesisIntent,
+        publication: &RemoteGenesisPublication,
+    ) -> Option<&'a TrajectoryProjectionRecord> {
+        let binding = &self.binding;
+        let trajectory =
+            publication.verified_trajectory(state, intent, &binding.session.continuity_id)?;
+        let scope_ref = trajectory.scope_ref.as_ref()?;
+        (scope_ref.scope_id == format!("remote-workspace:{}", binding.binding_id)
+            && scope_ref.root_path == Path::new(&binding.roots.canonical_remote_root)
+            && scope_ref.fingerprint == intent.projection_key())
+        .then_some(trajectory)
+    }
+
+    pub(in crate::routes) fn initial_records<'a>(
         &self,
         state: &'a FocusaState,
         intent: &RemoteGenesisIntent,
         publication: &RemoteGenesisPublication,
     ) -> Option<(&'a TrajectoryProjectionRecord, &'a WorkpointRecord)> {
-        let binding = &self.binding;
-        if !publication.verifies(state, intent, &binding.session.continuity_id) {
-            return None;
-        }
-        let projection_key = intent.projection_key();
-        let scope_id = format!("remote-workspace:{}", binding.binding_id);
-        let mut trajectories = state
-            .trajectory
-            .records
-            .iter()
-            .filter(|record| record.trajectory_id == publication.trajectory_id);
-        let trajectory = trajectories.next().filter(|record| {
-            trajectories.next().is_none()
-                && record.scope_ref.as_ref().is_some_and(|scope_ref| {
-                    scope_ref.scope_id == scope_id
-                        && scope_ref.root_path == Path::new(&binding.roots.canonical_remote_root)
-                        && scope_ref.fingerprint == projection_key
-                })
-        })?;
-        let mut workpoints = state
-            .workpoint
-            .records
-            .iter()
-            .filter(|record| record.workpoint_id == publication.workpoint_id);
-        let workpoint = workpoints.next()?;
-        (workpoints.next().is_none()).then_some((trajectory, workpoint))
+        let trajectory = self.bound_trajectory(state, intent, publication)?;
+        let first = intent.scoped_workpoint(
+            state,
+            &self.binding.session.continuity_id,
+            publication.workpoint_id,
+        )?;
+        matches!(
+            first.status,
+            WorkpointStatus::Active | WorkpointStatus::Superseded
+        )
+        .then_some((trajectory, first))
+    }
+
+    /// Live reads follow the authoritative pointer, never the first published
+    /// task or the daemon-wide active task. The caller still proves attestation.
+    pub(in crate::routes) fn active_records<'a>(
+        &self,
+        state: &'a FocusaState,
+        intent: &RemoteGenesisIntent,
+        publication: &RemoteGenesisPublication,
+    ) -> Option<(&'a TrajectoryProjectionRecord, &'a WorkpointRecord)> {
+        let trajectory = self.bound_trajectory(state, intent, publication)?;
+        let active = intent.scoped_workpoint(
+            state,
+            &self.binding.session.continuity_id,
+            trajectory.active_workpoint_id?,
+        )?;
+        let subpath = active
+            .session_identity
+            .as_ref()
+            .and_then(|identity| identity.working_subpath_id.as_deref());
+        (active.status == WorkpointStatus::Active
+            && subpath.is_none_or(|id| {
+                id == self
+                    .binding
+                    .roots
+                    .working_subpath
+                    .as_deref()
+                    .unwrap_or("primary")
+            }))
+        .then_some((trajectory, active))
     }
 }
 
@@ -450,6 +483,129 @@ mod tests {
         );
         assert_eq!(packet["controller_binding"]["continuity_id"], "demo-work");
         assert_eq!(packet["verification"]["verified"], true);
+    }
+
+    #[test]
+    fn remote_successor_is_selected_without_changing_initial_readiness_identity() {
+        use focusa_core::scoped_state::ScopeRef;
+        use focusa_core::types::{FocusaSessionIdentity, HltLedgerEntry, TrajectoryLadderEvent};
+        use uuid::Uuid;
+
+        let binding: RemoteWorkspaceBinding = serde_json::from_value(target("exact")).unwrap();
+        let authority = RemoteOnboardingAuthority {
+            binding,
+            principal_id: "fixture".into(),
+        };
+        let continuity = authority.binding.session.continuity_id.as_str();
+        let intent = RemoteGenesisIntent {
+            intent_id: Uuid::now_v7(),
+            bootstrap_receipt_id: Uuid::now_v7(),
+            plan_digest: "fixture".into(),
+        };
+        let key = intent.projection_key();
+        let initial = Uuid::now_v7();
+        let current = Uuid::now_v7();
+        let goal = "Verify remote task continuity";
+        let trajectory = TrajectoryProjectionRecord {
+            trajectory_id: "fixture-remote-trajectory".into(),
+            canonical: true,
+            project_root: Some(key.clone()),
+            continuity_id: Some(continuity.into()),
+            scope_ref: Some(
+                ScopeRef::project(
+                    "remote-workspace:exact",
+                    &authority.binding.roots.canonical_remote_root,
+                    &authority.binding.project.project_id,
+                    &key,
+                )
+                .unwrap(),
+            ),
+            long_term_goal: goal.into(),
+            active_workpoint_id: Some(initial),
+            ..Default::default()
+        };
+        let hlt = HltLedgerEntry::new(key.clone(), goal.into(), "fixture", 1)
+            .with_scope(Some(continuity.into()), None);
+        let publication = RemoteGenesisPublication {
+            trajectory_id: trajectory.trajectory_id.clone(),
+            workpoint_id: initial,
+            ladder: crate::routes::trajectory::trajectory_commit_events(
+                &trajectory,
+                None,
+                &hlt,
+                &[],
+                Some("fixture"),
+            ),
+            hlt,
+        };
+        let record = |id, status| WorkpointRecord {
+            workpoint_id: id,
+            status,
+            canonical: true,
+            project_root: Some(key.clone()),
+            continuity_id: Some(continuity.into()),
+            work_item_id: Some("fixture-task".into()),
+            next_slice: Some("verify the selected active task".into()),
+            ..Default::default()
+        };
+        let mut state = FocusaState::default();
+        state.trajectory.records.push(trajectory);
+        state
+            .workpoint
+            .records
+            .push(record(initial, WorkpointStatus::Active));
+        assert!(publication.verifies(&state, &intent, continuity));
+        state.trajectory.records[0].active_workpoint_id = Some(current);
+        state.workpoint.records[0].status = WorkpointStatus::Superseded;
+        state
+            .workpoint
+            .records
+            .push(record(current, WorkpointStatus::Active));
+        // Genesis publication still proves the original transaction; only the
+        // active view follows the successor, regardless of global activity.
+        state.workpoint.active_workpoint_id = Some(initial);
+        assert!(!publication.verifies(&state, &intent, continuity));
+        assert_eq!(
+            authority
+                .initial_records(&state, &intent, &publication)
+                .unwrap()
+                .1
+                .workpoint_id,
+            initial
+        );
+        assert_eq!(
+            authority
+                .active_records(&state, &intent, &publication)
+                .unwrap()
+                .1
+                .workpoint_id,
+            current
+        );
+        let duplicate = state.workpoint.records[1].clone();
+        state.workpoint.records.push(duplicate);
+        assert!(
+            authority
+                .active_records(&state, &intent, &publication)
+                .is_none()
+        );
+        state.workpoint.records.pop();
+        state.workpoint.records[1].session_identity = Some(FocusaSessionIdentity {
+            working_subpath_id: Some("sibling".into()),
+            ..Default::default()
+        });
+        assert!(
+            authority
+                .active_records(&state, &intent, &publication)
+                .is_none()
+        );
+        state.workpoint.records[1].session_identity = None;
+        state.workpoint.records[1].project_root =
+            Some(authority.binding.roots.canonical_remote_root.clone());
+        assert!(
+            authority
+                .active_records(&state, &intent, &publication)
+                .is_none()
+        );
     }
 
     #[test]

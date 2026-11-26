@@ -6,7 +6,9 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { captureResumeRequest, evaluateResumeRequest, stampResumeRequest } from "./workpoint-request-binding.js";
+import {
+  captureResumeRequest, evaluateResumeRequest, readResumeWithPrimaryCompatibility, stampResumeRequest,
+} from "./workpoint-request-binding.js";
 import { existsSync } from "fs";
 import { join } from "path";
 import { classifyPiSessionProject, persistedProjectRootFromState } from "./session-classification.js";
@@ -398,16 +400,15 @@ async function refreshSessionWorkpointPacket(
     const currentAsk = String(getAttachmentRuntime().currentAsk?.text || "").trim();
     const continuityId = ensureContinuityId(getSessionCwd() || process.cwd());
     const requestBinding = captureResumeRequest(getAttachmentRuntime(), currentAsk);
-    const packet = await focusaFetch("/workpoint/resume", {
-      method: "POST",
-      body: JSON.stringify({
-        mode: "compact_prompt",
-        continuity_id: continuityId,
-        session_id: getAttachmentRuntime().sessionFrameKey,
-        project_root: getSessionCwd() || process.cwd(),
-        current_ask: currentAsk || undefined,
-      }),
-    });
+    if (requestBinding.bindingDecision && !requestBinding.workingSubpathId) return;
+    const packet = await readResumeWithPrimaryCompatibility(requestBinding, getAttachmentRuntime, {
+      mode: "compact_prompt",
+      continuity_id: continuityId,
+      session_id: getAttachmentRuntime().sessionFrameKey,
+      project_root: getSessionCwd() || process.cwd(),
+      working_subpath_id: requestBinding.workingSubpathId,
+      current_ask: currentAsk || undefined,
+    }, body => focusaFetch("/workpoint/resume", { method: "POST", body: JSON.stringify(body) }));
     if (!lifecycleIsCurrent()) return;
     const requestVerdict = evaluateResumeRequest(packet, requestBinding, getAttachmentRuntime());
     if (requestVerdict.reason === "resume_request_changed" ||
@@ -745,7 +746,7 @@ async function promptForProjectVerifyIfNeeded(
   const previous = currentProjectBindingDecision();
   const rootSafe = isProjectRootAuthoritySafe(projectRoot);
   const payload = {
-    cwd: projectRoot,
+    cwd: ctx?.cwd || projectRoot,
     project_root: projectRoot,
     persisted_project_root: previous?.selected_project_root,
   };
@@ -772,6 +773,7 @@ async function promptForProjectVerifyIfNeeded(
   const decision = reconcileProjectBindingDecision({
     selectedProjectRoot: projectRoot,
     selectedWorktreeRoot: res?.project_identity?.active_worktree_root,
+    verifiedWorkingSubpathId: res?.project_identity?.working_context?.working_subpath?.working_subpath_id,
     canonicalParentRoot: res?.project_identity?.canonical_parent_root || res?.project_root,
     continuityId: ensureContinuityId(projectRoot),
     candidates,
@@ -1246,6 +1248,7 @@ function handleSSEEvent(evt: any) {
         mutation_kind: String(evt.type),
         project_root: currentRoot,
         continuity_id: currentContinuity,
+        working_subpath_id: String(evt?.scope?.working_subpath_id || evt?.data?.working_subpath_id || "").trim() || undefined,
         status: "observed",
         evidence_revision: String(evt?.revision || evt?.event_id || "").trim() || undefined,
         effective_at: new Date().toISOString(),
@@ -1518,6 +1521,9 @@ export function registerSession(pi: ExtensionAPI) {
     const provisionalBindingDecision = reconcileProjectBindingDecision({
       selectedProjectRoot: selectedBindingRoot || undefined,
       selectedWorktreeRoot: selectedBindingCandidate?.active_worktree_root,
+      verifiedWorkingSubpathId: offlineBindingReuse &&
+        previousBindingDecision?.selected_worktree_root === selectedBindingCandidate?.active_worktree_root
+        ? previousBindingDecision?.working_subpath_id : undefined,
       canonicalParentRoot: selectedBindingCandidate?.canonical_parent_root,
       continuityId: selectedBindingRoot ? ensureContinuityId(selectedBindingRoot) : "unbound",
       candidates: bindingCandidates,

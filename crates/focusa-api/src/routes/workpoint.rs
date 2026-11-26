@@ -62,6 +62,10 @@ pub struct WorkpointCheckpointRequest {
     pub repair_missing_lifecycle_stage: bool,
     #[serde(default)]
     pub confirm_lifecycle_repair: bool,
+    /// Require verification of the existing provider task in this exact
+    /// workstream before confirming a current-instruction first preparation.
+    #[serde(default)]
+    pub prepare_from_current_intent: bool,
     #[serde(default, alias = "dry_run")]
     pub preview: bool,
 }
@@ -1119,6 +1123,7 @@ pub(super) fn workpoint_packet(record: &WorkpointRecord) -> Value {
         "workpoint_id": record.workpoint_id,
         "work_item_id": record.work_item_id,
         "session_identity": record.session_identity,
+        "working_subpath_id": record_working_subpath_id(record),
         "continuity_id": record.continuity_id,
         "session_id": record.session_id,
         "project_root": record.project_root,
@@ -1802,7 +1807,7 @@ async fn materialize_workpoint_transaction(
     state: &Arc<AppState>,
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
-    expected_prepare_linkage: Option<&Value>,
+    expected_prepare_linkage: Option<(&Value, bool)>,
     remote_genesis: Option<focusa_core::remote_workspace::RemoteGenesisFence>,
 ) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
     let guard = state.write_serial_lock.lock().await;
@@ -1813,7 +1818,7 @@ async fn materialize_workpoint_transaction(
     } else {
         None
     };
-    if let Some(expected) = expected_prepare_linkage {
+    if let Some((expected, verify_provider_task)) = expected_prepare_linkage {
         let workstream = scope.require_workstream_key().map_err(|error| (
             StatusCode::CONFLICT,
             Json(json!({"status":"blocked","canonical":false,"code":"WORKPOINT_PREPARE_SCOPE_REQUIRED","error":error})),
@@ -1836,25 +1841,75 @@ async fn materialize_workpoint_transaction(
             .root_path
             .to_string_lossy()
             .to_string();
-        let (guard_status, Json(guard_reply)) = crate::routes::project::trajectory_guard(
+        let (guard_status, Json(mut guard_reply)) = crate::routes::project::trajectory_guard(
             scope.clone(),
             State(state.clone()),
             Json(crate::routes::project::TrajectoryGuardRequest {
                 action: Some("verify".into()),
                 project_root: Some(root.clone()),
                 continuity_id: Some(workstream.continuity_id.clone()),
+                expected_trajectory_id: expected
+                    .get("trajectory_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
                 ..Default::default()
             }),
         )
         .await;
-        if !guard_status.is_success()
-            || guard_reply
-                .pointer("/trajectory_integrity_guard/status")
+        let projected_guard = guard_reply.get("trajectory_integrity_guard");
+        let ready = projected_guard
+            .and_then(|guard| guard.get("status"))
+            .and_then(Value::as_str)
+            == Some("READY");
+        let exact = projected_guard.and_then(|guard| guard.get("expected_trajectory_id"))
+            == expected.get("trajectory_id");
+        let can_recover = guard_status.is_success()
+            && exact
+            && expected.get("reason").and_then(Value::as_str)
+                == Some("trajectory_workpoint_unbound")
+            && projected_guard
+                .and_then(|guard| guard.get("status"))
                 .and_then(Value::as_str)
-                != Some("READY")
-            || guard_reply.pointer("/trajectory_integrity_guard/expected_trajectory_id")
-                != expected.get("trajectory_id")
-        {
+                == Some("MIGRATION_REQUIRED");
+        if can_recover || verify_provider_task {
+            let task = events.iter().find_map(|event| match event {
+                FocusaEvent::WorkpointCheckpointProposed { workpoint } => {
+                    workpoint.work_item_id.clone()
+                }
+                _ => None,
+            });
+            let task_root = std::path::PathBuf::from(&root);
+            let ready_task = if let Some(task) = task {
+                crate::routes::project::project_inspection_task(move || {
+                    super::project_genesis_support::existing_ready_beads_task(&task_root, &task)
+                })
+                .await
+                .unwrap_or(false)
+            } else {
+                false
+            };
+            if !ready_task {
+                return Err((
+                    StatusCode::CONFLICT,
+                    Json(json!({
+                        "status": "blocked", "code": "WORKPOINT_PREPARE_TASK_UNVERIFIED",
+                        "canonical": false,
+                        "next_step_hint": "The selected task must be uniquely present and ready in this project's task provider.",
+                    })),
+                ));
+            }
+        }
+        if !guard_status.is_success() || !ready || !exact {
+            if can_recover {
+                guard_reply["prepare_recovery"] = json!({
+                    "schema": "focusa.workpoint_prepare_recovery.v1",
+                    "kind": "rebuild_derived_trajectory_marker",
+                    "project_root": root,
+                    "continuity_id": workstream.continuity_id,
+                    "trajectory_id": expected.get("trajectory_id"),
+                    "hlt_version": guard_reply.pointer("/trajectory_integrity_guard/expected_hlt_version"),
+                });
+            }
             return Err((StatusCode::CONFLICT, Json(guard_reply)));
         }
         let current_linkage = {
@@ -2785,7 +2840,7 @@ async fn checkpoint(
     };
     let mut first_prepare_linkage = None;
     let mut incomplete_prepare_source = None;
-    if promote && requested_canonical && previous.is_some() {
+    if promote && requested_canonical && (previous.is_some() || req.prepare_from_current_intent) {
         let linkage = {
             let focusa = state.focusa.read().await;
             crate::routes::project::north_star_workpoint_linkage(
@@ -2807,6 +2862,21 @@ async fn checkpoint(
             first_prepare_linkage = Some(linkage);
             previous = None;
         }
+    }
+    if req.prepare_from_current_intent
+        && promote
+        && requested_canonical
+        && previous.is_none()
+        && first_prepare_linkage.is_none()
+    {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(json!({
+                "status": "blocked", "code": "WORKPOINT_PREPARE_GOAL_OR_INTENT_UNVERIFIED",
+                "canonical": false,
+                "next_step_hint": "Use the accepted goal for this exact workstream and a ready task from its project provider; no placeholder checkpoint was created.",
+            })),
+        ));
     }
     if promote && requested_canonical {
         if req.repair_missing_lifecycle_stage {
@@ -2937,7 +3007,9 @@ async fn checkpoint(
         &state,
         events,
         "workpoint_checkpoint",
-        first_prepare_linkage.as_ref(),
+        first_prepare_linkage
+            .as_ref()
+            .map(|linkage| (linkage, req.prepare_from_current_intent)),
         None,
     )
     .await?;
@@ -3817,7 +3889,7 @@ async fn resume(
     let requested_workpoint_id = req.workpoint_id;
     let remote_readback = remote.as_ref().and_then(|authority| {
         let (intent, publication) = publication.as_ref()?;
-        let (trajectory, record) = authority.published_records(&focusa, intent, publication)?;
+        let (trajectory, record) = authority.active_records(&focusa, intent, publication)?;
         if requested_workpoint_id.is_some_and(|id| id != record.workpoint_id)
             || req
                 .trajectory_id

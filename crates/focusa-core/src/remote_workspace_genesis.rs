@@ -1,7 +1,10 @@
 //! Controller-owned remote Genesis journal and atomic publication fence.
 
 use super::{RemoteOnboardingScope, RemoteWorkspaceInspection, bootstrap};
-use crate::types::{FocusaState, HltLedgerEntry, TrajectoryLadderEvent, WorkpointStatus};
+use crate::types::{
+    FocusaState, HltLedgerEntry, TrajectoryLadderEvent, TrajectoryProjectionRecord,
+    WorkpointRecord, WorkpointStatus,
+};
 use anyhow::{Result, ensure};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
@@ -24,6 +27,33 @@ impl RemoteGenesisIntent {
             self.intent_id
         )
     }
+
+    /// Select only the uniquely identified record under this committed intent.
+    /// The reserved projection key includes the intent id, not a host pathname.
+    pub fn scoped_workpoint<'a>(
+        &self,
+        state: &'a FocusaState,
+        continuity: &str,
+        workpoint_id: uuid::Uuid,
+    ) -> Option<&'a WorkpointRecord> {
+        let key = self.projection_key();
+        let mut records = state
+            .workpoint
+            .records
+            .iter()
+            .filter(|record| record.workpoint_id == workpoint_id);
+        let record = records.next()?;
+        (records.next().is_none()
+            && record.canonical
+            && record.project_root.as_deref() == Some(key.as_str())
+            && record.continuity_id.as_deref() == Some(continuity)
+            && record.work_item_id.is_some()
+            && record
+                .next_slice
+                .as_deref()
+                .is_some_and(|next| !next.trim().is_empty()))
+        .then_some(record)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,15 +65,16 @@ pub struct RemoteGenesisPublication {
 }
 
 impl RemoteGenesisPublication {
-    /// Verify the canonical projections, not merely the existence of a receipt.
-    pub fn verifies(
+    /// Validate an attested publication's trajectory without treating its first
+    /// Workpoint as the permanent frontier.
+    pub fn verified_trajectory<'a>(
         &self,
-        state: &FocusaState,
+        state: &'a FocusaState,
         intent: &RemoteGenesisIntent,
         continuity: &str,
-    ) -> bool {
+    ) -> Option<&'a TrajectoryProjectionRecord> {
         let key = intent.projection_key();
-        self.hlt.project_root == key
+        let valid = self.hlt.project_root == key
             && self.hlt.continuity_id.as_deref() == Some(continuity)
             && self.ladder.first().is_some_and(|first| {
                 first.level == crate::types::TrajectoryLadderLevel::Hlt
@@ -57,27 +88,36 @@ impl RemoteGenesisPublication {
                 event.project_root == key
                     && event.continuity_id.as_deref() == Some(continuity)
                     && event.trajectory_id == self.trajectory_id
-            })
-            && state.trajectory.records.iter().any(|record| {
-                record.trajectory_id == self.trajectory_id
-                    && record.canonical
-                    && record.project_root.as_deref() == Some(key.as_str())
-                    && record.continuity_id.as_deref() == Some(continuity)
-                    && record.active_workpoint_id == Some(self.workpoint_id)
-                    && record.long_term_goal == self.hlt.new_hlt
-            })
-            && state.workpoint.records.iter().any(|record| {
-                record.workpoint_id == self.workpoint_id
-                    && record.canonical
-                    && record.status == WorkpointStatus::Active
-                    && record.project_root.as_deref() == Some(key.as_str())
-                    && record.continuity_id.as_deref() == Some(continuity)
-                    && record.work_item_id.is_some()
-                    && record
-                        .next_slice
-                        .as_deref()
-                        .is_some_and(|next| !next.trim().is_empty())
-            })
+            });
+        if !valid {
+            return None;
+        }
+        let mut records = state
+            .trajectory
+            .records
+            .iter()
+            .filter(|record| record.trajectory_id == self.trajectory_id);
+        let record = records.next()?;
+        (records.next().is_none()
+            && record.canonical
+            && record.project_root.as_deref() == Some(key.as_str())
+            && record.continuity_id.as_deref() == Some(continuity)
+            && record.long_term_goal == self.hlt.new_hlt)
+            .then_some(record)
+    }
+
+    /// The initial commit fence still requires the first task to be active.
+    pub fn verifies(
+        &self,
+        state: &FocusaState,
+        intent: &RemoteGenesisIntent,
+        continuity: &str,
+    ) -> bool {
+        self.verified_trajectory(state, intent, continuity)
+            .is_some_and(|record| record.active_workpoint_id == Some(self.workpoint_id))
+            && intent
+                .scoped_workpoint(state, continuity, self.workpoint_id)
+                .is_some_and(|record| record.status == WorkpointStatus::Active)
     }
 }
 

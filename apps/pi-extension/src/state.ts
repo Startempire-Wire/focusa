@@ -29,7 +29,10 @@ import {
   stableSemanticValue,
   writeRecoverySidecar,
 } from "./persistence.js";
-import { isGenericWorkpointMission, revokeWorkpointRequestAuthority } from "./workpoint-request-binding.js";
+import {
+  isGenericWorkpointMission, revokeWorkpointRequestAuthority,
+  verifiedResumeCheckout, workpointMatchesCheckout,
+} from "./workpoint-request-binding.js";
 export {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -3380,10 +3383,16 @@ export async function buildFocusaSessionIdentity(
   );
   const safe = isProjectRootAuthoritySafe(projectRoot);
   const ambientCwd = normalizeProjectRoot(getAttachmentRuntime().sessionCwd || process.cwd());
+  const runtime = getAttachmentRuntime();
+  const checkout = verifiedResumeCheckout(runtime);
+  const boundCheckout = checkout?.projectRoot === projectRoot ? checkout : null;
   const persisted = getLastProjectIdentity() || {};
-  const persistedBody: any = (persisted as any).project_identity || persisted;
+  const cachedIdentity: any = (persisted as any).project_identity || persisted;
+  // The Trajectory view has a continuity-specific display fingerprint. Only
+  // its nested ProjectIdentity can corroborate the stable checkout binding.
+  const persistedBody: any = cachedIdentity.project_identity_api || cachedIdentity;
   const cwdForIdentity = safe
-    ? resolveProjectIdentityLookupCwd({ projectRoot, ambientCwd, persistedIdentity: persisted })
+    ? boundCheckout?.root || resolveProjectIdentityLookupCwd({ projectRoot, ambientCwd, persistedIdentity: persistedBody })
     : ambientCwd;
   const sessionId = String(overrides.sessionId || getAttachmentRuntime().sessionFrameKey || "").trim();
   let projectIdentity: any = null;
@@ -3406,7 +3415,8 @@ export async function buildFocusaSessionIdentity(
       query.set("remote_workspace_kind", String(remoteContext.remote_workspace_kind));
     if (remoteContext.remote_deploy_root)
       query.set("remote_deploy_root", String(remoteContext.remote_deploy_root));
-    if (normalizeProjectRoot(persistedBody.project_root) === authorityProjectRoot) {
+    if (persistedBody.status === "verified" &&
+        normalizeProjectRoot(persistedBody.project_root) === authorityProjectRoot) {
       if (persistedBody.project_root)
         query.set("persisted_project_root", normalizeProjectRoot(persistedBody.project_root));
       if (persistedBody.fingerprint)
@@ -3417,7 +3427,19 @@ export async function buildFocusaSessionIdentity(
         query.set("persisted_canonical_name", String(persistedBody.canonical_name));
     }
     const response = await focusaFetch(`/project/identity?${query.toString()}`).catch(() => null);
+    if (runtime !== getAttachmentRuntime() ||
+        (boundCheckout && verifiedResumeCheckout(runtime)?.decision !== boundCheckout.decision)) {
+      return { canonical_scope: false, scope_failure: "working_subpath_changed" };
+    }
     projectIdentity = response?.project_identity || null;
+    if (boundCheckout && (
+      projectIdentity?.status !== "verified" ||
+      normalizeProjectRoot(projectIdentity.canonical_parent_root || projectIdentity.project_root) !== projectRoot ||
+      normalizeProjectRoot(projectIdentity.active_worktree_root || projectIdentity.working_context?.active_worktree_root) !== boundCheckout.root ||
+      String(projectIdentity.working_context?.working_subpath?.working_subpath_id || "primary") !== boundCheckout.id
+    )) {
+      return { canonical_scope: false, scope_failure: "working_subpath_not_verified" };
+    }
     if (projectIdentity) setLastProjectIdentity(projectIdentity);
   }
   const canonicalProjectRoot = normalizeProjectRoot(
@@ -3684,9 +3706,11 @@ export function isWorkpointPacketScopedToCurrentSession(packet: any): boolean {
     return false;
   if (currentProjectRoot !== packetProjectRoot) return false;
   if (currentContinuityId !== packetContinuityId) return false;
-  // Pi session ids are temporal metadata, never Workpoint identity. Exact
-  // project_root + continuity_id plus current-ask authority is the boundary;
-  // accepted packets are re-stamped for this Pi session.
+  const checkout = verifiedResumeCheckout(getAttachmentRuntime());
+  if (currentProjectBindingDecision() &&
+      (!checkout || !workpointMatchesCheckout(packet, checkout.id, checkout.primary))) return false;
+  // Pi session ids are temporal metadata, never Workpoint identity. Admission
+  // also checks the selected checkout; accepted packets are re-stamped here.
   if (
     packet.canonical === false ||
     packet.status === "partial" ||
@@ -4766,13 +4790,15 @@ export function getCurrentScopeStore(): TypedScopeStore | null {
     caller.workstream.continuity_id !== continuityId ||
     caller.session_id !== getAttachmentRuntime().sessionFrameKey
   )) return null;
+  const checkout = verifiedResumeCheckout(getAttachmentRuntime());
+  if (currentProjectBindingDecision()?.state === "BOUND" && !checkout) return null;
   const identity: TypedScopeIdentity = {
     scopeKind: verifiedScope.scope_kind,
     scopeId: verifiedScope.scope_id,
     fingerprint: verifiedScope.fingerprint,
     rootPath: normalizeProjectRoot(verifiedScope.root_path),
     continuityId,
-    workingSubpathId: process.env.FOCUSA_WORKING_SUBPATH_ID || "primary",
+    workingSubpathId: checkout?.id || "primary",
     sessionId: getAttachmentRuntime().sessionFrameKey || undefined,
   };
   const store = scopeStoreRegistry.getOrCreate(identity);
@@ -4975,7 +5001,7 @@ export function setActiveWorkpointSummary(summary: string): void {
 function currentTrajectoryCacheKey(): string {
   const caller = currentAttachmentKey();
   return caller?.workstream.root_scope.scope_kind === "project"
-    ? JSON.stringify([caller, process.env.FOCUSA_WORKING_SUBPATH_ID || "primary"])
+    ? JSON.stringify([caller, verifiedResumeCheckout(getAttachmentRuntime())?.id || "primary"])
     : "";
 }
 

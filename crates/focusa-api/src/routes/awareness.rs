@@ -145,7 +145,7 @@ async fn card(
         Some(Ok(None)) => scoped_workpoint(&focusa, &query),
         Some(Ok(Some(authority))) => match &publication {
             Ok(Some((intent, published))) => authority
-                .published_records(&focusa, intent, published)
+                .active_records(&focusa, intent, published)
                 .map(|(_, workpoint)| workpoint),
             _ => None,
         },

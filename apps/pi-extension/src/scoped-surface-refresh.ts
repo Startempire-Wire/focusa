@@ -7,6 +7,7 @@ import {
   getSessionCwd,
   normalizeProjectRoot,
 } from "./state.js";
+import { verifiedResumeCheckout } from "./workpoint-request-binding.js";
 
 export type ScopedRefreshSource = "tool" | "sse" | "poll" | "session" | "rebind";
 
@@ -17,6 +18,7 @@ export interface ScopedStateChangeReceiptV1 {
   mutation_kind: string;
   project_root: string;
   continuity_id: string;
+  working_subpath_id?: string;
   status: "accepted" | "observed" | "degraded";
   evidence_revision?: string;
   effective_at: string;
@@ -58,6 +60,7 @@ function receiptId(input: Omit<ScopedStateChangeReceiptV1, "schema" | "receipt_i
     input.mutation_kind,
     normalizeProjectRoot(input.project_root),
     input.continuity_id,
+    input.working_subpath_id || "",
     input.evidence_revision || "",
     input.effective_at,
   ].join("|");
@@ -137,7 +140,8 @@ export function latestScopedStateChange(
 export function scopedReceiptMatchesCurrentScope(receipt: ScopedStateChangeReceiptV1): boolean {
   return (
     normalizeProjectRoot(receipt.project_root) === currentScopedProjectRoot() &&
-    receipt.continuity_id === getContinuityId()
+    receipt.continuity_id === getContinuityId() &&
+    (!receipt.working_subpath_id || receipt.working_subpath_id === verifiedResumeCheckout(getAttachmentRuntime())?.id)
   );
 }
 
