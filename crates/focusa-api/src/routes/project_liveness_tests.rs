@@ -17,11 +17,7 @@ mod tests {
         };
         use tower::ServiceExt;
 
-        let guard_state = if endpoint == "/v1/project/north-star-gate" {
-            Some(crate::routes::turn::tests::setup_state(None).await.0)
-        } else {
-            None
-        };
+        let state = crate::routes::turn::tests::setup_state(None).await.0;
         let fixture = tempfile::tempdir().unwrap();
         let project = fixture.path().join("synthetic-project");
         std::fs::create_dir_all(project.join(".git")).unwrap();
@@ -76,17 +72,17 @@ mod tests {
                 >| async move { super::super::discover_projects_inspection(query) },
             )
         };
-        let app = if let Some(state) = guard_state {
+        let app = if endpoint == "/v1/project/north-star-gate" {
             super::super::router()
-                .with_state(state)
-                .layer(axum::Extension(crate::scope::ScopeContext::default()))
         } else {
             Router::new()
                 .route("/v1/project/discover", discovery_route)
                 .route("/v1/project/identity", get(super::super::identity))
                 .route("/v1/project/list", get(super::super::list_projects))
         }
-        .route("/unrelated-health-probe", get(|| async { StatusCode::OK }));
+        .route("/unrelated-health-probe", get(|| async { StatusCode::OK }))
+        .with_state::<()>(state)
+        .layer(axum::Extension(crate::scope::ScopeContext::default()));
         let query = if endpoint == "/v1/project/discover" {
             format!(
                 "from={}&max_depth=0&max_results=1",

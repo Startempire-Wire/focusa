@@ -408,6 +408,7 @@ mod tests {
                 session_id: Some("session-1".into()),
                 continuity_id: Some("cont-1".into()),
                 project_root: Some("/data/wirebot/users/operator".into()),
+                ..Default::default()
             },
             None,
         );
