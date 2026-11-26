@@ -27,9 +27,17 @@ assert "publishScopedStateChange" in TOOLS
 assert "responseRoot === requestedRoot" in TOOLS
 # The extension lifecycle owns packet refresh. The Work Rail consumes the
 # verified packet on a matching receipt and never starts another reader.
-assert "subscribeScopedStateChanges" in WIDGET
-assert "scopedReceiptMatchesCurrentScope(receipt)" in WIDGET
-assert "refreshMissionCanvasWidget(latestUiContext)" in WIDGET
+_, subscribed, receipt_callback = WIDGET.partition(
+    "refreshUnsubscribe = subscribeScopedStateChanges((receipt) => {"
+)
+assert subscribed, "the display lifecycle must subscribe to scoped receipts"
+receipt_callback = receipt_callback.split("\n  });", 1)[0]
+assert "refreshLifecycle.isCurrent(generation)" in receipt_callback
+assert "const display = latestUiContext;" in receipt_callback
+owner_fence = receipt_callback.index("runWithAttachmentRuntime(latestDisplayOwner,")
+receipt_fence = receipt_callback.index("scopedReceiptMatchesCurrentScope(receipt)")
+paint = receipt_callback.index("refreshMissionCanvasWidget(display)")
+assert owner_fence < receipt_fence < paint, "check and repaint in the display's attachment"
 assert "getScopedWorkpointPacket()" in WIDGET
 assert "packet?.canonical === true" in WIDGET
 assert not any(token in WIDGET for token in ("setInterval(", "focusaFetch(", "/workpoint/resume"))
