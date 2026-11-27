@@ -44,6 +44,7 @@ pub fn restore_generation(
         started_at,
         completed_at: started_at,
         restored_sha256: None,
+        temporal_work_item_coverage: TemporalWorkItemRestoreCoverage::Unverified,
         quick_check: None,
         event_count: None,
         event_chain_index: None,
@@ -75,6 +76,7 @@ pub fn restore_generation(
                 started_at,
                 completed_at: Utc::now(),
                 restored_sha256: Some(verification.restored_sha256),
+                temporal_work_item_coverage: verification.temporal_work_item_coverage,
                 quick_check: Some(verification.quick_check),
                 event_count: Some(verification.event_count),
                 event_chain_index: verification.event_chain_index,
@@ -110,6 +112,7 @@ pub fn restore_generation(
 
 struct RestoreVerification {
     restored_sha256: String,
+    temporal_work_item_coverage: TemporalWorkItemRestoreCoverage,
     quick_check: String,
     event_count: u64,
     event_chain_index: Option<i64>,
@@ -139,6 +142,25 @@ fn restore_and_verify(
     if quick_check != "ok" {
         bail!("restored database quick_check failed: {quick_check}")
     }
+    let temporal_work_item_coverage = match manifest.temporal_work_item_coverage {
+        Some(advertised) => {
+            let actual = super::temporal_work_items::snapshot_coverage(&conn)?.context(
+                "restored database is missing the advertised temporal work-item coverage",
+            )?;
+            if actual != advertised {
+                bail!("restored database temporal work-item coverage differs from the manifest")
+            }
+            match actual {
+                TemporalWorkItemCoverage::CanonicalSqliteV1 => {
+                    TemporalWorkItemRestoreCoverage::CanonicalSqliteV1
+                }
+                TemporalWorkItemCoverage::CanonicalStoreLegacyHistoryUnverified => {
+                    TemporalWorkItemRestoreCoverage::CanonicalStoreLegacyHistoryUnverified
+                }
+            }
+        }
+        None => TemporalWorkItemRestoreCoverage::LegacyUnverified,
+    };
     let event_count = query_u64_or_zero(&conn, "SELECT COUNT(*) FROM events")?;
     if event_count != manifest.event_count {
         bail!("restored event count differs from generation manifest")
@@ -160,6 +182,7 @@ fn restore_and_verify(
     sync_dir(target.parent().context("restore target parent missing")?)?;
     Ok(RestoreVerification {
         restored_sha256,
+        temporal_work_item_coverage,
         quick_check,
         event_count,
         event_chain_index: chain.as_ref().map(|value| value.0),

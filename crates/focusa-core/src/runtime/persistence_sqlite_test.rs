@@ -703,7 +703,7 @@ fn sqlite_crdt_import_is_scoped_and_idempotent() {
 }
 
 #[test]
-fn sqlite_schema_migrates_v1_through_silent_session_config_schema_v6() {
+fn sqlite_schema_restamps_legacy_version_marker_to_v7() {
     let dir = temp_dir();
     let mut cfg = FocusaConfig::default();
     cfg.data_dir = dir.to_string_lossy().to_string();
@@ -728,15 +728,16 @@ fn sqlite_schema_migrates_v1_through_silent_session_config_schema_v6() {
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(version, "6");
+    assert_eq!(version, "7");
     let table_count: i64 = conn
         .query_row(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='crdt_events'",
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' \
+             AND name IN ('crdt_events', 'temporal_work_item_scopes')",
             [],
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(table_count, 1);
+    assert_eq!(table_count, 2);
     drop(p2);
 }
 

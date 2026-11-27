@@ -26,6 +26,7 @@ pub mod interview_strategy;
 pub mod persistence;
 pub mod persistence_actor;
 pub mod persistence_sqlite;
+pub mod temporal_work_items;
 
 #[cfg(test)]
 mod persistence_sqlite_test;

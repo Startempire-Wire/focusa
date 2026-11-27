@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import ast
 import os
+import re
 import shlex
 import subprocess
 import tempfile
@@ -201,19 +202,35 @@ assert "scripts/install-focusa.sh::FOCUSA_INSTALLER_VERSION" in verify
 assert 'sed -i "s/FOCUSA_INSTALLER_VERSION=' not in release
 assert 'find bundle/focusa-agent-context/skills -name SKILL.md -type f | grep -q .' not in release
 assert 'find bundle/focusa-agent-context/skills -name SKILL.md -type f -print -quit' in release
-_, stamp_owner, stamp_tail = tag_script.partition("readonly -a RELEASE_STAMP_PATHS=(\n")
-stamp_paths, stamp_end, _ = stamp_tail.partition("\n)")
-assert stamp_owner and stamp_end, "release launcher must declare its shared stamp scope"
-assert {
+stamp_surfaces = (
     "apps/pi-extension/src/auto-compaction.ts",
     "docs/contracts/spec141/generated-capability-v2/agent-card.json",
     "scripts/install-focusa.sh",
     "README.md",
     "docs/current/.release-version-stamp",
     "docs/current/CURRENT_RUNTIME_STATUS.md",
-} <= set(shlex.split(stamp_paths, comments=True))
-assert 'git add -- "${RELEASE_STAMP_PATHS[@]}"' in tag_script
-assert 'git checkout -- "${RELEASE_STAMP_PATHS[@]}"' in tag_script
+)
+if "RELEASE_STAMP_PATHS" in tag_script:
+    # The controller test also audits already-stamped release sources. For
+    # the shared-list layout, verify membership and all three consumers.
+    lists = re.findall(
+        r"^readonly -a RELEASE_STAMP_PATHS=\(\n(.*?)^\)$", tag_script, re.M | re.S
+    )
+    assert len(lists) == 1, "expected one shared release stamp path list"
+    stamp_paths = shlex.split(lists[0], comments=True)
+    for surface in stamp_surfaces:
+        assert stamp_paths.count(surface) == 1, f"expected one shared stamp path: {surface}"
+    active_lines = [line for line in tag_script.splitlines() if not line.lstrip().startswith("#")]
+    for consumer in (
+        r'''grep -Fxq -- "$dirty_path" <<< "$(printf '%s\n' "${RELEASE_STAMP_PATHS[@]}")"''',
+        'git checkout -- "${RELEASE_STAMP_PATHS[@]}"',
+        'git add -- "${RELEASE_STAMP_PATHS[@]}"',
+    ):
+        assert any(consumer in line for line in active_lines), consumer
+else:
+    # Older tagged releases used separate stage and dry-run path lists.
+    for surface in stamp_surfaces:
+        assert tag_script.count(surface) >= 2, surface
 assert "scripts/stamp-release-version" in tag_script
 assert "bash scripts/local-release-preflight.sh --strict" in tag_script
 source_ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

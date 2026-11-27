@@ -369,3 +369,21 @@ pub(super) fn filesystem_space(path: &Path) -> Result<(u64, u64)> {
 pub(super) fn available_bytes(path: &Path) -> Result<u64> {
     Ok(filesystem_space(path)?.0)
 }
+
+/// A pre-migration generation is not interchangeable with a covered one.
+pub(super) fn check_reused_temporal_coverage(
+    source: &Path,
+    data_dir: &Path,
+    existing: &BackupGenerationManifest,
+) -> Result<()> {
+    let conn =
+        rusqlite::Connection::open_with_flags(source, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    conn.busy_timeout(std::time::Duration::from_secs(5))?;
+    let covered = super::temporal_work_items::require_native_capture(&conn, data_dir)?;
+    if covered != existing.temporal_work_item_coverage {
+        bail!(
+            "existing slot has different temporal work-item coverage; create a generation with a new slot"
+        );
+    }
+    Ok(())
+}
