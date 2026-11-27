@@ -52,13 +52,17 @@ else
   log_fail "Supervised Pi can load competing orchestration or block on UI"
 fi
 
-if rg -n 'process_group\(0\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
-  && rg -n 'kill_on_drop\(true\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
-  && rg -n 'terminate_pi_rpc_child' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
-  && rg -n 'args\(\["-TERM", &pgid\]\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "Pi RPC driver uses process-group cleanup to prevent orphaned children"
+if rg -Fq 'process_group(0)' "$WORK_LOOP_ROUTE_FILE" \
+  && rg -Fq 'kill_on_drop(true)' "$WORK_LOOP_ROUTE_FILE" \
+  && rg -Fq '.filter(|pid| *pid > 1)' "$WORK_LOOP_ROUTE_FILE" \
+  && rg -Fq 'args(["-TERM", "--", &pgid])' "$WORK_LOOP_ROUTE_FILE" \
+  && rg -Fq 'args(["-KILL", "--", &pgid])' "$WORK_LOOP_ROUTE_FILE" \
+  && rg -Fq '/bin/kill -TERM -- "-$2"' "$WORK_LOOP_ROUTE_FILE" \
+  && rg -Fq '/bin/kill -KILL -- "-$2"' "$WORK_LOOP_ROUTE_FILE"; then
+  log_pass "Pi RPC driver and watchdog signal only the supervised group"
 else
-  log_fail "Pi RPC driver process-group cleanup guard missing"
+  log_fail "Unsafe Pi RPC process-group selector; refusing to start the live driver test"
+  exit 1
 fi
 http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \

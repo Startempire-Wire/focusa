@@ -329,12 +329,19 @@ fn configure_pi_rpc_process_group(_cmd: &mut Command) {}
 
 #[cfg(unix)]
 async fn terminate_pi_rpc_child(child: &mut Child, process_group_id: u32) {
+    // The negative group operand must never be parsed as command options.
     let pgid = format!("-{process_group_id}");
-    let _ = Command::new("kill").args(["-TERM", &pgid]).status().await;
+    let _ = Command::new("kill")
+        .args(["-TERM", "--", &pgid])
+        .status()
+        .await;
     if timeout(Duration::from_secs(2), child.wait()).await.is_ok() {
         return;
     }
-    let _ = Command::new("kill").args(["-KILL", &pgid]).status().await;
+    let _ = Command::new("kill")
+        .args(["-KILL", "--", &pgid])
+        .status()
+        .await;
     let _ = timeout(Duration::from_secs(2), child.wait()).await;
 }
 
@@ -357,9 +364,9 @@ fn spawn_pi_rpc_parent_watchdog(child_pid: u32) {
     let parent_pid = std::process::id();
     let script = r#"
 while kill -0 "$1" 2>/dev/null && kill -0 "$2" 2>/dev/null; do sleep 0.2; done
-/bin/kill -TERM "-$2" 2>/dev/null || true
+/bin/kill -TERM -- "-$2" 2>/dev/null || true
 sleep 2
-/bin/kill -KILL "-$2" 2>/dev/null || true
+/bin/kill -KILL -- "-$2" 2>/dev/null || true
 "#;
     let _ = std::process::Command::new("sh")
         .args([
@@ -3775,7 +3782,8 @@ async fn start_pi_driver(
     let mut child = cmd.spawn().map_err(work_loop_pi_spawn_failed)?;
     let child_pid = child
         .id()
-        .ok_or_else(|| bad_request("pi rpc process id unavailable after spawn"))?;
+        .filter(|pid| *pid > 1)
+        .ok_or_else(|| bad_request("safe pi rpc process id unavailable after spawn"))?;
     spawn_pi_rpc_parent_watchdog(child_pid);
     let stdin = child
         .stdin
