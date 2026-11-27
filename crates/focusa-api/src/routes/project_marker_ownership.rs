@@ -24,10 +24,41 @@ fn ownership_code(
     }
 }
 
+#[cfg(unix)]
+fn supplementary_groups() -> nix::Result<Vec<u32>> {
+    #[cfg(not(target_vendor = "apple"))]
+    {
+        nix::unistd::getgroups().map(|groups| groups.into_iter().map(|g| g.as_raw()).collect())
+    }
+    #[cfg(target_vendor = "apple")]
+    {
+        use nix::{errno::Errno, libc};
+
+        // Nix omits its Apple wrapper. Use Darwin's process group list rather
+        // than consulting the account database, which is not proof of this
+        // process's credentials. Failure still blocks marker repair.
+        // SAFETY: A zero capacity asks for the count without writing to the pointer.
+        let count = Errno::result(unsafe { libc::getgroups(0, std::ptr::null_mut()) })?;
+        let capacity = usize::try_from(count).map_err(|_| Errno::EOVERFLOW)?;
+        if capacity == 0 {
+            return Ok(Vec::new());
+        }
+        let mut groups = vec![0; capacity];
+        // SAFETY: The initialized buffer contains `count` writable gid_t entries.
+        let written = Errno::result(unsafe { libc::getgroups(count, groups.as_mut_ptr()) })?;
+        let written = usize::try_from(written).map_err(|_| Errno::EOVERFLOW)?;
+        if written > capacity {
+            return Err(Errno::EOVERFLOW);
+        }
+        groups.truncate(written);
+        Ok(groups)
+    }
+}
+
 pub(super) fn denial(path: &Path) -> Option<Value> {
     #[cfg(unix)]
     {
-        use nix::unistd::{getegid, geteuid, getgroups};
+        use nix::unistd::{getegid, geteuid};
         use std::os::unix::fs::MetadataExt;
         let metadata = match std::fs::symlink_metadata(path) {
             Ok(metadata) if metadata.is_file() => metadata,
@@ -44,11 +75,8 @@ pub(super) fn denial(path: &Path) -> Option<Value> {
         // A non-owner cannot preserve the original owner after atomic replacement,
         // even when an ACL permits writing the original file or its directory.
         let groups = if uid != 0 && metadata.uid() == uid {
-            match getgroups() {
-                Ok(groups) => groups
-                    .into_iter()
-                    .map(|group| group.as_raw())
-                    .collect::<Vec<_>>(),
+            match supplementary_groups() {
+                Ok(groups) => groups,
                 Err(error) => {
                     return Some(json!({
                         "status":"blocked", "canonical":true,
@@ -108,9 +136,14 @@ mod tests {
     }
     #[test]
     fn real_metadata_probe_has_no_backup_or_marker_side_effects() {
+        #[cfg(target_vendor = "apple")]
+        assert!(supplementary_groups().is_ok());
         let dir = tempfile::tempdir().unwrap();
         let marker = dir.path().join(".focusa-project.json");
         std::fs::write(&marker, b"{}").unwrap();
+        // Darwin can inherit the directory's group even without a setgid bit.
+        // Make this explicitly a marker in the current process's primary group.
+        nix::unistd::chown(&marker, None, Some(nix::unistd::getegid())).unwrap();
         assert!(denial(&marker).is_none());
         assert_eq!(std::fs::read(&marker).unwrap(), b"{}");
         assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
