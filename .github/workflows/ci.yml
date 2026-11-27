@@ -308,7 +308,16 @@ jobs:
         env:
           FOCUSA_BASE_URL: http://127.0.0.1:18787
           FOCUSA_BIND: 127.0.0.1:18787
-        run: ./scripts/ci/run-spec-gates.sh
+        run: |
+          set -euo pipefail
+          # The extension SDK is a separate compatibility target; the supervised
+          # transport needs the actual Pi RPC runtime with agent_settled support.
+          pi_fixture="$(mktemp -d "$RUNNER_TEMP/focusa-pi-rpc.XXXXXXXX")"
+          npm install --prefix "$pi_fixture" --no-save --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org '@earendil-works/pi-coding-agent@1.6.1'
+          export FOCUSA_PI_BIN="$pi_fixture/node_modules/.bin/pi"
+          export PI_CODING_AGENT_DIR="$pi_fixture/agent"
+          test "$("$FOCUSA_PI_BIN" --version)" = 1.6.1
+          ./scripts/ci/run-spec-gates.sh
       - name: Immediate ephemeral build cleanup
         if: ${{ always() }}
         run: ./scripts/ci/cleanup-ephemeral-build-target.sh "$CARGO_TARGET_DIR"

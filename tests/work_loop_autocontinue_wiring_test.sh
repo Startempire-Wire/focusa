@@ -60,16 +60,18 @@ else
   log_fail "turn_complete missing follow-on dispatch helper"
 fi
 
-if rg -n 'pi rpc agent_end observed and ready work remains|pi rpc compaction completed; dispatching automatic continuation prompt' "$WORK_LOOP_FILE" >/dev/null 2>&1; then
-  log_pass "Pi RPC stream events feed continuation outcome observation and follow-on dispatch"
+if rg -Fq 'if kind == "agent_settled"' "$WORK_LOOP_FILE" \
+  && rg -Fq 'Pi RPC run settled and ready work remains' "$WORK_LOOP_FILE"; then
+  log_pass "Pi RPC settlement feeds governed follow-on dispatch"
 else
-  log_fail "Pi RPC stream -> continuation dispatch wiring missing"
+  log_fail "Pi RPC settlement -> continuation dispatch wiring missing"
 fi
 
-if rg -n 'pi rpc turn ended without assistant output \(compaction/housekeeping\); auto-retrying' "$WORK_LOOP_FILE" >/dev/null 2>&1; then
-  log_pass "empty-output turn_end events retry automatically"
+if rg -Fq 'if was_busy && has_assistant_output' "$WORK_LOOP_FILE" \
+  && rg -Fq 'Pi RPC run settled and ready work remains' "$WORK_LOOP_FILE"; then
+  log_pass "Empty settled runs do not submit a fabricated assistant outcome or bypass the normal continuation gate"
 else
-  log_fail "empty-output retry wiring missing"
+  log_fail "Empty settled runs are not routed through the normal continuation gate"
 fi
 
 if rg -n 'three consecutive pi rpc turn_end/agent_end events without assistant output|consecutive_empty_turns' "$WORK_LOOP_FILE" >/dev/null 2>&1; then
