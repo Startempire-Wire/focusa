@@ -36,7 +36,8 @@ test("tool blocked text renders structured daemon errors, never [object Object]"
 test("Mission Canvas redraws verified receipts without starting a competing poller", () => {
   assert.match(widget, /subscribeScopedStateChanges/);
   assert.match(widget, /scopedReceiptMatchesCurrentScope/);
-  assert.match(widget, /runtime\.focusaAvailable && bound \? getScopedWorkpointPacket\(\) : null/);
+  assert.match(widget, /runWithAttachmentRuntime\(owner/);
+  assert.match(widget, /available && bound \? getScopedWorkpointPacket\(\) : null/);
   assert.doesNotMatch(widget, /setInterval|\/workpoint\/resume|focusaFetch/);
   assert.match(widget, /refreshUnsubscribe\?\.\(\)/);
   // #138: the always-on widget must NOT render the semantic registry summary

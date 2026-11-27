@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File},
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, BufReader, Read, Write},
     path::{Path, PathBuf},
 };
 use uuid::Uuid;
@@ -184,6 +184,55 @@ fn discover_beads_tasks(root: &Path) -> Vec<GenesisTaskInput> {
             .map_while(Result::ok)
             .filter_map(|line| serde_json::from_str(&line).ok()),
     )
+}
+
+/// Automatic preparation never picks a new task by title or priority. Prove
+/// the already selected task against the same project-owned provider used by
+/// local Genesis, and reject unavailable or ambiguous provider records.
+pub(super) fn existing_ready_beads_task(root: &Path, id: &str) -> bool {
+    const MAX_EXPORT_BYTES: u64 = 32 * 1024 * 1024;
+    let index = root.join(".beads/issues.jsonl");
+    if !index.canonicalize().is_ok_and(|path| path == index)
+        || !index
+            .metadata()
+            .is_ok_and(|meta| meta.is_file() && meta.len() <= MAX_EXPORT_BYTES)
+    {
+        return false;
+    }
+    let Ok(file) = File::open(index) else {
+        return false;
+    };
+    let mut exact = None;
+    let mut processed = 0_u64;
+    for line in BufReader::new(file.take(MAX_EXPORT_BYTES + 1)).lines() {
+        let Ok(line) = line else { return false };
+        processed += line.len() as u64 + 1;
+        if processed >= MAX_EXPORT_BYTES {
+            return false;
+        }
+        if line.trim().is_empty() {
+            continue;
+        }
+        let Ok(issue) = serde_json::from_str::<Value>(&line) else {
+            return false;
+        };
+        if issue.get("id").and_then(Value::as_str) != Some(id) {
+            continue;
+        }
+        if exact.is_some()
+            || !matches!(
+                issue.get("status").and_then(Value::as_str),
+                Some("open" | "ready")
+            )
+            || issue.get("assignee").is_some_and(|assignee| {
+                !assignee.is_null() && !assignee.as_str().is_some_and(|name| name.trim().is_empty())
+            })
+        {
+            return false;
+        }
+        exact = Some(issue);
+    }
+    select_first_task(&project_beads_tasks(exact.into_iter())).is_some()
 }
 
 fn project_beads_tasks(issues: impl Iterator<Item = Value>) -> Vec<GenesisTaskInput> {

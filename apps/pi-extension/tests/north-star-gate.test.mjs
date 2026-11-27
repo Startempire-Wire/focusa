@@ -111,7 +111,9 @@ test("Pi session id remains temporal metadata outside Workpoint identity", () =>
   const start = state.indexOf("export function isWorkpointPacketScopedToCurrentSession");
   const end = state.indexOf("export function getScopedWorkpointPacket", start);
   const block = state.slice(start, end);
-  assert.match(block, /project_root \+ continuity_id/);
+  assert.match(block, /currentProjectRoot !== packetProjectRoot/);
+  assert.match(block, /currentContinuityId !== packetContinuityId/);
+  assert.match(block, /workpointMatchesCheckout\(packet, checkout\.id, checkout\.primary\)/);
   assert.doesNotMatch(block, /packetSessionId !== currentSessionKey/);
   assert.doesNotMatch(block, /packetPiSessionKey !== currentSessionKey/);
 });

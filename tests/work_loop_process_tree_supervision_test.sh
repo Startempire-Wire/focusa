@@ -23,6 +23,11 @@ trap cleanup EXIT
 
 cat >"${TMP}/fake-pi" <<'SH'
 #!/usr/bin/env bash
+# A version probe is not a supervised transport and must not spawn children.
+if [[ ${1:-} == --version ]]; then
+  printf '%s\n' '1.6.1'
+  exit 0
+fi
 echo "$$" >"${FOCUSA_TEST_LEADER_PID_FILE}"
 sleep 300 &
 echo "$!" >"${FOCUSA_TEST_DESCENDANT_PID_FILE}"

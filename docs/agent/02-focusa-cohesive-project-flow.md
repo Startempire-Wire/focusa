@@ -66,6 +66,8 @@ A necessary correction does not need to have been listed as a waypoint in advanc
 
 A missing frontier means the next action is not admitted. It calls for discovery and supported reconciliation, not automatic mission abandonment and not an unmanaged shell bypass. Replanning cannot self-issue credentials, takeover authority, budget or deployment permission.
 
+For an authorized first preparation, Pi carries the current request, exact checkout and selected provider task into the Workpoint checkpoint. If the committed goal and ledger agree but only the derived marker is missing, the daemon returns `focusa.workpoint_prepare_recovery.v1`. Pi restores the marker through the existing guarded repair route, then retries that checkpoint once with the same key. No repeat setup is needed. Missing intent, an unclear task, a competing writer or an inconsistent history cannot be inferred from another Workstream. Recovery neither changes the accepted goal nor grants execution.
+
 ## Request-local resume contract
 
 Normally omit `current_ask` in `focusa_workpoint_resume`: the adapter forwards the current instruction. If supplied, it must exactly match the captured current operator ask; do not summarize it. `resume_evaluated_different_ask` can be an input/provenance mismatch even when the daemon reply is canonical. Inspect this before inferring a broken mission or missing consent.

@@ -146,7 +146,10 @@ import {
   type ScopedResultEnvelope,
   type WorkstreamKey,
 } from "./scoped-state.js";
-import { captureResumeRequest, evaluateResumeRequest, stampResumeRequest } from "./workpoint-request-binding.js";
+import {
+  captureResumeRequest, evaluateResumeRequest, isResumeRequestCurrent,
+  readResumeWithPrimaryCompatibility, repairPrepareMarker, stampResumeRequest, verifiedResumeCheckout,
+} from "./workpoint-request-binding.js";
 import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } from "./project-binding.js";
 import { resolveCanonicalMarkerProjectRoot } from "./project-identity-working-context.js";
 import { publishScopedStateChange } from "./scoped-surface-refresh.js";
@@ -3396,6 +3399,7 @@ pi.registerTool({
       "x-scope-kind": attachmentKey.workstream.root_scope.scope_kind,
       "x-scope-attachment-id": attachmentKey.attachment_id,
     };
+    const workingSubpath = verifiedResumeCheckout(getAttachmentRuntime())?.id;
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), timeout);
     try {
@@ -3440,6 +3444,7 @@ pi.registerTool({
             mutation_kind: path.split("?")[0] || path,
             project_root: requestedRoot,
             continuity_id: requestedContinuity,
+            working_subpath_id: workingSubpath,
             status: body?.degraded === true ? "degraded" : "accepted",
             evidence_revision:
               String(
@@ -6856,8 +6861,9 @@ pi.registerTool({
       const previousBinding = currentProjectBindingDecision();
       const bindingDecisionV1 = reconcileProjectBindingDecision({
         selectedProjectRoot: verifiedRoot || undefined,
-        selectedWorktreeRoot: selectedCandidate?.active_worktree_root,
-        canonicalParentRoot: selectedCandidate?.canonical_parent_root,
+        selectedWorktreeRoot: identity.active_worktree_root || selectedCandidate?.active_worktree_root,
+        verifiedWorkingSubpathId: identity.working_context?.working_subpath?.working_subpath_id,
+        canonicalParentRoot: identity.canonical_parent_root || selectedCandidate?.canonical_parent_root,
         continuityId: verifiedRoot ? ensureContinuityId(verifiedRoot) : getContinuityId(),
         candidates: bindingCandidates,
         ambiguous: body.binding_decision?.ambiguous === true || body.status === "ambiguous_project_binding",
@@ -9197,26 +9203,47 @@ pi.registerTool({
           ],
           details: { ok: false, status: "blocked", ...clarity.details },
         };
+      const caller = currentAttachmentKey();
+      const runtime = getAttachmentRuntime();
+      const currentAsk = runtime.currentAsk;
+      const checkout = verifiedResumeCheckout(runtime);
+      const requestedContinuity = p.continuity_id || ensureContinuityId(projectRoot);
+      const prepareFromCurrentIntent = p.canonical !== false && p.lifecycle_stage === "prepare" &&
+        (!p.checkpoint_reason || p.checkpoint_reason === "operator_checkpoint") &&
+        typeof p.work_item_id === "string" && Boolean(p.work_item_id.trim()) &&
+        !evidence.length && Boolean(currentAsk?.sourceTurnId) && Boolean(currentAsk?.text?.trim()) &&
+        currentAsk.kind !== "meta" && currentAsk.sessionId === caller?.session_id &&
+        normalizeProjectRoot(currentAsk.projectRoot) === projectRoot && currentAsk.continuityId === requestedContinuity &&
+        (!p.source_turn_id || p.source_turn_id === currentAsk.sourceTurnId) &&
+        caller?.workstream?.root_scope?.scope_kind === "project" &&
+        caller.workstream.root_scope.root_path === projectRoot &&
+        caller.workstream.continuity_id === requestedContinuity && caller.session_id === runtime.sessionFrameKey &&
+        !!checkout && sessionIdentity.canonical_scope === true && sessionIdentity.working_subpath_id === checkout.id &&
+        sessionIdentity.continuity_id === requestedContinuity && sessionIdentity.pi_session_id === caller.session_id;
       const payload: any = {
         mission: p.mission,
         next_slice: [p.next_action, ...doNotDrift.map((d: string) => `DO_NOT_DRIFT: ${d}`)]
           .filter(Boolean)
           .join("\n"),
         work_item_id: p.work_item_id,
-        continuity_id: p.continuity_id || ensureContinuityId(projectRoot),
+        continuity_id: requestedContinuity,
         session_id: p.session_id || getAttachmentRuntime().sessionFrameKey,
         project_root: projectRoot,
         session_identity: sessionIdentity,
         trajectory_clarity_precondition: clarity.details,
-        checkpoint_reason: p.checkpoint_reason || "manual",
+        prepare_from_current_intent: prepareFromCurrentIntent,
+        working_subpath_id: prepareFromCurrentIntent ? checkout?.id : undefined,
+        checkpoint_reason: p.checkpoint_reason || (prepareFromCurrentIntent ? "operator_checkpoint" : "manual"),
         canonical: p.canonical !== false,
         promote: p.canonical !== false,
-        source_turn_id: p.source_turn_id,
-        idempotency_key: p.idempotency_key,
+        source_turn_id: p.source_turn_id || (prepareFromCurrentIntent ? currentAsk?.sourceTurnId : undefined),
+        idempotency_key: p.idempotency_key || (prepareFromCurrentIntent
+          ? `prepare:${getAttachmentRuntime().sessionFrameKey}:${currentAsk?.sourceTurnId}:${p.work_item_id}`
+          : undefined),
         active_object_refs: Array.isArray(p.target_objects) ? p.target_objects : [],
         action_intent: {
           action_type: actionType,
-          target_ref: p.work_item_id || (Array.isArray(p.target_objects) ? p.target_objects[0] : undefined),
+          target_ref: prepareFromCurrentIntent ? projectRoot : p.work_item_id || (Array.isArray(p.target_objects) ? p.target_objects[0] : undefined),
           verification_hooks: evidence,
           status: "ready",
           lifecycle_stage: p.lifecycle_stage,
@@ -9236,11 +9263,21 @@ pi.registerTool({
       // Sending a writer id without a fencing token makes the daemon classify
       // bootstrap as an expired/missing lease and creates a circular deadlock.
       const checkpointLease = await currentWorkLoopLease();
-      const res = await focusaFetchDetailed("/workpoint/checkpoint", {
+      const send = () => focusaFetchDetailed("/workpoint/checkpoint", {
         method: "POST",
         headers: checkpointLease ? writerLeaseHeaders(localWriterId, checkpointLease) : {},
         body: JSON.stringify(payload),
       });
+      const stillCurrent = () => currentAttachmentKey() === caller && getAttachmentRuntime() === runtime &&
+        runtime.currentAsk === currentAsk && verifiedResumeCheckout(runtime)?.decision === checkout?.decision;
+      let res = prepareFromCurrentIntent && !stillCurrent()
+        ? { ok: false, status: 409, body: { status: "blocked", failure_class: "checkpoint_request_changed" } }
+        : await send();
+      if (prepareFromCurrentIntent && !checkpointLease) {
+        res = await repairPrepareMarker(res, payload, stillCurrent, body => focusaFetchDetailed("/project/trajectory-guard", {
+          method: "POST", body: JSON.stringify(body),
+        }), send);
+      }
       if (!res.ok && res.body?.failure_class === "hot_path_timeout") {
         const fallback = stampWorkpointPacketForCurrentPiSession({
           status: "timeout_preserved",
@@ -9510,16 +9547,21 @@ pi.registerTool({
         continuity_id: requestContinuityId,
         session_id: p.session_id || getAttachmentRuntime().sessionFrameKey,
         project_root: projectRoot,
+        working_subpath_id: requestBinding.workingSubpathId,
         current_ask: evaluatedAsk,
         session_identity: await buildFocusaSessionIdentity(projectRoot, "session_switch", {
           continuityId: p.continuity_id,
           sessionId: p.session_id,
         }),
       };
-      const res = await focusaFetchDetailed("/workpoint/resume", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const checkoutReady = !requestBinding.bindingDecision ||
+        (requestBinding.workingSubpathId &&
+          payload.session_identity.working_subpath_id === requestBinding.workingSubpathId);
+      const res = checkoutReady && isResumeRequestCurrent(requestBinding, getAttachmentRuntime())
+        ? await readResumeWithPrimaryCompatibility(requestBinding, getAttachmentRuntime, payload,
+            body => focusaFetchDetailed("/workpoint/resume", { method: "POST", body: JSON.stringify(body) }),
+            response => response.body)
+        : { ok: false, status: 409, body: { status: "blocked", failure_class: "resume_working_subpath_unverified" } };
       const requestVerdict = evaluateResumeRequest(res.body, requestBinding, getAttachmentRuntime());
       if (requestVerdict.reason === "resume_request_changed" ||
           requestVerdict.reason === "resume_evaluated_different_ask") {

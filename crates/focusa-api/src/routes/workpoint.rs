@@ -9,6 +9,7 @@ use crate::routes::project::{
     north_star_workpoint_linkage, require_north_star_mutation_admission,
     require_scoped_north_star_mutation_admission,
 };
+use crate::routes::project_bootstrap::remote::resolve_read_scope;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -61,6 +62,10 @@ pub struct WorkpointCheckpointRequest {
     pub repair_missing_lifecycle_stage: bool,
     #[serde(default)]
     pub confirm_lifecycle_repair: bool,
+    /// Require verification of the existing provider task in this exact
+    /// workstream before confirming a current-instruction first preparation.
+    #[serde(default)]
+    pub prepare_from_current_intent: bool,
     #[serde(default, alias = "dry_run")]
     pub preview: bool,
 }
@@ -215,6 +220,7 @@ struct ResumeScopeDecision {
     packet_session_id: Option<String>,
     expected_continuity_id: Option<String>,
     packet_continuity_id: Option<String>,
+    remote_binding_id: Option<String>,
 }
 
 fn clean_resume_scope_value(value: Option<&str>) -> Option<String> {
@@ -1117,6 +1123,7 @@ pub(super) fn workpoint_packet(record: &WorkpointRecord) -> Value {
         "workpoint_id": record.workpoint_id,
         "work_item_id": record.work_item_id,
         "session_identity": record.session_identity,
+        "working_subpath_id": record_working_subpath_id(record),
         "continuity_id": record.continuity_id,
         "session_id": record.session_id,
         "project_root": record.project_root,
@@ -1800,7 +1807,7 @@ async fn materialize_workpoint_transaction(
     state: &Arc<AppState>,
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
-    expected_prepare_linkage: Option<&Value>,
+    expected_prepare_linkage: Option<(&Value, bool)>,
     remote_genesis: Option<focusa_core::remote_workspace::RemoteGenesisFence>,
 ) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
     let guard = state.write_serial_lock.lock().await;
@@ -1811,7 +1818,7 @@ async fn materialize_workpoint_transaction(
     } else {
         None
     };
-    if let Some(expected) = expected_prepare_linkage {
+    if let Some((expected, verify_provider_task)) = expected_prepare_linkage {
         let workstream = scope.require_workstream_key().map_err(|error| (
             StatusCode::CONFLICT,
             Json(json!({"status":"blocked","canonical":false,"code":"WORKPOINT_PREPARE_SCOPE_REQUIRED","error":error})),
@@ -1834,25 +1841,75 @@ async fn materialize_workpoint_transaction(
             .root_path
             .to_string_lossy()
             .to_string();
-        let (guard_status, Json(guard_reply)) = crate::routes::project::trajectory_guard(
+        let (guard_status, Json(mut guard_reply)) = crate::routes::project::trajectory_guard(
             scope.clone(),
             State(state.clone()),
             Json(crate::routes::project::TrajectoryGuardRequest {
                 action: Some("verify".into()),
                 project_root: Some(root.clone()),
                 continuity_id: Some(workstream.continuity_id.clone()),
+                expected_trajectory_id: expected
+                    .get("trajectory_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
                 ..Default::default()
             }),
         )
         .await;
-        if !guard_status.is_success()
-            || guard_reply
-                .pointer("/trajectory_integrity_guard/status")
+        let projected_guard = guard_reply.get("trajectory_integrity_guard");
+        let ready = projected_guard
+            .and_then(|guard| guard.get("status"))
+            .and_then(Value::as_str)
+            == Some("READY");
+        let exact = projected_guard.and_then(|guard| guard.get("expected_trajectory_id"))
+            == expected.get("trajectory_id");
+        let can_recover = guard_status.is_success()
+            && exact
+            && expected.get("reason").and_then(Value::as_str)
+                == Some("trajectory_workpoint_unbound")
+            && projected_guard
+                .and_then(|guard| guard.get("status"))
                 .and_then(Value::as_str)
-                != Some("READY")
-            || guard_reply.pointer("/trajectory_integrity_guard/expected_trajectory_id")
-                != expected.get("trajectory_id")
-        {
+                == Some("MIGRATION_REQUIRED");
+        if can_recover || verify_provider_task {
+            let task = events.iter().find_map(|event| match event {
+                FocusaEvent::WorkpointCheckpointProposed { workpoint } => {
+                    workpoint.work_item_id.clone()
+                }
+                _ => None,
+            });
+            let task_root = std::path::PathBuf::from(&root);
+            let ready_task = if let Some(task) = task {
+                crate::routes::project::project_inspection_task(move || {
+                    super::project_genesis_support::existing_ready_beads_task(&task_root, &task)
+                })
+                .await
+                .unwrap_or(false)
+            } else {
+                false
+            };
+            if !ready_task {
+                return Err((
+                    StatusCode::CONFLICT,
+                    Json(json!({
+                        "status": "blocked", "code": "WORKPOINT_PREPARE_TASK_UNVERIFIED",
+                        "canonical": false,
+                        "next_step_hint": "The selected task must be uniquely present and ready in this project's task provider.",
+                    })),
+                ));
+            }
+        }
+        if !guard_status.is_success() || !ready || !exact {
+            if can_recover {
+                guard_reply["prepare_recovery"] = json!({
+                    "schema": "focusa.workpoint_prepare_recovery.v1",
+                    "kind": "rebuild_derived_trajectory_marker",
+                    "project_root": root,
+                    "continuity_id": workstream.continuity_id,
+                    "trajectory_id": expected.get("trajectory_id"),
+                    "hlt_version": guard_reply.pointer("/trajectory_integrity_guard/expected_hlt_version"),
+                });
+            }
             return Err((StatusCode::CONFLICT, Json(guard_reply)));
         }
         let current_linkage = {
@@ -2783,7 +2840,7 @@ async fn checkpoint(
     };
     let mut first_prepare_linkage = None;
     let mut incomplete_prepare_source = None;
-    if promote && requested_canonical && previous.is_some() {
+    if promote && requested_canonical && (previous.is_some() || req.prepare_from_current_intent) {
         let linkage = {
             let focusa = state.focusa.read().await;
             crate::routes::project::north_star_workpoint_linkage(
@@ -2805,6 +2862,21 @@ async fn checkpoint(
             first_prepare_linkage = Some(linkage);
             previous = None;
         }
+    }
+    if req.prepare_from_current_intent
+        && promote
+        && requested_canonical
+        && previous.is_none()
+        && first_prepare_linkage.is_none()
+    {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(json!({
+                "status": "blocked", "code": "WORKPOINT_PREPARE_GOAL_OR_INTENT_UNVERIFIED",
+                "canonical": false,
+                "next_step_hint": "Use the accepted goal for this exact workstream and a ready task from its project provider; no placeholder checkpoint was created.",
+            })),
+        ));
     }
     if promote && requested_canonical {
         if req.repair_missing_lifecycle_stage {
@@ -2935,7 +3007,9 @@ async fn checkpoint(
         &state,
         events,
         "workpoint_checkpoint",
-        first_prepare_linkage.as_ref(),
+        first_prepare_linkage
+            .as_ref()
+            .map(|linkage| (linkage, req.prepare_from_current_intent)),
         None,
     )
     .await?;
@@ -3670,12 +3744,18 @@ fn workpoint_resume_packet_v2(
     } else {
         json!("scope_unbound_or_non_canonical")
     };
-    let current_ask_scope = current_ask_action_authority_payload(record, canonical, req);
+    let mut current_ask_scope = current_ask_action_authority_payload(record, canonical, req);
+    if scope.remote_binding_id.is_some() {
+        current_ask_scope["action_authority_for_current_ask"] = json!(false);
+        current_ask_scope["authority_boundary"] = json!("controller_attested_read_only");
+    }
     let action_authority = current_ask_scope
         .get("action_authority_for_current_ask")
         .and_then(Value::as_bool)
         .unwrap_or(canonical);
-    let current_action_failure_class = if canonical && !action_authority {
+    let current_action_failure_class = if scope.remote_binding_id.is_some() {
+        json!("remote_read_does_not_grant_execution")
+    } else if canonical && !action_authority {
         json!("scope_conflict")
     } else {
         failure_class.clone()
@@ -3720,7 +3800,7 @@ fn workpoint_resume_packet_v2(
         "retry": {"safe": action_authority, "posture": if action_authority { "safe_retry" } else { "do_not_retry_unchanged" }},
         "migration_posture": migration_posture.clone(),
         "migration_warnings": migration_posture.get("migration_warnings").cloned().unwrap_or_else(|| json!([])),
-        "side_effects": ["workpoint_resume_rendered"],
+        "side_effects": if scope.remote_binding_id.is_some() { vec![] } else { vec!["workpoint_resume_rendered"] },
         "evidence_refs": record.verification_records.iter().take(8).filter_map(|v| v.evidence_ref.clone()).collect::<Vec<_>>(),
         "next_tools": next_tools.clone(),
     });
@@ -3785,19 +3865,70 @@ async fn resume(
     if !permissions.allows("work-loop:read") {
         return Err(forbid("work-loop:read"));
     }
-    apply_resume_session_identity(&mut req);
+    let session_root = session_identity_project_root(req.session_identity.as_ref());
+    let remote_root = req.project_root.as_deref().or(session_root.as_deref());
+    let remote = resolve_read_scope(
+        &state,
+        &headers,
+        remote_root,
+        req.continuity_id.as_deref(),
+        req.working_subpath_id.as_deref(),
+    )
+    .await?;
+    let publication = if let Some(authority) = &remote {
+        req.project_root = Some(authority.binding.roots.canonical_remote_root.clone());
+        req.continuity_id = Some(authority.binding.session.continuity_id.clone());
+        // A caller's session envelope must not override the attested scope.
+        req.session_identity = None;
+        authority.read_publication(&state).await?
+    } else {
+        apply_resume_session_identity(&mut req);
+        None
+    };
     let focusa = state.focusa.read().await;
     let requested_workpoint_id = req.workpoint_id;
-    let requested_record = requested_workpoint_id.and_then(|id| {
-        focusa
-            .workpoint
-            .records
-            .iter()
-            .find(|record| record.workpoint_id == id)
+    let remote_readback = remote.as_ref().and_then(|authority| {
+        let (intent, publication) = publication.as_ref()?;
+        let (trajectory, record) = authority.active_records(&focusa, intent, publication)?;
+        if requested_workpoint_id.is_some_and(|id| id != record.workpoint_id)
+            || req
+                .trajectory_id
+                .as_ref()
+                .is_some_and(|id| *id != trajectory.trajectory_id)
+            || req
+                .work_item_id
+                .as_ref()
+                .is_some_and(|id| record.work_item_id.as_ref() != Some(id))
+        {
+            return None;
+        }
+        let mut readback = record.clone();
+        readback.project_root.clone_from(&req.project_root);
+        let identity = crate::routes::project::attested_identity_payload(
+            authority,
+            trajectory.scope_ref.as_ref(),
+        );
+        Some((readback, identity["project_identity"].clone()))
     });
-    let requested_working_subpath_id =
-        session_identity_working_subpath_id(req.session_identity.as_ref());
-    let fallback_record = if requested_record.is_none() {
+    let remote_record = remote_readback.as_ref().map(|(record, _)| record);
+    let requested_record = if remote.is_some() {
+        remote_record
+    } else {
+        requested_workpoint_id.and_then(|id| {
+            focusa
+                .workpoint
+                .records
+                .iter()
+                .find(|record| record.workpoint_id == id)
+        })
+    };
+    let requested_working_subpath_id = if remote.is_some() {
+        // Selection was already fenced by the binding (including its worktree).
+        remote_record.map(record_working_subpath_id)
+    } else {
+        session_identity_working_subpath_id(req.session_identity.as_ref())
+    };
+    let fallback_record = if remote.is_none() && requested_record.is_none() {
         active_workpoint_for_context(
             &focusa,
             req.project_root.as_deref(),
@@ -3834,13 +3965,16 @@ async fn resume(
             "next_step_hint": "checkpoint the current mission/action before retrying resume"
         })));
     };
-    let scope = evaluate_resume_scope(
+    let mut scope = evaluate_resume_scope(
         record,
         req.project_root.as_deref(),
         req.continuity_id.as_deref(),
         req.session_id.as_deref(),
         requested_working_subpath_id.as_deref(),
     );
+    scope.remote_binding_id = remote
+        .as_ref()
+        .map(|authority| authority.binding.binding_id.clone());
     if let Some(rejection) = scope.rejection {
         return Ok(Json(rejection));
     }
@@ -3877,23 +4011,32 @@ async fn resume(
     }
     drop(focusa);
 
-    let resume_render_dispatch_warning = match dispatch_event(
-        _scope.clone(),
-        &state,
-        FocusaEvent::WorkpointResumeRendered {
-            workpoint_id: Some(workpoint_id),
-            mode: req.mode.unwrap_or_else(|| "compact_prompt".to_string()),
-            rendered_summary: summary.clone(),
-        },
-    )
-    .await
-    {
-        Ok(()) => None,
-        Err((_status, Json(body))) => Some(json!({
-            "warning": "resume render telemetry event was not enqueued; returning the already-rendered canonical packet instead of blocking continuation",
-            "dispatch_result": body,
-            "recovery": "resume packet is usable; run focusa_resource_mode or focusa_tool_doctor if telemetry dispatch remains saturated"
-        })),
+    let resume_render_dispatch_warning = if let Some(binding_id) = &scope.remote_binding_id {
+        if let Some((_, identity)) = remote_readback.as_ref() {
+            packet_v2["project_identity"] = identity.clone();
+        }
+        packet_v2["remote_binding_id"] = json!(binding_id);
+        packet_v2["execution_admission"] = json!(false);
+        None
+    } else {
+        match dispatch_event(
+            _scope.clone(),
+            &state,
+            FocusaEvent::WorkpointResumeRendered {
+                workpoint_id: Some(workpoint_id),
+                mode: req.mode.unwrap_or_else(|| "compact_prompt".to_string()),
+                rendered_summary: summary.clone(),
+            },
+        )
+        .await
+        {
+            Ok(()) => None,
+            Err((_status, Json(body))) => Some(json!({
+                "warning": "resume render telemetry event was not enqueued; returning the already-rendered canonical packet instead of blocking continuation",
+                "dispatch_result": body,
+                "recovery": "resume packet is usable; run focusa_resource_mode or focusa_tool_doctor if telemetry dispatch remains saturated"
+            })),
+        }
     };
 
     let tool_result = packet_v2
@@ -4034,6 +4177,14 @@ async fn resume(
         "next_step_hint".to_string(),
         json!("inject rendered_summary plus resume_packet before the next Pi turn"),
     );
+    if let Some(binding_id) = &scope.remote_binding_id {
+        response.insert("remote_binding_id".into(), json!(binding_id));
+        response.insert("execution_admission".into(), json!(false));
+        response.insert(
+            "next_step_hint".into(),
+            json!("attach to the exact verified remote Workstream before executing its Workpoint"),
+        );
+    }
     if requested_id_miss {
         response.insert(
             "requested_workpoint_id".to_string(),

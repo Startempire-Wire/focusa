@@ -23,6 +23,7 @@ export interface ProjectBindingDecisionV1 {
   state: ProjectBindingState;
   selected_project_root?: string;
   selected_worktree_root?: string;
+  working_subpath_id?: string;
   canonical_parent_root?: string;
   continuity_id: string;
   candidates: ProjectBindingCandidateV1[];
@@ -46,6 +47,7 @@ export interface ProjectBindingDecisionV1 {
 export interface ReconcileProjectBindingInput {
   selectedProjectRoot?: string;
   selectedWorktreeRoot?: string;
+  verifiedWorkingSubpathId?: string;
   canonicalParentRoot?: string;
   continuityId?: string;
   candidates?: Array<Record<string, unknown>>;
@@ -139,11 +141,15 @@ export function reconcileProjectBindingDecision(
     rejectionReasons.push("canonical_project_verification_required");
   }
 
+  const workingSubpathId = state === "BOUND"
+    ? boundedText(input.verifiedWorkingSubpathId, 256) || undefined
+    : undefined;
   const evidenceSources = sortedUnique(candidates.flatMap((candidate) => candidate.sources));
   const evidenceRevision = stableHash({
     state,
     selectedProjectRoot,
     selectedWorktreeRoot,
+    workingSubpathId,
     canonicalParentRoot,
     continuityId: boundedText(input.continuityId, 256),
     candidates,
@@ -163,6 +169,7 @@ export function reconcileProjectBindingDecision(
     state,
     selected_project_root: selectedProjectRoot,
     selected_worktree_root: selectedWorktreeRoot,
+    working_subpath_id: workingSubpathId,
     canonical_parent_root: canonicalParentRoot,
     continuity_id: boundedText(input.continuityId, 256) || "unbound",
     candidates,

@@ -31,6 +31,8 @@ interface FocusaAwarenessConfig {
   operatorId?: string;
   projectRoot?: string;
   continuityId?: string;
+  workingSubpathId?: string;
+  remoteBindingId?: string;
   timeoutMs?: number;
   enabled?: boolean;
 }
@@ -44,8 +46,10 @@ function cfg(api: OpenClawPluginApi): Required<FocusaAwarenessConfig> {
     workspaceId: raw.workspaceId?.trim() || "",
     agentId: raw.agentId?.trim() || "",
     operatorId: raw.operatorId?.trim() || "",
-    projectRoot: raw.projectRoot || process.env.FOCUSA_PROJECT_ROOT || "",
-    continuityId: raw.continuityId || process.env.FOCUSA_CONTINUITY_ID || "",
+    projectRoot: (raw.projectRoot || process.env.FOCUSA_PROJECT_ROOT || "").trim(),
+    continuityId: (raw.continuityId || process.env.FOCUSA_CONTINUITY_ID || "").trim(),
+    workingSubpathId: raw.workingSubpathId?.trim() || "",
+    remoteBindingId: raw.remoteBindingId?.trim() || "",
     timeoutMs: typeof raw.timeoutMs === "number" && Number.isFinite(raw.timeoutMs)
       ? Math.trunc(Math.max(100, Math.min(raw.timeoutMs, 5000)))
       : 1500,
@@ -102,6 +106,9 @@ async function fetchCard(
   if (c.agentId) qs.set("agent_id", c.agentId);
   if (c.operatorId) qs.set("operator_id", c.operatorId);
   if (c.continuityId) qs.set("continuity_id", c.continuityId);
+  if (c.workingSubpathId) qs.set("working_subpath_id", c.workingSubpathId);
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (c.remoteBindingId) headers["x-scope-remote-binding-id"] = c.remoteBindingId;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), c.timeoutMs);
   try {
@@ -110,13 +117,28 @@ async function fetchCard(
       {
         signal: controller.signal,
         redirect: "error",
-        headers: { accept: "application/json" },
+        headers,
       },
     );
     if (!res.ok) throw new Error(`Focusa awareness HTTP ${res.status}`);
-    const body = (await res.json()) as { rendered_card?: string };
-    if (!body.rendered_card)
+    const body = (await res.json()) as {
+      rendered_card?: string;
+      canonical?: boolean;
+      project_root?: string;
+      continuity_id?: string;
+      working_subpath_id?: string;
+      remote_binding_id?: string;
+    };
+    if (typeof body?.rendered_card !== "string" || !body.rendered_card)
       throw new Error("Focusa awareness response missing rendered_card");
+    // Older daemons can ignore new selectors. Never inject a different
+    // worktree's canonical context just because HTTP succeeded.
+    if ((c.workingSubpathId || c.remoteBindingId) && body.canonical !== false && (
+        body.canonical !== true || body.project_root !== c.projectRoot || body.continuity_id !== c.continuityId ||
+        (c.workingSubpathId && body.working_subpath_id !== c.workingSubpathId) ||
+        (c.remoteBindingId && body.remote_binding_id !== c.remoteBindingId))) {
+      throw new Error("Focusa awareness response did not verify the exact requested binding");
+    }
     return body.rendered_card;
   } finally {
     clearTimeout(timer);

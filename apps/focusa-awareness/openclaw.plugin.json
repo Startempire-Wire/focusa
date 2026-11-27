@@ -15,6 +15,8 @@
       "operatorId": { "type": "string" },
       "projectRoot": { "type": "string", "description": "Project root lookup input; not proof of attachment or execution authority." },
       "continuityId": { "type": "string", "default": "", "description": "Stable logical workstream id passed through as continuity_id; required for canonical Workpoint binding." },
+      "workingSubpathId": { "type": "string", "description": "Exact working subpath selector; omit for the primary checkout." },
+      "remoteBindingId": { "type": "string", "description": "Optional controller-enrolled remote binding selector. This is not a credential or a grant." },
       "timeoutMs": { "type": "number", "default": 1500 },
       "enabled": { "type": "boolean", "default": true }
     }

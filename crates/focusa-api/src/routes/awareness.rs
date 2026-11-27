@@ -1,7 +1,11 @@
 //! Spec93 non-Pi agent awareness card API.
 
+use crate::routes::permissions::permission_context;
+use crate::routes::project_bootstrap::remote::resolve_read_scope;
+use crate::routes::workpoint::active_workpoint_for_context;
 use crate::server::AppState;
 use axum::extract::{Query, State};
+use axum::http::HeaderMap;
 use axum::{Json, Router, routing::get};
 use focusa_core::license::feature_enabled;
 use focusa_core::types::{FocusaState, WorkpointRecord};
@@ -18,6 +22,7 @@ pub struct AwarenessCardQuery {
     pub session_id: Option<String>,
     pub continuity_id: Option<String>,
     pub project_root: Option<String>,
+    pub working_subpath_id: Option<String>,
 }
 
 fn clean(value: Option<&str>) -> Option<String> {
@@ -27,33 +32,20 @@ fn clean(value: Option<&str>) -> Option<String> {
         .map(str::to_string)
 }
 
-fn active_workpoint(state: &FocusaState) -> Option<&WorkpointRecord> {
-    state.workpoint.active_workpoint_id.and_then(|id| {
-        state
-            .workpoint
-            .records
-            .iter()
-            .find(|record| record.workpoint_id == id)
-    })
-}
-
 fn scoped_workpoint<'a>(
     focusa: &'a FocusaState,
     query: &AwarenessCardQuery,
 ) -> Option<&'a WorkpointRecord> {
-    let expected_project_root = clean(query.project_root.as_deref())?;
-    let expected_continuity_id = clean(query.continuity_id.as_deref())?;
-    let active = active_workpoint(focusa)?;
-    if active.project_root.as_deref().map(str::trim) != Some(expected_project_root.as_str()) {
-        return None;
-    }
-    if active.continuity_id.as_deref().map(str::trim) != Some(expected_continuity_id.as_str()) {
-        return None;
-    }
-    // session_id is temporal producer metadata. It may describe the caller or
-    // producing session, but it must never replace or demote canonical
-    // project_root + continuity_id authority.
-    Some(active)
+    let project_root = clean(query.project_root.as_deref())?;
+    let continuity_id = clean(query.continuity_id.as_deref())?;
+    // Share resume's selector, including its primary-subpath default. A
+    // caller's temporal session id and the daemon-wide active id are irrelevant.
+    active_workpoint_for_context(
+        focusa,
+        Some(&project_root),
+        Some(&continuity_id),
+        query.working_subpath_id.as_deref(),
+    )
 }
 
 fn redacted_scope_id(project_root: &str, continuity_id: &str) -> String {
@@ -123,11 +115,57 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
 
 async fn card(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Query(query): Query<AwarenessCardQuery>,
 ) -> Json<Value> {
+    // The card embeds mission/next-action text from the same scoped records
+    // as resume. A lookup must not grant access that resume would deny.
+    let may_read =
+        permission_context(&headers, state.config.auth_token.is_some()).allows("work-loop:read");
+    let remote = if may_read {
+        Some(
+            resolve_read_scope(
+                &state,
+                &headers,
+                query.project_root.as_deref(),
+                query.continuity_id.as_deref(),
+                query.working_subpath_id.as_deref(),
+            )
+            .await,
+        )
+    } else {
+        None
+    };
+    let publication = match &remote {
+        Some(Ok(Some(authority))) => authority.read_publication(&state).await,
+        _ => Ok(None),
+    };
     let focusa = state.focusa.read().await;
-    let record = scoped_workpoint(&focusa, &query);
-    let awareness_canonical = record.map(|r| r.canonical).unwrap_or(false);
+    let record = match &remote {
+        Some(Ok(None)) => scoped_workpoint(&focusa, &query),
+        Some(Ok(Some(authority))) => match &publication {
+            Ok(Some((intent, published))) => authority
+                .active_records(&focusa, intent, published)
+                .map(|(_, workpoint)| workpoint),
+            _ => None,
+        },
+        // A completed unverified read remains advisory; no fallback to local state.
+        _ => None,
+    };
+    let failure_class = if record.is_some() {
+        None
+    } else if !may_read {
+        Some("workpoint_read_not_permitted")
+    } else if matches!(remote, Some(Err(_))) || publication.is_err() {
+        Some("remote_scope_unverified")
+    } else {
+        Some("scoped_active_workpoint_unavailable")
+    };
+    let awareness_canonical = record.is_some();
+    let remote_binding_id = match &remote {
+        Some(Ok(Some(authority))) if awareness_canonical => Some(&authority.binding.binding_id),
+        _ => None,
+    };
     let rendered_card = render_card(&query, record);
     let project_root = query
         .project_root
@@ -157,6 +195,8 @@ async fn card(
     Json(json!({
         "status": "completed",
         "canonical": awareness_canonical,
+        "execution_admission": false,
+        "failure_class": failure_class,
         "surface": "focusa_awareness_card",
         "adapter_id": query.adapter_id,
         "workspace_id": query.workspace_id,
@@ -165,6 +205,8 @@ async fn card(
         "session_id": query.session_id,
         "continuity_id": query.continuity_id,
         "project_root": query.project_root,
+        "working_subpath_id": query.working_subpath_id,
+        "remote_binding_id": remote_binding_id,
         "identity_semantics": {
             "schema": "focusa.awareness_identity_semantics.v1",
             "canonical_continuity_key": ["project_root", "continuity_id"],
@@ -189,14 +231,18 @@ pub fn router() -> Router<Arc<AppState>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use focusa_core::types::{FocusaSessionIdentity, WorkpointStatus};
+    use uuid::Uuid;
 
     fn state_with_active_workpoint(project_root: &str, continuity_id: &str) -> FocusaState {
         let mut state = FocusaState::default();
         let record = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
             project_root: Some(project_root.to_string()),
             continuity_id: Some(continuity_id.to_string()),
             session_id: Some("session-1".to_string()),
             canonical: true,
+            status: WorkpointStatus::Active,
             mission: Some("Scoped mission".to_string()),
             next_slice: Some("Scoped next".to_string()),
             ..Default::default()
@@ -204,6 +250,67 @@ mod tests {
         state.workpoint.active_workpoint_id = Some(record.workpoint_id);
         state.workpoint.records.push(record);
         state
+    }
+
+    #[test]
+    fn awareness_card_selects_the_requested_active_workstream_and_worktree() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("remote-checkout");
+        let project = project.to_str().unwrap();
+        let mut state = state_with_active_workpoint(project, "workstream-a");
+        let primary = state.workpoint.records[0].clone();
+        let sibling = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            mission: Some("Sibling worktree mission".into()),
+            session_identity: Some(FocusaSessionIdentity {
+                working_subpath_id: Some("sibling".into()),
+                ..Default::default()
+            }),
+            ..primary.clone()
+        };
+        let other = WorkpointRecord {
+            workpoint_id: Uuid::now_v7(),
+            continuity_id: Some("workstream-b".into()),
+            mission: Some("Other workstream mission".into()),
+            ..primary.clone()
+        };
+        state.workpoint.active_workpoint_id = Some(other.workpoint_id);
+        state.workpoint.records.extend([sibling.clone(), other]);
+        let mut query = AwarenessCardQuery {
+            project_root: Some(project.into()),
+            continuity_id: Some("workstream-a".into()),
+            session_id: Some("restored-session".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            scoped_workpoint(&state, &query).unwrap().workpoint_id,
+            primary.workpoint_id
+        );
+        query.working_subpath_id = Some("sibling".into());
+        let record = scoped_workpoint(&state, &query).unwrap();
+        assert_eq!(record.workpoint_id, sibling.workpoint_id);
+        let card = render_card(&query, Some(record));
+        assert!(card.contains("Sibling worktree mission"));
+        assert!(!card.contains("Other workstream mission"));
+        query.working_subpath_id = Some("unbound".into());
+        assert!(scoped_workpoint(&state, &query).is_none());
+    }
+
+    #[test]
+    fn awareness_card_does_not_render_a_noncanonical_record() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("remote-checkout");
+        let project = project.to_str().unwrap();
+        let mut state = state_with_active_workpoint(project, "workstream");
+        state.workpoint.records[0].canonical = false;
+        let query = AwarenessCardQuery {
+            project_root: Some(project.into()),
+            continuity_id: Some("workstream".into()),
+            ..Default::default()
+        };
+        let selected = scoped_workpoint(&state, &query);
+        assert!(selected.is_none());
+        assert!(!render_card(&query, selected).contains("Scoped mission"));
     }
 
     #[test]
@@ -301,6 +408,7 @@ mod tests {
                 session_id: Some("session-1".into()),
                 continuity_id: Some("cont-1".into()),
                 project_root: Some("/data/wirebot/users/operator".into()),
+                ..Default::default()
             },
             None,
         );

@@ -73,6 +73,8 @@ bash scripts/create-dev-release-tag.sh --push
 bash scripts/create-dev-release-tag.sh --tag vX.Y.Z --push
 ```
 
+Automatic selection advances beyond the highest patch across channels. An explicitly requested stable tag may use the highest patch if only dated rolling nightlies use it. A stable or full preview at that patch, or any higher patch, still blocks reuse. Do not delete or rewrite the nightly tag to release stable; all stable qualification requirements still apply.
+
 On the single eligible builder, use `--no-wait-ci`: preparation checks exact-candidate CI once and exits **78 (`source_gate_pending`) before any tag** while that SHA is pending. This is an incomplete preparation phase, not release success. The caller exits to yield the builder; let the existing canonical source-CI workflow finish, then resume the **same approved tag and candidate** through the same helper. Failed, foreign-SHA, unreadable or malformed CI results never authorize tagging; provider failures remain errors rather than an empty queue. Explicit wait mode retains its wait. No new controller, journal, signing path or gate bypass is introduced.
 
 Internally the script does the 7-step checklist deterministically — the agent does not run them by hand:

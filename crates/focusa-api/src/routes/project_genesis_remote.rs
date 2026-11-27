@@ -270,13 +270,13 @@ pub(super) async fn status(
     });
     if let Some((intent, Some(publication))) = observed {
         let focusa = state.focusa.read().await;
-        if !publication.verifies(&focusa, &intent, scope.continuity_id) {
-            return Err(reject(
+        let (trajectory, first) = authority.initial_records(&focusa, &intent, &publication).ok_or_else(|| {
+            reject(
                 StatusCode::CONFLICT,
                 "remote_genesis_projection_mismatch",
-                "stored receipt cannot prove the active Trajectory and first Workpoint",
-            ));
-        }
+                "stored receipt cannot prove the exact Trajectory and initial Workpoint for this binding",
+            )
+        })?;
         packet["status"] = json!("ready");
         packet["canonical"] = json!(true);
         packet["readiness_receipt"] = json!({
@@ -284,39 +284,6 @@ pub(super) async fn status(
             "trajectory_id": publication.trajectory_id, "workpoint_id": publication.workpoint_id,
             "recorded_at": publication.hlt.timestamp,
         });
-        let first = focusa
-            .workpoint
-            .records
-            .iter()
-            .find(|record| record.workpoint_id == publication.workpoint_id)
-            .ok_or_else(|| {
-                reject(
-                    StatusCode::CONFLICT,
-                    "remote_genesis_projection_mismatch",
-                    "first Workpoint disappeared",
-                )
-            })?;
-        let expected_scope_id = format!("remote-workspace:{}", scope.binding_id);
-        let projection_key = intent.projection_key();
-        let trajectory = focusa
-            .trajectory
-            .records
-            .iter()
-            .find(|record| {
-                record.trajectory_id == publication.trajectory_id
-                    && record.scope_ref.as_ref().is_some_and(|reference| {
-                        reference.scope_id == expected_scope_id
-                            && reference.root_path == Path::new(scope.remote_root)
-                            && reference.fingerprint == projection_key
-                    })
-            })
-            .ok_or_else(|| {
-                reject(
-                    StatusCode::CONFLICT,
-                    "remote_genesis_scope_mismatch",
-                    "published Trajectory is not associated with this binding",
-                )
-            })?;
         packet["trajectory"] = json!({"trajectory_id": trajectory.trajectory_id, "hlt": trajectory.long_term_goal,
             "mlg": trajectory.mid_level_goal, "stg": trajectory.short_term_goal, "current_state": trajectory.current_state,
             "desired_end_state": trajectory.desired_end_state, "gap": trajectory.gap_summary,
@@ -326,8 +293,14 @@ pub(super) async fn status(
         first_packet["project_root"] = json!(scope.remote_root);
         first_packet["remote_binding_id"] = json!(scope.binding_id);
         packet["first_workpoint"] = first_packet;
-        packet["next_action"] =
-            json!("attach the exact remote Workstream before executing its first Workpoint");
+        packet["next_action"] = if trajectory.active_workpoint_id == Some(publication.workpoint_id)
+        {
+            json!("attach the exact remote Workstream before executing its first Workpoint")
+        } else {
+            json!(
+                "read the current Workpoint from the exact remote Workstream; this receipt is historical"
+            )
+        };
     }
     Ok(Json(packet))
 }

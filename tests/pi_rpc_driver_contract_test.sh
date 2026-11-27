@@ -36,11 +36,11 @@ else
   log_fail "Pi can treat prohibited delivery actions as acceptance blockers"
 fi
 
-if rg -n 'if kind == "agent_end"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
-  && ! rg -n 'if kind == "turn_end" \|\| kind == "agent_end"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
-  log_pass "Pi outcome governance waits for the complete agent tool loop"
+if rg -Fq 'if kind == "agent_settled"' "$WORK_LOOP_ROUTE_FILE" \
+  && ! rg -q 'if .*kind == "agent_end"' "$WORK_LOOP_ROUTE_FILE"; then
+  log_pass "Pi outcome governance waits for the outer agent run to settle"
 else
-  log_fail "Pi outcome governance can stop at an intermediate tool turn"
+  log_fail "Pi outcome governance is not bound to final agent_settled"
 fi
 
 if rg -n '"--no-extensions"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
@@ -81,17 +81,8 @@ START_PAYLOAD=$(jq -n \
 START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${WRITER_ID}" "${FENCING_HEADERS[@]}" \
   -H 'x-focusa-approval: approved' -d "${START_PAYLOAD}")
-DRIVER_UNAVAILABLE=0
-if echo "$START" | jq -e '(.status == "accepted" and .adapter == "pi-rpc") or ((.error // "") | test("already active"))' >/dev/null 2>&1; then
-  log_pass "Pi RPC driver start accepted or already active"
-elif echo "$START" | jq -e '(.error // "") | test("failed to spawn pi rpc")' >/dev/null 2>&1; then
-  DRIVER_UNAVAILABLE=1
-  log_pass "Pi RPC driver route reports unavailable runtime dependency explicitly"
-else
-  log_fail "Pi RPC driver start not accepted: $START"
-fi
-
-if [ "$DRIVER_UNAVAILABLE" -eq 0 ]; then
+if echo "$START" | jq -e '.status == "accepted" and .adapter == "pi-rpc"' >/dev/null 2>&1; then
+  log_pass "Pi RPC driver accepted the compatible runtime"
   sleep 1
   STATUS=$(http_json "${BASE_URL}/v1/work-loop")
   if echo "$STATUS" | jq -e '.transport.daemon_supervised_session.adapter == "pi-rpc"' >/dev/null 2>&1; then
@@ -107,6 +98,8 @@ if [ "$DRIVER_UNAVAILABLE" -eq 0 ]; then
   else
     log_fail "Pi RPC driver stop not accepted: $STOP"
   fi
+else
+  log_fail "Pi RPC driver start not accepted: $START"
 fi
 
 LOOP_STOP=$(http_json -X POST "${BASE_URL}/v1/work-loop/stop" -H 'Content-Type: application/json' \

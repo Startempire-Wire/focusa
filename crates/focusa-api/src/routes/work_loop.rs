@@ -504,6 +504,11 @@ fn configure_pi_rpc_invocation(command: &mut Command, request: &PiDriverStartReq
     if let Some(models) = request.models.as_deref() {
         command.args(["--models", models]);
     }
+    // Pi treats --no-session as overriding --session and --session-dir. Use it
+    // only when the caller did not request native persistence.
+    if request.resume_session.is_none() && request.session_dir.is_none() {
+        command.arg("--no-session");
+    }
     if let Some(resume_session) = request.resume_session.as_deref() {
         command.args(["--session", resume_session]);
     }
@@ -1535,24 +1540,51 @@ fn render_continuous_turn_prompt(
     )
 }
 
+#[path = "pi_rpc_turn_boundary.rs"]
+pub(crate) mod pi_rpc_turn_boundary;
+
 async fn dispatch_pi_prompt(
     state: &Arc<AppState>,
     message: String,
-) -> Result<(), (StatusCode, Json<Value>)> {
+    expected_work_item_id: &str,
+    request_turn: Action,
+) -> Result<bool, (StatusCode, Json<Value>)> {
     let mut guard = state.pi_rpc_session.lock().await;
     let Some(session) = guard.as_mut() else {
         return Err(bad_request("pi rpc driver not active"));
     };
-    let msg =
-        json!({"id": format!("prompt-{}", Uuid::now_v7()), "type":"prompt", "message": message})
-            .to_string()
-            + "\n";
+    {
+        let focusa = state.focusa.read().await;
+        let wl = &focusa.work_loop;
+        if !wl.enabled
+            || continuation_boundary_reason(wl).is_some()
+            || !wl.has_bound_transport()
+            || wl.transport_session_id.as_deref() != Some(session.session_id.as_str())
+            || !wl
+                .current_task
+                .as_ref()
+                .is_some_and(|task| task.work_item_id == expected_work_item_id)
+        {
+            return Ok(false);
+        }
+    }
+    let id = format!("prompt-{}", Uuid::now_v7());
+    if !session.turn_boundary.reserve(id.clone()) {
+        return Ok(false);
+    }
+    if let Err(error) = send_work_loop_action(state, "work_loop_dispatch", request_turn).await {
+        session.turn_boundary.prompt_did_not_start(&id);
+        return Err(error);
+    }
+    let msg = json!({"id": id, "type":"prompt", "message": message}).to_string() + "\n";
+    // A failed write may be partial. Retain custody until reconciliation/reopen,
+    // instead of attempting to resend an uncertain prompt from the supervisor.
     session
         .stdin
         .write_all(msg.as_bytes())
         .await
         .map_err(|e| bad_request(format!("failed writing prompt: {e}")))?;
-    Ok(())
+    Ok(true)
 }
 
 async fn maybe_auto_advance_from_blocked(
@@ -1721,6 +1753,17 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
     state: &Arc<AppState>,
     reason: &str,
 ) -> Result<bool, (StatusCode, Json<Value>)> {
+    // Native Pi retains its own run through retries, compaction and follow-ups.
+    // Check before selection and again atomically when reserving the prompt.
+    if state
+        .pi_rpc_session
+        .lock()
+        .await
+        .as_ref()
+        .is_some_and(|session| session.turn_boundary.is_busy())
+    {
+        return Ok(false);
+    }
     let _ = maybe_auto_advance_from_blocked(state, reason).await?;
 
     let (
@@ -1815,20 +1858,19 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
                 if !transport_partition_matches {
                     return Ok(false);
                 }
-                state
-                    .command_tx
-                    .send(Action::RequestNextContinuousTurn {
+                let prompt =
+                    render_continuous_turn_prompt(&task, mission, focus, last_checkpoint_id);
+                return dispatch_pi_prompt(
+                    state,
+                    prompt,
+                    &task.work_item_id,
+                    Action::RequestNextContinuousTurn {
                         task_run_id,
                         work_item_id: Some(task.work_item_id.clone()),
                         reason: "re-selected work after unassigned turn state".to_string(),
-                    })
-                    .await
-                    .map_err(|e| work_loop_dispatch_failed("work_loop_dispatch", e))?;
-
-                let prompt =
-                    render_continuous_turn_prompt(&task, mission, focus, last_checkpoint_id);
-                dispatch_pi_prompt(state, prompt).await?;
-                return Ok(true);
+                    },
+                )
+                .await;
             }
         }
 
@@ -1907,19 +1949,18 @@ pub async fn maybe_dispatch_continuous_turn_prompt(
         }
     }
 
-    state
-        .command_tx
-        .send(Action::RequestNextContinuousTurn {
+    let prompt = render_continuous_turn_prompt(&task, mission, focus, last_checkpoint_id);
+    dispatch_pi_prompt(
+        state,
+        prompt,
+        &task.work_item_id,
+        Action::RequestNextContinuousTurn {
             task_run_id,
             work_item_id: Some(task.work_item_id.clone()),
             reason: reason.to_string(),
-        })
-        .await
-        .map_err(|e| work_loop_dispatch_failed("work_loop_dispatch", e))?;
-
-    let prompt = render_continuous_turn_prompt(&task, mission, focus, last_checkpoint_id);
-    dispatch_pi_prompt(state, prompt).await?;
-    Ok(true)
+        },
+    )
+    .await
 }
 
 fn budget_remaining_for_status(wl: &focusa_core::types::WorkLoopState) -> Value {
@@ -3654,7 +3695,8 @@ async fn start_pi_driver(
     }
 
     let session_id = format!("pi-rpc-{}", Uuid::now_v7());
-    let mut cmd = Command::new(pi_rpc_bin());
+    let executable = pi_rpc_bin();
+    let mut cmd = Command::new(&executable);
     let base_path = std::env::var("PATH").unwrap_or_default();
     let merged_path = if let Some(node_bin_dir) = pi_rpc_node_bin_dir() {
         if base_path.split(':').any(|segment| segment == node_bin_dir) {
@@ -3668,7 +3710,7 @@ async fn start_pi_driver(
         base_path
     };
 
-    cmd.env("PATH", merged_path)
+    cmd.env("PATH", &merged_path)
         .env(
             "FOCUSA_PI_API_BASE_URL",
             pi_focusa_api_base_url(&state.config.api_bind),
@@ -3677,14 +3719,7 @@ async fn start_pi_driver(
             "FOCUSA_PI_VITAL_INFO_PROMPT_MODE",
             PI_HEADLESS_VITAL_INFO_PROMPT_MODE,
         )
-        .args([
-            "--mode",
-            "rpc",
-            "--no-session",
-            "--no-extensions",
-            "--no-skills",
-            "--no-prompt-templates",
-        ])
+        .args(["--no-extensions", "--no-skills", "--no-prompt-templates"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -3717,6 +3752,25 @@ async fn start_pi_driver(
         ));
     }
     cmd.current_dir(&driver_root);
+
+    let mut version_probe = Command::new(&executable);
+    version_probe
+        .current_dir(&driver_root)
+        .env("PATH", &merged_path)
+        .arg("--version")
+        .kill_on_drop(true);
+    let compatible = tokio::time::timeout(Duration::from_secs(5), version_probe.output())
+        .await
+        .ok()
+        .and_then(Result::ok)
+        .filter(|result| result.status.success())
+        .and_then(|result| String::from_utf8(result.stdout).ok())
+        .is_some_and(|version| pi_rpc_turn_boundary::supports_settled_abort_disposition(&version));
+    if !compatible {
+        return Err(bad_request(
+            "Pi RPC driver requires Pi 1.1.0 or newer with the agent_settled abort disposition",
+        ));
+    }
 
     let mut child = cmd.spawn().map_err(work_loop_pi_spawn_failed)?;
     let child_pid = child
@@ -3772,6 +3826,7 @@ async fn start_pi_driver(
         child,
         process_group_id: child_pid,
         stdin,
+        turn_boundary: Default::default(),
         session_id: session_id.clone(),
         cwd: Some(work_loop_root.to_string_lossy().to_string()),
         idempotency_key: payload.idempotency_key.clone(),
@@ -3781,6 +3836,7 @@ async fn start_pi_driver(
     tokio::spawn(async move {
         let mut seq: u64 = 1;
         let mut last_assistant_output = String::new();
+        let mut last_assistant_failure = None;
         let mut lines = BufReader::new(stdout).lines();
         while let Ok(Some(line)) = lines.next_line().await {
             let parsed: Value = serde_json::from_str(&line)
@@ -3800,8 +3856,32 @@ async fn start_pi_driver(
                     let _ = session.stdin.flush().await;
                 }
             }
+            if kind == "agent_start" {
+                let mut guard = state_for_events.pi_rpc_session.lock().await;
+                if let Some(session) = guard.as_mut()
+                    && session.session_id == attach_session_id
+                {
+                    session.turn_boundary.started();
+                }
+            } else if kind == "response"
+                && parsed.get("command").and_then(Value::as_str) == Some("prompt")
+                && (parsed.get("success").and_then(Value::as_bool) == Some(false)
+                    || parsed.pointer("/data/disposition").and_then(Value::as_str)
+                        == Some("handled"))
+                && let Some(id) = parsed.get("id").and_then(Value::as_str)
+            {
+                let mut guard = state_for_events.pi_rpc_session.lock().await;
+                if let Some(session) = guard.as_mut()
+                    && session.session_id == attach_session_id
+                {
+                    session.turn_boundary.prompt_did_not_start(id);
+                }
+            }
             if kind == "turn_start" || kind == "agent_start" {
                 last_assistant_output.clear();
+                // A low-level error can be recovered by an incumbent Pi retry
+                // before the outer run settles.
+                last_assistant_failure = None;
             }
             if kind == "message_update"
                 && let Some(delta) = parsed
@@ -3811,16 +3891,17 @@ async fn start_pi_driver(
             {
                 last_assistant_output.push_str(delta);
             }
-            if (kind == "turn_end" || kind == "agent_end") && last_assistant_output.is_empty() {
-                if let Some(text) = parsed.get("message").and_then(extract_assistant_text) {
-                    last_assistant_output = text;
-                } else if let Some(text) = parsed
-                    .get("messages")
-                    .and_then(Value::as_array)
-                    .and_then(|msgs| msgs.iter().rev().find_map(extract_assistant_text))
-                {
-                    last_assistant_output = text;
-                }
+            if kind == "turn_end"
+                && let Some(message) = parsed.get("message")
+                && message.get("role").and_then(Value::as_str) == Some("assistant")
+            {
+                let stop_reason = message.get("stopReason").and_then(Value::as_str);
+                last_assistant_failure =
+                    pi_rpc_turn_boundary::assistant_terminal_failure(stop_reason);
+                last_assistant_output = match stop_reason {
+                    Some("error" | "aborted" | "toolUse") => String::new(),
+                    _ => extract_assistant_text(message).unwrap_or_default(),
+                };
             }
             let summary = parsed
                 .get("message")
@@ -3855,25 +3936,52 @@ async fn start_pi_driver(
                     summary,
                 })
                 .await;
-            if matches!(
-                kind.as_str(),
-                "session_compact" | "compaction_end" | "session_compact_end"
-            ) {
-                let _ = maybe_dispatch_continuous_turn_prompt(
-                    &state_for_events,
-                    "pi rpc compaction completed; dispatching automatic continuation prompt",
-                )
-                .await;
-            }
-            if kind == "agent_end" {
-                let current_task = {
-                    let focusa = state_for_events.focusa.read().await;
-                    focusa.work_loop.current_task.clone()
+            if kind == "agent_settled" {
+                // Keep custody through outcome submission. A replacement driver
+                // cannot settle the previous driver's run.
+                let mut guard = state_for_events.pi_rpc_session.lock().await;
+                let Some(session) = guard.as_mut().filter(|s| s.session_id == attach_session_id)
+                else {
+                    break;
                 };
+                let (still_bound, current_task, task_run_id) = {
+                    let focusa = state_for_events.focusa.read().await;
+                    let wl = &focusa.work_loop;
+                    (
+                        wl.has_bound_transport()
+                            && wl.transport_session_id.as_deref()
+                                == Some(attach_session_id.as_str()),
+                        wl.current_task.clone(),
+                        wl.run.task_run_id,
+                    )
+                };
+                let was_busy = session.turn_boundary.is_busy() && still_bound;
+                let aborted = parsed.get("aborted").and_then(Value::as_bool);
+                let failure = if aborted != Some(false) {
+                    Some("Pi run settled with abort or unknown stop disposition")
+                } else {
+                    last_assistant_failure.take()
+                };
+                if let Some(reason) = failure {
+                    // A quiescent failed run is not clean completion or permission
+                    // to repeat a possibly effectful turn.
+                    if was_busy {
+                        let _ = command_tx
+                            .send(Action::PauseContinuousWork {
+                                reason: reason.to_string(),
+                            })
+                            .await;
+                    }
+                    last_assistant_output.clear();
+                    last_assistant_failure = None;
+                    session.turn_boundary.settle();
+                    seq += 1;
+                    continue;
+                }
                 if let Some(task) = current_task {
                     let assistant_output = last_assistant_output.trim();
                     let has_assistant_output = !assistant_output.is_empty();
-                    if has_assistant_output {
+                    if was_busy && has_assistant_output {
                         let assistant_excerpt =
                             assistant_output.chars().take(220).collect::<String>();
                         let receipt = parse_work_loop_outcome_receipt(assistant_output);
@@ -3906,7 +4014,7 @@ async fn start_pi_driver(
                             });
                         let _ = command_tx
                             .send(Action::ObserveContinuousTurnOutcome {
-                                task_run_id: None,
+                                task_run_id,
                                 work_item_id: Some(task.work_item_id.clone()),
                                 summary,
                                 continue_reason: Some(format!(
@@ -3918,20 +4026,20 @@ async fn start_pi_driver(
                                 evidence_citations,
                             })
                             .await;
-                        let _ = maybe_dispatch_continuous_turn_prompt(
-                            &state_for_events,
-                            "pi rpc agent_end observed and ready work remains",
-                        )
-                        .await;
-                    } else {
-                        let _ = maybe_dispatch_continuous_turn_prompt(
-                            &state_for_events,
-                            "pi rpc turn ended without assistant output (compaction/housekeeping); auto-retrying",
-                        )
-                        .await;
                     }
                 }
                 last_assistant_output.clear();
+                session.turn_boundary.settle();
+                drop(guard);
+                // The incumbent supervisor still checks the ready frontier,
+                // exact scope, verification and budget before another dispatch.
+                if was_busy {
+                    let _ = maybe_dispatch_continuous_turn_prompt(
+                        &state_for_events,
+                        "Pi RPC run settled and ready work remains",
+                    )
+                    .await;
+                }
             }
             seq += 1;
         }
@@ -3947,10 +4055,13 @@ async fn start_pi_driver(
                 None
             }
         };
-        if let Some(mut stale_session) = stale_session {
-            terminate_pi_rpc_child(&mut stale_session.child, stale_session.process_group_id).await;
-        }
+        let Some(mut stale_session) = stale_session else {
+            return;
+        };
+        terminate_pi_rpc_child(&mut stale_session.child, stale_session.process_group_id).await;
 
+        // The daemon admits degradation with this exact transport close,
+        // including when a replacement binds during child termination.
         let _ = command_tx
             .send(Action::IngestContinuousTransportEvent {
                 sequence: seq,
@@ -3958,11 +4069,6 @@ async fn start_pi_driver(
                 session_id: Some(attach_session_id.clone()),
                 turn_id: None,
                 summary: Some("pi rpc stdout stream closed".to_string()),
-            })
-            .await;
-        let _ = command_tx
-            .send(Action::MarkContinuousLoopTransportDegraded {
-                reason: "pi rpc stdout stream closed; restart required".to_string(),
             })
             .await;
     });
@@ -4010,10 +4116,14 @@ async fn prompt_pi_driver(
     {
         return Err(bad_request("streaming_behavior must be steer or followUp"));
     }
+    let id = format!("prompt-{}", Uuid::now_v7());
+    if !session.turn_boundary.reserve(id.clone()) && payload.streaming_behavior.is_none() {
+        return Err(bad_request("Pi RPC outer run has not settled"));
+    }
     let msg = if let Some(streaming_behavior) = payload.streaming_behavior.as_deref() {
-        json!({"id": format!("prompt-{}", Uuid::now_v7()), "type":"prompt", "message": payload.message, "streamingBehavior": streaming_behavior})
+        json!({"id": id, "type":"prompt", "message": payload.message, "streamingBehavior": streaming_behavior})
     } else {
-        json!({"id": format!("prompt-{}", Uuid::now_v7()), "type":"prompt", "message": payload.message})
+        json!({"id": id, "type":"prompt", "message": payload.message})
     };
     session
         .stdin
@@ -6266,6 +6376,7 @@ mod tests {
             .map(|arg| arg.to_string_lossy().to_string())
             .collect();
         assert_eq!(args[0..2], ["--mode", "rpc"]);
+        assert!(!args.iter().any(|arg| arg == "--no-session"));
         assert!(
             args.windows(2)
                 .any(|pair| pair == ["--session", "session-123"])

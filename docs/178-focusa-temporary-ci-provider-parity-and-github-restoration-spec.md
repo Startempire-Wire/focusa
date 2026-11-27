@@ -35,6 +35,9 @@ failure does not prove that compiler unavailable. The controller adapter is
 its exact full SHA. The release controller calls the same reusable workflow
 automatically after the draft exists; workflow dispatch remains an exact-tag
 recovery path. Direct draft uploads avoid Actions artifact-storage dependency.
+The OVH adapter bounds Cargo to one build job so the CLI and daemon builds
+do not compete for memory (#742). The target matrix, compiler options and
+verification requirements remain unchanged.
 AppVeyor queueing still supplies native/installer proof and checks out its
 resolver before use, exporting the resolved account/project for the API request.
 The owner-directed local Windows lane does not depend on AppVeyor queue

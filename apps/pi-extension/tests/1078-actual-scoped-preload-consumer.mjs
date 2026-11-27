@@ -7,8 +7,9 @@ const request = JSON.parse(process.env.FOCUSA_PRELOAD_TEST_REQUEST);
 const runtime = { focusaAvailable: true, sessionCwd: request.project_root, continuityId: request.continuity_id,
   cfg: {focusaApiBaseUrl:`${base}/v1`,focusaToken:process.env.FOCUSA_AUTH_TOKEN,focusaApiTimeoutMs:2500} };
 const key = () => ({workstream:{root_scope:{root_path:request.project_root,scope_kind:'project',scope_id:'synthetic-preload'},continuity_id:request.continuity_id},session_id:'synthetic-preload-consumer'});
+const { verifiedResumeCheckout } = loadPureSourceModule('workpoint-request-binding.ts');
 const detailed = loadSourceSection('tools.ts','  async function focusaFetchDetailed(','  function formatWorkLoopBudgetRemaining',{
-  getAttachmentRuntime:()=>runtime,currentAttachmentKey:key,isProjectRootAuthoritySafe:r=>r===request.project_root,
+  getAttachmentRuntime:()=>runtime,verifiedResumeCheckout,currentAttachmentKey:key,isProjectRootAuthoritySafe:r=>r===request.project_root,
   currentProjectBindingDecision:()=>({state:'BOUND'}),projectBindingAllowsDurableWrites:()=>true,
   focusaApiV1Base:()=>`${base}/v1`,timeoutBudgetForRoute:()=>2500,getActiveWorkpointPacket:()=>null,
   resolveCanonicalMarkerProjectRoot:()=>request.project_root,normalizeProjectRoot:r=>r||'',

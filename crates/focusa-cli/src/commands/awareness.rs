@@ -27,6 +27,9 @@ pub enum AwarenessCmd {
         /// Project/workspace root for project-bound Workpoint lookup.
         #[arg(long)]
         project_root: Option<String>,
+        /// Exact working subpath selector; omission means the primary checkout.
+        #[arg(long)]
+        working_subpath_id: Option<String>,
     },
 }
 
@@ -60,6 +63,7 @@ pub async fn run(cmd: AwarenessCmd, json_mode: bool) -> anyhow::Result<()> {
             session_id,
             continuity_id,
             project_root,
+            working_subpath_id,
         } => {
             let mut qs = Vec::new();
             push_query(&mut qs, "adapter_id", Some(&adapter_id));
@@ -69,8 +73,19 @@ pub async fn run(cmd: AwarenessCmd, json_mode: bool) -> anyhow::Result<()> {
             push_query(&mut qs, "session_id", session_id.as_deref());
             push_query(&mut qs, "continuity_id", continuity_id.as_deref());
             push_query(&mut qs, "project_root", project_root.as_deref());
+            push_query(&mut qs, "working_subpath_id", working_subpath_id.as_deref());
             let path = format!("/v1/awareness/card?{}", qs.join("&"));
             let resp: Value = api.get(&path).await?;
+            if let Some(subpath) = working_subpath_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                && resp.get("canonical").and_then(Value::as_bool) != Some(false)
+                && (resp.get("canonical").and_then(Value::as_bool) != Some(true)
+                    || resp.get("working_subpath_id").and_then(Value::as_str) != Some(subpath))
+            {
+                anyhow::bail!("awareness did not verify the requested working subpath");
+            }
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&resp)?);
             } else if let Some(card) = resp.get("rendered_card").and_then(|v| v.as_str()) {

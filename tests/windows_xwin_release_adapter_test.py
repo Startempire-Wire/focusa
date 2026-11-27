@@ -28,6 +28,7 @@ class WindowsXwinContractTests(unittest.TestCase):
         self.assertEqual(targets, ['x86_64-pc-windows-msvc', 'aarch64-pc-windows-msvc'])
         self.assertIn('authority-root-20260907-0055c689', environment['FOCUSA_AUTHORITY_ROOT_KEYS_JSON'])
         self.assertEqual(environment['CARGO_PROFILE_RELEASE_LTO'], 'false')
+        self.assertEqual(environment['CARGO_BUILD_JOBS'], '1')
 
     def test_release_automatically_calls_existing_windows_producer(self):
         # BaseLoader preserves YAML's `on` key (rather than YAML 1.1 boolean).

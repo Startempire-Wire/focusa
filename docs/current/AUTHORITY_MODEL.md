@@ -13,6 +13,8 @@ Canonical cognition requires verified ScopeRef/ProjectRootKey + WorkstreamId + C
 Advisory/degraded/stale output is never canonical continuation truth.
 ```
 
+The [controller-attested remote read path](../162-remote-workspace-binding-design.md#binding-qualified-identity-and-reads) can report a canonical saved record without granting the caller attachment or execution. An arbitrary registry row, a stale probe and controller-local Git ancestry are not remote identity authority.
+
 ## Authority table
 
 | Surface | Authority role | Canonical when | Non-canonical states |

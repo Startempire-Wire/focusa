@@ -5,6 +5,11 @@ async fn unbound_saved_predecessor_does_not_block_fresh_prepare_checkpoint() {
     for scenario in [
         "first",
         "saved",
+        "recover_derived_marker",
+        "recover_with_blocked_task",
+        "recover_without_previous",
+        "prepare_task_no_longer_ready",
+        "prepare_no_goal",
         "nonprepare",
         "old_id",
         "missing_intent",
@@ -23,7 +28,13 @@ async fn unbound_saved_predecessor_does_not_block_fresh_prepare_checkpoint() {
         "writer_race",
         "context_race",
     ] {
-        let with_saved = scenario != "first";
+        let with_saved = !matches!(
+            scenario,
+            "first"
+                | "recover_without_previous"
+                | "prepare_task_no_longer_ready"
+                | "prepare_no_goal"
+        );
         let should_succeed = matches!(
             scenario,
             "first" | "saved" | "writer_expired" | "writer_foreign"
@@ -68,11 +79,32 @@ async fn unbound_saved_predecessor_does_not_block_fresh_prepare_checkpoint() {
             continuity_id: Some(continuity.into()),
             ..Default::default()
         };
+        let missing_derived_marker = matches!(
+            scenario,
+            "recover_derived_marker" | "recover_with_blocked_task" | "recover_without_previous"
+        );
+        if missing_derived_marker || scenario == "prepare_task_no_longer_ready" {
+            std::fs::create_dir(root.path().join(".beads")).unwrap();
+            let export = json!({"id":"fixture-current-task", "title":"Verify current source",
+                "status": if matches!(scenario, "recover_derived_marker" | "recover_without_previous") { "open" } else { "blocked" }});
+            std::fs::write(
+                root.path().join(".beads/issues.jsonl"),
+                format!("{export}\n"),
+            )
+            .unwrap();
+        }
         let (status, Json(reply)) = crate::routes::project::trajectory_guard(
             scope.clone(),
             State(state.clone()),
             Json(crate::routes::project::TrajectoryGuardRequest {
-                action: Some("migrate".into()),
+                action: Some(
+                    if missing_derived_marker {
+                        "preview"
+                    } else {
+                        "migrate"
+                    }
+                    .into(),
+                ),
                 project_root: Some(project_root.clone()),
                 continuity_id: Some(continuity.into()),
                 confirm: Some(true),
@@ -88,7 +120,11 @@ async fn unbound_saved_predecessor_does_not_block_fresh_prepare_checkpoint() {
             reply
                 .pointer("/trajectory_integrity_guard/status")
                 .and_then(Value::as_str),
-            Some("READY")
+            Some(if missing_derived_marker {
+                "MIGRATION_REQUIRED"
+            } else {
+                "READY"
+            })
         );
         let old = WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
@@ -134,6 +170,10 @@ async fn unbound_saved_predecessor_does_not_block_fresh_prepare_checkpoint() {
             }),
             canonical: Some(true),
             promote: Some(true),
+            prepare_from_current_intent: matches!(
+                scenario,
+                "recover_without_previous" | "prepare_task_no_longer_ready" | "prepare_no_goal"
+            ),
             idempotency_key: Some(format!("fixture-current-{scenario}")),
             ..Default::default()
         };
@@ -150,7 +190,7 @@ async fn unbound_saved_predecessor_does_not_block_fresh_prepare_checkpoint() {
             foreign_goal.active_workpoint_id = Some(foreign.workpoint_id);
             focusa.trajectory.active_trajectory_id = Some(foreign_goal.trajectory_id.clone());
             focusa.trajectory.records.push(foreign_goal);
-            if scenario == "goal_unknown" {
+            if matches!(scenario, "goal_unknown" | "prepare_no_goal") {
                 focusa.trajectory.records[0].canonical = false;
             }
             if scenario == "bound_unknown" {
@@ -292,9 +332,41 @@ async fn unbound_saved_predecessor_does_not_block_fresh_prepare_checkpoint() {
             );
             if matches!(scenario, "writer_live" | "writer_race") {
                 assert_eq!(
-                    result.unwrap_err().1.0["code"],
+                    result.as_ref().unwrap_err().1.0["code"],
                     "WORKPOINT_PREPARE_WRITER_ACTIVE"
                 );
+            }
+            if scenario == "prepare_no_goal" {
+                assert_eq!(
+                    result.as_ref().unwrap_err().1.0["code"],
+                    "WORKPOINT_PREPARE_GOAL_OR_INTENT_UNVERIFIED"
+                );
+            }
+            if matches!(
+                scenario,
+                "recover_with_blocked_task" | "prepare_task_no_longer_ready"
+            ) {
+                let denial = &result.as_ref().unwrap_err().1.0;
+                assert_eq!(denial["code"], "WORKPOINT_PREPARE_TASK_UNVERIFIED");
+                assert!(denial.get("prepare_recovery").is_none());
+            }
+            if matches!(
+                scenario,
+                "recover_derived_marker" | "recover_without_previous"
+            ) {
+                let denial = &result.as_ref().unwrap_err().1.0;
+                assert_eq!(denial["prepare_recovery"]["project_root"], project_root);
+                assert_eq!(denial["prepare_recovery"]["continuity_id"], continuity);
+                assert_eq!(
+                    denial["prepare_recovery"]["trajectory_id"],
+                    "trajectory:checkpoint-fixture"
+                );
+                assert!(denial["prepare_recovery"]["hlt_version"].as_u64().is_some());
+                let marker: Value = serde_json::from_slice(
+                    &std::fs::read(root.path().join(".focusa-project.json")).unwrap(),
+                )
+                .unwrap();
+                assert!(marker.get("workstream_trajectory_bindings").is_none());
             }
             assert_eq!(
                 serde_json::to_value(&*state.focusa.read().await).unwrap(),

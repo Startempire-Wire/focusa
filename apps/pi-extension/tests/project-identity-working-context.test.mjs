@@ -91,7 +91,8 @@ const stateSource = readFileSync(
   fileURLToPath(new URL("../src/state.ts", import.meta.url)),
   "utf8"
 );
-assert.match(stateSource, /resolveProjectIdentityLookupCwd\(\{ projectRoot, ambientCwd, persistedIdentity: persisted \}\)/);
+assert.match(stateSource, /boundCheckout\?\.root \|\| resolveProjectIdentityLookupCwd\(\{ projectRoot, ambientCwd, persistedIdentity: persistedBody \}\)/);
+assert.match(stateSource, /cachedIdentity\.project_identity_api \|\| cachedIdentity/);
 assert.doesNotMatch(
   stateSource,
   /const cwdForIdentity = safe && !ambientInsideProject \? projectRoot : ambientCwd/,
@@ -108,7 +109,7 @@ assert.doesNotMatch(
 );
 assert.match(
   identityBuilderSource,
-  /normalizeProjectRoot\(persistedBody\.project_root\) === authorityProjectRoot/,
+  /persistedBody\.status === "verified" &&\s*normalizeProjectRoot\(persistedBody\.project_root\) === authorityProjectRoot/,
   "stale ambient persistence must not conflict with marker-derived authority"
 );
 assert.match(
