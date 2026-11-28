@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "focusa.remote_workspace_verify.request.v1",
+  "type": "object",
+  "required": [
+    "binding_id",
+    "project_root",
+    "continuity_id",
+    "confirm",
+    "idempotency_key"
+  ],
+  "properties": {
+    "binding_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "continuity_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "confirm": {
+      "type": "boolean",
+      "enum": [
+        true
+      ]
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  },
+  "additionalProperties": false
+}

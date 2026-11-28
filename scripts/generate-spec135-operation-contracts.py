@@ -99,9 +99,12 @@ def operation_policy(descriptor):
         "commercial_treatment": treatments[capability_family],
         "policy_activation": "active",
         "required_feature": None,
-        # Preserve the reviewed /v1/predictions charge when the corrected
-        # path starts resolving through the canonical operation catalog.
-        "limit_bucket": "evidence_records" if operation_id == "focusa.prediction.record" else None,
+        # Exact metering for operations whose route-family charge must survive
+        # resolution through the canonical operation catalog.
+        "limit_bucket": {
+            "focusa.prediction.record": "evidence_records",
+            "focusa.project.remote.verify": "workpoints",
+        }.get(operation_id),
         "recovery_allowance": recovery_allowance,
         "source_owner": descriptor["ownership"]["subsystem"],
         "policy_owner": POLICY_OWNER,

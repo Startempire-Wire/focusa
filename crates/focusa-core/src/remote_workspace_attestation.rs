@@ -49,8 +49,8 @@ pub async fn preview_allowed_workspace(
     Ok(observed)
 }
 
-/// Only the operator-confirmed adoption path calls this. The allowlist
-/// nominates a target; the controller itself must perform the exact probe.
+/// For operator-confirmed verification or adoption. The allowlist nominates
+/// a target; the controller itself must perform the exact probe.
 pub async fn attest_allowed_workspace(
     path: &Path,
     scope: &RemoteOnboardingScope<'_>,

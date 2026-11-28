@@ -107,12 +107,22 @@ Remote registration alone is pending, not proof. In the controller daemon,
 `FOCUSA_REMOTE_ONBOARDING_TARGETS` selects exact owner-approved binding
 records (the `focusa.remote_workspace_binding.v1` schema, requested identity
 and transport; no secret values or asserted verification). Missing or duplicate
-IDs fail closed. An administrator can preview the registered checkout, then
-explicitly confirm existing-provider adoption to record the actual controller
-SSH probe and adoption receipt. The generic binding POST cannot mint a probe.
-A re-apply with the original key refreshes an expired proof without creating
-another receipt. The controller SSH configuration must already pin the target
-host key and authorize the exact workspace owner.
+IDs fail closed. The generic binding POST cannot mint a probe. An administrator
+can verify or refresh the exact registered checkout without adopting it:
+
+```sh
+focusa remote verify --binding-id "$BINDING" --project-root "$ROOT" \
+  --continuity-id "$CONTINUITY" --confirm
+```
+
+The same operation is `POST /v1/remote-workspaces/bindings/verify`, described in
+the live OpenAPI. Supply the exact scope and `confirm: true`, with the request's
+`idempotency_key` and matching `Idempotency-Key` header for entitlement accounting.
+A confirmed refresh performs a new SSH observation. The response records the
+binding and the observation, not adoption or permission to execute work. The
+controller SSH configuration must already pin the host key and authorize the
+exact workspace owner. Bootstrap preview remains read-only; confirmed apply
+still independently checks the checkout before adopting the existing provider.
 
 Genesis stages a bounded frozen plan from the owner-verified queue. Confirmed
 commit rechecks the exact linked checkout and first task, then persists its
@@ -125,11 +135,18 @@ session, evidence-write grant, or writer lease. Attach and verify the exact
 remote workstream before any automated action; do not substitute a local
 marker or a root-only consumer for that proof.
 
+The local `trajectory define-goal` write refuses enrolled remote scopes. Use
+confirmed remote Genesis to persist the first goal and Workpoint together;
+standalone verification cannot update a goal or replace a published intent.
+
 ### Binding-qualified identity and reads
 
 Project Identity (`GET /v1/project/identity`, `POST /v1/project/verify`), Trajectory view, Workpoint resume, and the awareness card use the current controller-issued attestation for enrolled remote roots. Supply the exact remote `project_root` and `continuity_id` along the existing authenticated controller transport. Use `X-Scope-Working-Subpath-Id` to select a registered linked checkout (the card also accepts `working_subpath_id`); `X-Scope-Remote-Binding-Id` can select one exact enrolled binding. Selectors are not credentials. The declared root, continuity, and any supplied subpath must agree, and multiple matching bindings require disambiguation. A missing or stale proof must not redirect the read to a controller-local checkout or another binding.
 
-Identity reports the attested binding even before Genesis is published, but Trajectory, resume, and awareness return saved work only when the corresponding binding-qualified publication and records agree. An exact record can be canonical for its saved scope without proving that the caller is attached or allowed to execute it. These reads perform no effects and do not replace remote Bootstrap/Genesis, Workstream attachment, or writer admission.
+Identity reports the attested binding even before Genesis is published, but Trajectory, resume, and awareness return saved work only when the corresponding binding-qualified publication and records agree. An exact record can be canonical for its saved scope without proving that the caller is attached or allowed to execute it. These reads perform no effects and do not replace remote Bootstrap/Genesis, Workstream attachment, or writer admission. The CLI supports `trajectory view --remote-binding-id` and
+`workpoint resume --remote-binding-id` with explicit `--project-root` and
+`--continuity-id`; `workpoint resume --workpoint-id` checks one exact record and
+reports an invalid ID without fallback or replacing the task.
 
 ### Execution slices (IR2+)
 

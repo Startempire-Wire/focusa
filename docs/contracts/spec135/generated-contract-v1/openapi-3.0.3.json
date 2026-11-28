@@ -13302,6 +13302,110 @@
           }
         },
         "additionalProperties": false
+      },
+      "focusa_remote_workspace_verify_request_v1": {
+        "type": "object",
+        "required": [
+          "binding_id",
+          "project_root",
+          "continuity_id",
+          "confirm",
+          "idempotency_key"
+        ],
+        "properties": {
+          "binding_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "project_root": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "continuity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "confirm": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "additionalProperties": false
+      },
+      "focusa_remote_workspace_verification_v1": {
+        "type": "object",
+        "required": [
+          "schema",
+          "status",
+          "binding_id",
+          "project_root",
+          "continuity_id",
+          "working_subpath_id",
+          "verified_at",
+          "evidence_refs",
+          "execution_admission"
+        ],
+        "properties": {
+          "schema": {
+            "type": "string",
+            "enum": [
+              "focusa.remote_workspace_verification.v1"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "verified"
+            ]
+          },
+          "binding_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "project_root": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "continuity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "working_subpath_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "execution_admission": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          }
+        },
+        "additionalProperties": false
       }
     }
   },
@@ -28769,6 +28873,87 @@
         "x-focusa-scope-keys": [],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "callgraph"
+      }
+    },
+    "/v1/remote-workspaces/bindings/verify": {
+      "post": {
+        "operationId": "focusa.project.remote.verify",
+        "summary": "Verify or refresh a registered remote workspace",
+        "description": "Administrator only. The controller uses its trusted SSH configuration and saves its own proof. No adoption, remote filesystem write or execution authority is granted.",
+        "tags": [
+          "project"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_remote_workspace_verify_request_v1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exact workspace verification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_remote_workspace_verification_v1"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Verification refused before issuing a proof"
+          }
+        },
+        "x-focusa-subsystem": "project",
+        "x-focusa-core-action": "focusa.project.remote.verify",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "admin:service"
+        ],
+        "x-focusa-capabilities": [
+          "project"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": false,
+        "x-focusa-plain-label": "Verify Remote Workspace",
+        "x-focusa-advanced-only": true,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "project",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "confirmed_controller_attestation",
+          "supports_side_effect_policy": [
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null,
+          "operation_class": "value_mutation",
+          "capability_family": "base_focusa",
+          "commercial_treatment": "base_entitlement",
+          "policy_activation": "active",
+          "required_feature": null,
+          "limit_bucket": "workpoints",
+          "recovery_allowance": "none",
+          "source_owner": "project",
+          "policy_owner": "entitlement_policy_resolver",
+          "product_owner": "focusa",
+          "side_effect_class": "local"
+        }
       }
     }
   },

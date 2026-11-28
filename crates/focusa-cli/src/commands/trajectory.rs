@@ -10,7 +10,13 @@ use serde_json::{Value, json};
 #[derive(Subcommand)]
 pub enum TrajectoryCmd {
     /// Read per-project Trajectory Intelligence view.
-    View(ScopeArgs),
+    View {
+        #[command(flatten)]
+        scope: ScopeArgs,
+        /// Exact enrolled controller binding; requires explicit project root and continuity.
+        #[arg(long)]
+        remote_binding_id: Option<String>,
+    },
     /// Persist/define a trajectory goal candidate.
     DefineGoal {
         #[arg(long)]
@@ -247,7 +253,10 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
         }
     }
     match &mut cmd {
-        TrajectoryCmd::View(scope) => {
+        TrajectoryCmd::View {
+            scope,
+            remote_binding_id: None,
+        } => {
             let cwd = std::env::current_dir()?.to_string_lossy().into_owned();
             let selected = resolve_read_scope(
                 scope.project_root.as_deref(),
@@ -257,6 +266,7 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
             scope.project_root = Some(selected.project_root);
             scope.continuity_id = selected.continuity_id;
         }
+        TrajectoryCmd::View { .. } => {}
         TrajectoryCmd::Resume(scope) => canonicalize(&mut scope.project_root),
         TrajectoryCmd::History(args) | TrajectoryCmd::Query(args) => {
             let cwd = std::env::current_dir()?.to_string_lossy().into_owned();
@@ -275,21 +285,49 @@ pub async fn run(mut cmd: TrajectoryCmd, json_output: bool) -> anyhow::Result<()
     }
     let api = ApiClient::new();
     let (label, resp) = match cmd {
-        TrajectoryCmd::View(scope) => {
+        TrajectoryCmd::View {
+            scope,
+            remote_binding_id,
+        } => {
             ensure_project_root_scope_safe(
                 scope.project_root.as_deref(),
                 "trajectory view: project_root",
             )?;
-            (
-                "view",
+            let path = path_for_view(&scope);
+            let result = if let Some(binding) = remote_binding_id.as_deref() {
+                anyhow::ensure!(
+                    !binding.is_empty()
+                        && scope
+                            .project_root
+                            .as_deref()
+                            .is_some_and(|root| !root.is_empty())
+                        && scope
+                            .continuity_id
+                            .as_deref()
+                            .is_some_and(|id| !id.is_empty()),
+                    "remote trajectory view requires the exact binding, project root, and continuity"
+                );
+                let response = ApiClient::local_controller_admin()?
+                    .get_with_headers(&path, &[("x-scope-remote-binding-id", binding)])
+                    .await?;
+                anyhow::ensure!(
+                    response["remote_binding_id"].as_str() == Some(binding)
+                        && response["project_root"].as_str() == scope.project_root.as_deref()
+                        && response["continuity_id"].as_str() == scope.continuity_id.as_deref()
+                        && response["execution_admission"] == false,
+                    "controller did not return a read for the requested remote trajectory"
+                );
+                response
+            } else {
                 read_scoped(
                     &api,
-                    &path_for_view(&scope),
+                    &path,
                     scope.project_root.as_deref(),
                     scope.continuity_id.as_deref(),
                 )
-                .await?,
-            )
+                .await?
+            };
+            ("view", result)
         }
         TrajectoryCmd::History(args) => {
             ensure_project_root_scope_safe(

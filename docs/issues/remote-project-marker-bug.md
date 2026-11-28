@@ -1,58 +1,12 @@
-## Bug Description
+# Remote projects: verify without creating a marker
 
-When Focusa operates on a remote project (via SSH/VPS) that lacks a `.focusa-project.json` marker, it cannot write the marker file to the remote host. This causes:
+The controller does not need a local checkout or a Focusa daemon on the SSH host. It saves the remote workspace identity and first goal and Workpoint on the controller. Do not create a local lookalike or initialize a second task queue to satisfy a scope check.
 
-1. **Focus State tools blocked**: `focusa_current_focus`, `focusa_next_step`, `focusa_workpoint_checkpoint`, etc. all fail with "Attentive and awaiting operator direction" validation rejections
-2. **Scope conflict on resume**: Every new session re-detects the project as low-confidence `cwd_only`
-3. **No persistent project identity**: The project has no way to establish itself as a known Focusa project
+See [the remote workspace contract](../162-remote-workspace-binding-design.md) and [issue #89](https://github.com/Startempire-Wire/focusa/issues/89) for the architecture and remaining installed and isolation proof.
 
-## Root Cause
+1. The controller administrator enrolls the exact binding and registers the existing checkout. Registration alone does not verify it. The controller's SSH host trust and workspace owner access must already be set up.
+2. The administrator runs `focusa remote verify --binding-id "$BINDING" --project-root "$ROOT" --continuity-id "$CONTINUITY" --confirm`. It records a fresh observation without adopting the checkout, granting a writer, or writing a marker. The CLI uses the controller's configured credential over its local connection; never put a credential in the command, an issue, or a binding.
+3. Use the existing-provider `project bootstrap preview` and confirmed `apply` with the explicit remote binding, root and continuity. Do not initialize Git or Beads. Then use `project genesis start` and `commit` with **the same** exact binding, root, continuity and Genesis request key. The first confirmed goal is saved together with its first Workpoint. Do not use the local `trajectory define-goal` route for an enrolled remote workspace.
+4. Read back `focusa trajectory view --remote-binding-id "$BINDING" --project-root "$ROOT" --continuity-id "$CONTINUITY"`. Use the saved ID with `focusa workpoint resume --remote-binding-id "$BINDING" --project-root "$ROOT" --continuity-id "$CONTINUITY" --workpoint-id "$WORKPOINT"`. If a wrong ID is returned as not found, use the correct saved ID (or inspect Genesis status when nothing has been published); do not create a replacement. Restoring a saved Workpoint is not a new permission to execute it.
 
-**Location**: `crates/focusa-api/src/routes/project.rs` — `discover_identity()` function
-
-Focusa has **no remote write capability**:
-- Line 1197: `let remote_nonlocal = remote_hint.is_present() && !start.exists();`
-- When `remote_nonlocal = true`, the marker search returns `None` (no local file exists)
-- Focusa **never attempts to write** the marker — it only searches locally
-- There is no SSH exec/write mechanism in Focusa's remote project handling
-
-For local projects, the operator can run `focusa project init` or similar, but for remote/VPS projects accessed via SSH, Focusa cannot create the marker file itself.
-
-## Expected Behavior
-
-When operating on a verified remote project (confirmed via `remote_host`, `remote_port`, `remote_user` in `RemoteProjectHint`), Focusa should:
-
-1. **Option A (SSH write)**: Use SSH to write `.focusa-project.json` to the remote host automatically
-2. **Option B (SSH mkdir + init command)**: Run `focusa project init` on the remote host via SSH
-3. **Option C (Bootstrap packet)**: When no marker exists on a verified remote project, surface a clear bootstrap action with SSH details pre-filled
-
-## Repro Steps
-
-1. SSH to a remote VPS project without `.focusa-project.json` (e.g., `/home/planmarr/plan-the-marriage` on `67.222.16.22:2200`)
-2. Run any Focusa tool that requires project scope: `focusa_project_identity`, `focusa_trajectory_define_goal`
-3. Tools succeed but project is `cwd_only` / low-confidence
-4. Focus State tools (current_focus, next_step, etc.) **reject with validation error**
-5. Every session restart requires re-verification
-
-## Impact
-
-- **High**: All Focus State tools unusable for remote/VPS projects without existing markers
-- **Medium**: Every session requires manual scope verification
-- **Medium**: Project trajectory/workpoint state does not persist across sessions for remote projects
-
-## Suggested Fix
-
-Add remote write capability to `discover_identity()` or add a new `focusa_project_bootstrap` tool that:
-1. Takes remote_host, remote_port, remote_user as inputs
-2. SSHs to the remote host
-3. Creates `.focusa-project.json` with inferred/operator-supplied fields
-4. Also creates `.beads/` directory
-
-Alternatively, document a workaround: "For remote projects, manually create `.focusa-project.json` first before using Focusa tools."
-
-## Environment
-
-- Focusa version: latest
-- Remote project: VPS via SSH (root@67.222.16.22:2200)
-- Project root: /home/planmarr/plan-the-marriage
-- No `.focusa-project.json` present
+`POST /v1/remote-workspaces/bindings/verify` documents the same administrator operation in the controller's OpenAPI. Use an installed build that advertises it. If a verification has expired, the administrator can refresh it with the same `remote verify` command; this does not require repeating Bootstrap or Genesis. Do not substitute a failed verification with a local project or a stale saved record.

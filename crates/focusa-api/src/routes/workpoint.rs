@@ -3947,6 +3947,8 @@ async fn resume(
             "workpoint_id": null,
             "requested_workpoint_id": requested_workpoint_id,
             "warnings": ["no workpoint available to resume"],
+            "remote_binding_id": remote.as_ref().map(|authority| &authority.binding.binding_id),
+            "execution_admission": false,
             "requested_found": requested_workpoint_id.is_none(),
             "scope_found": false,
             "fallback_used": false,
@@ -3962,7 +3964,11 @@ async fn resume(
                 canonical_for_requested_scope: false,
                 canonical_for_fallback_scope: false,
             }),
-            "next_step_hint": "checkpoint the current mission/action before retrying resume"
+            "next_step_hint": if remote.is_some() {
+                "Check the requested Workpoint against the same binding's saved trajectory. Never create a replacement for a wrong ID. If no work was published, check remote Genesis status."
+            } else {
+                "checkpoint the current mission/action before retrying resume"
+            }
         })));
     };
     let mut scope = evaluate_resume_scope(

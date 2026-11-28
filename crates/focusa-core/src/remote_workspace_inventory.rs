@@ -20,6 +20,10 @@ impl RemoteWorkspaceInspection {
         &self.inventory
     }
 
+    pub fn into_attestation(self) -> RemoteWorkspaceBinding {
+        self.attested
+    }
+
     /// Run a controller-ledger mutation in the same SQLite transaction that
     /// checks the binding. The callback must not perform network or filesystem
     /// writes: those cannot roll back with this transaction.

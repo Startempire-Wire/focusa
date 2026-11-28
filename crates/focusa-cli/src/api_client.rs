@@ -150,6 +150,13 @@ impl ApiClient {
         auth.set_sensitive(true);
         let mut headers = HeaderMap::new();
         headers.insert(AUTHORIZATION, auth);
+        // The daemon still authenticates this credential and authorizes each
+        // request. Declare the scopes used by the pinned controller client;
+        // a bearer does not select those permissions on its own.
+        headers.insert(
+            "x-focusa-permissions",
+            HeaderValue::from_static("read:*,admin:service"),
+        );
         let client = ClientBuilder::new()
             .no_proxy()
             .redirect(reqwest::redirect::Policy::none())

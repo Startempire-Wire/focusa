@@ -52,13 +52,7 @@ pub(in crate::routes) async fn inspect(
     let scope = authority.scope(&req.project_root, &req.continuity_id);
     let path = focusa_db_path(&state.config.data_dir);
     let max_age = MAX_PROBE_AGE;
-    let blocked = |_| {
-        reject(
-            StatusCode::PRECONDITION_FAILED,
-            "remote_bootstrap_verification_failed",
-            "the attested binding or owner-side workspace could not be verified",
-        )
-    };
+    let blocked = |_| remote_verification_failed();
     if matches!(operation, Operation::Status) {
         let ledger = open_ledger(&path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         let receipt = if let Some(attested) = load_controller_attestation(
@@ -119,6 +113,45 @@ pub(in crate::routes) async fn inspect(
     })))
 }
 
+pub(in crate::routes) async fn verify_registered_workspace(
+    state: &AppState,
+    headers: &HeaderMap,
+    binding_id: &str,
+    project_root: &str,
+    continuity_id: &str,
+) -> Result<RemoteWorkspaceBinding, (StatusCode, Json<Value>)> {
+    let authority = resolve_allowed(headers, Some(binding_id)).await?;
+    scoped_value(headers, "x-scope-remote-binding-id", Some(binding_id))?;
+    scoped_value(headers, "x-scope-project-root", Some(project_root))?;
+    scoped_value(headers, "x-scope-continuity-id", Some(continuity_id))?;
+    scoped_value(
+        headers,
+        "x-scope-working-subpath-id",
+        Some(
+            authority
+                .binding
+                .roots
+                .working_subpath
+                .as_deref()
+                .unwrap_or("primary"),
+        ),
+    )?;
+    let scope = authority.scope(project_root, continuity_id);
+    let path = focusa_db_path(&state.config.data_dir);
+    let inspection = attest_allowed_workspace(&path, &scope, &authority.binding)
+        .await
+        .map_err(|_| remote_verification_failed())?;
+    Ok(inspection.into_attestation())
+}
+
+fn remote_verification_failed() -> (StatusCode, Json<Value>) {
+    reject(
+        StatusCode::PRECONDITION_FAILED,
+        "remote_bootstrap_verification_failed",
+        "check the binding's registration, exact workspace, SSH host trust, and existing Beads export",
+    )
+}
+
 pub(in crate::routes) struct RemoteOnboardingAuthority {
     pub binding: RemoteWorkspaceBinding,
     principal_id: String,
@@ -173,7 +206,7 @@ pub(in crate::routes) async fn resolve_authority(
         ).map_err(|error| {
             tracing::warn!(failure = %error, "remote onboarding verification not current");
             reject(StatusCode::PRECONDITION_FAILED, "remote_onboarding_verification_failed", "verify the exact registered binding and refresh its owner-side probe if expired")
-        })?.ok_or_else(|| reject(StatusCode::PRECONDITION_FAILED, "remote_onboarding_current_probe_required", "apply remote Bootstrap with the original replay key to verify this allowlisted checkout"))?;
+        })?.ok_or_else(|| reject(StatusCode::PRECONDITION_FAILED, "remote_onboarding_current_probe_required", "use `focusa remote verify` for the exact enrolled binding, checkout and continuity"))?;
         authority.binding = attested;
         Ok(authority)
     })
@@ -203,27 +236,23 @@ pub(in crate::routes) async fn resolve_read_scope(
         Err(std::env::VarError::NotPresent) if binding_id.is_none() => return Ok(None),
         Err(_) => return Err(read_scope_mismatch()),
     };
-    let requested_root = project_root.unwrap_or("").trim();
+    let is_enrolled_root = |root: &str| {
+        targets
+            .iter()
+            .any(|target| target.roots.canonical_remote_root == root.trim().trim_end_matches('/'))
+    };
     if binding_id.is_none()
-        && !targets.iter().any(|target| {
-            target.roots.canonical_remote_root == requested_root.trim_end_matches('/')
-        })
+        && !project_root.is_some_and(is_enrolled_root)
+        && !headers
+            .get_all("x-scope-project-root")
+            .iter()
+            .any(|value| value.to_str().is_ok_and(is_enrolled_root))
     {
         return Ok(None);
     }
-    let scoped_value = |key, requested: Option<&str>| -> Result<Option<String>, _> {
-        let supplied = headers.get(key).map(|value| value.to_str().unwrap_or(""));
-        if headers.get_all(key).iter().count() > 1
-            || supplied.is_some_and(|value| value.trim().is_empty())
-            || matches!((requested, supplied), (Some(left), Some(right)) if left.trim() != right.trim())
-        {
-            return Err(read_scope_mismatch());
-        }
-        Ok(requested.or(supplied).map(str::trim).map(ToOwned::to_owned))
-    };
-    let root = scoped_value("x-scope-project-root", project_root)?;
-    let continuity = scoped_value("x-scope-continuity-id", continuity_id)?;
-    let subpath = scoped_value("x-scope-working-subpath-id", working_subpath)?;
+    let root = scoped_value(headers, "x-scope-project-root", project_root)?;
+    let continuity = scoped_value(headers, "x-scope-continuity-id", continuity_id)?;
+    let subpath = scoped_value(headers, "x-scope-working-subpath-id", working_subpath)?;
     let (Some(root), Some(continuity)) = (root.as_deref(), continuity.as_deref()) else {
         return Err(read_scope_mismatch());
     };
@@ -231,6 +260,21 @@ pub(in crate::routes) async fn resolve_read_scope(
     resolve_authority(state, headers, Some(id), root, continuity)
         .await
         .map(Some)
+}
+
+fn scoped_value(
+    headers: &HeaderMap,
+    key: &str,
+    requested: Option<&str>,
+) -> Result<Option<String>, (StatusCode, Json<Value>)> {
+    let supplied = headers.get(key).map(|value| value.to_str().unwrap_or(""));
+    if headers.get_all(key).iter().count() > 1
+        || supplied.is_some_and(|value| value.trim().is_empty())
+        || matches!((requested, supplied), (Some(left), Some(right)) if left.trim() != right.trim())
+    {
+        return Err(read_scope_mismatch());
+    }
+    Ok(requested.or(supplied).map(str::trim).map(ToOwned::to_owned))
 }
 
 fn read_scope_mismatch() -> (StatusCode, Json<Value>) {
@@ -392,7 +436,13 @@ async fn resolve_allowed(
     let binding = std::env::var("FOCUSA_REMOTE_ONBOARDING_TARGETS")
         .ok()
         .and_then(|value| select_target(&value, id))
-        .ok_or_else(authority_required)?;
+        .ok_or_else(|| {
+            reject(
+                StatusCode::FORBIDDEN,
+                "remote_onboarding_binding_not_enrolled",
+                "enroll one exact binding on this controller before verifying the workspace",
+            )
+        })?;
     Ok(RemoteOnboardingAuthority {
         binding,
         principal_id: principal.principal.principal_id,
