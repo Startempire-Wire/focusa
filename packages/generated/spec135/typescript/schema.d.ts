@@ -3092,6 +3092,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/remote-workspaces/bindings/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify or refresh a registered remote workspace
+         * @description Administrator only. The controller uses its trusted SSH configuration and saves its own proof. No adoption, remote filesystem write or execution authority is granted.
+         */
+        post: operations["focusa.project.remote.verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6797,6 +6817,29 @@ export interface components {
             revision: number;
             /** @enum {boolean} */
             canonical: true;
+        };
+        focusa_remote_workspace_verify_request_v1: {
+            binding_id: string;
+            project_root: string;
+            continuity_id: string;
+            /** @enum {boolean} */
+            confirm: true;
+            idempotency_key: string;
+        };
+        focusa_remote_workspace_verification_v1: {
+            /** @enum {string} */
+            schema: "focusa.remote_workspace_verification.v1";
+            /** @enum {string} */
+            status: "verified";
+            binding_id: string;
+            project_root: string;
+            continuity_id: string;
+            working_subpath_id: string | null;
+            /** Format: date-time */
+            verified_at: string;
+            evidence_refs: string[];
+            /** @enum {boolean} */
+            execution_admission: false;
         };
     };
     responses: never;
@@ -11915,6 +11958,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
+            };
+        };
+    };
+    "focusa.project.remote.verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_remote_workspace_verify_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Exact workspace verification */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_remote_workspace_verification_v1"];
+                };
+            };
+            /** @description Verification refused before issuing a proof */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

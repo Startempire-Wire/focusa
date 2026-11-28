@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "focusa.remote_workspace_verification.v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "status",
+    "binding_id",
+    "project_root",
+    "continuity_id",
+    "working_subpath_id",
+    "verified_at",
+    "evidence_refs",
+    "execution_admission"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "enum": [
+        "focusa.remote_workspace_verification.v1"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "verified"
+      ]
+    },
+    "binding_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "continuity_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "working_subpath_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "execution_admission": {
+      "type": "boolean",
+      "enum": [
+        false
+      ]
+    }
+  },
+  "additionalProperties": false
+}

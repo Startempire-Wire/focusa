@@ -2591,6 +2591,10 @@ async fn view(
                     json!({
                         "status": "not_found", "canonical": false, "degraded": true,
                         "failure_class": "remote_trajectory_unverified",
+                        "remote_binding_id": authority.binding.binding_id,
+                        "project_root": authority.binding.roots.canonical_remote_root,
+                        "continuity_id": authority.binding.session.continuity_id,
+                        "execution_admission": false,
                         "project_identity": identity["project_identity"],
                         "trajectory": null,
                         "workpoint": null,
@@ -2608,6 +2612,9 @@ async fn view(
                 workpoint,
             };
             let mut payload = trajectory_view_payload_with_remote(&focusa, &query, Some(read));
+            payload["remote_binding_id"] = json!(authority.binding.binding_id);
+            payload["project_root"] = json!(authority.binding.roots.canonical_remote_root);
+            payload["continuity_id"] = json!(authority.binding.session.continuity_id);
             payload["execution_admission"] = json!(false);
             return Json(attach_trajectory_tool_result(payload, vec![], vec![]));
         }
@@ -2625,6 +2632,7 @@ async fn view(
 async fn define_goal(
     _scope: ScopeContext,
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(body): Json<TrajectoryDefineGoalRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // MVP-launch safety: require explicit project_root + continuity_id. Without
@@ -2650,6 +2658,33 @@ async fn define_goal(
                 },
                 "retry_posture": "do_not_retry_unchanged",
                 "next_step_hint": "Both project_root and continuity_id are required for focusa trajectory define-goal. Bind the session via `focusa project identity --project-root <path>` first, then pass the returned project_id and continuity_id to this call.",
+            })),
+        ));
+    }
+
+    // Remote Genesis owns the binding-qualified goal and first Workpoint
+    // transaction. Never send an enrolled remote scope to the local writer.
+    if let Some(authority) = resolve_read_scope(
+        &state,
+        &headers,
+        Some(project_root),
+        Some(continuity_id),
+        None,
+    )
+    .await?
+    {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(json!({
+                "status": "validation_rejected",
+                "failure_class": "remote_trajectory_genesis_required",
+                "canonical": false,
+                "persisted": false,
+                "mutates_canonical_state": false,
+                "binding_id": authority.binding.binding_id,
+                "project_root": project_root,
+                "continuity_id": continuity_id,
+                "next_step_hint": "Use project Genesis with this remote_binding_id to save the confirmed goal and first Workpoint together. If already published, read the existing binding-qualified trajectory.",
             })),
         ));
     }

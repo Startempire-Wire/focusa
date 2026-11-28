@@ -32,7 +32,7 @@ fn serve_json(body: serde_json::Value) -> (SocketAddr, thread::JoinHandle<String
                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                     assert!(
                         Instant::now() < deadline,
-                        "CLI never requested Genesis status"
+                        "CLI never sent its controller request"
                     );
                     thread::sleep(Duration::from_millis(10));
                 }
@@ -236,6 +236,136 @@ fn remote_genesis_status_authenticates_and_checks_the_exact_receipt() {
         }
     }
     assert!(!std::path::Path::new(root).exists());
+}
+
+#[test]
+fn remote_verify_rejects_a_foreign_receipt_without_disclosing_the_credential() {
+    let root = std::env::temp_dir().join(format!("absent-remote-{}", uuid::Uuid::now_v7()));
+    for accepted in [true, false] {
+        let receipt = json!({
+            "schema":"focusa.remote_workspace_verification.v1", "status":"verified",
+            "binding_id": if accepted { "binding-a" } else { "binding-b" },
+            "project_root":root, "continuity_id":"status-a", "verified_at":"2026-01-01T00:00:00Z",
+            "evidence_refs":["fixture"], "execution_admission":false,
+        });
+        let (address, server) = serve_json(receipt.clone());
+        let output = Command::new(env!("CARGO_BIN_EXE_focusa"))
+            .args([
+                "--json",
+                "remote",
+                "verify",
+                "--binding-id",
+                "binding-a",
+                "--project-root",
+            ])
+            .arg(&root)
+            .args([
+                "--continuity-id",
+                "status-a",
+                "--confirm",
+                "--idempotency-key",
+                "verify-test",
+            ])
+            .env("FOCUSA_API_URL", format!("http://{address}"))
+            .env("FOCUSA_AUTH_TOKEN", FIXTURE_TOKEN)
+            .env("FOCUSA_TEST_MODE", "1")
+            .output()
+            .unwrap();
+        let request = server.join().unwrap().to_ascii_lowercase();
+        assert!(request.starts_with("post /v1/remote-workspaces/bindings/verify "));
+        assert!(
+            request
+                .lines()
+                .any(|line| line == format!("authorization: bearer {FIXTURE_TOKEN}"))
+        );
+        assert!(
+            request
+                .lines()
+                .any(|line| line == "idempotency-key: verify-test")
+        );
+        assert!(
+            request
+                .lines()
+                .any(|line| line == "x-focusa-permissions: read:*,admin:service")
+        );
+        assert_eq!(
+            output.status.success(),
+            accepted,
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        if accepted {
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap(),
+                receipt
+            );
+        } else {
+            assert!(
+                json_diagnostic(&output)
+                    .contains("controller did not verify the requested workspace")
+            );
+        }
+    }
+    assert!(!root.exists());
+}
+
+#[test]
+fn remote_resume_distinguishes_exact_read_and_wrong_id_without_fallback() {
+    let root = std::env::temp_dir().join(format!("absent-remote-{}", uuid::Uuid::now_v7()));
+    let id = uuid::Uuid::now_v7();
+    let exact = json!({
+        "status":"active", "canonical":true, "remote_binding_id":"binding-a", "execution_admission":false,
+        "workpoint_id":id, "resume_packet":{"project_root":root,"continuity_id":"status-a"},
+    });
+    let missed = json!({
+        "status":"not_found", "canonical":false, "remote_binding_id":"binding-a", "execution_admission":false,
+        "workpoint_id":null, "requested_workpoint_id":id, "fallback_used":false,
+    });
+    let mut unsafe_fallback = exact.clone();
+    unsafe_fallback["workpoint_id"] = json!(uuid::Uuid::now_v7());
+    unsafe_fallback["fallback_used"] = json!(true);
+    for (reply, accepted) in [(exact, true), (missed, true), (unsafe_fallback, false)] {
+        let (address, server) = serve_json(reply.clone());
+        let output = Command::new(env!("CARGO_BIN_EXE_focusa"))
+            .args([
+                "--json",
+                "workpoint",
+                "resume",
+                "--remote-binding-id",
+                "binding-a",
+                "--project-root",
+            ])
+            .arg(&root)
+            .args(["--continuity-id", "status-a", "--workpoint-id"])
+            .arg(id.to_string())
+            .env("FOCUSA_API_URL", format!("http://{address}"))
+            .env("FOCUSA_AUTH_TOKEN", FIXTURE_TOKEN)
+            .env("FOCUSA_TEST_MODE", "1")
+            .output()
+            .unwrap();
+        let request = server.join().unwrap().to_ascii_lowercase();
+        assert!(request.starts_with("post /v1/workpoint/resume "));
+        assert!(
+            request
+                .lines()
+                .any(|line| line == "x-scope-remote-binding-id: binding-a")
+        );
+        assert_eq!(
+            output.status.success(),
+            accepted,
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        if accepted {
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap(),
+                reply
+            );
+        } else {
+            assert!(json_diagnostic(&output).contains("controller did not return an exact read"));
+        }
+    }
+    assert!(!root.exists());
 }
 
 #[test]

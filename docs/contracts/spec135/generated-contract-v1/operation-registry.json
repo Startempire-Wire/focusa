@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-08-02T14:32:52.996466+00:00",
-  "operation_count": 158,
+  "operation_count": 159,
   "operations": [
     {
       "alias_of": null,
@@ -9240,6 +9240,94 @@
       "spec172_family": "manual_project",
       "product_owner": "focusa",
       "side_effect_class": "none"
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.remote_workspace_verify.request.v1",
+        "output_schema_ref": "focusa.remote_workspace_verification.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project"
+        ],
+        "confirmation": "consequential",
+        "idempotency_required": true,
+        "mode": "commit",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "admin:service"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/162-remote-workspace-binding-design.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project",
+      "label": "Verify Remote Workspace",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.project.remote.verify",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.project.remote.verify",
+        "subsystem": "project"
+      },
+      "path": "/v1/remote-workspaces/bindings/verify",
+      "permissions_required": [
+        "admin:service"
+      ],
+      "request_schema_ref": "focusa.remote_workspace_verify.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.remote_workspace_verification.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.remote_workspace_verify.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "confirmed_controller_attestation",
+      "supports_side_effect_policy": [
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": true,
+        "allowed_in_generated_ui": false,
+        "default_label": "Verify Remote Workspace",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Verify an enrolled checkout without adopting it or granting access to act.",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "operation_class": "value_mutation",
+      "capability_family": "base_focusa",
+      "commercial_treatment": "base_entitlement",
+      "policy_activation": "active",
+      "required_feature": null,
+      "limit_bucket": "workpoints",
+      "recovery_allowance": "none",
+      "source_owner": "project",
+      "policy_owner": "entitlement_policy_resolver",
+      "spec172_family": "manual_project",
+      "product_owner": "focusa",
+      "side_effect_class": "local"
     },
     {
       "alias_of": null,

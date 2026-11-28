@@ -1,16 +1,19 @@
 //! RemoteWorkspaceBinding API surface (#89 slice 3).
 //!
-//! Controller-owned bindings: create/upsert, list, revoke. Persistence and
+//! Controller-owned bindings: create/upsert, list, verify, revoke. Persistence and
 //! invariants live in `focusa-core::remote_workspace`; this route is a thin
 //! typed boundary with the same invariant guarantees surfaced to callers.
 
 use axum::extract::{Query, State};
+use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
+use super::project_bootstrap::remote::verify_registered_workspace;
+use super::project_bootstrap_support::reject;
 use crate::server::AppState;
 use focusa_core::remote_workspace::{
     BindingStatus, RemoteWorkspaceBinding, ensure_schema, list_bindings, upsert_binding,
@@ -21,6 +24,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route(
             "/v1/remote-workspaces/bindings",
             post(create_binding).get(list),
+        )
+        .route(
+            "/v1/remote-workspaces/bindings/verify",
+            post(verify_binding),
         )
         .route(
             "/v1/remote-workspaces/bindings/revoke",
@@ -93,6 +100,67 @@ async fn list(State(state): State<Arc<AppState>>, Query(params): Query<ListParam
             &format!("join error: {error}"),
         )),
     }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct VerifyBindingRequest {
+    binding_id: String,
+    project_root: String,
+    continuity_id: String,
+    idempotency_key: String,
+    confirm: bool,
+}
+
+async fn verify_binding(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(body): Json<VerifyBindingRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if !body.confirm {
+        return Err(reject(
+            StatusCode::PRECONDITION_REQUIRED,
+            "confirmation_required",
+            "confirm the exact workspace verification; it does not adopt the checkout or grant a writer",
+        ));
+    }
+    if body.binding_id.trim().is_empty()
+        || body.binding_id.len() > 256
+        || body.project_root.len() > 4096
+        || body.continuity_id.len() > 256
+    {
+        return Err(reject(
+            StatusCode::BAD_REQUEST,
+            "remote_verification_invalid_scope",
+            "provide one bounded binding ID, checkout and continuity",
+        ));
+    }
+    if body.idempotency_key.trim().is_empty() || body.idempotency_key.len() > 256 {
+        return Err(reject(
+            StatusCode::BAD_REQUEST,
+            "invalid_idempotency_key",
+            "provide a nonempty verification request key of at most 256 bytes",
+        ));
+    }
+    let verified = verify_registered_workspace(
+        &state,
+        &headers,
+        &body.binding_id,
+        &body.project_root,
+        &body.continuity_id,
+    )
+    .await?;
+    Ok(Json(json!({
+        "schema": "focusa.remote_workspace_verification.v1",
+        "status": "verified",
+        "binding_id": verified.binding_id,
+        "project_root": verified.roots.canonical_remote_root,
+        "working_subpath_id": verified.roots.working_subpath,
+        "continuity_id": verified.session.continuity_id,
+        "verified_at": verified.transport.verified_at,
+        "evidence_refs": verified.transport.verification_evidence,
+        "execution_admission": false,
+    })))
 }
 
 async fn revoke_binding(

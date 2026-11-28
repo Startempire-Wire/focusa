@@ -109,6 +109,12 @@ pub enum WorkpointCmd {
         /// Stable logical workstream id for canonical resume.
         #[arg(long)]
         continuity_id: Option<String>,
+        /// Exact enrolled controller binding; requires explicit project root and continuity.
+        #[arg(long)]
+        remote_binding_id: Option<String>,
+        /// Require this exact Workpoint when reading an enrolled remote checkout.
+        #[arg(long, requires = "remote_binding_id")]
+        workpoint_id: Option<uuid::Uuid>,
         /// Print a paste-ready continuation prompt for non-Pi agents.
         #[arg(long)]
         copy_prompt: bool,
@@ -442,28 +448,65 @@ pub async fn run(cmd: WorkpointCmd, json_output: bool) -> anyhow::Result<()> {
             project_root,
             working_subpath_id,
             continuity_id,
+            remote_binding_id,
+            workpoint_id,
             copy_prompt: should_copy_prompt,
         } => {
             ensure_project_root_scope_safe(
                 project_root.as_deref(),
                 "workpoint resume: project_root",
             )?;
-            let (project_root, working_subpath_id) =
-                resolve_workpoint_scope(project_root, working_subpath_id);
+            let (project_root, working_subpath_id) = if let Some(binding) = &remote_binding_id {
+                anyhow::ensure!(
+                    !binding.is_empty()
+                        && project_root.as_deref().is_some_and(|root| !root.is_empty())
+                        && continuity_id.as_deref().is_some_and(|id| !id.is_empty()),
+                    "remote Workpoint resume requires the exact binding, project root, and continuity"
+                );
+                (project_root, working_subpath_id)
+            } else {
+                let (project_root, subpath) =
+                    resolve_workpoint_scope(project_root, working_subpath_id);
+                (project_root, Some(subpath))
+            };
             copy_prompt = should_copy_prompt;
-            (
-                "resume",
-                api.post(
-                    "/v1/workpoint/resume",
-                    &json!({
-                        "mode": if should_copy_prompt { "compact_prompt" } else { mode.as_str() },
-                        "project_root": project_root,
-                        "working_subpath_id": working_subpath_id,
-                        "continuity_id": continuity_id,
-                    }),
-                )
-                .await?,
-            )
+            let body = json!({
+                "mode": if should_copy_prompt { "compact_prompt" } else { mode.as_str() },
+                "project_root": project_root,
+                "working_subpath_id": working_subpath_id,
+                "continuity_id": continuity_id,
+                "workpoint_id": workpoint_id,
+            });
+            let result = if let Some(binding) = remote_binding_id.as_deref() {
+                let response = ApiClient::local_controller_admin()?
+                    .post_with_headers(
+                        "/v1/workpoint/resume",
+                        &body,
+                        &[("x-scope-remote-binding-id", binding)],
+                    )
+                    .await?;
+                let exact_record = response["canonical"] == true
+                    && response["resume_packet"]["project_root"] == body["project_root"]
+                    && response["resume_packet"]["continuity_id"] == body["continuity_id"]
+                    && response["workpoint_id"].as_str().is_some()
+                    && (workpoint_id.is_none() || response["workpoint_id"] == body["workpoint_id"])
+                    && response["fallback_used"] != true;
+                let exact_miss = response["status"] == "not_found"
+                    && response["canonical"] == false
+                    && response["workpoint_id"].is_null()
+                    && response["requested_workpoint_id"] == body["workpoint_id"]
+                    && response["fallback_used"] == false;
+                anyhow::ensure!(
+                    response["remote_binding_id"].as_str() == Some(binding)
+                        && response["execution_admission"] == false
+                        && (exact_record || exact_miss),
+                    "controller did not return an exact read for the requested binding and Workpoint"
+                );
+                response
+            } else {
+                api.post("/v1/workpoint/resume", &body).await?
+            };
+            ("resume", result)
         }
         WorkpointCmd::DriftCheck {
             latest_action,

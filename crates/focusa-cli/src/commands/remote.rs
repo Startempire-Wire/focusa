@@ -1,6 +1,6 @@
 //! `focusa remote` — controller-side RemoteWorkspaceBinding CLI (#89 slice 4).
 //!
-//! bind/status/revoke surface the daemon's binding routes typed earlier
+//! bind/status/verify/revoke surface the daemon's binding routes typed earlier
 //! (slice 3). This is the controller's view: identity is immutable, and
 //! revocation is a typed transition — nothing is ever deleted.
 
@@ -19,6 +19,8 @@ pub enum RemoteCmd {
     Bind(BindArgs),
     /// List bindings (optionally filtered by status).
     Status(StatusArgs),
+    /// Verify or refresh an enrolled checkout through the controller's SSH connection.
+    Verify(VerifyArgs),
     /// Revoke a binding (typed transition; never deleted).
     Revoke(RevokeArgs),
 }
@@ -62,6 +64,22 @@ pub struct StatusArgs {
 }
 
 #[derive(Args, Debug)]
+pub struct VerifyArgs {
+    #[arg(long)]
+    pub binding_id: String,
+    #[arg(long)]
+    pub project_root: String,
+    #[arg(long)]
+    pub continuity_id: String,
+    /// Confirm the controller may verify this checkout; no remote files are changed.
+    #[arg(long)]
+    pub confirm: bool,
+    /// Request accounting key; a refresh performs a new SSH observation.
+    #[arg(long, default_value_t = uuid::Uuid::now_v7().to_string(), hide_default_value = true)]
+    pub idempotency_key: String,
+}
+
+#[derive(Args, Debug)]
 pub struct RevokeArgs {
     /// Binding id.
     #[arg(long)]
@@ -72,8 +90,13 @@ pub struct RevokeArgs {
 }
 
 pub async fn run(cmd: RemoteCmd, json_mode: bool) -> anyhow::Result<()> {
-    let api = crate::api_client::ApiClient::configured_local_controller_admin()?
-        .unwrap_or_else(crate::api_client::ApiClient::new);
+    use crate::api_client::ApiClient;
+    let api = if let RemoteCmd::Verify(args) = &cmd {
+        anyhow::ensure!(args.confirm, "remote verify requires --confirm");
+        ApiClient::local_controller_admin()?
+    } else {
+        ApiClient::configured_local_controller_admin()?.unwrap_or_else(ApiClient::new)
+    };
     let result: Value = match cmd {
         RemoteCmd::Bind(args) => {
             let binding = json!({
@@ -122,6 +145,31 @@ pub async fn run(cmd: RemoteCmd, json_mode: bool) -> anyhow::Result<()> {
                 .unwrap_or_default();
             api.get(&format!("/v1/remote-workspaces/bindings{query}"))
                 .await?
+        }
+        RemoteCmd::Verify(args) => {
+            let response = api
+                .post(
+                    "/v1/remote-workspaces/bindings/verify",
+                    &json!({
+                        "binding_id": args.binding_id,
+                        "project_root": args.project_root,
+                        "continuity_id": args.continuity_id,
+                        "confirm": true,
+                        "idempotency_key": args.idempotency_key,
+                    }),
+                )
+                .await?;
+            anyhow::ensure!(
+                response["schema"] == "focusa.remote_workspace_verification.v1"
+                    && response["status"] == "verified"
+                    && response["binding_id"].as_str() == Some(args.binding_id.as_str())
+                    && response["project_root"].as_str() == Some(args.project_root.as_str())
+                    && response["continuity_id"].as_str() == Some(args.continuity_id.as_str())
+                    && response["verified_at"].as_str().is_some()
+                    && response["execution_admission"] == false,
+                "controller did not verify the requested workspace"
+            );
+            response
         }
         RemoteCmd::Revoke(args) => {
             api.post(
