@@ -1,8 +1,8 @@
 {
   "schema": "focusa.distribution_manifest.v1",
   "release_version": "0.9.212",
-  "source_commit": "604567954",
-  "generated_at": "2026-11-27T10:48:04.634664Z",
+  "source_commit": "de852b7",
+  "generated_at": "2026-11-28T05:22:12.606680Z",
   "digest_contract": "sha256-tree-v1",
   "artifacts": {
     "Cargo.toml": "sha256:46f666f9eae1f150fbbff0c1929ada4b20d1c3896dfbe867806cbce411c9e7a8",
@@ -16,7 +16,7 @@
   "components": {
     "rust_runtime": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:05f26e123e5da352dec55cb8f303a21381ff3aa8f2336e82e46bfde27792a07f",
+      "sha256": "sha256:dc7daa69147f015e74abc34f542a5db55d65a0f19565ad0316beeb99b92129eb",
       "file_count": 883,
       "source_paths": [
         "Cargo.toml",
@@ -43,7 +43,7 @@
     },
     "documentation": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:1f31ce7e218d2828c0e1ca06668ffa86eb025cecbae714d7d9d1622796ff64d5",
+      "sha256": "sha256:c66250b7390245211d4f80fcc9808069fb22d7a149735437b8958975d8a143ad",
       "file_count": 159,
       "source_paths": [
         "AGENTS.md",
@@ -58,8 +58,8 @@
     },
     "generated_clients": {
       "algorithm": "sha256-tree-v1",
-      "sha256": "sha256:aac5e296d216d85bf5d08d6de80b4a6242e3e4d925952b538af6a82a786ca0fd",
-      "file_count": 160,
+      "sha256": "sha256:5269c44adb3bc57e29661df72f498212a4e9a1619ebbf49b1fedc0b6e1462e67",
+      "file_count": 162,
       "source_paths": [
         "packages/generated/spec135",
         "docs/contracts/spec135/generated-contract-v1"
@@ -132,7 +132,7 @@
       "pi_tools_sha256": "sha256:427d612c89b9356f651efc48f357499da56c96509bc1627e2b50023ce2879130",
       "mcp_tools_sha256": "sha256:c2ec673d46c54ea1186b41092624c9f972c442f63b170fd7d2231068d0f81382",
       "openai_tools_sha256": "sha256:6f7d8f0da1c94ff8afe7631c4688b1b6a805f58aa68e78a62d3422f743f88812",
-      "openapi_sha256": "sha256:551bfa8d49a5ecf82a7da96fb1a615300f5fc072e8167011c98991c812d00a1e"
+      "openapi_sha256": "sha256:0f546097ba0a5c5c1697e00a26ca7f7c37ac5aa8294499f95ab6781bf5062f17"
     },
     "runtime_contract": {
       "system_state_root": "/usr/local/lib/focusa",
