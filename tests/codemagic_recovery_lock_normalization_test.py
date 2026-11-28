@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
+import json
+import os
 import subprocess
 import sys
 import tempfile
 import textwrap
 from pathlib import Path
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CODEMAGIC = (ROOT / "codemagic.yaml").read_text(encoding="utf-8")
@@ -85,3 +89,47 @@ wrong_source_version = run(lock("0.9.185"), lock("0.9.187"))
 assert wrong_source_version.returncode != 0
 
 print("PASS: Codemagic recovery lock proof accepts only exact local version drift")
+
+
+def exact_provider_identity():
+    workflows = yaml.safe_load(CODEMAGIC)['workflows']
+    script = workflows['menubar-macos-package-proof']['scripts'][0]['script']
+    assert workflows['rust-macos-release-binaries']['scripts'][0]['script'] == script
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        origin, consumer = root / 'origin', root / 'consumer'
+        subprocess.run(['git', 'init', '-q', str(origin)], check=True)
+        git = ['git', '-C', str(origin), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid']
+        subprocess.run([*git, 'commit', '-q', '--allow-empty', '-m', 'version fixture'], check=True)
+        sha = subprocess.check_output([*git, 'rev-parse', 'HEAD'], text=True).strip()
+        for tag in ('v0.9.212', 'v0.9.214-dev', 'v0.9.214-nightly'):
+            subprocess.run([*git, 'tag', tag, sha], check=True)
+        subprocess.run(['git', 'clone', '-q', '--no-tags', str(origin), str(consumer)], check=True)
+        (consumer / 'config').mkdir()
+        recovery = consumer / 'config/codemagic-release-recovery.json'
+        journal = root / 'cm.env'
+        for tag, commit, use_recovery, passes in (
+            ('v0.9.212', sha, False, True),
+            ('v0.9.214-dev', sha, False, True),
+            ('v0.9.214-dev', sha, True, True),
+            ('v0.9.214-dev', '0' * 40, False, False),
+            ('v0.9.214-dev', '0' * 40, True, False),
+            ('v0.9.214-nightly', sha, False, False),
+            ('v0.9.214-rc', sha, False, False),
+            ('v0.9.215-dev', sha, False, False),
+            ('', sha, False, False),
+        ):
+            journal.write_text('')
+            recovery.write_text(json.dumps({'enabled': True, 'tag': tag, 'sha': commit}))
+            env = {key: os.environ[key] for key in ('PATH', 'HOME') if key in os.environ}
+            env.update(CM_TAG='' if use_recovery else tag, CM_COMMIT='' if use_recovery else commit,
+                       FOCUSA_CODEMAGIC_RECOVERY='enabled' if use_recovery else 'disabled', CM_ENV=str(journal))
+            result = subprocess.run(['bash', '-c', script], cwd=consumer, env=env,
+                                    capture_output=True, text=True, check=False, timeout=10)
+            assert (result.returncode == 0) == passes, (tag, use_recovery, result.stderr)
+            expected = f'FOCUSA_RELEASE_TAG={tag}\nFOCUSA_RELEASE_SHA={sha}\n' if passes else ''
+            assert journal.read_text() == expected
+
+
+exact_provider_identity()
+print('PASS: both Codemagic producers bind stable/dev and recovery to identical immutable ref/SHA checks')

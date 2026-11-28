@@ -9,6 +9,9 @@ on:
       release_sha:
         required: true
         type: string
+      binaries_only:
+        default: false
+        type: boolean
       desktop_nsis:
         default: false
         type: boolean
@@ -33,6 +36,10 @@ on:
         description: Exact immutable candidate commit
         required: true
         type: string
+      binaries_only:
+        description: Produce verified Windows executables without installer tools
+        default: false
+        type: boolean
       desktop_nsis:
         description: Produce and verify signed NSIS installers
         default: false
@@ -50,7 +57,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: windows-ovh-${{ inputs.release_tag }}-${{ inputs.msi_tools_only }}-${{ inputs.desktop_msi }}
+  group: windows-ovh-${{ inputs.release_tag }}
   cancel-in-progress: false
 
 jobs:
@@ -76,7 +83,7 @@ jobs:
           mkdir -p "$controller"
           cp scripts/ci/run-windows-ovh-release.py scripts/ci/build-windows-xwin-release.py \
             scripts/ci/prepare-windows-msi-wine.py scripts/ci/prepare-wine32-runtime.py \
-            scripts/ci/prepare-native-windows-tauri.py \
+            scripts/ci/prepare-native-windows-tauri.py scripts/ci/windows_msi_version.py \
             scripts/ci/windows-nsis-packages.lock "$controller/"
       - uses: actions/checkout@v6
         with:
@@ -86,6 +93,7 @@ jobs:
         env:
           CANDIDATE_TAG: ${{ inputs.release_tag }}
           CANDIDATE_SHA: ${{ inputs.release_sha }}
+          BINARIES_ONLY: ${{ inputs.binaries_only }}
           DESKTOP_NSIS: ${{ inputs.desktop_nsis }}
           DESKTOP_MSI: ${{ inputs.desktop_msi }}
           MSI_TOOLS_ONLY: ${{ inputs.msi_tools_only }}
@@ -94,11 +102,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mode=all
+          modes=()
           extra=(--publish)
-          if [ "$DESKTOP_NSIS" = true ]; then mode=nsis; fi
-          if [ "$DESKTOP_MSI" = true ]; then mode=msi; fi
-          if [ "$MSI_TOOLS_ONLY" = true ]; then mode=msi-tools; extra=(); fi
+          if [ "$BINARIES_ONLY" = true ]; then modes+=(binaries); fi
+          if [ "$DESKTOP_NSIS" = true ]; then modes+=(nsis); fi
+          if [ "$DESKTOP_MSI" = true ]; then modes+=(msi); fi
+          if [ "$MSI_TOOLS_ONLY" = true ]; then modes+=(msi-tools); extra=(); fi
+          if (( ${#modes[@]} > 1 )); then
+            echo 'Exactly one Windows stage can run at a time' >&2
+            exit 64
+          fi
+          mode=${modes[0]:-all}
           python3 "$RUNNER_TEMP/focusa-windows-controller-${GITHUB_RUN_ID}/run-windows-ovh-release.py" \
             --source "$GITHUB_WORKSPACE" --tag "$CANDIDATE_TAG" --sha "$CANDIDATE_SHA" \
             --mode "$mode" "${extra[@]}"

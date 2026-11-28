@@ -548,6 +548,9 @@ else
   scripts/stamp-release-version "${VERSION}"
   scripts/stamp-menubar-version.py "${TAG}"
 fi
+if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
+  python3 scripts/ci/windows_msi_version.py "$TAG"
+fi
 # Check local source integrity before pushing; full behavior tests are owned by
 # exact-commit CI after stamping and sealing, not a second local build.
 echo "=== source integrity: local-release-preflight --strict ==="

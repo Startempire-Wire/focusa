@@ -33,7 +33,8 @@ workflows:
         - apps/menubar/node_modules
         - apps/menubar/src-tauri/target
     scripts:
-      - name: Verify immutable release identity
+      - &immutable_release_identity
+        name: Verify immutable release identity
         script: |
           set -euo pipefail
           recovery_file="config/codemagic-release-recovery.json"
@@ -51,7 +52,7 @@ workflows:
             release_tag="${CM_TAG:-}"
             release_sha="${CM_COMMIT:-}"
           fi
-          [[ "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]
           [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
           git fetch --force origin "refs/tags/${release_tag}:refs/tags/${release_tag}"
           tag_sha="$(git rev-parse "${release_tag}^{commit}")"
@@ -230,33 +231,7 @@ workflows:
         - $HOME/.cargo/git
         - target
     scripts:
-      - name: Verify immutable release identity
-        script: |
-          set -euo pipefail
-          recovery_file="config/codemagic-release-recovery.json"
-          if [[ "${FOCUSA_CODEMAGIC_RECOVERY:-disabled}" == "enabled" ]]; then
-            [[ -f "$recovery_file" ]]
-            identity="$(python3 - "$recovery_file" <<'PY'
-          import json, sys
-          payload = json.load(open(sys.argv[1], encoding="utf-8"))
-          print("true" if payload.get("enabled") is True else "false", payload.get("tag", ""), payload.get("sha", ""), sep="\t")
-          PY
-            )"
-            IFS=$'\t' read -r recovery_enabled release_tag release_sha <<< "$identity"
-            [[ "$recovery_enabled" == "true" ]]
-          else
-            release_tag="${CM_TAG:-}"
-            release_sha="${CM_COMMIT:-}"
-          fi
-          [[ "$release_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
-          git fetch --force origin "refs/tags/${release_tag}:refs/tags/${release_tag}"
-          tag_sha="$(git rev-parse "${release_tag}^{commit}")"
-          [[ "$tag_sha" == "$release_sha" ]]
-          git checkout --detach "$release_sha"
-          [[ "$(git rev-parse HEAD)" == "$release_sha" ]]
-          printf 'FOCUSA_RELEASE_TAG=%s\nFOCUSA_RELEASE_SHA=%s\n' "$release_tag" "$release_sha" >> "$CM_ENV"
-          echo "codemagic_recovery_identity=passed tag=$release_tag sha=$release_sha"
+      - *immutable_release_identity
       - name: Show build context
         script: |
           set -euo pipefail

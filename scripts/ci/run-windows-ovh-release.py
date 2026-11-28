@@ -15,8 +15,52 @@ import shlex
 import subprocess
 import sys
 
+from windows_msi_version import checked_source_msi_version
+
 NSIS_PACKAGE_LOCK = Path(__file__).with_name('windows-nsis-packages.lock')
 LINUX_CACHE_TARGETS = ['x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu', 'x86_64-unknown-linux-musl']
+MIB, GIB = 2**20, 2**30
+# Envelopes calibrated from the exact v0.9.212 operators' custody receipts and
+# v0.9.213-dev stage allocations (#746). Conservatively charge another full
+# checkout, scratch/copies, and 1.75 GiB of competing host growth. These are
+# admission estimates, not claims about an observed filesystem high-water.
+CHECKOUT_SCRATCH_MARGIN = (800 + 512 + 1792) * MIB
+NSIS_EXTRACT_BYTES = 237_578_240
+WINDOWS_STAGE_PEAK_BYTES = {
+    'binaries': CHECKOUT_SCRATCH_MARGIN + 2560 * MIB,
+    'nsis': CHECKOUT_SCRATCH_MARGIN + NSIS_EXTRACT_BYTES + 2304 * MIB,
+    'msi': CHECKOUT_SCRATCH_MARGIN + NSIS_EXTRACT_BYTES + 2704 * MIB,
+    'msi-tools': CHECKOUT_SCRATCH_MARGIN + 2704 * MIB,
+    'all': CHECKOUT_SCRATCH_MARGIN + NSIS_EXTRACT_BYTES + (2560 + 2304 + 2704) * MIB,
+}
+
+
+def projected_headroom(used, available, peak):
+    if any(type(value) is not int or value < 0 for value in (used, available, peak)) or not (used + available) or not peak:
+        raise ValueError('measured allocated and available bytes and a positive stage budget are required')
+    # The strict percentage uses bytes available to the build user, not
+    # superuser-reserved blocks or rounding at the 90% boundary.
+    capacity = used + available
+    remaining = available - peak
+    projected = used + peak
+    return {'used_bytes': used, 'available_bytes': available, 'peak_growth_bytes': peak,
+            'projected_free_bytes': remaining, 'projected_used_percent': 100 * projected / capacity,
+            'passes': 10 * projected < 9 * capacity and remaining >= 15 * GIB}
+
+
+def stage_headroom(source, temporary, sdk_cache, mode):
+    volume = Path(temporary)
+    shared = Path(os.environ.get('FOCUSA_WINDOWS_PACKAGE_CACHE', '/home/wirebot/build/focusa/windows-packaging-cache'))
+    paths = (source, sdk_cache, volume, shared if shared.exists() else shared.parent, Path('/tmp'))
+    device = volume.stat().st_dev
+    if any(path.stat().st_dev != device for path in paths):
+        raise ValueError('Windows stage requires a measured reserve on the same runner volume')
+    fs = os.statvfs(volume)
+    projection = projected_headroom((fs.f_blocks - fs.f_bfree) * fs.f_frsize,
+                                    fs.f_bavail * fs.f_frsize, WINDOWS_STAGE_PEAK_BYTES[mode])
+    print('Windows projected stage reserve:', json.dumps({'mode': mode, 'device': device, **projection}), flush=True)
+    if not projection['passes']:
+        raise ValueError(f'projected Windows {mode} peak exceeds admitted runner headroom')
 
 
 def run(command, **kwargs):
@@ -42,7 +86,7 @@ def reclaim_completed_msi_tools(temporary, archive, current_run):
     """Reclaim only terminal, receipt-identified job-owned tools; retain evidence."""
     repository = os.environ['GITHUB_REPOSITORY']
     for folder in temporary.glob('focusa-windows-pipeline-*'):
-        match = re.fullmatch(r'focusa-windows-pipeline-(\d+)-(\d+)', folder.name)
+        match = re.fullmatch(r'focusa-windows-pipeline-(\d+)-(\d+)(?:-(?:all|binaries|nsis|msi|msi-tools))?', folder.name)
         if not match or match[1] == current_run or folder.is_symlink():
             continue
         tools = folder / 'msi-tools'
@@ -164,7 +208,28 @@ def publish(output, tag):
                    if path.is_file() and not path.name.endswith('.minisig'))
     if not files or not list(output.glob('*receipt.json')):
         raise ValueError('verified producer receipt and artifacts required before upload')
-    run(['gh', 'release', 'upload', tag, *files, '--clobber'])
+    repo = os.environ['GITHUB_REPOSITORY']
+    expected = {path.name: (path.stat().st_size, 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest())
+                for path in files}
+
+    def pending_assets():
+        release = json.loads(subprocess.check_output(['gh', 'release', 'view', tag, '--repo', repo,
+                                                      '--json', 'tagName,isDraft,assets'], text=True))
+        if release['tagName'] != tag or release['isDraft'] is not True:
+            raise ValueError('producer requires the exact existing draft release')
+        assets = {asset['name']: asset for asset in release['assets']}
+        for name, (size, digest) in expected.items():
+            asset = assets.get(name)
+            if asset is not None and (asset.get('state'), asset.get('size'), asset.get('digest')) != ('uploaded', size, digest):
+                raise ValueError(f'existing draft asset conflicts with verified producer output: {name}')
+        return [path for path in files if path.name not in assets]
+
+    pending = pending_assets()
+    if pending:
+        run(['gh', 'release', 'upload', tag, '--repo', repo, *pending])
+    if pending_assets():
+        raise ValueError('verified Windows stage assets are not in draft custody')
+    print('Verified Windows draft custody:', json.dumps({'tag': tag, 'assets': expected}), flush=True)
 
 
 def main():
@@ -181,6 +246,8 @@ def main():
         raise ValueError('exact existing release tag required')
     if not re.fullmatch('[a-f0-9]{40}', args.sha):
         raise ValueError('exact immutable source SHA required')
+    if args.mode in {'all', 'msi'}:
+        checked_source_msi_version(args.source, args.tag)
     stages = ['validate_candidate', 'reclaim_idle_cache', 'prepare_isolated_tools',
               'check_exact_headroom', 'canonical_build_and_verify']
     if args.publish:
@@ -194,7 +261,9 @@ def main():
         raise ValueError('run on the approved non-root OVH CI build worker')
     controller = Path(__file__).resolve().parent
     temporary = Path(os.environ['RUNNER_TEMP']).resolve()
-    job = os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT']
+    job = '-'.join((os.environ['GITHUB_RUN_ID'], os.environ['GITHUB_RUN_ATTEMPT'], args.mode))
+    # No build directory or extraction before the measured stage admission.
+    stage_headroom(args.source.resolve(), temporary, args.sdk_cache.resolve(), args.mode)
     work = temporary / ('focusa-windows-pipeline-' + job)
     work.mkdir(parents=True, exist_ok=False)
     target, output = work / 'target', work / 'artifacts'
@@ -248,13 +317,19 @@ def main():
                  '--tools-directory', work / 'msi-tools'], env=env)
             run([*command, '--desktop-msi', '--msi-tools', work / 'msi-tools',
                  '--desktop-cache', cache], env=env)
+        if args.mode == 'nsis':
+            # Stash both exact compiled inputs before the verified NSIS output
+            # can leave the job; the MSI stage cannot rebuild on a cache miss.
+            preserve_binaries(target, cache / job, args.tag, args.sha)
         if args.publish:
             publish(output, args.tag)
     finally:
         if target.is_dir():
-            saved = Path('/home/wirebot/build/focusa') / (
-                'windows-desktop-binaries-' + args.tag) / job
-            preserve_binaries(target, saved, args.tag, args.sha)
+            if args.mode != 'msi':
+                saved = Path('/home/wirebot/build/focusa') / (
+                    'windows-desktop-binaries-' + args.tag) / job
+                if not (saved / 'compilation-receipt.json').is_file():
+                    preserve_binaries(target, saved, args.tag, args.sha)
             run(['cargo', 'clean', '--target-dir', target], cwd=args.source, env=env)
         print('Post-build storage:', json.dumps(disk_status()))
 

@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import io
 from pathlib import Path
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -12,6 +13,10 @@ import os
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts/ci'))
+from windows_msi_version import checked_msi_version, project_msi_version, stamp_tauri_version
+
+
 def load(name, file):
     spec = importlib.util.spec_from_file_location(name, ROOT / 'scripts/ci' / file)
     module = importlib.util.module_from_spec(spec)
@@ -23,6 +28,34 @@ WINE = load('wine_msi', 'prepare-windows-msi-wine.py')
 CONTROLLER = load('msi_controller', 'run-windows-ovh-release.py')
 
 class NativeMsiInputTests(unittest.TestCase):
+    def test_preview_and_stable_keep_distinct_release_and_msi_identities(self):
+        config = {'version': '0.9.213-dev', 'bundle': {'windows': {'webviewInstallMode': {'type': 'skip'}}}}
+        with self.assertRaisesRegex(ValueError, 'ProductVersion'):
+            checked_msi_version(config, 'v0.9.213-dev')
+        stamp_tauri_version(config, '0.9.214-dev')
+        self.assertEqual(config['version'], '0.9.214-dev')
+        self.assertEqual(config['bundle']['windows']['wix'], {'version': '0.9.214'})
+        self.assertEqual(checked_msi_version(config, 'v0.9.214-dev'), '0.9.214')
+        with self.assertRaisesRegex(ValueError, 'exact release tag'):
+            checked_msi_version(config, 'v0.9.214')
+        stamp_tauri_version(config, '0.9.215')
+        self.assertEqual(config['bundle']['windows'], {'webviewInstallMode': {'type': 'skip'}})
+        self.assertEqual(checked_msi_version(config, 'v0.9.215'), '0.9.215')
+        numeric = lambda value: tuple(map(int, project_msi_version(value)[0].split('.')))
+        self.assertLess(numeric('0.9.213'), numeric('0.9.214-dev'))
+        self.assertLess(numeric('0.9.214-dev'), numeric('0.9.215'))
+
+    def test_wrong_projection_and_custom_wix_fail_closed(self):
+        for wix in (None, {'version': '0.9.213'}, {'version': '0.9.214-dev'},
+                    {'version': '0.9.214', 'template': 'custom.wxs'}):
+            config = {'version': '0.9.214-dev', 'bundle': {'windows': {'wix': wix}}}
+            with self.subTest(wix=wix), self.assertRaisesRegex(ValueError, 'ProductVersion'):
+                checked_msi_version(config, 'v0.9.214-dev')
+        for version in ('256.0.1', '0.256.1-dev', '0.9.65536-dev', '0.9.214-nightly', '0.09.214-dev'):
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                project_msi_version(version)
+        self.assertEqual(project_msi_version('255.255.65535-dev')[0], '255.255.65535')
+
     def test_packaging_budget_does_not_relax_full_build_budget(self):
         measured = {'used_percent': 90.66, 'free_gib': 17.97}
         with self.assertRaises(ValueError):

@@ -15,6 +15,8 @@ import subprocess
 
 import yaml
 
+from windows_msi_version import checked_msi_version, checked_source_msi_version
+
 
 def recipe(source):
     contract = yaml.safe_load((source / '.appveyor.yml').read_text())
@@ -87,11 +89,36 @@ def reset_bundle_marker(binary):
     binary.write_bytes(data)
 
 
+def find_cached_desktop(cache, tag, sha, target):
+    if cache is None or not cache.is_dir():
+        return None
+    for handle in sorted(cache.glob('*/compilation-receipt.json'), reverse=True):
+        receipt = json.loads(handle.read_text())
+        if receipt.get('source_sha') != sha or receipt.get('tag') != tag:
+            continue
+        for record in receipt.get('compiled_desktop_artifacts', []):
+            if record.get('target') != target:
+                continue
+            binary = Path(record['path'])
+            binary.resolve().relative_to(handle.parent.resolve())
+            if (not binary.is_symlink() and binary.is_file()
+                    and hashlib.sha256(binary.read_bytes()).hexdigest() == record['sha256']):
+                return binary
+    return None
+
+
 def build_nsis(args, source, targets, env):
     """Use the package-owned Tauri bundler; verify updater signatures, not native runtime."""
     import base64
     app = source / 'apps/menubar'
     config = json.loads((app / 'src-tauri/tauri.conf.json').read_text())
+    package_format = 'msi' if getattr(args, 'desktop_msi', False) else 'nsis'
+    cached_inputs = {target: find_cached_desktop(getattr(args, 'desktop_cache', None), args.tag, args.sha, target)
+                     for target in targets}
+    if package_format == 'msi':
+        product_version = checked_msi_version(config, args.tag)
+        if not all(cached_inputs.values()):
+            raise ValueError('MSI packaging requires verified immutable desktop inputs for both targets')
     public_box = base64.b64decode(config['plugins']['updater']['pubkey']).decode()
     public_key = next(line for line in public_box.splitlines()
                       if line and not line.startswith('untrusted comment:'))
@@ -108,7 +135,6 @@ def build_nsis(args, source, targets, env):
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     records = []
-    package_format = 'msi' if getattr(args, 'desktop_msi', False) else 'nsis'
     launcher = ['node']
     if package_format == 'msi':
         import importlib.util
@@ -118,23 +144,7 @@ def build_nsis(args, source, targets, env):
         launcher, native_env = native_tauri.prepare(app, args.msi_tools.resolve(), env.copy())
     for target in targets:
         env['XWIN_ARCH'] = target.split('-', 1)[0]
-        cached = None
-        cache = getattr(args, 'desktop_cache', None)
-        if cache and cache.is_dir():
-            for handle in sorted(cache.glob('*/compilation-receipt.json'), reverse=True):
-                receipt = json.loads(handle.read_text())
-                if receipt.get('source_sha') != args.sha or receipt.get('tag') != args.tag:
-                    continue
-                for record in receipt.get('compiled_desktop_artifacts', []):
-                    if record.get('target') != target:
-                        continue
-                    binary = Path(record['path']).resolve()
-                    binary.relative_to(handle.parent.resolve())
-                    if binary.is_file() and hashlib.sha256(binary.read_bytes()).hexdigest() == record['sha256']:
-                        cached = binary
-                        break
-                if cached:
-                    break
+        cached = cached_inputs[target]
         if cached:
             destination = args.target_dir.resolve() / target / 'release/focusa-menubar.exe'
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -152,12 +162,10 @@ def build_nsis(args, source, targets, env):
                     if 'experimental wow64 mode' not in attempt.stdout or 'stack overflow' not in attempt.stdout:
                         raise subprocess.CalledProcessError(attempt.returncode, command)
                     native_tauri.finish_generated_msi(app, args.msi_tools.resolve(), args.target_dir,
-                                                      target, env)
+                                                      target, env, args.tag)
             else:
                 subprocess.run(command, cwd=app, env=env, check=True)
         else:
-            if package_format == 'msi':
-                raise ValueError('MSI packaging requires the verified immutable desktop cache')
             subprocess.run(['node', str(cli), 'build', '--runner', 'cargo-xwin',
                             '--target', target, '--bundles', 'nsis'], cwd=app, env=env, check=True)
         bundle = args.target_dir.resolve() / target / ('release/bundle/' + package_format)
@@ -181,7 +189,7 @@ def build_nsis(args, source, targets, env):
                            env=inspection_env, check=True, timeout=120)
             tree = ET.parse(xml)
             product = next(element for element in tree.iter() if element.tag.endswith('}Product'))
-            if product.get('Version') != args.tag.removeprefix('v'):
+            if product.get('Version') != product_version:
                 raise ValueError('MSI database product version mismatch')
             expected_binary = args.target_dir.resolve() / target / 'release/focusa-menubar.exe'
             expected_hash = hashlib.sha256(expected_binary.read_bytes()).hexdigest()
@@ -208,6 +216,8 @@ def build_nsis(args, source, targets, env):
                'msi_database_and_payload_verification': 'passed' if package_format == 'msi' else 'not_applicable',
                'msi_control_reference_verification': 'passed' if package_format == 'msi' else 'not_applicable',
                'windows_ice_validation': 'not_run_wine_unsupported' if package_format == 'msi' else 'not_applicable'}
+    if package_format == 'msi':
+        receipt['msi_product_version'] = product_version
     (output / ('windows-' + package_format + '-receipt.json')).write_text(json.dumps(receipt, indent=2) + '\n')
     print(json.dumps(receipt))
 
@@ -238,7 +248,11 @@ def main():
         raise ValueError('immutable tag does not match candidate SHA')
     if git(source, 'status', '--porcelain'):
         raise ValueError('candidate source must be clean')
+    if args.desktop_msi:
+        checked_source_msi_version(source, args.tag)
     packages, surfaces, targets, contract_env = recipe(source)
+    if args.desktop_msi and not all(find_cached_desktop(args.desktop_cache, args.tag, args.sha, target) for target in targets):
+        raise ValueError('MSI packaging requires verified immutable desktop inputs for both targets')
     commands = [['cargo', 'xwin', 'build', '--locked', '--release', '--target', target,
                  '--target-dir', str(args.target_dir.resolve()),
                  *[value for package in packages for value in ('-p', package)]]

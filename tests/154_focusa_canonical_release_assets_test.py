@@ -109,7 +109,9 @@ class ReleasePublicationRegressionTests(unittest.TestCase):
     def test_receipt_gates_and_immutable_validation_cannot_be_skipped(self):
         workflow = self.workflow()
         jobs = workflow["jobs"]
-        self.assertIn("windows-ovh-executables", jobs["external-menubar-receipts"]["needs"])
+        self.assertIn("windows-ovh-desktop-msi", jobs["external-menubar-receipts"]["needs"])
+        self.assertEqual(jobs["windows-ovh-desktop-msi"]["needs"], "windows-ovh-desktop-nsis")
+        self.assertEqual(jobs["windows-ovh-desktop-nsis"]["needs"], "windows-ovh-executables")
         for gate in ("external-menubar-receipts", "external-rust-binaries", "rust-check"):
             self.assertIn(gate, jobs["checksums"]["needs"])
         immutable = next(s for s in jobs["rust-check"]["steps"] if s.get("name") == "Verify immutable tag identity")

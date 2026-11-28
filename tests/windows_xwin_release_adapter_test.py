@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 import subprocess
+import sys
 from types import SimpleNamespace
 from unittest.mock import patch
 from pathlib import Path
@@ -15,6 +16,7 @@ import unittest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts/ci'))
 SPEC = importlib.util.spec_from_file_location('windows_xwin', ROOT / 'scripts/ci/build-windows-xwin-release.py')
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
@@ -34,15 +36,25 @@ class WindowsXwinContractTests(unittest.TestCase):
         # BaseLoader preserves YAML's `on` key (rather than YAML 1.1 boolean).
         release = yaml.load((ROOT / '.github/workflows/release.yml').read_text(), Loader=yaml.BaseLoader)
         producer = yaml.load((ROOT / '.github/workflows/windows-ovh-build.yml').read_text(), Loader=yaml.BaseLoader)
-        job = release['jobs']['windows-ovh-executables']
-        self.assertEqual(job['needs'], 'create-release')
-        self.assertEqual(job['uses'], './.github/workflows/windows-ovh-build.yml')
-        self.assertEqual(set(job['with']), {'release_tag', 'release_sha'})
-        self.assertIn('workflow_call', producer['on'])
-        self.assertIn('windows-ovh-executables', release['jobs']['external-rust-binaries']['needs'])
-        self.assertEqual(job['secrets'], 'inherit')
-        self.assertNotIn('windows-ovh-desktop', release['jobs'])
-        self.assertIn('windows-ovh-executables', release['jobs']['external-menubar-receipts']['needs'])
+        previous = 'create-release'
+        release_identity = None
+        for job_id, mode in (('windows-ovh-executables', 'binaries_only'),
+                             ('windows-ovh-desktop-nsis', 'desktop_nsis'),
+                             ('windows-ovh-desktop-msi', 'desktop_msi')):
+            job = release['jobs'][job_id]
+            self.assertEqual(job['needs'], previous)
+            self.assertEqual(job['uses'], './.github/workflows/windows-ovh-build.yml')
+            self.assertEqual(set(job['with']), {'release_tag', 'release_sha', mode})
+            self.assertEqual(job['with'][mode], 'true')
+            identity = (job['with']['release_tag'], job['with']['release_sha'])
+            self.assertEqual(identity, release_identity or identity)
+            release_identity = identity
+            self.assertEqual(job['secrets'], 'inherit')
+            self.assertIn(mode, producer['on']['workflow_call']['inputs'])
+            previous = job_id
+        self.assertIn(previous, release['jobs']['rust-release']['needs'])
+        for consumer in ('external-menubar-receipts', 'external-rust-binaries'):
+            self.assertTrue({previous, 'rust-release', 'pi-extension-release'} <= set(release['jobs'][consumer]['needs']))
         ci = yaml.load((ROOT / '.github/workflows/ci.yml').read_text(), Loader=yaml.BaseLoader)
         self.assertTrue(any('windows_xwin_release_adapter_test.py' in step.get('run', '')
                             for step in ci['jobs']['release-automation-static']['steps']))
@@ -133,6 +145,25 @@ class WindowsXwinContractTests(unittest.TestCase):
 
     def test_same_candidate_compilation_is_reused_without_rust_rebuild(self):
         self.run_nsis_fixture(cached=True)
+
+    def test_cache_lookup_checks_all_of_tag_source_target_and_current_bytes(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory)
+            compiled = cache / 'completed-nsis' / 'focusa-menubar.exe'
+            compiled.parent.mkdir()
+            compiled.write_bytes(b'fixture-pe')
+            target = 'aarch64-pc-windows-msvc'
+            tag, sha = 'v0.9.214-dev', 'a' * 40
+            receipt = {'tag': tag, 'source_sha': sha, 'compiled_desktop_artifacts': [
+                {'target': target, 'path': str(compiled), 'sha256': hashlib.sha256(compiled.read_bytes()).hexdigest()}]}
+            (compiled.parent / 'compilation-receipt.json').write_text(json.dumps(receipt))
+            self.assertEqual(MODULE.find_cached_desktop(cache, tag, sha, target), compiled)
+            self.assertIsNone(MODULE.find_cached_desktop(cache, 'v0.9.213-dev', sha, target))
+            self.assertIsNone(MODULE.find_cached_desktop(cache, tag, 'b' * 40, target))
+            self.assertIsNone(MODULE.find_cached_desktop(cache, tag, sha, 'x86_64-pc-windows-msvc'))
+            compiled.write_bytes(b'corrupted')
+            self.assertIsNone(MODULE.find_cached_desktop(cache, tag, sha, target))
 
     def test_nsis_signature_failure_prevents_artifact_staging_and_receipt(self):
         self.run_nsis_fixture(reject_signature=True)
@@ -225,6 +256,21 @@ class WindowsPipelineTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.pipeline.require_headroom(status)
 
+    def test_release_stage_disk_guard_fails_closed_at_exact_boundaries(self):
+        project = self.pipeline.projected_headroom
+        capacity = 310_894_637_056
+        peak = self.pipeline.WINDOWS_STAGE_PEAK_BYTES['msi']
+        allowed_use = (9 * capacity - 1) // 10 - peak
+        self.assertTrue(project(allowed_use, capacity - allowed_use, peak)['passes'])
+        self.assertFalse(project(allowed_use + 1, capacity - allowed_use - 1, peak)['passes'])
+        self.assertTrue(project(0, 15 * 2**30 + peak, peak)['passes'])
+        self.assertFalse(project(0, 15 * 2**30 + peak - 1, peak)['passes'])
+        self.assertFalse(project(274_157_772_800, 36_736_864_256,
+                                 self.pipeline.WINDOWS_STAGE_PEAK_BYTES['all'])['passes'])
+        for bad in (None, True, -1, 2.5):
+            with self.assertRaises(ValueError):
+                project(0, bad, peak)
+
     def test_owned_cache_marker_precedes_cached_binary_creation(self):
         source = (ROOT / 'scripts/ci/run-windows-ovh-release.py').read_text()
         self.assertIn('Signature: 8a477f597d28d172789f06886806bc55', source)
@@ -245,6 +291,34 @@ class WindowsPipelineTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.pipeline.publish(output, 'v0.9.202')
                 command.assert_not_called()
+
+    def test_producer_keeps_prior_draft_assets_and_requires_upload_custody(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            file = output / 'windows-msi-receipt.json'
+            file.write_bytes(b'verified test receipt')
+            tag = 'v0.9.214-dev'
+            asset = {'name': file.name, 'state': 'uploaded', 'size': file.stat().st_size,
+                     'digest': 'sha256:' + hashlib.sha256(file.read_bytes()).hexdigest()}
+            draft = lambda assets: json.dumps({'tagName': tag, 'isDraft': True, 'assets': assets})
+            env = {'GITHUB_REPOSITORY': 'example/focusa'}
+            with patch.dict(self.pipeline.os.environ, env), patch.object(self.pipeline, 'run') as upload:
+                with patch.object(self.pipeline.subprocess, 'check_output', side_effect=[draft([]), draft([asset])]):
+                    self.pipeline.publish(output, tag)
+                self.assertEqual(upload.call_args.args[0][-1], file)
+                self.assertNotIn('--clobber', upload.call_args.args[0])
+                upload.reset_mock()
+                with patch.object(self.pipeline.subprocess, 'check_output', return_value=draft([asset])):
+                    self.pipeline.publish(output, tag)
+                upload.assert_not_called()
+                with patch.object(self.pipeline.subprocess, 'check_output', return_value=draft([{**asset, 'digest': 'sha256:wrong'}])):
+                    with self.assertRaisesRegex(ValueError, 'conflicts'):
+                        self.pipeline.publish(output, tag)
+                upload.assert_not_called()
+                with patch.object(self.pipeline.subprocess, 'check_output', return_value=draft([])):
+                    with self.assertRaisesRegex(ValueError, 'not in draft custody'):
+                        self.pipeline.publish(output, tag)
 
     def test_compiled_inputs_and_hashes_survive_cleanup(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -169,6 +169,7 @@ jobs:
           [ -n "$run" ] || { echo "::error::Missing successful main CI gate for $RELEASE_SHA"; exit 1; }
           echo "candidate_gate_reused workflow=CI sha=$RELEASE_SHA receipt=$run"
           python3 scripts/verify-version-surfaces.py "$RELEASE_TAG"
+          python3 scripts/ci/windows_msi_version.py "$RELEASE_TAG"
           python3 scripts/distribution_manifest.py --check --source-ancestor
       - name: OTA installability release contract gate
         env:
@@ -581,7 +582,7 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     # Producer-before-waiter: do not consume a bounded OVH lane while local
     # support artifacts are still queued on that same runner pool.
-    needs: [create-release, pi-extension-release, windows-ovh-executables]
+    needs: [create-release, pi-extension-release, rust-release, windows-ovh-desktop-msi]
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 150
     steps:
@@ -604,7 +605,9 @@ jobs:
   rust-release:
     name: Rust Binaries (${{ matrix.target }})
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: create-release
+    # Do not retain three Linux target trees on the shared volume while the
+    # Windows installer stages still need isolated tool and linker space.
+    needs: [create-release, windows-ovh-desktop-msi]
     strategy:
       fail-fast: true
       matrix:
@@ -721,20 +724,41 @@ jobs:
   # built off GitHub and uploaded back to this release. This gate fails closed
   # until all 16 external binaries (8 macOS + 8 Windows) are attached.
   windows-ovh-executables:
-    name: Automatic Windows executable and desktop producer
+    name: Windows executable producer
     needs: create-release
     uses: ./.github/workflows/windows-ovh-build.yml
     secrets: inherit
     with:
       release_tag: ${{ inputs.release_tag || github.ref_name }}
       release_sha: ${{ inputs.release_sha || github.sha }}
+      binaries_only: true
+
+  windows-ovh-desktop-nsis:
+    name: Windows NSIS and verified desktop input producer
+    needs: windows-ovh-executables
+    uses: ./.github/workflows/windows-ovh-build.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ inputs.release_tag || github.ref_name }}
+      release_sha: ${{ inputs.release_sha || github.sha }}
+      desktop_nsis: true
+
+  windows-ovh-desktop-msi:
+    name: Windows MSI producer using exact verified desktop inputs
+    needs: windows-ovh-desktop-nsis
+    uses: ./.github/workflows/windows-ovh-build.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ inputs.release_tag || github.ref_name }}
+      release_sha: ${{ inputs.release_sha || github.sha }}
+      desktop_msi: true
 
   external-rust-binaries:
     name: External Rust Binary Receipt Gate
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     # Producer-before-waiter: all Linux matrix rows must release their bounded
     # OVH lanes before a long external-provider receipt wait may begin.
-    needs: [create-release, rust-release, windows-ovh-executables]
+    needs: [create-release, rust-release, pi-extension-release, windows-ovh-desktop-msi]
     runs-on: [self-hosted, Linux, X64, ovh-build-2]
     timeout-minutes: 150
     steps:

@@ -162,8 +162,11 @@ jobs:
           chmod +x tests/release_deploy_automation_static_test.sh
           ./tests/release_deploy_automation_static_test.sh
 
-      - name: Automatic Windows producer and full-release gate regressions
-        run: python3 tests/windows_xwin_release_adapter_test.py
+      - name: Windows staged producer and exact macOS release guard regressions
+        run: |
+          python3 tests/windows_xwin_release_adapter_test.py
+          python3 tests/windows_native_msi_adapter_test.py
+          python3 tests/codemagic_recovery_lock_normalization_test.py
 
       - name: Signed publication and native updater signature regressions
         run: |

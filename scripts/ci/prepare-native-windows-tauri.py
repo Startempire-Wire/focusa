@@ -13,6 +13,8 @@ import tarfile
 import urllib.request
 import zipfile
 
+from windows_msi_version import checked_msi_version
+
 NODE_VERSION = '22.22.3'
 CARGO_VERSION = '1.91.0'
 PACKAGE = 'node_modules/@tauri-apps/cli-win32-x64-msvc'
@@ -146,11 +148,12 @@ class MsiControls {
     subprocess.run([wine, windows_path(executable), windows_path(installer)], env=runtime, check=True, timeout=90)
 
 
-def finish_generated_msi(app, tools, target_dir, target, env):
+def finish_generated_msi(app, tools, target_dir, target, env, release_tag):
     """Execute Tauri's generated WiX recipe at the owned Unix/Wine boundary."""
     config = json.loads((app / 'src-tauri/tauri.conf.json').read_text())
-    if config['bundle'].get('windows', {}).get('wix'):
-        raise ValueError('custom WiX recipes require their owning execution adapter')
+    # Only the canonical version-only override is supported; custom WiX
+    # templates, fragments and extension configurations remain inadmissible.
+    checked_msi_version(config, release_tag)
     arch = {'x86_64-pc-windows-msvc': 'x64', 'aarch64-pc-windows-msvc': 'arm64'}[target]
     release = target_dir.resolve() / target / 'release'
     build = release / 'wix' / arch

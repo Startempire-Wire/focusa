@@ -111,6 +111,14 @@ install:
           Exit-AppveyorBuild
         }
       }
+  - ps: |
+      if ($env:SURFACE -eq "menubar" -and ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:FOCUSA_RECOVERY_TAG)) {
+        $tag = if ($env:FOCUSA_RECOVERY_TAG) { $env:FOCUSA_RECOVERY_TAG } else { $env:APPVEYOR_REPO_TAG_NAME }
+        if ($tag.EndsWith('-dev')) {
+          python scripts/ci/windows_msi_version.py $tag
+          if ($LASTEXITCODE -ne 0) { throw "Windows MSI ProductVersion preflight failed" }
+        }
+      }
   - powershell -NoProfile -File tests/appveyor_release_lookup_test.ps1
   - appveyor DownloadFile https://win.rustup.rs/x86_64 -FileName rustup-init.exe
   - rustup-init.exe -y --default-toolchain nightly-2026-08-28 --target %RUST_TARGET%

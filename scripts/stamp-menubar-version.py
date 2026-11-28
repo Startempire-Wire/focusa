@@ -20,6 +20,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ci.windows_msi_version import TAURI_CONFIG, stamp_tauri_version
 from distribution_manifest import build_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,7 +56,10 @@ def parse_version(raw: str) -> str:
 def replace_json_version(path: str, version: str) -> None:
     file_path = ROOT / path
     data = json.loads(file_path.read_text(encoding="utf-8"))
-    data["version"] = version
+    if Path(path) == TAURI_CONFIG:
+        stamp_tauri_version(data, version)
+    else:
+        data["version"] = version
     if path.endswith("package-lock.json"):
         packages = data.get("packages")
         if isinstance(packages, dict):
