@@ -75,7 +75,7 @@ for operation_id, descriptor in operations.items():
     assert descriptor["control"]["mode"] in {"read", "preview", "commit"}
     assert descriptor["control"]["confirmation"] in {"none", "simple", "consequential"}
     assert descriptor["ui"]["default_label"]
-    if descriptor["method"] != "GET":
+    if descriptor["control"]["mode"] != "read":
         assert descriptor["control"]["receipt_required"] is True
 
 assert bindings["schema"] == "focusa.ui_action_binding_index.v1"
@@ -87,6 +87,14 @@ allowed_ids = {
     if operation["ui"]["allowed_in_generated_ui"]
 }
 assert binding_ids == allowed_ids
+
+# Controller attestation is discoverable for administrators, not a generated UI action.
+remote_verify = "focusa.project.remote.verify"
+assert operations[remote_verify]["control"]["permission_scopes"] == ["admin:service"]
+assert operations[remote_verify]["ui"]["allowed_in_generated_ui"] is False
+assert openapi_operations[remote_verify]["x-focusa-generated-ui"] is False
+assert remote_verify not in binding_ids
+
 for binding in bindings["bindings"]:
     assert binding["schema"] == "focusa.ui_action_binding.v1"
     assert binding["contracts"] == operations[binding["action_id"]]["contracts"]

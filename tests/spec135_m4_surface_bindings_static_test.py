@@ -37,10 +37,11 @@ def main():
 
     registry = load("operation-registry.json")
     operations = {row["operation_id"]: row for row in registry["operations"]}
-    for operation_id in (
+    surface_binding_operations = (
         "focusa.mission_canvas.surface_binding.list",
         "focusa.mission_canvas.surface_binding.mutate",
-    ):
+    )
+    for operation_id in surface_binding_operations:
         operation = operations[operation_id]
         assert operation_id in capabilities
         assert operation["scope"]["required_keys"] == [
@@ -66,7 +67,7 @@ def main():
 
     actions = load("ui-action-bindings.fixture.json")
     action_ids = {row["action_id"] for row in actions["bindings"]}
-    assert set(operations).issubset(action_ids)
+    assert set(surface_binding_operations) <= action_ids
     assert (
         "surface_binding_list"
         in (R / "packages/generated/spec135/typescript/schema.d.ts").read_text()
