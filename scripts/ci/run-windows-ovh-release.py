@@ -203,6 +203,27 @@ def prepare_nsis(tools, env):
     run(['pkg-config', '--libs-only-L', 'ayatana-appindicator3-0.1'], env=env)
 
 
+def release_rows(endpoint, projection):
+    # The stock OVH gh client omits digest from `gh release view --json assets`.
+    # Read the forge's native REST fields, one JSON object per paginated row.
+    data = subprocess.check_output(['gh', 'api', '--paginate', endpoint, '--jq',
+                                    f'.[] | {projection} | @json'], text=True)
+    return [json.loads(line) for line in data.splitlines() if line.strip()]
+
+
+def exact_draft_id(repo, tag):
+    # The tag-specific release endpoint cannot see drafts. Resolve via the
+    # authenticated collection, as the native Windows producer does.
+    rows = release_rows(f'repos/{repo}/releases?per_page=100',
+                        f'select(.tag_name == {json.dumps(tag)}) | {{id, tag_name, draft}}')
+    if len(rows) != 1 or rows[0].get('tag_name') != tag or rows[0].get('draft') is not True:
+        raise ValueError('producer requires the exact existing draft release')
+    release_id = rows[0].get('id')
+    if type(release_id) is not int or release_id <= 0:
+        raise ValueError('producer requires a valid numeric draft release ID')
+    return release_id
+
+
 def publish(output, tag):
     files = sorted(path for path in output.iterdir()
                    if path.is_file() and not path.name.endswith('.minisig'))
@@ -212,12 +233,14 @@ def publish(output, tag):
     expected = {path.name: (path.stat().st_size, 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest())
                 for path in files}
 
+    draft_id = exact_draft_id(repo, tag)
+
     def pending_assets():
-        release = json.loads(subprocess.check_output(['gh', 'release', 'view', tag, '--repo', repo,
-                                                      '--json', 'tagName,isDraft,assets'], text=True))
-        if release['tagName'] != tag or release['isDraft'] is not True:
-            raise ValueError('producer requires the exact existing draft release')
-        assets = {asset['name']: asset for asset in release['assets']}
+        rows = release_rows(f'repos/{repo}/releases/{draft_id}/assets?per_page=100',
+                            '{name, state, size, digest}')
+        assets = {asset['name']: asset for asset in rows}
+        if len(assets) != len(rows):
+            raise ValueError('draft asset names are ambiguous')
         for name, (size, digest) in expected.items():
             asset = assets.get(name)
             if asset is not None and (asset.get('state'), asset.get('size'), asset.get('digest')) != ('uploaded', size, digest):
@@ -227,7 +250,7 @@ def publish(output, tag):
     pending = pending_assets()
     if pending:
         run(['gh', 'release', 'upload', tag, '--repo', repo, *pending])
-    if pending_assets():
+    if exact_draft_id(repo, tag) != draft_id or pending_assets():
         raise ValueError('verified Windows stage assets are not in draft custody')
     print('Verified Windows draft custody:', json.dumps({'tag': tag, 'assets': expected}), flush=True)
 

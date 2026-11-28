@@ -301,24 +301,47 @@ class WindowsPipelineTests(unittest.TestCase):
             tag = 'v0.9.214-dev'
             asset = {'name': file.name, 'state': 'uploaded', 'size': file.stat().st_size,
                      'digest': 'sha256:' + hashlib.sha256(file.read_bytes()).hexdigest()}
-            draft = lambda assets: json.dumps({'tagName': tag, 'isDraft': True, 'assets': assets})
+            draft = json.dumps({'id': 1234, 'tag_name': tag, 'draft': True}) + '\n'
+            asset_line = json.dumps(asset) + '\n'
             env = {'GITHUB_REPOSITORY': 'example/focusa'}
             with patch.dict(self.pipeline.os.environ, env), patch.object(self.pipeline, 'run') as upload:
-                with patch.object(self.pipeline.subprocess, 'check_output', side_effect=[draft([]), draft([asset])]):
+                with patch.object(self.pipeline.subprocess, 'check_output',
+                                  side_effect=[draft, '', draft, asset_line]) as reads:
                     self.pipeline.publish(output, tag)
+                for idx, endpoint in enumerate(['releases?per_page=100', 'releases/1234/assets?per_page=100'] * 2):
+                    self.assertEqual(reads.call_args_list[idx].args[0][:4],
+                                     ['gh', 'api', '--paginate', 'repos/example/focusa/' + endpoint])
                 self.assertEqual(upload.call_args.args[0][-1], file)
                 self.assertNotIn('--clobber', upload.call_args.args[0])
                 upload.reset_mock()
-                with patch.object(self.pipeline.subprocess, 'check_output', return_value=draft([asset])):
+                with patch.object(self.pipeline.subprocess, 'check_output',
+                                  side_effect=[draft, asset_line, draft, asset_line]):
                     self.pipeline.publish(output, tag)
-                upload.assert_not_called()
-                with patch.object(self.pipeline.subprocess, 'check_output', return_value=draft([{**asset, 'digest': 'sha256:wrong'}])):
-                    with self.assertRaisesRegex(ValueError, 'conflicts'):
+                for bad in ({**asset, 'digest': 'sha256:wrong'}, {**asset, 'digest': None},
+                            {**asset, 'state': 'starter'}, {**asset, 'size': 0}):
+                    with patch.object(self.pipeline.subprocess, 'check_output',
+                                      side_effect=[draft, json.dumps(bad)]):
+                        with self.assertRaisesRegex(ValueError, 'conflicts'):
+                            self.pipeline.publish(output, tag)
+                with patch.object(self.pipeline.subprocess, 'check_output', side_effect=[draft, asset_line * 2]):
+                    with self.assertRaisesRegex(ValueError, 'ambiguous'):
                         self.pipeline.publish(output, tag)
-                upload.assert_not_called()
-                with patch.object(self.pipeline.subprocess, 'check_output', return_value=draft([])):
+                with patch.object(self.pipeline.subprocess, 'check_output', side_effect=[draft, asset_line, draft, '']):
                     with self.assertRaisesRegex(ValueError, 'not in draft custody'):
                         self.pipeline.publish(output, tag)
+                with patch.object(self.pipeline.subprocess, 'check_output', side_effect=[draft, asset_line, draft.replace('1234', '5678')]):
+                    with self.assertRaisesRegex(ValueError, 'not in draft custody'):
+                        self.pipeline.publish(output, tag)
+                upload.assert_not_called()
+
+    def test_exact_draft_id_rejects_missing_duplicate_published_and_invalid_id(self):
+        tag = 'v0.9.214-dev'
+        draft = {'id': 1234, 'tag_name': tag, 'draft': True}
+        for rows in ([], [draft, draft], [{**draft, 'draft': False}], [{**draft, 'id': True}],
+                     [{**draft, 'id': -1}], [{**draft, 'tag_name': 'v0.9.213-dev'}]):
+            with patch.object(self.pipeline, 'release_rows', return_value=rows):
+                with self.assertRaisesRegex(ValueError, 'draft release'):
+                    self.pipeline.exact_draft_id('example/focusa', tag)
 
     def test_compiled_inputs_and_hashes_survive_cleanup(self):
         with tempfile.TemporaryDirectory() as directory:
